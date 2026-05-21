@@ -136,6 +136,52 @@ def thesis_status(ticker_dir: Path) -> str:
     return m.group(1).lower() if m else "unclear"
 
 
+def one_line_thesis(ticker_dir: Path) -> str | None:
+    thesis = ticker_dir / "research" / "thesis.md"
+    if not thesis.exists():
+        return None
+    text = thesis.read_text(encoding="utf-8", errors="ignore")
+    m = re.search(r"## One-line thesis\s*\n\s*\n(.+?)(?:\n\n|\Z)", text, re.DOTALL)
+    if not m:
+        return None
+    return re.sub(r"\*\*", "", m.group(1).strip())
+
+
+def latest_deep_dive(ticker_dir: Path) -> dict | None:
+    research = ticker_dir / "research"
+    if not research.exists():
+        return None
+    dives = sorted(research.glob("deep_dive_*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not dives:
+        return None
+    path = dives[0]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    rel = str(path.relative_to(ROOT)).replace("\\", "/")
+    date_m = re.search(r"deep_dive_(\d{4}-\d{2}-\d{2})\.md$", path.name)
+    dive_date = date_m.group(1) if date_m else None
+
+    summary = None
+    sm = re.search(r"## Executive summary\s*\n\s*\n(.+?)(?:\n\n---|\n\n## )", text, re.DOTALL)
+    if sm:
+        summary = sm.group(1).strip()
+        summary = re.sub(r"\*\*", "", summary)
+        if len(summary) > 600:
+            summary = summary[:597] + "..."
+
+    dive_status = thesis_status(ticker_dir)
+    ts = re.search(r"\*\*Thesis status:\*\*\s*\*\*(\w+)\*\*", text)
+    if ts:
+        dive_status = ts.group(1).lower()
+
+    return {
+        "path": rel,
+        "date": dive_date,
+        "thesis_status": dive_status,
+        "executive_summary": summary,
+        "github_url": f"https://github.com/GoldmanDrew/single-stock-investments/blob/main/{rel}",
+    }
+
+
 def recent_files(ticker_dir: Path, limit: int = 5) -> list[dict]:
     skip_dirs = {"research", ".git"}
     files = []
@@ -180,15 +226,26 @@ def recent_developments(ticker_dir: Path, ticker: str) -> list[dict]:
         except json.JSONDecodeError:
             pass
 
-    research = ticker_dir / "research" / "reports"
+    research = ticker_dir / "research"
+    dive_paths: list[Path] = []
     if research.exists():
-        for f in sorted(research.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:3]:
+        dive_paths = sorted(research.glob("deep_dive_*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:2]
+        for f in dive_paths:
             devs.append({
                 "date": datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d"),
-                "type": "research",
-                "label": f.name.replace("_", " ").replace(".md", ""),
+                "type": "deep_dive",
+                "label": f"Deep dive — {f.stem.replace('deep_dive_', '')}",
                 "source": "Marvin",
             })
+        reports = research / "reports"
+        if reports.exists():
+            for f in sorted(reports.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:3]:
+                devs.append({
+                    "date": datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d"),
+                    "type": "research",
+                    "label": f.name.replace("_", " ").replace(".md", ""),
+                    "source": "Marvin",
+                })
 
     for rf in recent_files(ticker_dir, limit=3):
         if rf["type"] == "pdf" and not any(d.get("label", "").endswith(rf["name"]) for d in devs):
@@ -245,6 +302,8 @@ def build_ticker_row(ticker: str, holdings: dict[str, dict]) -> dict:
         "last_download": last_download(ticker_dir),
         "last_research": last_research(ticker_dir),
         "thesis_status": thesis_status(ticker_dir),
+        "one_line_thesis": one_line_thesis(ticker_dir),
+        "deep_dive": latest_deep_dive(ticker_dir),
         "recent_files": recent_files(ticker_dir),
         "developments": recent_developments(ticker_dir, ticker),
     }

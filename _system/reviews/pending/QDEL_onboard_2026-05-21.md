@@ -9,16 +9,18 @@
 
 QuidelOrtho (QDEL, CIK 0001906324) has been onboarded to the US template.
 
-| Item | Result |
-|------|--------|
-| README | Created |
-| Download script | `investor-documents/download_qdel_investor_docs.py` |
-| SEC filings | 42 downloaded (10-K, 10-Q, 8-K, DEF 14A, S-3ASR) |
-| IR PDFs | 0 (IR site returned no static PDF links; 404 on news-events URL) |
-| research/ | Created with `thesis.md` |
-| Third-party PDF | Moved to `investor-documents/research-notes/` |
-| Manifest | `DOWNLOAD_MANIFEST.json` |
-| Log | `_download_log.txt` |
+
+| Item            | Result                                                           |
+| --------------- | ---------------------------------------------------------------- |
+| README          | Created                                                          |
+| Download script | `investor-documents/download_qdel_investor_docs.py`              |
+| SEC filings     | 42 downloaded (10-K, 10-Q, 8-K, DEF 14A, S-3ASR)                 |
+| IR PDFs         | 0 (IR site returned no static PDF links; 404 on news-events URL) |
+| research/       | Created with `thesis.md`                                         |
+| Third-party PDF | Moved to `investor-documents/research-notes/`                    |
+| Manifest        | `DOWNLOAD_MANIFEST.json`                                         |
+| Log             | `_download_log.txt`                                              |
+
 
 ---
 
@@ -35,10 +37,12 @@ QuidelOrtho (QDEL, CIK 0001906324) has been onboarded to the US template.
 **unclear**
 
 ## [HUMAN REVIEW]
+
 - Review latest 10-K (filed 2026-02-19) before drafting thesis
 - Confirm whether IR PDF harvest needs Vicki interactive scrape
 
 ## [PROPOSED MEMORY]
+
 - [PROPOSED] QDEL CIK is 0001906324; SEC archive complete through 2026-05-21
 - [PROPOSED] QDEL IR PDFs require alternate harvest strategy (static scrape returned 0)
 

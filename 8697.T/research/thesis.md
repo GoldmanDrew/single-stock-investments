@@ -26,7 +26,8 @@ Volume collapse, regulatory fee caps, clearing pass-through normalization, opera
 
 Simple business and moat: strong. Downside protection at cycle-high earnings: **partial** — wait for better entry on volume scares if valuation stretched.
 
-## [HUMAN REVIEW]
+## Approved
 
-- Confirm valuation vs normalized earnings before sizing.
-- Full deep dive: `8697.T/research/deep_dive_2026-05-21.md`
+**Human approved:** 2026-05-21 — see `_system/reviews/approved/8697.T_deep_dive_2026-05-21.md`
+
+Standing item: confirm valuation vs normalized earnings before sizing position.

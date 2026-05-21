@@ -167,6 +167,21 @@
 
   .empty { padding: 40px; text-align: center; color: var(--text-muted); }
   .loading { padding: 60px; text-align: center; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+  .research-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.55;
+  }
+  .research-box .thesis-line {
+    color: var(--accent-cyan); font-weight: 600; margin-bottom: 10px;
+  }
+  .research-box .summary { color: var(--text-secondary); margin-bottom: 12px; }
+  .research-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--accent-blue);
+    text-decoration: none; font-family: 'JetBrains Mono', monospace;
+  }
+  .research-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -313,6 +328,19 @@ function selectTicker(ticker) {
         <div class="metric"><div class="k">Last research</div><div class="v">${t.last_research || '—'}</div></div>
       </div>
     </div>
+
+    ${t.deep_dive ? `
+    <div class="detail-section">
+      <h3>Marvin deep dive · ${t.deep_dive.date || ''}</h3>
+      <div class="research-box">
+        ${t.one_line_thesis ? `<div class="thesis-line">${t.one_line_thesis}</div>` : ''}
+        ${t.deep_dive.executive_summary ? `<div class="summary">${t.deep_dive.executive_summary}</div>` : ''}
+        <span class="badge ${THESIS_BADGE[t.deep_dive.thesis_status] || 'badge-warn'}">${t.deep_dive.thesis_status}</span>
+        <div style="margin-top:12px">
+          <a class="research-link" href="${t.deep_dive.github_url}" target="_blank" rel="noopener">Full report on GitHub →</a>
+        </div>
+      </div>
+    </div>` : ''}
 
     <div class="detail-section">
       <h3>Recent developments</h3>

@@ -6,7 +6,7 @@ Marvin proposes updates as `[PROPOSED]` bullets in `_system/memory/daily/{date}.
 
 Reference library: `_system/reference/investment-wisdom/` (Munger, Pabrai, Stahl PDFs).
 
-**Last human promotion:** 2026-05-21 — all Munger, Pabrai, and Stahl starter beliefs from daily log.
+**Last human promotion:** 2026-05-21 — wisdom beliefs + **8697.T** company deep dive.
 
 ---
 
@@ -111,7 +111,9 @@ Reference library: `_system/reference/investment-wisdom/` (Munger, Pabrai, Stahl
 
 | Ticker | Belief | Source | Approved |
 |--------|--------|--------|----------|
-| — | — | — | — |
+| 8697.T | FY2025 operating revenue ¥198.7B (+22.5% YoY); net income ¥79.1B; ROE 23.1%. | `8697.T/02_Quarterly/Earnings_Releases/E_ER_JPX_Q4FY2025.pdf` | 2026-05-21 |
+| 8697.T | Cash equities average daily trading value ¥7.52T in FY2025 (+31.9% YoY) — primary driver of trading services revenue. | `8697.T/02_Quarterly/Explanatory_Materials/E_EM_JPX_Q4FY2025.pdf` | 2026-05-21 |
+| 8697.T | Stahl **croupier** classification confirmed: infrastructure toll with ~58.5% operating margin; earnings leverage to volume with cyclicality risk. Thesis status: **strengthening**. | `8697.T/research/deep_dive_2026-05-21.md` | 2026-05-21 |
 
 ---
 
@@ -127,7 +129,7 @@ Reference library: `_system/reference/investment-wisdom/` (Munger, Pabrai, Stahl
 
 ### Conviction tiers
 
-*(A / B / watch — assign after first deep dives.)*
+- **8697.T** — Stahl croupier; thesis **strengthening** (approved deep dive 2026-05-21); valuation vs normalized earnings TBD before sizing.
 
 ### Diversification audit
 
