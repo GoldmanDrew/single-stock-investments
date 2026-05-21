@@ -4,7 +4,7 @@ Personal single-stock research workspace with Marvin (research agent) infrastruc
 
 ## Holdings
 
-8697.T · 3905.T · APLD · QDEL · TEQ.ST
+8697.T · 3905.T · APLD · QDEL · TEQ.ST · ICE · CSGP · SPGI · FRMO · OTCM · CPRT · BN · AMZN · GOOGL · KEWL · CSU · DHR · WBI
 
 See [`_system/portfolio/holdings.md`](_system/portfolio/holdings.md).
 

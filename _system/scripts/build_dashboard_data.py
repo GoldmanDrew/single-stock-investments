@@ -17,14 +17,27 @@ OUTPUT = DATA_DIR / "dashboard_data.json"
 TICKER_META = {
     "8697.T": {"company": "Japan Exchange Group", "market": "JP", "exchange": "TSE"},
     "3905.T": {"company": "DataSection Co., Ltd.", "market": "JP", "exchange": "TSE"},
+    "AMZN": {"company": "Amazon.com", "market": "US", "exchange": "NASDAQ"},
     "APLD": {"company": "Applied Digital", "market": "US", "exchange": "NASDAQ"},
+    "BN": {"company": "Brookfield Corporation", "market": "US", "exchange": "NYSE"},
+    "CPRT": {"company": "Copart", "market": "US", "exchange": "NASDAQ"},
+    "CSGP": {"company": "CoStar Group", "market": "US", "exchange": "NASDAQ"},
+    "CSU": {"company": "Constellation Software", "market": "CA", "exchange": "TSX"},
+    "DHR": {"company": "Danaher Corporation", "market": "US", "exchange": "NYSE"},
+    "FRMO": {"company": "FRMO Corporation", "market": "US", "exchange": "OTC"},
+    "GOOGL": {"company": "Alphabet Inc.", "market": "US", "exchange": "NASDAQ"},
+    "ICE": {"company": "Intercontinental Exchange", "market": "US", "exchange": "NYSE"},
+    "KEWL": {"company": "Keweenaw Land Association", "market": "US", "exchange": "OTC Pink"},
+    "OTCM": {"company": "OTC Markets Group", "market": "US", "exchange": "OTCQX"},
     "QDEL": {"company": "QuidelOrtho", "market": "US", "exchange": "NASDAQ"},
+    "SPGI": {"company": "S&P Global", "market": "US", "exchange": "NYSE"},
     "TEQ.ST": {"company": "Teqnion AB", "market": "SE", "exchange": "Nasdaq First North"},
+    "WBI": {"company": "WaterBridge Infrastructure", "market": "US", "exchange": "NYSE"},
 }
 
 
 def list_tickers() -> list[str]:
-    skip = {"_system", "dashboard", ".git", ".cursor"}
+    skip = {"_system", "dashboard", ".git", ".github", ".cursor"}
     tickers = []
     for p in ROOT.iterdir():
         if p.is_dir() and p.name not in skip and not p.name.startswith("."):
