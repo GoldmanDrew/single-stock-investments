@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Single Stock Portfolio Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='85'>📊</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-card: #151d2e;
+    --bg-card-hover: #1a2438;
+    --bg-input: #0d1424;
+    --border: #1e2d46;
+    --border-active: #3b82f6;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8896ae;
+    --text-muted: #566580;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-amber: #f59e0b;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+    --positive: #10b981;
+    --negative: #ef4444;
+    --warning: #f59e0b;
+    --stale: #6b7280;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-logo {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .topbar-meta {
+    font-size: 11px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .dot-green { background: var(--accent-green); }
+
+  .summary-strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px; padding: 14px 24px;
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  }
+  .summary-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .summary-card .label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 5px;
+  }
+  .summary-card .value {
+    font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700;
+  }
+  .summary-card .sub {
+    font-size: 11px; color: var(--text-muted); margin-top: 3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 12px 24px; border-bottom: 1px solid var(--border);
+  }
+  .search {
+    flex: 1; min-width: 200px; max-width: 320px;
+    padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-input); color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .search:focus { outline: none; border-color: var(--accent-blue); }
+  .filter-btn {
+    padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--bg-card);
+    color: var(--text-secondary); cursor: pointer;
+  }
+  .filter-btn.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+
+  .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; flex: 1; min-height: 0; }
+  @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+
+  .table-wrap { overflow: auto; padding: 0 24px 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 10px 12px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    background: var(--bg-primary); cursor: pointer; user-select: none;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+  tbody tr:hover { background: var(--bg-card-hover); }
+  tbody tr.selected { background: var(--bg-card); border-left: 3px solid var(--accent-blue); }
+  td { padding: 12px; vertical-align: middle; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .ticker-cell { font-weight: 700; color: var(--accent-cyan); }
+  .badge {
+    display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; border: 1px solid transparent;
+  }
+  .badge-us { color: var(--accent-blue); background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); }
+  .badge-jp { color: var(--accent-purple); background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.35); }
+  .badge-se { color: var(--accent-green); background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35); }
+  .badge-ok { color: var(--positive); background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35); }
+  .badge-warn { color: var(--warning); background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); }
+  .badge-bad { color: var(--negative); background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.35); }
+  .bar-wrap { width: 72px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+
+  .detail {
+    border-left: 1px solid var(--border); background: var(--bg-secondary);
+    padding: 20px; overflow-y: auto; max-height: calc(100vh - 180px);
+  }
+  @media (max-width: 1100px) { .detail { border-left: none; border-top: 1px solid var(--border); max-height: none; } }
+  .detail h2 { font-size: 18px; margin-bottom: 4px; }
+  .detail .subhead { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; }
+  .detail-section { margin-bottom: 18px; }
+  .detail-section h3 {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .metric .k { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+  .metric .v { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; margin-top: 2px; }
+
+  .dev-list { list-style: none; }
+  .dev-list li {
+    padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 6px; font-size: 12px;
+  }
+  .dev-list .dev-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .dev-list .dev-label { margin-top: 2px; }
+  .dev-list .dev-src {
+    display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700;
+    color: var(--accent-purple);
+  }
+
+  .empty { padding: 40px; text-align: center; color: var(--text-muted); }
+  .loading { padding: 60px; text-align: center; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">SINGLE STOCK PORTFOLIO</div>
+      <div class="topbar-meta"><span class="dot dot-green"></span><span id="meta-updated">Loading…</span></div>
+    </div>
+  </header>
+
+  <section class="summary-strip" id="summary"></section>
+
+  <div class="toolbar">
+    <input class="search" id="search" placeholder="Search ticker or company…" />
+    <button class="filter-btn active" data-market="ALL">All</button>
+    <button class="filter-btn" data-market="US">US</button>
+    <button class="filter-btn" data-market="JP">JP</button>
+    <button class="filter-btn" data-market="SE">SE</button>
+    <button class="filter-btn" data-filter="needs-work">Needs work</button>
+  </div>
+
+  <div class="main">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="ticker">Ticker</th>
+            <th data-sort="company">Company</th>
+            <th data-sort="market">Mkt</th>
+            <th data-sort="pdf_count">PDFs</th>
+            <th data-sort="completeness">Complete</th>
+            <th data-sort="last_download">Download</th>
+            <th data-sort="thesis_status">Thesis</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No tickers match your filters.</div>
+    </div>
+    <aside class="detail" id="detail">
+      <div class="loading">Select a ticker</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const MARKET_BADGE = { US: 'badge-us', JP: 'badge-jp', SE: 'badge-se' };
+const THESIS_BADGE = {
+  intact: 'badge-ok', strengthening: 'badge-ok', weakening: 'badge-bad', unclear: 'badge-warn'
+};
+
+let data = null;
+let selected = null;
+let sortKey = 'ticker';
+let sortAsc = true;
+let marketFilter = 'ALL';
+let needsWork = false;
+
+async function load() {
+  const res = await fetch('data/dashboard_data.json?' + Date.now());
+  data = await res.json();
+  document.getElementById('meta-updated').textContent =
+    `Updated ${data.generated_at.replace('T', ' ').replace('Z', ' UTC')} · ${data.summary.ticker_count} tickers`;
+  renderSummary();
+  renderTable();
+  if (data.tickers.length) selectTicker(data.tickers[0].ticker);
+}
+
+function renderSummary() {
+  const s = data.summary;
+  document.getElementById('summary').innerHTML = [
+    { label: 'Holdings', value: s.ticker_count, sub: s.markets.join(' · ') },
+    { label: 'Total PDFs', value: s.total_pdfs.toLocaleString(), sub: 'across universe' },
+    { label: 'Avg completeness', value: s.avg_completeness + '%', sub: 'infra score' },
+    { label: 'With README', value: s.with_readme + '/' + s.ticker_count, sub: 'documented' },
+    { label: 'Research dirs', value: s.with_research + '/' + s.ticker_count, sub: 'Marvin output' },
+  ].map(c => `
+    <div class="summary-card">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function filtered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  return data.tickers.filter(t => {
+    if (marketFilter !== 'ALL' && t.market !== marketFilter) return false;
+    if (needsWork && t.completeness >= 80) return false;
+    if (q && !(`${t.ticker} ${t.company}`.toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const rows = filtered();
+  const tbody = document.getElementById('tbody');
+  document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+  tbody.innerHTML = rows.map(t => `
+    <tr class="${selected === t.ticker ? 'selected' : ''}" data-ticker="${t.ticker}">
+      <td class="mono ticker-cell">${t.ticker}</td>
+      <td>${t.company}</td>
+      <td><span class="badge ${MARKET_BADGE[t.market] || 'badge-us'}">${t.market}</span></td>
+      <td class="mono">${t.pdf_count}${t.sec_filings ? ` <span style="color:var(--text-muted);font-size:11px">+${t.sec_filings} SEC</span>` : ''}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="bar-wrap"><div class="bar-fill" style="width:${t.completeness}%"></div></div>
+          <span class="mono" style="font-size:11px">${t.completeness}%</span>
+        </div>
+      </td>
+      <td class="mono" style="font-size:11px;color:var(--text-secondary)">${t.last_download || '—'}</td>
+      <td><span class="badge ${THESIS_BADGE[t.thesis_status] || 'badge-warn'}">${t.thesis_status}</span></td>
+    </tr>`).join('');
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', () => selectTicker(tr.dataset.ticker));
+  });
+}
+
+function selectTicker(ticker) {
+  selected = ticker;
+  renderTable();
+  const t = data.tickers.find(x => x.ticker === ticker);
+  if (!t) return;
+  document.getElementById('detail').innerHTML = `
+    <h2>${t.ticker}</h2>
+    <div class="subhead">${t.company} · ${t.exchange} · ${t.folder}</div>
+
+    <div class="detail-section">
+      <h3>Infrastructure</h3>
+      <div class="metric-grid">
+        <div class="metric"><div class="k">README</div><div class="v">${t.readme ? '✓' : '✗'}</div></div>
+        <div class="metric"><div class="k">Download script</div><div class="v">${t.download_script ? '✓' : '✗'}</div></div>
+        <div class="metric"><div class="k">Index file</div><div class="v">${t.index_file ? '✓' : '✗'}</div></div>
+        <div class="metric"><div class="k">Research dir</div><div class="v">${t.research_dir ? '✓' : '✗'}</div></div>
+        <div class="metric"><div class="k">Last download</div><div class="v">${t.last_download || '—'}</div></div>
+        <div class="metric"><div class="k">Last research</div><div class="v">${t.last_research || '—'}</div></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Recent developments</h3>
+      <ul class="dev-list">
+        ${(t.developments.length ? t.developments : [{ date: '—', label: 'No developments tracked yet', source: '' }]).map(d => `
+          <li>
+            <div class="dev-date">${d.date || ''} · ${d.type || ''}</div>
+            <div class="dev-label">${d.label}</div>
+            ${d.source ? `<span class="dev-src">${d.source}</span>` : ''}
+          </li>`).join('')}
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Recent files</h3>
+      <ul class="dev-list">
+        ${(t.recent_files.length ? t.recent_files : [{ date: '—', name: 'No files indexed', path: '' }]).map(f => `
+          <li>
+            <div class="dev-date">${f.date}</div>
+            <div class="dev-label mono">${f.name}</div>
+            <div class="dev-date">${f.path || ''}</div>
+          </li>`).join('')}
+      </ul>
+    </div>`;
+}
+
+document.getElementById('search').addEventListener('input', renderTable);
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (btn.dataset.market) {
+      marketFilter = btn.dataset.market;
+      needsWork = false;
+    }
+    if (btn.dataset.filter === 'needs-work') {
+      needsWork = true;
+      marketFilter = 'ALL';
+    }
+    renderTable();
+  });
+});
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    renderTable();
+  });
+});
+
+load().catch(err => {
+  document.getElementById('detail').innerHTML = `<div class="loading">Failed to load data/dashboard_data.json<br><br>${err}</div>`;
+});
+</script>
+</body>
+</html>
