@@ -1,0 +1,39 @@
+---
+description: Stock folder conventions when creating or editing ticker folders
+globs: "**/*"
+alwaysApply: false
+---
+
+# Ticker Folder Conventions
+
+When creating or restructuring a ticker folder, match the market template. Always include `README.md` and `research/`. Never overwrite official PDF folders with agent analysis.
+
+## Peer templates
+
+| Market | Reference folder | Key paths |
+|--------|------------------|-----------|
+| Japan | `8697.T/` | `INDEX.csv`, numbered folders, `_scripts/download_and_organize.ps1`, `_pdf_urls.txt` |
+| US | `APLD/investor-documents/` | `sec-edgar/`, `ir-{company}/`, `download_{ticker}_investor_docs.py`, `DOWNLOAD_MANIFEST.json` |
+| EU / Sweden | `TEQ.ST/` | `document-index.csv`, `official-reports/`, `presentations-and-media/` |
+
+## Required on every ticker
+
+```
+{TICKER}/
+├── README.md              # company, exchange, IR links, folder map
+├── research/
+│   ├── thesis.md          # one-line thesis + status
+│   └── reports/           # deep dives, cross-checks, refresh summaries
+└── _download_log.txt      # append-only download history
+```
+
+## Agent output placement
+
+- Official PDFs → market-specific doc folders (not `research/`)
+- Marvin analysis → `{TICKER}/research/` only
+- Vicki / shopbot notes → `{TICKER}/research/shopbot/`
+- Third-party notes → `{TICKER}/investor-documents/research-notes/` (US) or equivalent
+
+## Scaffold source
+
+Copy structure from `_system/templates/ticker-scaffold/` or run `_system/scripts/scaffold_ticker.py`. Update `_system/portfolio/holdings.md` when adding a new holding.

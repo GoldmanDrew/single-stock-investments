@@ -1,0 +1,48 @@
+---
+description: Human quality filter — memory and review loop (Bryan Lawrence)
+alwaysApply: true
+---
+
+# Human Quality Filter
+
+> *Memory compounds correct and incorrect beliefs equally — human discussion is the quality filter.*  
+> — Bryan Lawrence, VALUExBRK 2026 (Oakcliff Marvin/Vicki)
+
+## Rules
+
+- **Never** edit `_system/memory/MEMORY.md` during agent sessions
+- **Never** mark findings FINAL without a file in `_system/reviews/approved/`
+- Propose beliefs only as `[PROPOSED]` or `[PROPOSED MEMORY]` in `_system/memory/daily/{date}.md`
+- Tag proposed beliefs by genius: `[PROPOSED MUNGER]`, `[PROPOSED PABRAI]`, `[PROPOSED STAHL]`, or `[PROPOSED COMPANY]`
+- Log agent errors to `_system/memory/corrections.md` before cross-check reports
+
+## Memory taxonomy (`_system/memory/MEMORY.md`)
+
+Human promotes approved beliefs into genius-specific sections:
+
+- **Charlie Munger** — mental models, inversion, psychology, moats, circle of competence, capital allocation
+- **Mohnish Pabrai** — dhando, bet sizing, business selection, cloning, valuation heuristics, portfolio discipline
+- **Murray Stahl** — croupier model, exchanges, real diversification, spinoffs, macro/pecuniary society, lifecycle
+- **Company-specific** — ticker theses after deep dives
+- **Portfolio context** — archetype mix, conviction tiers, diversification audit
+
+Source PDFs: `_system/reference/investment-wisdom/`
+
+## Review pipeline
+
+```
+Marvin writes → {TICKER}/research/report.md
+             → summary → _system/reviews/pending/
+             → human reads + discusses
+             → corrections → _system/memory/corrections.md
+             → approved items → _system/memory/MEMORY.md
+             → move review → _system/reviews/approved/
+```
+
+## Cross-check mode
+
+When challenging external analysis: do **not** anchor to the provided doc. Re-derive from `{TICKER}/` primary PDFs and `_system/frameworks/`. List agreements, disagreements, and missing data.
+
+## Prompt templates
+
+Use task templates in `_system/prompts/` (onboard, download-refresh, daily scan, deep-dive, cross-check). Prepend context from `_system/prompts/_prefix.md` when running Marvin tasks.

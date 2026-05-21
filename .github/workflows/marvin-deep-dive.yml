@@ -1,0 +1,64 @@
+name: Marvin Deep Dive
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Ticker symbol (e.g. 8697.T, ICE, CSU)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marvin-deep-dive-${{ github.event.inputs.ticker }}
+  cancel-in-progress: false
+
+jobs:
+  deep-dive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Validate ticker input
+        run: |
+          TICKER="${{ github.event.inputs.ticker }}"
+          if [ -z "$TICKER" ]; then
+            echo "Ticker is required."
+            exit 1
+          fi
+          echo "Ticker: $TICKER"
+
+      - name: Check Cursor API key
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          if [ -z "$CURSOR_API_KEY" ]; then
+            echo "::error::CURSOR_API_KEY secret is not set."
+            echo "Add a Cursor user or service-account API key in repo Settings → Secrets → Actions."
+            echo "Create at: https://cursor.com/dashboard/cloud-agents"
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Cursor SDK
+        working-directory: _system/scripts
+        run: npm install --no-save @cursor/sdk
+
+      - name: Run Marvin deep dive (Cloud Agent → PR)
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          TICKER: ${{ github.event.inputs.ticker }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node _system/scripts/marvin_deep_dive.mjs
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "Marvin cloud agent finished. Review and merge the PR it opened."
+          echo "After merge, daily-sync will refresh the public dashboard."
