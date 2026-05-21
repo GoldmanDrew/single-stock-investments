@@ -10,7 +10,9 @@ See [`_system/portfolio/holdings.md`](_system/portfolio/holdings.md).
 
 ## Dashboard
 
-Static portfolio dashboard (etf-dashboard styling):
+Static portfolio dashboard (etf-dashboard styling) in [`dashboard/`](dashboard/).
+
+**Local preview:**
 
 ```powershell
 python _system/scripts/build_dashboard_data.py
@@ -20,6 +22,10 @@ python -m http.server 8765
 
 Open http://localhost:8765/
 
+**Live site (GitHub Pages, same repo):**
+
+https://goldmandrew.github.io/single-stock-investments/
+
 ## Agents
 
 - [`_system/agents/MARVIN.md`](_system/agents/MARVIN.md) — research + downloads
@@ -27,24 +33,36 @@ Open http://localhost:8765/
 
 ## GitHub integration
 
-| Repo | Visibility | Purpose |
-|------|------------|---------|
-| [single-stock-investments](https://github.com/GoldmanDrew/single-stock-investments) | Private | Full Marvin workspace (PDFs, research, memory) |
-| [single-stock-dashboard](https://github.com/GoldmanDrew/single-stock-dashboard) | Public | Dashboard UI only (metrics JSON — no proprietary notes) |
+| Item | URL |
+|------|-----|
+| **Repository** | [github.com/GoldmanDrew/single-stock-investments](https://github.com/GoldmanDrew/single-stock-investments) (public) |
+| **Dashboard (Pages)** | [goldmandrew.github.io/single-stock-investments](https://goldmandrew.github.io/single-stock-investments/) |
+
+Everything lives in one repo: Marvin workspace + `dashboard/` for Pages. **No PAT required** for dashboard sync.
+
+### One-time Pages setup
+
+1. **Settings → General → Change repository visibility → Public**
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions**
+3. Run **Actions → Deploy Dashboard (GitHub Pages) → Run workflow**
+
+You can delete the old `DASHBOARD_SYNC_TOKEN` secret and archive `single-stock-dashboard` if no longer needed.
 
 ### Workflows
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| [`daily-sync.yml`](.github/workflows/daily-sync.yml) | Daily 12:00 UTC + manual | Downloads → commit workspace → sync public dashboard |
-| [`marvin-deep-dive.yml`](.github/workflows/marvin-deep-dive.yml) | Manual (ticker input) | Cursor Cloud Agent deep dive → opens PR for review |
+| [`daily-sync.yml`](.github/workflows/daily-sync.yml) | Daily 12:00 UTC + manual | Download holdings → commit & push |
+| [`dashboard-pages.yml`](.github/workflows/dashboard-pages.yml) | Push to `main` (dashboard paths) + manual | Rebuild JSON → deploy `dashboard/` to GitHub Pages |
+| [`marvin-deep-dive.yml`](.github/workflows/marvin-deep-dive.yml) | Manual (ticker input) | Cursor Cloud Agent deep dive → opens PR |
+
+Push to `main` after downloads or research triggers a Pages deploy automatically when dashboard-related paths change.
 
 ### Secrets (Settings → Secrets → Actions)
 
 | Secret | Required for | How to get |
 |--------|--------------|------------|
-| `DASHBOARD_SYNC_TOKEN` | Public dashboard sync | Fine-grained PAT with `contents: write` on `single-stock-dashboard` |
-| `CURSOR_API_KEY` | Marvin deep dive in CI | [Cursor Cloud Agents dashboard](https://cursor.com/dashboard/cloud-agents) |
+| `CURSOR_API_KEY` | Marvin deep dive in CI | [Cursor Dashboard → Integrations](https://cursor.com/dashboard/integrations) |
 
 ### Local publish
 
@@ -52,7 +70,7 @@ Open http://localhost:8765/
 powershell -ExecutionPolicy Bypass -File _system/scripts/publish_github.ps1
 ```
 
-Rebuilds dashboard JSON, pushes private repo, syncs public Pages repo.
+Rebuilds dashboard JSON and pushes to `main`. Pages deploy runs via GitHub Actions (no second repo).
 
 ### Marvin session → GitHub
 
@@ -66,6 +84,10 @@ git push origin main
 ```
 
 Or run **Actions → Marvin Deep Dive** with a ticker; review and merge the PR the cloud agent opens.
+
+### Public repo note
+
+Making this repo public exposes ticker PDFs, research notes, and `_system/memory/MEMORY.md`. Review contents before switching visibility.
 
 ## Structure
 

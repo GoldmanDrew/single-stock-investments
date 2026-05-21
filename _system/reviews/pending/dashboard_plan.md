@@ -81,13 +81,12 @@ Rebuild data after folder changes:
 python _system/scripts/build_dashboard_data.py
 ```
 
-### GitHub Pages (when repo is pushed)
+### GitHub Pages (single public repo)
 
-1. Create GitHub repo (e.g. `single-stock-investments`)
-2. Push workspace to `main`
-3. Enable GitHub Pages → source: **GitHub Actions**
-4. Workflow `.github/workflows/dashboard-deploy.yml` runs on push + daily cron
-5. Site serves from `/` with `dashboard/index.html` + `dashboard/data/`
+1. Repo: `GoldmanDrew/single-stock-investments` (public)
+2. Pages source: **GitHub Actions** → workflow `dashboard-pages.yml`
+3. Site URL: https://goldmandrew.github.io/single-stock-investments/
+4. Serves `dashboard/` folder (no separate dashboard repo, no PAT)
 
 ---
 
@@ -118,7 +117,7 @@ Current universe = 5 ticker folders at workspace root. To include watchlist cand
 | `dashboard/index.html` | Static UI |
 | `dashboard/data/dashboard_data.json` | Generated metrics |
 | `_system/scripts/build_dashboard_data.py` | Build script |
-| `.github/workflows/dashboard-deploy.yml` | Pages deploy |
+| `.github/workflows/dashboard-pages.yml` | Pages deploy from `dashboard/` |
 
 ---
 
