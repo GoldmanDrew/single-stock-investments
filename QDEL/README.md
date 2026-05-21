@@ -45,6 +45,8 @@ cd QDEL\investor-documents
 python download_qdel_investor_docs.py
 ```
 
+Uses **Q4 Investor Relations JSON feeds** for IR PDFs (145+ documents from q4cdn). SEC filings from EDGAR API.
+
 Logs append to **`_download_log.txt`** at the QDEL root.
 
 ---
