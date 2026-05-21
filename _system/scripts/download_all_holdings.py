@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,13 @@ def run(cmd: list[str], label: str) -> None:
     subprocess.run(cmd, cwd=ROOT, check=False)
 
 
+def powershell_script(script: Path) -> list[str]:
+    for exe in ("pwsh", "powershell"):
+        if shutil.which(exe):
+            return [exe, "-ExecutionPolicy", "Bypass", "-File", str(script)]
+    raise RuntimeError(f"PowerShell not found; cannot run {script}")
+
+
 def main() -> None:
     for ticker in sorted(US_FROM_CONFIG):
         if ticker == "QDEL":
@@ -26,7 +34,7 @@ def main() -> None:
             continue
         run([PY, str(SCRIPTS / "download_us_investor_docs.py"), "--ticker", ticker], ticker)
 
-    run(["powershell", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "8697.T/_scripts/download_and_organize.ps1")], "8697.T")
+    run(powershell_script(ROOT / "8697.T/_scripts/download_and_organize.ps1"), "8697.T")
 
     run([PY, str(SCRIPTS / "download_teq_st.py")], "TEQ.ST")
     run([PY, str(SCRIPTS / "download_csu.py")], "CSU")

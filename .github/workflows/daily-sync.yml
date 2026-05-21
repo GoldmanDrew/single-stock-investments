@@ -1,0 +1,55 @@
+name: Daily Download & Dashboard Sync
+
+on:
+  schedule:
+    - cron: "0 12 * * *"  # Daily 12:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-portfolio-sync
+  cancel-in-progress: false
+
+jobs:
+  download-and-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run portfolio downloads
+        run: python _system/scripts/download_all_holdings.py
+
+      - name: Commit and push workspace
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No workspace changes to commit."
+          else
+            git commit -m "chore: daily download sync $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Sync public dashboard repo
+        env:
+          GH_TOKEN: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::DASHBOARD_SYNC_TOKEN secret is not set. Skipping public dashboard push."
+            echo "Add a fine-grained PAT with contents:write on GoldmanDrew/single-stock-dashboard."
+            exit 0
+          fi
+          bash _system/scripts/publish_public_dashboard.sh
