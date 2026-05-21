@@ -1,8 +1,6 @@
 # Publish workspace to GitHub (run after: gh auth login)
 $ErrorActionPreference = "Stop"
-$Root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-if (-not (Test-Path $Root)) { $Root = "C:\Users\werdn\Documents\Investing\Single Stock Investments" }
-
+$Root = "C:\Users\werdn\Documents\Investing\Single Stock Investments"
 Set-Location $Root
 
 gh auth status | Out-Null
@@ -12,6 +10,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $RepoName = "single-stock-investments"
+$DashboardRepo = "single-stock-dashboard"
 $User = (gh api user -q .login)
 
 if (-not (git remote get-url origin 2>$null)) {
@@ -25,5 +24,23 @@ if (-not (git diff --staged --quiet)) {
 }
 
 git push -u origin main
-Write-Host "Repo: https://github.com/$User/$RepoName"
-Write-Host "Enable GitHub Pages: Settings -> Pages -> GitHub Actions (workflow dashboard-deploy.yml)"
+Write-Host "Private repo: https://github.com/$User/$RepoName"
+
+# Sync static dashboard to public Pages repo (private repos cannot use GitHub Pages on free plan)
+$tmp = Join-Path $env:TEMP "single-stock-dashboard"
+if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+New-Item -ItemType Directory -Force -Path "$tmp\data" | Out-Null
+Copy-Item "$Root\dashboard\index.html" "$tmp\index.html"
+Copy-Item "$Root\dashboard\data\dashboard_data.json" "$tmp\data\dashboard_data.json"
+Set-Location $tmp
+if (-not (Test-Path ".git")) { git init; git branch -M main }
+git add .
+if (-not (git diff --staged --quiet)) {
+    git commit -m "chore: refresh dashboard data"
+}
+if (-not (git remote get-url origin 2>$null)) {
+    gh repo create "$User/$DashboardRepo" --public --source=. --remote=origin --description "Public portfolio dashboard for single-stock holdings"
+    gh api "repos/$User/$DashboardRepo/pages" -X POST -f build_type=legacy -f "source[branch]=main" -f "source[path]=/" | Out-Null
+}
+git push -u origin main
+Write-Host "Dashboard: https://$($User.ToLower()).github.io/$DashboardRepo/"
