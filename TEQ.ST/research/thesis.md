@@ -1,16 +1,31 @@
 # TEQ.ST — Investment Thesis
 
-**Status:** unclear  
+**Status:** strengthening  
 **Last updated:** 2026-05-21
 
 ## One-line thesis
-TBD — pending primary doc review.
+
+Swedish industrial **serial acquirer** of niche subsidiaries — decentralized Pabrai-style model with 2025–2026 **margin/FCF turnaround** underway; organic sales still negative while unprofitable units are pruned.
 
 ## Key questions
-- [ ] M&A pipeline and integration track record
-- [ ] Decentralized operating model effectiveness
-- [ ] Organic growth across subsidiary portfolio
-- [ ] Valuation vs serial acquirer peers
 
-## [HUMAN REVIEW]
-- Thesis not yet drafted from primary sources.
+- [x] EBITA inflection — **FY2025 EBITA +36%; Q1 2026 margin record 14.3%**
+- [x] Organic growth — **−5% FY2025 and Q1 2026 (partially deliberate exits)**
+- [ ] M&A discipline post-2025 goodwill impairment (SEK 73M)
+- [ ] Leverage and equity ratio trend (42.8% FY2025)
+
+## Archetype (Pabrai)
+
+**Serial acquirer / compounder** — see `TEQ.ST/research/deep_dive_2026-05-21.md`
+
+## Munger — what would kill this?
+
+M&A overpayment, organic deterioration beyond pruning, UK/Nordic restructure failure, key-person departure.
+
+## Pabrai — dhando score
+
+Interesting if market prices organic weakness; **partial** dhando until M&A track record post-restructure confirmed.
+
+## Pending review
+
+See `_system/reviews/pending/TEQ.ST_deep_dive_2026-05-21.md`
