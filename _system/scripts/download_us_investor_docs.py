@@ -80,6 +80,54 @@ def sec_url(cik_path: str, accession: str, primary: str) -> str:
     return f"https://www.sec.gov/Archives/edgar/data/{cik_path}/{nodash}/{primary}"
 
 
+def download_8k_exhibits(
+    cik_path: str,
+    row: dict,
+    sec_dir: Path,
+    log_file: Path,
+    patterns: tuple[str, ...] = ("ex99", "ex-99"),
+) -> list[dict]:
+    """Download EX-99.x press-release exhibits bundled with 8-K filings."""
+    if not row["form"].startswith("8-K"):
+        return []
+    nodash = row["accession"].replace("-", "")
+    index_url = f"https://www.sec.gov/Archives/edgar/data/{cik_path}/{nodash}/index.json"
+    req = urllib.request.Request(index_url, headers={"User-Agent": SEC_UA})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            index = json.load(r)
+    except Exception as e:
+        log(log_file, f"EXHIBIT INDEX FAIL {row['accession']} -> {e}")
+        return []
+
+    out: list[dict] = []
+    fd = row["filingDate"].replace("-", "")
+    acc = row["accession"].replace("-", "_")
+    for item in index.get("directory", {}).get("item", []):
+        name = item.get("name", "")
+        if not name or name == row["primary"]:
+            continue
+        lower = name.lower()
+        if not any(p in lower for p in patterns):
+            continue
+        ext = os.path.splitext(name)[1] or ".htm"
+        safe = f"8-K_{fd}_exhibit_{name.replace('/', '-').replace(' ', '_')}_acc{acc}{ext}"
+        dest = sec_dir / safe
+        url = sec_url(cik_path, row["accession"], name)
+        time.sleep(SLEEP_SEC)
+        ok = download(url, dest, SEC_UA, log_file)
+        out.append(
+            {
+                **row,
+                "exhibit": name,
+                "url": url,
+                "local": str(dest),
+                "ok": ok,
+            }
+        )
+    return out
+
+
 def download_sec(cik: str, sec_dir: Path, log_file: Path, meta: dict | None = None) -> list[dict]:
     meta = meta or {}
     cik_path = str(int(cik))
@@ -135,6 +183,8 @@ def download_sec(cik: str, sec_dir: Path, log_file: Path, meta: dict | None = No
         time.sleep(SLEEP_SEC)
         ok = download(filing_url, dest, SEC_UA, log_file)
         manifest.append({**row, "url": filing_url, "local": str(dest), "ok": ok})
+        if meta.get("download_8k_exhibits"):
+            manifest.extend(download_8k_exhibits(cik_path, row, sec_dir, log_file))
     return manifest
 
 

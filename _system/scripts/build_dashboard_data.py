@@ -13,6 +13,15 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "dashboard" / "data"
 OUTPUT = DATA_DIR / "dashboard_data.json"
 CLASS_PATH = ROOT / "_system" / "portfolio" / "classification.json"
+GITHUB_REPO = "GoldmanDrew/single-stock-investments"
+
+
+def github_blob_url(rel_path: str) -> str:
+    return f"https://github.com/{GITHUB_REPO}/blob/main/{rel_path.replace(chr(92), '/')}"
+
+
+def github_tree_url(rel_path: str) -> str:
+    return f"https://github.com/{GITHUB_REPO}/tree/main/{rel_path.replace(chr(92), '/').rstrip('/')}"
 
 # Known metadata fallback when holdings.md is sparse
 TICKER_META = {
@@ -248,6 +257,7 @@ def recent_files(ticker_dir: Path, limit: int = 5) -> list[dict]:
             "name": f.name,
             "date": datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d"),
             "type": f.suffix.lower().lstrip("."),
+            "github_url": github_blob_url(str(f.relative_to(ROOT)).replace("\\", "/")),
         })
     return out
 
@@ -256,17 +266,19 @@ def recent_developments(ticker_dir: Path, ticker: str) -> list[dict]:
     devs: list[dict] = []
 
     manifest = ticker_dir / "investor-documents" / "DOWNLOAD_MANIFEST.json"
+    manifest_rows: list[dict] = []
     if manifest.exists():
         try:
-            rows = json.loads(manifest.read_text(encoding="utf-8"))
-            rows = sorted(rows, key=lambda r: r.get("filingDate", ""), reverse=True)
+            manifest_rows = json.loads(manifest.read_text(encoding="utf-8"))
+            rows = sorted(manifest_rows, key=lambda r: r.get("filingDate", ""), reverse=True)
             for row in rows[:5]:
-                if row.get("form", "").startswith("8-K"):
+                if row.get("form", "").startswith("8-K") and not row.get("exhibit"):
                     devs.append({
                         "date": row.get("filingDate"),
                         "type": "8-K",
                         "label": f"{row.get('form')} filed {row.get('filingDate')}",
                         "source": "SEC",
+                        "url": row.get("url"),
                     })
         except json.JSONDecodeError:
             pass
@@ -276,11 +288,13 @@ def recent_developments(ticker_dir: Path, ticker: str) -> list[dict]:
     if research.exists():
         dive_paths = sorted(research.glob("deep_dive_*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:2]
         for f in dive_paths:
+            rel = str(f.relative_to(ROOT)).replace("\\", "/")
             devs.append({
                 "date": datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d"),
                 "type": "deep_dive",
                 "label": f"Deep dive — {f.stem.replace('deep_dive_', '')}",
                 "source": "Marvin",
+                "url": github_blob_url(rel),
             })
         reports = research / "reports"
         if reports.exists():
@@ -350,6 +364,11 @@ def build_ticker_row(ticker: str, holdings: dict[str, dict], portfolio_class: di
         "classification": classification,
         "thesis_status": classification["archetype"],
         "one_line_thesis": one_line_thesis(ticker_dir),
+        "links": {
+            "folder": github_tree_url(f"{ticker}/"),
+            "readme": github_blob_url(f"{ticker}/README.md") if (ticker_dir / "README.md").exists() else None,
+            "thesis": github_blob_url(f"{ticker}/research/thesis.md") if (ticker_dir / "research" / "thesis.md").exists() else None,
+        },
         "deep_dive": latest_deep_dive(ticker_dir, classification),
         "recent_files": recent_files(ticker_dir),
         "developments": recent_developments(ticker_dir, ticker),
@@ -379,6 +398,7 @@ def build() -> dict:
             "with_research": with_research,
             "avg_completeness": avg_complete,
             "markets": sorted({r["market"] for r in rows}),
+            "github_repo": GITHUB_REPO,
         },
         "tickers": rows,
     }

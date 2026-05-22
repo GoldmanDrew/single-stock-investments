@@ -39,7 +39,7 @@ SJT/
 python SJT/investor-documents/download_sjt_investor_docs.py
 ```
 
-Logs go to **`_download_log.txt`**.
+**Last download:** 2026-05-22 — 48 primary SEC filings + 24 monthly distribution exhibits (EX-99.1 on 8-Ks). IR site returned 0 PDFs (trust is SEC-primary).
 
 ---
 

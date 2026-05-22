@@ -165,6 +165,12 @@
     display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700;
     color: var(--accent-purple);
   }
+  .dev-list a, .subhead a {
+    color: var(--accent-blue);
+    text-decoration: none;
+  }
+  .dev-list a:hover, .subhead a:hover { text-decoration: underline; }
+  .file-link { font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; }
 
   .empty { padding: 40px; text-align: center; color: var(--text-muted); }
   .loading { padding: 60px; text-align: center; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
@@ -266,6 +272,15 @@ let sortAsc = true;
 let marketFilter = 'ALL';
 let needsWork = false;
 
+function linkHtml(url, label, className = '') {
+  if (!url) return label;
+  return `<a href="${url}" target="_blank" rel="noopener" class="${className}">${label}</a>`;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
 async function load() {
   const res = await fetch('data/dashboard_data.json?' + Date.now());
   data = await res.json();
@@ -346,7 +361,7 @@ function selectTicker(ticker) {
   if (!t) return;
   document.getElementById('detail').innerHTML = `
     <h2>${t.ticker}</h2>
-    <div class="subhead">${t.company} · ${t.exchange} · ${t.folder}</div>
+    <div class="subhead">${escapeHtml(t.company)} · ${escapeHtml(t.exchange)} · ${linkHtml(t.links?.folder, t.folder)}</div>
 
     <div class="detail-section">
       <h3>Classification</h3>
@@ -378,8 +393,10 @@ function selectTicker(ticker) {
         ${t.one_line_thesis ? `<div class="thesis-line">${t.one_line_thesis}</div>` : ''}
         ${t.deep_dive.executive_summary ? `<div class="summary">${t.deep_dive.executive_summary}</div>` : ''}
         <span class="badge ${STANCE_BADGE[t.deep_dive.stance] || 'badge-warn'}">${t.deep_dive.stance || t.classification?.stance || '—'}</span>
-        <div style="margin-top:12px">
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:12px">
           <a class="research-link" href="${t.deep_dive.github_url}" target="_blank" rel="noopener">Full report on GitHub →</a>
+          ${t.links?.thesis ? `<a class="research-link" href="${t.links.thesis}" target="_blank" rel="noopener">Thesis →</a>` : ''}
+          ${t.links?.readme ? `<a class="research-link" href="${t.links.readme}" target="_blank" rel="noopener">README →</a>` : ''}
         </div>
       </div>
     </div>` : ''}
@@ -390,8 +407,8 @@ function selectTicker(ticker) {
         ${(t.developments.length ? t.developments : [{ date: '—', label: 'No developments tracked yet', source: '' }]).map(d => `
           <li>
             <div class="dev-date">${d.date || ''} · ${d.type || ''}</div>
-            <div class="dev-label">${d.label}</div>
-            ${d.source ? `<span class="dev-src">${d.source}</span>` : ''}
+            <div class="dev-label">${d.url ? linkHtml(d.url, d.label) : escapeHtml(d.label)}</div>
+            ${d.source ? `<span class="dev-src">${d.source}${d.url && d.type === '8-K' ? ' · SEC' : ''}</span>` : ''}
           </li>`).join('')}
       </ul>
     </div>
@@ -402,8 +419,8 @@ function selectTicker(ticker) {
         ${(t.recent_files.length ? t.recent_files : [{ date: '—', name: 'No files indexed', path: '' }]).map(f => `
           <li>
             <div class="dev-date">${f.date}</div>
-            <div class="dev-label mono">${f.name}</div>
-            <div class="dev-date">${f.path || ''}</div>
+            <div class="dev-label">${f.github_url ? linkHtml(f.github_url, f.name, 'mono') : `<span class="mono">${escapeHtml(f.name)}</span>`}</div>
+            <div class="dev-date file-link">${f.github_url ? linkHtml(f.github_url, f.path || '') : escapeHtml(f.path || '')}</div>
           </li>`).join('')}
       </ul>
     </div>`;
