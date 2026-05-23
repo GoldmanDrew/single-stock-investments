@@ -1,14 +1,19 @@
 name: Marvin Daily Deep Dive
 
+# Manual refresh only — daily auto-runs after download in daily-sync.yml (marvin-refresh job)
+
 on:
-  schedule:
-    - cron: "0 13 * * *"  # Daily 13:00 UTC (after download sync at 12:00)
   workflow_dispatch:
     inputs:
       ticker:
-        description: "Optional ticker override (default: auto-pick next holding)"
+        description: "Optional ticker override (default: auto-pick on new documents)"
         required: false
         type: string
+      force_rotate:
+        description: "If no new documents, refresh oldest deep dive anyway"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,6 +31,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Check Cursor API key
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
@@ -36,37 +46,53 @@ jobs:
             exit 1
           fi
 
-      - name: Pick ticker
+      - name: Pick ticker (new documents since last deep dive)
         id: pick
         env:
           TICKER_OVERRIDE: ${{ github.event.inputs.ticker }}
+          FORCE_ROTATE: ${{ github.event.inputs.force_rotate }}
         run: |
           if [ -n "$TICKER_OVERRIDE" ]; then
-            TICKER=$(python _system/scripts/marvin_pick_ticker.py "$TICKER_OVERRIDE")
+            python _system/scripts/marvin_pick_ticker.py "$TICKER_OVERRIDE" --json > pick.json
+          elif [ "$FORCE_ROTATE" = "true" ]; then
+            python _system/scripts/marvin_pick_ticker.py --json --force-rotate > pick.json
           else
-            TICKER=$(python _system/scripts/marvin_pick_ticker.py)
+            python _system/scripts/marvin_pick_ticker.py --json --require-new > pick.json
           fi
+          cat pick.json
+          TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
+          SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
+          REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
           echo "ticker=$TICKER" >> "$GITHUB_OUTPUT"
-          echo "Marvin daily deep dive ticker: $TICKER"
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          echo "reason=$REASON" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Install Cursor SDK
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
         working-directory: _system/scripts
         run: npm install --no-save @cursor/sdk
 
       - name: Run Marvin deep dive (Cloud Agent → PR)
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           TICKER: ${{ steps.pick.outputs.ticker }}
+          PICK_REASON: ${{ steps.pick.outputs.reason }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node _system/scripts/marvin_deep_dive.mjs
 
       - name: Summary
-        if: success()
+        if: always()
         run: |
-          echo "Daily deep dive started for ${{ steps.pick.outputs.ticker }}."
-          echo "Review and merge the PR opened by the Cursor cloud agent."
+          if [ "${{ steps.pick.outputs.skip }}" = "true" ]; then
+            echo "Skipped — no holdings with new primary documents since last deep dive."
+            echo "Re-run with 'force_rotate' to refresh the oldest analysis anyway."
+          elif [ -n "${{ steps.pick.outputs.ticker }}" ]; then
+            echo "Refresh started for ${{ steps.pick.outputs.ticker }} (${{ steps.pick.outputs.reason }})."
+          fi

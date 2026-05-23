@@ -52,12 +52,14 @@ You can delete the old `DASHBOARD_SYNC_TOKEN` secret and archive `single-stock-d
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| [`daily-sync.yml`](.github/workflows/daily-sync.yml) | Daily 12:00 UTC + manual | Download holdings → commit & push |
+| [`daily-sync.yml`](.github/workflows/daily-sync.yml) | Daily 12:00 UTC + manual | Download holdings → commit → **auto Marvin refresh** if new docs |
 | [`dashboard-pages.yml`](.github/workflows/dashboard-pages.yml) | Push to `main` (dashboard paths) + manual | Rebuild JSON → deploy `dashboard/` to GitHub Pages |
 | [`marvin-deep-dive.yml`](.github/workflows/marvin-deep-dive.yml) | Manual (ticker input) | Cursor Cloud Agent deep dive → opens PR |
-| [`marvin-daily-deep-dive.yml`](.github/workflows/marvin-daily-deep-dive.yml) | Daily 13:00 UTC + manual | Auto-picks next holding (no/oldest deep dive) → cloud agent → PR |
+| [`marvin-daily-deep-dive.yml`](.github/workflows/marvin-daily-deep-dive.yml) | Manual only | Pick on new documents (or **force_rotate**) → cloud agent → PR |
 
 Push to `main` after downloads or research triggers a Pages deploy automatically when dashboard-related paths change.
+
+**Daily analysis loop:** `daily-sync` (12:00 UTC) downloads new SEC/IR files → on success, `marvin-daily-deep-dive` runs → picks tickers whose primary documents are **newer than their latest deep dive** → opens a Cursor PR. If nothing new, the deep dive workflow **skips** (use manual run + **force_rotate** to refresh the oldest dive anyway).
 
 ### Secrets (Settings → Secrets → Actions)
 

@@ -14,6 +14,7 @@ import { Agent, CursorAgentError } from "@cursor/sdk";
 const ticker = process.env.TICKER?.trim();
 const apiKey = process.env.CURSOR_API_KEY?.trim();
 const repo = process.env.GITHUB_REPOSITORY?.trim();
+const pickReason = process.env.PICK_REASON?.trim() || "scheduled";
 const date = new Date().toISOString().slice(0, 10);
 
 if (!apiKey) {
@@ -38,14 +39,16 @@ const prompt = `${prefix}
 ${template}
 
 Additional instructions for this cloud run:
+- Pick reason: ${pickReason} — if "new_documents", this is a **refresh** after daily download sync; read any files newer than the prior deep_dive_*.md.
 - Apply approved beliefs from _system/memory/MEMORY.md (Munger, Pabrai, Stahl sections).
 - Apply lenses from _system/reference/investment-wisdom/INDEX.md for this ticker.
+- Use Classification table (archetype, moat, dhando, stance, cycle) per _system/frameworks/classification.md — not legacy thesis status.
 - Do NOT edit _system/memory/MEMORY.md — use [PROPOSED COMPANY] in daily log only.
-- Write ${ticker}/research/deep_dive_${date}.md
-- Update ${ticker}/research/thesis.md with a real one-line thesis if supported by primary docs.
+- Write ${ticker}/research/deep_dive_${date}.md (new dated file; keep prior dives for history).
+- Update ${ticker}/research/thesis.md Classification + one-line thesis if primary docs support changes.
 - Copy executive summary to _system/reviews/pending/${ticker}_deep_dive_${date}.md
 - Run: python _system/scripts/build_dashboard_data.py
-- End reports with thesis status, [HUMAN REVIEW], and [PROPOSED COMPANY] bullets only.
+- End reports with Classification table, [HUMAN REVIEW], and [PROPOSED COMPANY] bullets only.
 `;
 
 const repoUrl = `https://github.com/${repo}`;

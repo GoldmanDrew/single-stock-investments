@@ -36,3 +36,13 @@ Every report ends with:
 - [PROPOSED MEMORY] bullets (daily log only)
 
 Separate **facts**, **inferences**, and **opinions**. Cite file paths and page refs where possible.
+
+## 6. Daily automation (GitHub Actions)
+
+| Step | Workflow | Behavior |
+|------|----------|----------|
+| Download | `daily-sync.yml` job `download-and-sync` | 12:00 UTC — pull SEC/IR for all holdings, rebuild INDEX + dashboard JSON, push |
+| Refresh analysis | `daily-sync.yml` job `marvin-refresh` | After download — pick ticker with **new primary documents since last deep dive**; skip if all caught up; Cursor cloud agent opens PR |
+| Manual refresh | `marvin-daily-deep-dive.yml` | Optional ticker; **force_rotate** if you want oldest dive refreshed without new docs |
+
+Picker: `_system/scripts/marvin_pick_ticker.py --json`

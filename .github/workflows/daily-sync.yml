@@ -42,3 +42,72 @@ jobs:
             git commit -m "chore: daily download sync $(date -u +%Y-%m-%d)"
             git push
           fi
+
+  marvin-refresh:
+    needs: download-and-sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Cursor API key
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          if [ -z "$CURSOR_API_KEY" ]; then
+            echo "::error::CURSOR_API_KEY secret is not set."
+            exit 1
+          fi
+
+      - name: Pick ticker (new documents since last deep dive)
+        id: pick
+        run: |
+          python _system/scripts/marvin_pick_ticker.py --json --require-new > pick.json
+          cat pick.json
+          TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
+          SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
+          REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
+          echo "ticker=$TICKER" >> "$GITHUB_OUTPUT"
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          echo "reason=$REASON" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Cursor SDK
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
+        working-directory: _system/scripts
+        run: npm install --no-save @cursor/sdk
+
+      - name: Run Marvin refresh (Cloud Agent → PR)
+        if: steps.pick.outputs.skip != 'true' && steps.pick.outputs.ticker != ''
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          TICKER: ${{ steps.pick.outputs.ticker }}
+          PICK_REASON: ${{ steps.pick.outputs.reason }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node _system/scripts/marvin_deep_dive.mjs
+
+      - name: Refresh summary
+        if: always()
+        run: |
+          if [ "${{ steps.pick.outputs.skip }}" = "true" ]; then
+            echo "No refresh — no holdings with new documents since last deep dive."
+          elif [ -n "${{ steps.pick.outputs.ticker }}" ]; then
+            echo "Refresh PR started for ${{ steps.pick.outputs.ticker }} (${{ steps.pick.outputs.reason }})."
+          fi
