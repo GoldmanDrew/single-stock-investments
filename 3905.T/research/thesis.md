@@ -1,6 +1,6 @@
 # 3905.T — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** 2026-05-23
 
 ## Classification
 
@@ -14,28 +14,27 @@
 
 ## One-line thesis
 
-Japanese AI-infrastructure compounder-in-the-making pivoting to Neo Cloud (GPU + data centres) with a step-change revenue ramp (FY2026 guide ¥33.6B vs ¥2.9B prior year), but execution on data centre commissioning and customer concentration remain key risks.
+DataSection is betting the **Neo Cloud** franchise on **hyperscaler-linked AI data centres** in **Japan (Inzai)** and **Australia**, with a **FY2026 revenue step-up** to **¥33.6B** still guided post-Apr-2026 delays; the **May 2026** shift to **NVIDIA B300** via **Compal (~USD 325M)** and a **disclosed financing bridge** improves execution visibility but **raises contract-renegotiation, debt-timing, and Giga-order overhang** risk.
 
 ## Key questions
 
-- [ ] Hyperscaler contract terms, duration, and revenue recognition timing
-- [ ] Normalized EBITDA once Japan/Australia data centres go live (depreciation ¥2.3B deferred)
-- [ ] GPU supply chain durability (B200/Rubin cycle) and capex funding plan
-- [ ] Valuation vs FY2026 guide and peer AI-infra names
-- [ ] Segment mix: AI infra vs legacy DX/retail-tech
+- [ ] Amended terms with **NOWNAW / hyperscaler** after **B200→B300** upgrade
+- [ ] **15 May 2026** FY2026 results and **FY2027** forecast vs B300 capex
+- [ ] **Giga** **577-unit** tail and **USD 252M** unpaid commitment resolution
+- [ ] Actual **customer advance** vs **May–Jul 2026** GPU deliveries (borrowing stress)
+- [ ] Path to **profitable** AI DC unit economics after depreciation normalises
 
 ## Archetype lenses
 
 | Lens | Application |
 |------|-------------|
-| **Munger** | Emerging moat (GPU access, TAIZA, hyperscaler relationships); inversion on delays/concentration |
-| **Pabrai** | Not classic dhando — high upside but tails not protected; size conservatively |
-| **Stahl** | N/A — not a croupier/toll business |
-
+| **Munger** | Invert on **funding gap**, **concentration**, **GPU obsolescence**; moat still **unproven** |
+| **Pabrai** | **Not** classic dhando — **size small** if at all until cash flows prove out |
+| **Stahl** | N/A (not croupier / exchange infrastructure) |
 
 ## [HUMAN REVIEW]
 
-- Confirm hyperscaler customer and contract structure from latest yuho.
-- Build normalized EBITDA bridge before sizing.
+- Confirm FY2026 actuals and FY2027 guide on **15 May 2026** release.
+- Model **Inzai** phased launch and **Australia** GPU delivery **Jun–Aug 2026** per Apr revision.
 
-**Deep dive:** `3905.T/research/deep_dive_2026-05-21.md`
+**Deep dive:** `3905.T/research/deep_dive_2026-05-23.md`

@@ -6,7 +6,7 @@ Synced from ticker folders at workspace root. Last inventory: 2026-05-21.
 
 | Ticker | Folder | Company | Market | Last download | Last research | Archetype | Stance |
 |--------|--------|---------|--------|---------------|---------------|-----------|--------|
-| 3905.T | 3905.T/ | DataSection Co., Ltd. | JP | — | 2026-05-21 | compounder | watch |
+| 3905.T | 3905.T/ | DataSection Co., Ltd. | JP | — | 2026-05-23 | compounder | watch |
 | 8697.T | 8697.T/ | Japan Exchange Group | JP | 2026-05-21 | 2026-05-21 | croupier | hold |
 | AMZN | AMZN/ | Amazon.com | US | — | 2026-05-21 | compounder | hold |
 | APLD | APLD/ | Applied Digital | US | — | 2026-05-21 | optionality | watch |

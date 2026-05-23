@@ -1,7 +1,7 @@
 # DataSection Co., Ltd. (3905.T) — Document Library
 
 **Ticker:** 3905.T | **Exchange:** TSE | **Company:** DataSection Co., Ltd.  
-**Last updated:** 2026-05-21
+**Last updated:** 2026-05-23
 
 Japanese technology company. IR materials sourced from [DataSection IR](https://www.datasection.co.jp/).
 
@@ -13,14 +13,15 @@ Japanese technology company. IR materials sourced from [DataSection IR](https://
 3905.T/
 ├── IR/
 │   ├── en_financial_report/    # English financial reports
-│   ├── yuho_pdf/               # Annual securities reports (yuho)
+│   ├── yuho_pdf/               # Securities reports (yuho) including semi-annual
 │   ├── ir_material1/           # IR materials
 │   ├── announcement/           # Announcements
 │   └── …                       # Additional IR subfolders
+├── INDEX.csv                   # PDF path index (workspace map)
 ├── IR/en_financial_report_urls.txt
 ├── research/                   # Marvin analysis (agent-generated)
 │   ├── thesis.md
-│   └── reports/
+│   └── deep_dive_*.md
 └── README.md
 ```
 
@@ -37,10 +38,10 @@ Japanese technology company. IR materials sourced from [DataSection IR](https://
 
 ## Download
 
-PDFs are organized under `IR/` subfolders. A canonical URL list exists at `IR/en_financial_report_urls.txt`. A PowerShell organizer script (8697.T pattern) is planned — see `_system/reviews/pending/`.
+PDFs are organized under `IR/` subfolders. A canonical URL list exists at `IR/en_financial_report_urls.txt`. PowerShell organizer: `_scripts/download_and_organize.ps1` (8697.T pattern).
 
 ---
 
 ## Index
 
-No `INDEX.csv` yet. PDF count: ~505 files across `IR/` subfolders.
+`INDEX.csv` at folder root lists paths under `IR/` (rebuilt **2026-05-23**).
