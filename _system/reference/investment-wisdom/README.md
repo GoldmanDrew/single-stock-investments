@@ -1,10 +1,12 @@
 # Investment Wisdom Library
 
-Curated PDF writings for Marvin's mental-model layer: **Charlie Munger**, **Mohnish Pabrai**, and **Murray Stahl**.
+Curated PDF writings for Marvin's mental-model layer: **Charlie Munger**, **Mohnish Pabrai**, **Murray Stahl**, and **Horizon Kinetics** extracts.
 
 **Path:** `_system/reference/investment-wisdom/`
 
 Marvin should cite these files by path when applying frameworks. Primary company research still lives in ticker folders; this library is for **how to think**, not **what we hold**.
+
+**Catalog:** `_system/frameworks/mental_models.md` — tiered mental models with triggers and questions.
 
 ## Structure
 
@@ -15,16 +17,17 @@ investment-wisdom/
 ├── manifest.csv        ← machine-readable inventory
 ├── munger/             ← mental models, psychology, worldly wisdom
 ├── pabrai/             ← Dhando, partner letters, capital allocation
-└── stahl/              ← croupiers, exchanges, diversification, spinoffs
+├── stahl/              ← croupiers, exchanges, diversification, spinoffs
+└── horizon-kinetics/   ← equity yield curve, quarterly commentary extracts (.txt)
 ```
 
 ## Stahl source vault
 
-The full Murray Stahl archive (400+ PDFs) remains at:
+The full Murray Stahl / Horizon Kinetics archive (400+ PDFs) remains at:
 
 `C:\Users\werdn\Documents\Investing\Horizon Kinetics\hk_pdfs\`
 
-This folder includes the **compilation PDF** (hard-linked) plus key thematic essays. See `stahl/INDEX.md` for chapter-level mapping to the manuscript at `Horizon Kinetics/hk_pdfs/book/manuscript/`.
+The **stahl/** folder includes the compilation PDF (hard-linked) plus key thematic essays. **horizon-kinetics/** holds curated text extracts for equity yield curve and recent commentaries. See `horizon-kinetics/README.md` and `stahl/` + `INDEX.md` for chapter-level mapping to the manuscript at `Horizon Kinetics/hk_pdfs/book/manuscript/`.
 
 ## Human promotion
 

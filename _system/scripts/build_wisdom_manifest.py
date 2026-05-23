@@ -14,6 +14,7 @@ THEMES = {
     "munger": "mental_models",
     "pabrai": "dhando_letters",
     "stahl": "croupier_diversification",
+    "horizon-kinetics": "equity_yield_curve",
 }
 
 
@@ -23,18 +24,22 @@ def main() -> None:
         if not sub.is_dir() or sub.name.startswith("."):
             continue
         genius = sub.name
-        for pdf in sorted(sub.glob("*.pdf")):
-            stat = pdf.stat()
-            rows.append(
-                {
-                    "genius": genius,
-                    "filename": pdf.name,
-                    "path": str(pdf.relative_to(ROOT)).replace("\\", "/"),
-                    "size_bytes": stat.st_size,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d"),
-                    "theme_bucket": THEMES.get(genius, genius),
-                }
-            )
+        patterns = ("*.pdf",) if genius != "horizon-kinetics" else ("*.pdf", "*.txt")
+        for pattern in patterns:
+            for doc in sorted(sub.glob(pattern)):
+                if doc.name.upper() == "README.MD":
+                    continue
+                stat = doc.stat()
+                rows.append(
+                    {
+                        "genius": genius,
+                        "filename": doc.name,
+                        "path": str(doc.relative_to(ROOT)).replace("\\", "/"),
+                        "size_bytes": stat.st_size,
+                        "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d"),
+                        "theme_bucket": THEMES.get(genius, genius),
+                    }
+                )
 
     with OUT.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(

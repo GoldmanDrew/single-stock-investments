@@ -18,6 +18,7 @@ Single-stock research workflow for this workspace.
 - Proxy / governance docs for US holdings
 
 ## 4. Analyze
+- Apply `_system/frameworks/mental_models.md` (Tier 1 always; Tier 2 by archetype; Tier 3 by trigger)
 - Apply `quality_checklist.md`
 - Apply `ai_disruption_lens.md` where relevant
 - Write to `{TICKER}/research/` — not chat-only

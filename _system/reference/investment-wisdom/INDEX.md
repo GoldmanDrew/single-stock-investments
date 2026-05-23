@@ -1,12 +1,15 @@
 # Investment Wisdom — Index
 
-Last updated: 2026-05-21 (evening — added Pabrai 2021–2025 letters)
+Last updated: 2026-05-22 — added Horizon Kinetics extracts + mental models catalog
 
-| Genius | Folder | PDF count | Primary use in Marvin |
-|--------|--------|-----------|------------------------|
-| Charlie Munger | `munger/` | 3 | Reasoning quality, inversion, psychology, moats |
-| Mohnish Pabrai | `pabrai/` | 37 | Dhando payoff, letters, concentration discipline |
-| Murray Stahl | `stahl/` | 6 | Croupiers, exchanges, diversification, spinoffs, philosophy |
+| Genius | Folder | Count | Primary use in Marvin |
+|--------|--------|-------|------------------------|
+| Charlie Munger | `munger/` | 3 PDFs | Reasoning quality, inversion, psychology, moats |
+| Mohnish Pabrai | `pabrai/` | 37 PDFs | Dhando payoff, letters, concentration discipline |
+| Murray Stahl | `stahl/` | 6 PDFs | Croupiers, exchanges, diversification, spinoffs, philosophy |
+| Horizon Kinetics | `horizon-kinetics/` | 5 extracts | Equity yield curve, predictive attributes, time arbitrage |
+
+**Mental models catalog:** `_system/frameworks/mental_models.md`
 
 ---
 
@@ -74,6 +77,22 @@ Partner letters (Jan annual series). Filename pattern `Pabrai-Letter-l_MMDDYY.pd
 
 ---
 
+## Horizon Kinetics (`horizon-kinetics/`)
+
+Curated **text extracts** from `C:\Users\werdn\Documents\Investing\Horizon Kinetics\hk_pdfs\`. See `horizon-kinetics/README.md` for refresh commands.
+
+| File | Theme | Apply when |
+|------|-------|------------|
+| `Stahl-Equity-Yield-Curve-extract.txt` | Equity yield curve theory; Johns Manville, PG&E, utilities case studies | Dated recovery events; time arbitrage sizing |
+| `HK-Q1-2025-Commentary-extract.txt` | Predictive attributes; equity yield curve = time arbitrage; SJT, Mesabi, HE | Royalty trust dividend suspension; utility recovery |
+| `HK-Q3-2025-Commentary-extract.txt` | SJT NPI mechanics; deficit paydown; gas royalty trusts | SJT, SBR, PBT, mineral royalties |
+| `HK-Q1-2026-Commentary-extract.txt` | Persistent market-structure discounts; royalty trusts excluded from yield screens | Income alternatives; K-1 / trust structures |
+| `Stahl-Worth-The-Time-Predictive-Attributes-extract.txt` | Predictive vs descriptive attributes (interview) | Any deep dive — forward vs backward metrics |
+
+**Memory section:** `_system/memory/MEMORY.md` → Approved beliefs — Horizon Kinetics
+
+---
+
 ## Cross-reference to holdings
 
 | Holding | Primary genius lens |
@@ -82,5 +101,6 @@ Partner letters (Jan annual series). Filename pattern `Pabrai-Letter-l_MMDDYY.pd
 | FRMO | Stahl (HK affiliate; capital allocator) |
 | SPGI | Stahl (index/passive infrastructure) |
 | CSU, CPRT, DHR | Munger + Pabrai (compounders) |
+| SJT | HK equity yield curve + transitory NPI deficit + market structure discount |
 | All names | Munger inversion on every deep dive |
 | Portfolio-level | Stahl diversification + Pabrai concentration tension |

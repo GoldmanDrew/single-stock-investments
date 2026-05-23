@@ -21,7 +21,7 @@ Synced from ticker folders at workspace root. Last inventory: 2026-05-21.
 | KEWL | KEWL/ | Keweenaw Land Association | US | — | 2026-05-21 | optionality | watch |
 | OTCM | OTCM/ | OTC Markets Group | US | — | 2026-05-21 | croupier | watch |
 | QDEL | QDEL/ | QuidelOrtho | US | 2026-05-21 | 2026-05-21 | turnaround | watch |
-| SJT | SJT/ | San Juan Basin Royalty Trust | US | 2026-05-22 | 2026-05-21 | optionality | watch |
+| SJT | SJT/ | San Juan Basin Royalty Trust | US | 2026-05-22 | 2026-05-22 | optionality | watch |
 | SPGI | SPGI/ | S&P Global | US | — | 2026-05-21 | croupier | hold |
 | TEQ.ST | TEQ.ST/ | Teqnion AB | SE | 2026-05-21 | 2026-05-21 | serial_acquirer | hold |
 | WBI | WBI/ | WaterBridge Infrastructure | US | — | 2026-05-21 | infrastructure | watch |
@@ -37,4 +37,5 @@ Synced from ticker folders at workspace root. Last inventory: 2026-05-21.
 | QDEL, TEQ.ST | Yes | Yes | Yes | Yes |
 | Others | Yes | Mixed | Mixed | Yes |
 
-Pending review: `_system/reviews/pending/*_deep_dive_2026-05-21.md`, `SJT_onboard_2026-05-21.md`
+Pending review: `*_deep_dive_2026-05-21.md`, `SJT_onboard_2026-05-21.md`  
+Approved 2026-05-22: `SJT/research/cross_check_2026-05-22.md` (~$4.10; watch)
