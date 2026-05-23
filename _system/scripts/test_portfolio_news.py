@@ -67,10 +67,38 @@ def test_otc_requires_explicit():
     assert passes_feed_gate(item, cfg) is False
 
 
+def test_rejects_fund_flow_m_and_a():
+    cat, _ = classify_text(
+        "Northwestern Mutual Wealth Management Co. Acquires 186,584 Shares of Danaher Corporation $DHR"
+    )
+    assert cat is None
+
+
+def test_rejects_routine_dividend():
+    cat, _ = classify_text("S&P Global (SPGI) Declares Consistent Quarterly Dividend of $0.9")
+    assert cat is None
+
+
+def test_rejects_sec_filing_roundup():
+    cat, _ = classify_text("Copart (CPRT) 10K Form and Latest SEC Filings 2026 - MarketBeat")
+    assert cat is None
+
+
+def test_rejects_opinion_spinoff_headline():
+    cat, _ = classify_text(
+        "Will S&P Global's (SPGI) Mobility Spin-Off and Dividend Steadiness Redefine Its Core Narrative?"
+    )
+    assert cat is None
+
+
 if __name__ == "__main__":
     test_classify_guidance()
     test_rejects_analyst_noise()
     test_match_amzn_explicit()
     test_refresh_eligible_buyback()
     test_otc_requires_explicit()
+    test_rejects_fund_flow_m_and_a()
+    test_rejects_routine_dividend()
+    test_rejects_sec_filing_roundup()
+    test_rejects_opinion_spinoff_headline()
     print("ok")

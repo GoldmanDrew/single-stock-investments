@@ -14,7 +14,7 @@ REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 PORTFOLIO_NEWS_PATH = ROOT / "dashboard" / "data" / "portfolio_news.json"
 NEWS_SEEN_PATH = ROOT / "_system" / "data" / "news_seen.json"
 
-POLICY_VERSION = 1
+POLICY_VERSION = 2
 FEED_MIN_CONFIDENCE = 0.80
 REFRESH_MIN_CONFIDENCE = 0.85
 OTC_EXPLICIT_ONLY = frozenset({"FRMO", "KEWL", "OTCM"})
@@ -82,6 +82,21 @@ NEGATIVE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bin focus:\b", re.I),
     re.compile(r"\bobv divergence\b", re.I),
     re.compile(r"\bseeking alpha\b.*\?", re.I),
+    re.compile(r"\bto present at\b", re.I),
+    re.compile(r"\bpresent at the\b", re.I),
+    re.compile(r"\blatest sec filings\b", re.I),
+    re.compile(r"\bsec filings?\s*[-–—]\b", re.I),
+    re.compile(r"\b10k form and latest\b", re.I),
+    re.compile(r"\bshares acquired by\b", re.I),
+    re.compile(r"\bacquires (?:new )?\d[\d,]* shares (?:in|of)\b", re.I),
+    re.compile(r"\bacquires \d[\d,]* shares of\b", re.I),
+    re.compile(r"\bdeclares consistent quarterly dividend\b", re.I),
+    re.compile(r"\bconsistent quarterly dividend\b", re.I),
+    re.compile(r"\bredefine its core narrative\b", re.I),
+    re.compile(r"\bstock down as\b", re.I),
+    re.compile(r"\blarge[-\s]?cap stock picks\b", re.I),
+    re.compile(r"\bwhy .{0,40} is down\b", re.I),
+    re.compile(r"\?\s*-\s*(yahoo finance|marketbeat|simplywall)", re.I),
 ]
 
 POSITIVE_PATTERNS: dict[str, list[re.Pattern]] = {
@@ -311,6 +326,23 @@ _EARNINGS_MATERIAL_RE = re.compile(
 _MANAGEMENT_COMMENTARY_RE = re.compile(
     r"\b(Jim Cramer|fan of|before anyone else|podcast|breaking down)\b", re.I,
 )
+_FUND_FLOW_M_AND_A_RE = re.compile(
+    r"\b("
+    r"acquires (?:new )?\d[\d,]* shares (?:in|of)|"
+    r"shares acquired by|"
+    r"acquired by [A-Za-z][\w\s]{0,40}(?:Capital|Wealth|Financial|Advisors|Partners|Management|Mutual)"
+    r")\b",
+    re.I,
+)
+_DIVIDEND_ROUTINE_RE = re.compile(
+    r"\b(consistent|maintains|regular|unchanged|steady)\s+(quarterly\s+)?dividend\b", re.I,
+)
+_SEC_FILING_ROUNDUP_RE = re.compile(
+    r"\b(10k form|10-k form|latest sec filings|sec filings?\s*[-–—])\b", re.I,
+)
+_OPINION_HEADLINE_RE = re.compile(
+    r"^(will|should|why|how)\b.*\?", re.I,
+)
 
 
 @dataclass
@@ -440,6 +472,14 @@ def classify_text(text: str) -> tuple[str | None, float]:
             scores.pop("earnings_material", None)
     if scores.get("management") and _MANAGEMENT_COMMENTARY_RE.search(text):
         scores.pop("management", None)
+    if scores.get("m_and_a") and _FUND_FLOW_M_AND_A_RE.search(text):
+        scores.pop("m_and_a", None)
+    if scores.get("dividend_policy") and _DIVIDEND_ROUTINE_RE.search(text):
+        scores.pop("dividend_policy", None)
+    if scores.get("regulatory") and _SEC_FILING_ROUNDUP_RE.search(text):
+        scores.pop("regulatory", None)
+    if _OPINION_HEADLINE_RE.search((text or "").split("\n")[0]):
+        return None, 0.0
 
     if not scores:
         return None, 0.0
