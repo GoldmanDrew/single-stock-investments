@@ -148,15 +148,18 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install Cursor SDK
+        if: steps.vars.outputs.watchlist_only != 'true' && steps.cursor.outputs.ready == 'true'
+        working-directory: _system/scripts
+        run: npm install --no-save @cursor/sdk
+
       - name: Run Marvin deep dive (Cloud Agent → PR)
         if: steps.vars.outputs.watchlist_only != 'true' && steps.cursor.outputs.ready == 'true'
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           TICKER: ${{ steps.vars.outputs.ticker }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          cd _system/scripts && npm install --no-save @cursor/sdk
-          node _system/scripts/marvin_deep_dive.mjs
+        run: node _system/scripts/marvin_deep_dive.mjs
 
       - name: Summary
         if: success()

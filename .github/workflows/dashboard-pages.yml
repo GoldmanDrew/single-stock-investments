@@ -14,6 +14,13 @@ on:
       - "**/INDEX.csv"
       - "**/document-index.csv"
   workflow_dispatch:
+  # GITHUB_TOKEN pushes from onboard/daily-sync do not trigger push workflows — redeploy here.
+  workflow_run:
+    workflows:
+      - "Marvin Onboard Ticker"
+      - "Daily Download & Dashboard Sync"
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -26,6 +33,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
