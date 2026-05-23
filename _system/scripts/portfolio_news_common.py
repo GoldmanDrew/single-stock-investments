@@ -85,10 +85,11 @@ NEGATIVE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bto present at\b", re.I),
     re.compile(r"\bpresent at the\b", re.I),
     re.compile(r"\blatest sec filings\b", re.I),
-    re.compile(r"\bsec filings?\s*[-–—]\b", re.I),
+    re.compile(r"\bsec filings?\s*[-–—]", re.I),
     re.compile(r"\b10k form and latest\b", re.I),
     re.compile(r"\bshares acquired by\b", re.I),
     re.compile(r"\bacquires (?:new )?\d[\d,]* shares (?:in|of)\b", re.I),
+    re.compile(r"\bacquires new shares in\b", re.I),
     re.compile(r"\bacquires \d[\d,]* shares of\b", re.I),
     re.compile(r"\bdeclares consistent quarterly dividend\b", re.I),
     re.compile(r"\bconsistent quarterly dividend\b", re.I),
@@ -329,6 +330,7 @@ _MANAGEMENT_COMMENTARY_RE = re.compile(
 _FUND_FLOW_M_AND_A_RE = re.compile(
     r"\b("
     r"acquires (?:new )?\d[\d,]* shares (?:in|of)|"
+    r"acquires new shares in|"
     r"shares acquired by|"
     r"acquired by [A-Za-z][\w\s]{0,40}(?:Capital|Wealth|Financial|Advisors|Partners|Management|Mutual)"
     r")\b",
@@ -338,7 +340,7 @@ _DIVIDEND_ROUTINE_RE = re.compile(
     r"\b(consistent|maintains|regular|unchanged|steady)\s+(quarterly\s+)?dividend\b", re.I,
 )
 _SEC_FILING_ROUNDUP_RE = re.compile(
-    r"\b(10k form|10-k form|latest sec filings|sec filings?\s*[-–—])\b", re.I,
+    r"\b(10k form|10-k form|latest sec filings|sec filings?\s*[-–—])", re.I,
 )
 _OPINION_HEADLINE_RE = re.compile(
     r"^(will|should|why|how)\b.*\?", re.I,
