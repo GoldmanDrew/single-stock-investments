@@ -39,7 +39,7 @@ const prompt = `${prefix}
 ${template}
 
 Additional instructions for this cloud run:
-- Pick reason: ${pickReason} — if "new_documents", this is a **refresh** after daily download sync; read any files newer than the prior deep_dive_*.md.
+- Pick reason: ${pickReason} — if "new_documents", this is a **refresh** after daily download sync; read any files newer than the prior deep_dive_*.md. If "new_valuation_news", read dashboard/data/portfolio_news.json and {ticker}/research/news/news_index.json for refresh-eligible headlines since the last deep dive; focus the write-up on **what changed for cash flows / valuation**, not a full re-read of unchanged primary docs unless needed.
 - Apply approved beliefs from _system/memory/MEMORY.md (Munger, Pabrai, Stahl sections).
 - Apply lenses from _system/reference/investment-wisdom/INDEX.md for this ticker.
 - Use Classification table (archetype, moat, dhando, stance, cycle) per _system/frameworks/classification.md — not legacy thesis status.

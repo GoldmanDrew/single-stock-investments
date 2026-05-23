@@ -42,7 +42,8 @@ Separate **facts**, **inferences**, and **opinions**. Cite file paths and page r
 | Step | Workflow | Behavior |
 |------|----------|----------|
 | Download | `daily-sync.yml` job `download-and-sync` | 12:00 UTC — pull SEC/IR for all holdings, rebuild INDEX + dashboard JSON, push |
-| Refresh analysis | `daily-sync.yml` job `marvin-refresh` | After download — pick ticker with **new primary documents since last deep dive**; skip if all caught up; Cursor cloud agent opens PR |
-| Manual refresh | `marvin-daily-deep-dive.yml` | Optional ticker; **force_rotate** if you want oldest dive refreshed without new docs |
+| News | `daily-sync.yml` job `portfolio-news` or `portfolio-news.yml` | Polygon bulk + Google News RSS → `dashboard/data/portfolio_news.json`; review `_system/reviews/pending/news_{date}.md` |
+| Refresh analysis | `daily-sync.yml` job `marvin-refresh` | After news — pick ticker with **new primary documents or refresh-eligible valuation news** since last deep dive; skip if caught up; Cursor cloud agent opens PR |
+| Manual refresh | `marvin-daily-deep-dive.yml` | Optional ticker; **force_rotate** if you want oldest dive refreshed without new activity |
 
-Picker: `_system/scripts/marvin_pick_ticker.py --json`
+Picker: `_system/scripts/marvin_pick_ticker.py --json` · News ingest: `_system/scripts/ingest_portfolio_news.py`

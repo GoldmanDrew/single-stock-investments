@@ -1,0 +1,99 @@
+name: Portfolio News Ingest
+
+on:
+  schedule:
+    # Every 6 hours, offset 30 min after the hour (after daily sync at :00).
+    - cron: "30 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Optional comma-separated subset (e.g. AMZN,SJT)."
+        required: false
+        default: ""
+      skip_polygon:
+        description: "Skip Polygon bulk news phase."
+        required: false
+        default: "false"
+      skip_google:
+        description: "Skip Google News RSS phase."
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: portfolio-news-refresh
+  cancel-in-progress: true
+
+jobs:
+  ingest-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY || secrets.POLYGON_IO_API_KEY }}
+      PORTFOLIO_NEWS_WINDOW_DAYS: "30"
+      PORTFOLIO_NEWS_POLYGON_REQS_PER_MIN: "5"
+      PORTFOLIO_NEWS_MAX_PAGES: "15"
+      PORTFOLIO_NEWS_GOOGLE_MAX_PER_QUERY: "50"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r _system/scripts/requirements-news.txt
+
+      - name: Ingest portfolio news
+        working-directory: _system/scripts
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.tickers }}" ]; then
+            ARGS="$ARGS --tickers ${{ github.event.inputs.tickers }}"
+          fi
+          if [ "${{ github.event.inputs.skip_polygon }}" = "true" ]; then
+            ARGS="$ARGS --skip-polygon"
+          fi
+          if [ "${{ github.event.inputs.skip_google }}" = "true" ]; then
+            ARGS="$ARGS --skip-google"
+          fi
+          python ingest_portfolio_news.py $ARGS
+
+      - name: Print summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("dashboard/data/portfolio_news.json")
+          if not p.exists():
+              print("portfolio_news.json MISSING")
+          else:
+              payload = json.loads(p.read_text(encoding="utf-8"))
+              items = payload.get("items") or []
+              refresh = sum(1 for it in items if it.get("refresh_eligible"))
+              by_cat = {}
+              for it in items:
+                  c = it.get("category", "?")
+                  by_cat[c] = by_cat.get(c, 0) + 1
+              print(f"items={len(items)} refresh_eligible={refresh} by_category={by_cat} build={payload.get('build_time')}")
+          PY
+
+      - name: Commit news artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/data/portfolio_news.json _system/data/news_seen.json _system/reviews/pending/news_*.md
+          git add '*/research/news/news_index.json' 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No news changes to commit."
+          else
+            git commit -m "chore: refresh portfolio news $(date -u +%Y-%m-%d)"
+            git push
+          fi

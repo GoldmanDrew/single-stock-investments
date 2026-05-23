@@ -3,8 +3,10 @@
 
 Priority:
   1. Explicit ticker (CLI arg) — always runs
-  2. Holdings with primary documents newer than the latest deep dive
-  3. Optional --force-rotate: oldest deep dive when nothing new (--require-new skips instead)
+  2. Holdings with no deep dive yet
+  3. Holdings with primary documents newer than the latest deep dive
+  4. Holdings with refresh-eligible valuation news newer than the latest deep dive
+  5. Optional --force-rotate: oldest deep dive when nothing new (--require-new skips instead)
 """
 from __future__ import annotations
 
@@ -16,6 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS))
+
+from portfolio_news_common import latest_refresh_news_activity  # noqa: E402
+
 SKIP = {"_system", "dashboard", ".git", ".github", ".cursor"}
 DATE_RE = re.compile(r"deep_dive_(\d{4}-\d{2}-\d{2})\.md$")
 ISO_RE = re.compile(r"(\d{4}-\d{2}-\d{2}T[\d:.+-]+)")
@@ -147,6 +154,35 @@ def latest_document_activity(ticker: str) -> datetime | None:
     return latest
 
 
+def _activity_snapshot(ticker: str) -> dict:
+    dive_dt, dive_path = latest_deep_dive(ticker)
+    doc_dt = latest_document_activity(ticker)
+    news_dt = None
+    if dive_dt:
+        news_dt = latest_refresh_news_activity(ticker, since=dive_dt)
+    elif latest_refresh_news_activity(ticker):
+        news_dt = latest_refresh_news_activity(ticker)
+
+    trigger_dt: datetime | None = None
+    reason: str | None = None
+    if doc_dt and (dive_dt is None or doc_dt > dive_dt):
+        trigger_dt = doc_dt
+        reason = "new_documents"
+    if news_dt and (dive_dt is None or news_dt > dive_dt):
+        if trigger_dt is None or news_dt > trigger_dt:
+            trigger_dt = news_dt
+            reason = "new_valuation_news"
+
+    return {
+        "deep_dive_at": dive_dt.isoformat() if dive_dt else None,
+        "deep_dive_path": str(dive_path.relative_to(ROOT)) if dive_path else None,
+        "document_at": doc_dt.isoformat() if doc_dt else None,
+        "news_at": news_dt.isoformat() if news_dt else None,
+        "trigger_at": trigger_dt.isoformat() if trigger_dt else None,
+        "reason": reason,
+    }
+
+
 def pick_ticker(
     explicit: str | None = None,
     *,
@@ -157,55 +193,52 @@ def pick_ticker(
         explicit = explicit.strip()
         if explicit not in list_tickers():
             raise SystemExit(f"Unknown ticker: {explicit}")
-        dive_dt, _ = latest_deep_dive(explicit)
-        doc_dt = latest_document_activity(explicit)
+        snap = _activity_snapshot(explicit)
         return {
             "ticker": explicit,
             "skip": False,
             "reason": "manual_override",
-            "deep_dive_at": dive_dt.isoformat() if dive_dt else None,
-            "document_at": doc_dt.isoformat() if doc_dt else None,
+            **{k: v for k, v in snap.items() if k != "reason"},
         }
 
     no_dive: list[str] = []
-    stale: list[tuple[datetime, datetime, str]] = []
+    stale: list[tuple[datetime, str, str]] = []
 
     for ticker in list_tickers():
-        dive_dt, _ = latest_deep_dive(ticker)
-        doc_dt = latest_document_activity(ticker)
-
+        snap = _activity_snapshot(ticker)
+        dive_dt = snap["deep_dive_at"]
         if dive_dt is None:
             no_dive.append(ticker)
             continue
-
-        if doc_dt is None:
+        if not snap.get("trigger_at") or not snap.get("reason"):
             continue
-
-        if doc_dt > dive_dt:
-            stale.append((doc_dt - dive_dt, doc_dt, ticker))
+        trigger_dt = datetime.fromisoformat(snap["trigger_at"])
+        stale.append((trigger_dt, snap["reason"], ticker))
 
     if no_dive:
         t = sorted(no_dive)[0]
-        dive_dt, _ = latest_deep_dive(t)
-        doc_dt = latest_document_activity(t)
+        snap = _activity_snapshot(t)
         return {
             "ticker": t,
             "skip": False,
             "reason": "no_deep_dive",
-            "deep_dive_at": dive_dt.isoformat() if dive_dt else None,
-            "document_at": doc_dt.isoformat() if doc_dt else None,
+            "deep_dive_at": snap["deep_dive_at"],
+            "document_at": snap["document_at"],
+            "news_at": snap["news_at"],
         }
 
     if stale:
-        stale.sort(key=lambda x: (-x[0].total_seconds(), -x[1].timestamp(), x[2]))
-        _, doc_dt, t = stale[0]
-        dive_dt, _ = latest_deep_dive(t)
+        stale.sort(key=lambda x: (-x[0].timestamp(), x[2]))
+        trigger_dt, reason, t = stale[0]
+        snap = _activity_snapshot(t)
         return {
             "ticker": t,
             "skip": False,
-            "reason": "new_documents",
-            "deep_dive_at": dive_dt.isoformat() if dive_dt else None,
-            "document_at": doc_dt.isoformat(),
+            "reason": reason,
+            "deep_dive_at": snap["deep_dive_at"],
+            "document_at": snap["document_at"],
+            "news_at": snap["news_at"],
+            "trigger_at": trigger_dt.isoformat(),
         }
 
     if force_rotate and not require_new_documents:
@@ -217,14 +250,14 @@ def pick_ticker(
         if ranked:
             ranked.sort(key=lambda x: (x[0], x[1]))
             t = ranked[0][1]
-            dive_dt, _ = latest_deep_dive(t)
-            doc_dt = latest_document_activity(t)
+            snap = _activity_snapshot(t)
             return {
                 "ticker": t,
                 "skip": False,
                 "reason": "rotate_oldest_dive",
-                "deep_dive_at": dive_dt.isoformat() if dive_dt else None,
-                "document_at": doc_dt.isoformat() if doc_dt else None,
+                "deep_dive_at": snap["deep_dive_at"],
+                "document_at": snap["document_at"],
+                "news_at": snap["news_at"],
             }
 
     return {
@@ -233,6 +266,7 @@ def pick_ticker(
         "reason": "caught_up",
         "deep_dive_at": None,
         "document_at": None,
+        "news_at": None,
     }
 
 
@@ -243,19 +277,19 @@ def main() -> None:
     parser.add_argument(
         "--force-rotate",
         action="store_true",
-        help="If no new documents, pick oldest deep dive anyway",
+        help="If no new documents or news, pick oldest deep dive anyway",
     )
     parser.add_argument(
         "--require-new",
         action="store_true",
         default=True,
-        help="Default: skip when no holdings have new documents (default: true)",
+        help="Default: skip when no holdings have new activity (default: true)",
     )
     parser.add_argument(
         "--no-require-new",
         action="store_false",
         dest="require_new",
-        help="Allow rotation fallback without new documents",
+        help="Allow rotation fallback without new activity",
     )
     args = parser.parse_args()
 

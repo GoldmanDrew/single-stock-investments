@@ -43,8 +43,49 @@ jobs:
             git push
           fi
 
-  marvin-refresh:
+  portfolio-news:
     needs: download-and-sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY || secrets.POLYGON_IO_API_KEY }}
+      PORTFOLIO_NEWS_WINDOW_DAYS: "30"
+      PORTFOLIO_NEWS_POLYGON_REQS_PER_MIN: "5"
+      PORTFOLIO_NEWS_MAX_PAGES: "15"
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r _system/scripts/requirements-news.txt
+
+      - name: Ingest portfolio news
+        working-directory: _system/scripts
+        run: python ingest_portfolio_news.py
+
+      - name: Commit news artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/data/portfolio_news.json _system/data/news_seen.json _system/reviews/pending/news_*.md
+          git add '*/research/news/news_index.json' 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "No news changes to commit."
+          else
+            git commit -m "chore: daily portfolio news $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+  marvin-refresh:
+    needs: portfolio-news
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -71,7 +112,7 @@ jobs:
             exit 1
           fi
 
-      - name: Pick ticker (new documents since last deep dive)
+      - name: Pick ticker (new documents or valuation news since last deep dive)
         id: pick
         run: |
           python _system/scripts/marvin_pick_ticker.py --json --require-new > pick.json
@@ -107,7 +148,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.pick.outputs.skip }}" = "true" ]; then
-            echo "No refresh — no holdings with new documents since last deep dive."
+            echo "No refresh — no holdings with new documents or valuation news since last deep dive."
           elif [ -n "${{ steps.pick.outputs.ticker }}" ]; then
             echo "Refresh PR started for ${{ steps.pick.outputs.ticker }} (${{ steps.pick.outputs.reason }})."
           fi
