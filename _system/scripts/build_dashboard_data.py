@@ -46,6 +46,7 @@ TICKER_META = {
     "TEQ.ST": {"company": "Teqnion AB", "market": "SE", "exchange": "Nasdaq First North"},
     "WBI": {"company": "WaterBridge Infrastructure", "market": "US", "exchange": "NYSE"},
     "SJT": {"company": "San Juan Basin Royalty Trust", "market": "US", "exchange": "NYSE"},
+    "MSB": {"company": "Mesabi Trust", "market": "US", "exchange": "NYSE"},
 }
 
 
