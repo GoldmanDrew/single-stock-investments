@@ -6,9 +6,11 @@
   const PKCE_KEY = 'oauth_pkce_verifier';
   const RETURN_KEY = 'oauth_return';
 
+  /** Site root path (Pages deploy root = dashboard/), regardless of current page. */
   function basePath() {
-    const path = global.location.pathname.replace(/\/index\.html$/i, '').replace(/\/$/, '');
-    return path || '';
+    let path = global.location.pathname.replace(/\/index\.html$/i, '');
+    path = path.replace(/\/oauth\/[^/]*$/i, '');
+    return path.replace(/\/$/, '') || '';
   }
 
   function redirectUri() {
