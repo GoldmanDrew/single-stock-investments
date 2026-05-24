@@ -463,8 +463,10 @@ def write_oauth_config() -> None:
         except json.JSONDecodeError:
             existing = {}
     client_id = os.environ.get("OAUTH_CLIENT_ID", "").strip() or existing.get("client_id", "")
+    exchange_url = os.environ.get("OAUTH_PROXY_URL", "").strip() or existing.get("exchange_url", "")
     payload = {
         "client_id": client_id,
+        "exchange_url": exchange_url,
         "scopes": existing.get("scopes", "repo"),
         "setup": existing.get(
             "setup",

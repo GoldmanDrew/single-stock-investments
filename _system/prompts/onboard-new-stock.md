@@ -11,10 +11,9 @@ Use the **onboard orchestrator** (dashboard or CLI) — do not manually edit fou
 
 ### OAuth App setup (one time, repo admin)
 
-1. [New OAuth App](https://github.com/settings/developers) → **Authorization callback URL**:
-   `https://goldmandrew.github.io/single-stock-investments/oauth/callback.html`
-2. Copy **Client ID** → repo **Settings → Secrets and variables → Actions → Variables** → `OAUTH_CLIENT_ID`
-   (Or set `client_id` in `dashboard/data/oauth_config.json` for local-only use.)
+1. [New OAuth App](https://github.com/settings/developers) — enable **Device Flow**
+2. Copy **Client ID** → repo variable **`OAUTH_CLIENT_ID`**
+3. Deploy CORS proxy (required): see `dashboard/oauth-proxy/README.md` → set **`OAUTH_PROXY_URL`**
 
 ## CLI (local)
 

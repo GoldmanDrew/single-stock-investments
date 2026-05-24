@@ -231,6 +231,12 @@
   }
   .watch-chip:hover { border-color: var(--accent-blue); }
   .onboard-badge { font-size: 10px; margin-left: 6px; color: var(--accent-amber); }
+  .device-code-box { margin: 16px 0; line-height: 1.6; }
+  .device-code {
+    font-size: 28px; letter-spacing: 4px; font-weight: 700;
+    padding: 12px; background: var(--bg-card); border-radius: 8px;
+    text-align: center; margin: 12px 0; color: var(--accent-blue);
+  }
 </style>
 </head>
 <body>
@@ -312,6 +318,22 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="device-backdrop">
+  <div class="modal" role="dialog">
+    <h3>Sign in with GitHub</h3>
+    <p class="form-hint">GitHub blocks token exchange from Pages directly — one-time Cloudflare proxy required (<code>OAUTH_PROXY_URL</code>).</p>
+    <div class="device-code-box" id="device-code-box" style="display:none">
+      <p>1. Open <a id="device-link" href="https://github.com/login/device" target="_blank" rel="noopener">github.com/login/device</a></p>
+      <p>2. Enter this code:</p>
+      <div class="device-code mono" id="device-user-code">----</div>
+      <p class="form-hint" id="device-status">Waiting for authorization…</p>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" id="device-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'GoldmanDrew/single-stock-investments';
@@ -346,6 +368,7 @@ const MOAT_BADGE = {
 
 let data = null;
 let oauthConfig = null;
+let devicePollTimer = null;
 let selected = null;
 let sortKey = 'ticker';
 let sortAsc = true;
@@ -652,6 +675,8 @@ document.getElementById('btn-auth').addEventListener('click', async () => {
   const btn = document.getElementById('btn-auth');
   if (btn.dataset.signedIn === '1') {
     MarvinOAuth.clearAuth();
+    MarvinOAuth.cancelDeviceAuth();
+    stopDevicePoll();
     await MarvinOAuth.refreshAuthUi(btn);
     return;
   }
@@ -659,17 +684,59 @@ document.getElementById('btn-auth').addEventListener('click', async () => {
     alert(
       'OAuth not configured yet.\n\n'
       + '1. Create an OAuth App: https://github.com/settings/developers\n'
-      + '2. Callback URL: ' + MarvinOAuth.redirectUri() + '\n'
-      + '3. Set client_id in dashboard/data/oauth_config.json or repo variable OAUTH_CLIENT_ID'
+      + '2. Enable Device Flow on the app\n'
+      + '3. Set repo variables OAUTH_CLIENT_ID and OAUTH_PROXY_URL\n'
+      + '   (deploy proxy: dashboard/oauth-proxy/README.md)'
     );
     return;
   }
   try {
-    await MarvinOAuth.signIn(oauthConfig.client_id);
+    const device = await MarvinOAuth.signIn(oauthConfig.client_id, oauthConfig);
+    document.getElementById('device-user-code').textContent = device.user_code;
+    document.getElementById('device-link').href = device.verification_uri;
+    document.getElementById('device-code-box').style.display = 'block';
+    document.getElementById('device-status').textContent = 'Waiting for authorization…';
+    document.getElementById('device-backdrop').classList.add('open');
+    startDevicePoll(device.interval || 5);
   } catch (e) {
     alert(e.message || String(e));
   }
 });
+
+function stopDevicePoll() {
+  if (devicePollTimer) {
+    clearInterval(devicePollTimer);
+    devicePollTimer = null;
+  }
+}
+
+function closeDeviceModal() {
+  stopDevicePoll();
+  MarvinOAuth.cancelDeviceAuth();
+  document.getElementById('device-backdrop').classList.remove('open');
+}
+
+function startDevicePoll(intervalSec) {
+  stopDevicePoll();
+  let wait = intervalSec * 1000;
+  devicePollTimer = setInterval(async () => {
+    try {
+      const result = await MarvinOAuth.pollDeviceAuth(oauthConfig);
+      if (result.pending) {
+        if (result.slow) wait = Math.min(wait + 5000, 30000);
+        document.getElementById('device-status').textContent = 'Waiting for authorization…';
+        return;
+      }
+      closeDeviceModal();
+      await MarvinOAuth.refreshAuthUi(document.getElementById('btn-auth'));
+    } catch (e) {
+      document.getElementById('device-status').textContent = e.message || String(e);
+      stopDevicePoll();
+    }
+  }, wait);
+}
+
+document.getElementById('device-cancel').addEventListener('click', closeDeviceModal);
 </script>
 </body>
 </html>
