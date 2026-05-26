@@ -8,10 +8,10 @@
 |-------|-------|
 | **Archetype** (Stahl) | turnaround |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | none |
-| **Stance** | watch |
+| **Dhando** (Pabrai) | partial |
+| **Stance** | hold |
 | **Cycle** | - |
-| **Implied 10yr IRR** (Lawrence) | 10.9% (base) |
+| **Implied 10yr IRR** (Lawrence) | 18.0% (blended best estimate) |
 | **IRR method** | scenario |
 | **Lawrence bucket** | pricing_power |
 

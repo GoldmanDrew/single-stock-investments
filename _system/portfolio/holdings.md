@@ -22,7 +22,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-05-26.
 | KEWL | KEWL/ | Keweenaw Land Association | US | 2026-05-26 | 2026-05-26 | optionality | watch |
 | MSB | MSB/ | Mesabi Trust | US | 2026-05-26 | 2026-05-26 | optionality | watch |
 | OTCM | OTCM/ | OTC Markets Group | US | 2026-05-26 | 2026-05-26 | croupier | watch |
-| QDEL | QDEL/ | QuidelOrtho | US | 2026-05-26 | 2026-05-26 | turnaround | watch |
+| QDEL | QDEL/ | QuidelOrtho | US | 2026-05-26 | 2026-05-26 | turnaround | hold |
 | SJT | SJT/ | San Juan Basin Royalty Trust | US | 2026-05-26 | 2026-05-26 | optionality | watch |
 | SPGI | SPGI/ | S&P Global | US | 2026-05-26 | 2026-05-26 | croupier | hold |
 | TEQ.ST | TEQ.ST/ | Teqnion AB | SE | 2026-05-26 | 2026-05-26 | serial_acquirer | hold |

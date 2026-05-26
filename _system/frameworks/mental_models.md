@@ -201,6 +201,16 @@ Promote to MEMORY after review. Apply when trigger matches.
 
 ---
 
+## Tier 1 — Triangulated estimate (when external analysis cited)
+
+| Model | Trigger | Question |
+|-------|---------|----------|
+| **Triangulated estimate** | Manager letter, Substack, material press release, or prior cross-check | What is Marvin floor vs external vs **blended best estimate** (weighted middle)? Avoid binary Marvin-only or full external adopt. |
+
+**Framework:** `_system/frameworks/external_view_blend.md`
+
+---
+
 ## Report integration
 
 Deep dives and cross-checks should include:
@@ -214,6 +224,8 @@ Deep dives and cross-checks should include:
 
 **Predictive attribute:** equity_yield_curve | … | none
 ```
+
+When an external doc is cited, also include `## Blended estimate (best judgment)` per `external_view_blend.md`.
 
 Then standard **Classification** table (include Lawrence IRR fields when computed), **[HUMAN REVIEW]**, **[PROPOSED MEMORY]**.
 

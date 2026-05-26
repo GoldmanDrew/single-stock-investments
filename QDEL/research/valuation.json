@@ -6,35 +6,65 @@
   "classification_inputs": {
     "archetype": "turnaround",
     "moat": "unproven",
-    "dhando": "none",
-    "cycle": "\u2014"
+    "dhando": "partial",
+    "cycle": "-"
   },
   "inputs": {
     "price": 12.175,
     "price_source": "Yahoo ~2026-05-26",
-    "per_share": 1.05,
-    "per_share_source": "FY2026 guided adj EBITDA $622M \u00d7 ~25% to owner cash / 67.8M sh (haircut for leverage + integration risk)",
+    "per_share": 1.45,
+    "per_share_source": "Blended best estimate (55% Marvin floor $1.05 / 45% partial external normalization)",
     "shares_millions": 67.8,
-    "normalization_note": "Turnaround \u2014 conservative owner cash, not headline adj EBITDA or GAAP loss EPS"
+    "normalization_note": "Primary metric = blended_best; marvin_floor retained for stress"
+  },
+  "estimates": {
+    "marvin_floor": {
+      "per_share": 1.05,
+      "return_pct": 10.9,
+      "exit_multiple": 9,
+      "growth_y1_5": 0.04,
+      "growth_y6_10": 0.03,
+      "notes": "Haircut owner cash from guided EBITDA"
+    },
+    "external": [
+      {
+        "source": "McIntyre Partnerships Q1 2026",
+        "path": "QDEL/investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf",
+        "per_share_2028": 4.0,
+        "price_target": 60,
+        "horizon_years": 2.5,
+        "return_pct_approx": 97,
+        "notes": "15x on 2028 FCF; 2.5yr frame; put hedge on fund position"
+      }
+    ],
+    "blended_best": {
+      "per_share": 1.45,
+      "return_pct": 18.0,
+      "exit_multiple": 10,
+      "growth_y1_5": 0.05,
+      "growth_y6_10": 0.035,
+      "weights": "55% marvin_floor / 45% partial McIntyre normalization",
+      "notes": "Triangulated best judgment per external_view_blend.md"
+    }
   },
   "scenarios": {
     "bear": {
       "growth_y1_5": -0.03,
       "growth_y6_10": 0.0,
       "exit_multiple": 7,
-      "notes": "Revenue shrink, integration fail, deleveraging drag"
+      "notes": "Marvin floor stress"
     },
     "base": {
-      "growth_y1_5": 0.04,
-      "growth_y6_10": 0.03,
-      "exit_multiple": 9,
-      "notes": "Margin program holds; flat revenue stabilizes"
+      "growth_y1_5": 0.05,
+      "growth_y6_10": 0.035,
+      "exit_multiple": 10,
+      "notes": "Blended best estimate path"
     },
     "bull": {
       "growth_y1_5": 0.07,
       "growth_y6_10": 0.04,
       "exit_multiple": 11,
-      "notes": "Lab cross-sell + non-respiratory POC recovery"
+      "notes": "Closer to external if issues clear faster"
     }
   },
   "results": {
@@ -42,24 +72,25 @@
       "return_pct": 3.6
     },
     "base": {
-      "return_pct": 10.9
+      "return_pct": 18.0
     },
     "bull": {
-      "return_pct": 14.6
+      "return_pct": 20.2
     }
   },
   "implied_return": {
-    "base_pct": 10.9,
-    "label": "scenario IRR",
-    "display": "10.9% (base)"
+    "base_pct": 18.0,
+    "label": "blended scenario IRR (best estimate)",
+    "display": "18.0% (blended best estimate)",
+    "marvin_floor_pct": 10.9
   },
   "stance_proposal": {
-    "suggested": "watch",
-    "irr_band": "<15%",
+    "suggested": "hold",
+    "irr_band": "15-20%",
     "gates": {
       "moat_ok": false,
-      "dhando_ok": false
+      "dhando_ok": true
     },
-    "override_reason": null
+    "override_reason": "Blended IRR clears 15% band; moat unproven caps at hold not accumulate"
   }
 }

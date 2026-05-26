@@ -1,65 +1,61 @@
-# QDEL — Cross-check: McIntyre Partnerships Q1 2026
+# QDEL — External blend: McIntyre Partnerships Q1 2026
 
 **Date:** 2026-05-26  
-**Agent:** Marvin  
-**External doc:** `QDEL/investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf` (May 11, 2026)  
-**Our dive:** `QDEL/research/deep_dive_2026-05-26.md`  
-**Status:** **Not approved** by human (pending stance vs external bull case)
+**Framework:** `_system/frameworks/external_view_blend.md`  
+**External doc:** `QDEL/investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf`  
+**Our dive:** `QDEL/research/deep_dive_2026-05-26.md`
 
 ---
 
 ## Summary
 
-McIntyre Partnerships runs a concentrated long book in life-science tools; QDEL was >500 bps of Q1 2026 fund drawdown and is now the largest position (>20% of capital, with puts capping total loss below 20%). The manager views **~$11** as a once-in-five-to-ten-year opportunity, targeting **~$4 FCF/sh in 2028** and **15× → ~$60** (~97% IRR over 2.5 years). Marvin’s base case at **~$12.18** is **10.9%** scenario IRR on **haircut owner cash $1.05/sh** with **watch** stance and **dhando none**.
+McIntyre and Marvin agree on the **business** (razor/blade diagnostics, five stacked issues, core ~75% healthier). They diverge on **normalization**: Marvin **$1.05/sh** owner cash (haircut) → **10.9%** 10yr IRR; McIntyre **~$4 FCF/sh by 2028** and **15× → ~$60** (~97% over ~2.5 years). **Best estimate (blended):** **$1.45/sh** owner cash, **~18%** 10yr IRR, **hold** with **partial** dhando (not max-long external sizing).
 
 ---
 
-## Agreements
+## Agreements (facts)
 
-| Topic | McIntyre | Marvin | Evidence |
-|-------|----------|--------|----------|
-| Business model | Razor/razorblade; ~95% consumables; labs + IH ~75% of sales | Same framing | Letter p.3; QDEL 10-K |
-| Sector dislocation | Life-science tools down ~16% avg YTD; QDEL -40% | Transitory + sector headwind | Letter table; our Why mispriced |
-| Five issues | COVID wind-down, ERP/A/R, flu Q1, China reimbursement, LEX launch drag | Overlap with our pillars (integration, respiratory, China) | Letter "Five Big Issues" |
-| Core business health | ~75% "core" growing ~6% in 2025 | Revenue still falling consolidated; margin from cost | Letter; our Q1 -10.5% YoY |
-| Leverage | ~4.1x; refi to 2030; TL par | Monitor covenants; not dhando floor | Letter; 10-K [HUMAN REVIEW] |
-| Strategic levers | Leasing unwind (~$250M pre-tax swing), IH sale rumor $1.7B+, ABL on leased equipment | Not in our base; upside optionality | Letter p.4 |
-
----
-
-## Disagreements
-
-| Topic | McIntyre | Marvin | Why it matters |
-|-------|----------|--------|----------------|
-| **Stance** | Max conviction long (with put hedge) | **watch** | Capital allocation vs our 15% IRR bar |
-| **Owner cash / FCF** | **~$4/sh by 2028** | **~$1.05/sh** starting (25% of guided EBITDA haircut) | Drives IRR gap |
-| **Valuation exit** | **15× on $4 → $60** | **9× on haircut path → ~11% IRR** | McIntyre bull is 5–6× our owner-cash start |
-| **2027 core EBITDA** | **~$550M** core only (ex-China + respiratory in base) | We use consolidated guided EBITDA with haircut, not $550M core carve-out | Normalization philosophy |
-| **Dhando** | "No realistic permanent capital loss" + puts | **none** (leverage + declining revenue) | Risk framing |
-| **Timeframe** | Re-rating **2026** as issues clear | FY26 flat guide unproven | Catalyst timing |
+| Topic | Both | Source |
+|-------|------|--------|
+| Model | ~95% consumables; labs + IH ~75% sales | Letter; 10-K |
+| Issues | COVID, ERP/A/R, flu Q1, China, LEX drag | Letter; our pillars |
+| Sector | Life-science tools dislocation; QDEL worse than group | Letter table |
+| Leverage | ~4×; refi to 2030 | Letter; 10-K |
+| Strategic options | Leasing unwind, division sale, ABL on equipment | Letter (upside not in Marvin floor) |
 
 ---
 
-## Missing data (Marvin)
+## Divergences (normalization)
 
-- McIntyre does not cite primary filing paths; we need 10-K covenant and segment FCF reconciliation.
-- Put structure and strike not disclosed in letter excerpt.
-- China policy modeled as **$70M EBITDA hit**; we exclude detail in base.
+| Topic | Marvin floor | McIntyre | Blend logic |
+|-------|--------------|---------|-------------|
+| Owner cash Y0 | **$1.05** (25% of guided EBITDA) | Path to **~$4** by 2028 | **$1.45** = 55% floor + 45% partial core normalize (~$2.0–2.5 near-term credit) |
+| Exit multiple | **9×** | **15×** | **10×** split (risk vs peers) |
+| Growth | 4% / 3% | Core mid-single + re-rating | **5% / 3.5%** |
+| 10yr IRR | **10.9%** | N/A (2.5yr frame) | **~18.0%** |
+| Dhando | none | puts + "no permanent loss" | **partial** |
+| Stance | watch | >20% fund weight | **hold** (sleeve-sized, not external concentration) |
 
 ---
 
-## Marvin position after cross-check
+## Synthesis (best estimate)
 
-**[Inference]** McIntyre’s case is a **high-conviction turnaround** on **core-business normalization** and **multiple re-rating**, not our conservative **haircut owner-cash** Lawrence scenario. We **do not** adopt accumulate without: (1) Q1 revenue stabilization, (2) A/R recovery proof, (3) reconciling **$4 vs $1.05** owner cash.
+**[Inference]** McIntyre is right that the **core franchise** is mispriced if five issues are largely transitory; Marvin is right that **consolidated owner cash today** does not support $4/sh without proof (A/R recovery, flu normalize, China rule clarity).
 
-**Human decision:** Approve Marvin **watch** vs follow McIntyre sizing (not recommended without independent FCF model).
+**Weights:** **55% Marvin** (filings-based haircut, covenant discipline); **45% McIntyre** (core EBITDA carve-out and strategic levers we under-modeled).
+
+**Primary metric for stance:** `estimates.blended_best` in `valuation.json` (**~18.0%**), not Marvin-only **10.9%** alone.
+
+**Catalyst path (blended):** H2 2026 positive FCF + China rule finalization + sector relief (McIntyre timing); Marvin requires Q1 revenue stabilization first.
+
+**Returns statement (blended):** We expect about **18%** per year at **~$12** on **$1.45/sh** owner cash with **10×** exit if issues normalize over 2–3 years; primary risk: **revenue decline persists** and leverage bites before leasing/IH options execute.
 
 ## [HUMAN REVIEW]
 
-- Reconcile McIntyre 2028 **$4 FCF/sh** to our owner-cash bridge
-- Decide if puts + core-only EBITDA justify stance upgrade
-- Price check: letter uses **~$11**; our dive **~$12.18**
+- Confirm put hedge terms (external)
+- Reconcile blended **$1.45** to your own FCF bridge
+- Size: hold vs small accumulate vs McIntyre-scale
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] McIntyre Q1 2026: QDEL largest position; thesis $4 FCF/sh 2028, 15× → $60 — `QDEL/investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf`
+- [PROPOSED COMPANY] QDEL blend 2026-05-26: Marvin floor 10.9% @ $1.05/sh; McIntyre $60/2028 path; blended **~17%** @ **$1.45/sh** hold

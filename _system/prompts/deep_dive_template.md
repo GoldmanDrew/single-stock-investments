@@ -130,6 +130,24 @@ See `_system/frameworks/optionality_valuation.md`. Skip if standard Lawrence/Hoh
 
 ---
 
+## Blended estimate (best judgment)
+
+{Required when an external manager letter, research note, or material press release is cited. Not binary Marvin vs external.}
+
+| Lens | Key metric (owner cash Y0 or equivalent) | Return / horizon | Stance hint |
+|------|------------------------------------------|------------------|-------------|
+| Marvin floor | … | …% (10yr) | … |
+| External ({source}) | … | … ({horizon}) | … |
+| **Blended best estimate** | **…** | **…%** | **…** |
+
+**Weights:** Marvin …% because …; external …% because ….
+
+**Returns statement (blended):** …
+
+{Skip section if no external view. Record in `valuation.json` → `estimates`.}
+
+---
+
 ## Payoff & return
 
 ### Five-question gate
