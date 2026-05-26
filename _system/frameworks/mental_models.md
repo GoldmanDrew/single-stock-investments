@@ -1,10 +1,11 @@
 # Mental Models Catalog
 
-**Purpose:** Operating checklist for Marvin research. Read before deep dives and cross-checks.
+**Purpose:** Reference appendix for Marvin research. **Workflow:** read `_system/frameworks/decision_stack.md` first — not this entire file on every dive.
 
 **Sources:** `_system/reference/investment-wisdom/` (Munger, Pabrai, Stahl, Horizon Kinetics)  
 **Approved beliefs:** `_system/memory/MEMORY.md` (human-promoted only)  
-**Classification axes:** `_system/frameworks/classification.md`
+**Classification axes:** `_system/frameworks/classification.md`  
+**Tier 2 by archetype:** `_system/frameworks/archetype_models.json`
 
 Each model has: **Trigger** (when to apply), **Question** (what to ask), **Tier** (priority).
 
@@ -41,8 +42,12 @@ Each model has: **Trigger** (when to apply), **Question** (what to ask), **Tier*
 | **Dhando asymmetry** | Pabrai | Always | Is this heads I win, tails I don't lose much — or am I paying for heroic assumptions? |
 | **Simplicity** | Pabrai | Always | Is the business simple enough that I need not rely on a single fragile variable? |
 | **Fat pitch discipline** | Pabrai | Sizing / stance | Am I forcing a trade, or waiting for margin of safety? |
+| **Lawrence 5 questions** | Lawrence | Always | Understand, durable cash flow, aligned mgmt, cheap vs cash flow, why cheap? |
+| **10-year IRR** | Lawrence | Modelable FCF / owner earnings | What IRR does today's price imply on a 10-year base case? |
+| **IRR vs price** | Lawrence | After material price move | Did implied IRR cross 15% or 20%? Update stance? |
+| **New idea bar** | Lawrence | Watchlist → onboard | Is IRR clearly above portfolio median *and* above weakest incumbent? |
 
-**Sources:** `munger/Munger-1994-Elementary-Worldly-Wisdom.pdf`, `munger/Psychology-of-Human-Misjudgment.pdf`, `pabrai/` partner letters.
+**Sources:** `munger/Munger-1994-Elementary-Worldly-Wisdom.pdf`, `munger/Psychology-of-Human-Misjudgment.pdf`, `pabrai/` partner letters; `_system/frameworks/lawrence_irr.md` (Oakcliff / Bryan Lawrence).
 
 ---
 
@@ -172,7 +177,7 @@ Deep dives and cross-checks should include:
 **Predictive attribute:** equity_yield_curve | … | none
 ```
 
-Then standard **Classification** table, **[HUMAN REVIEW]**, **[PROPOSED MEMORY]**.
+Then standard **Classification** table (include Lawrence IRR fields when computed), **[HUMAN REVIEW]**, **[PROPOSED MEMORY]**.
 
 ---
 

@@ -13,6 +13,9 @@ DATE = "2026-05-21"
 
 def classification_table(row: dict) -> str:
     cycle = row.get("cycle", "—")
+    implied_irr = row.get("implied_irr", "pending")
+    irr_method = row.get("irr_method", "pending")
+    lawrence_bucket = row.get("lawrence_bucket", "—")
     return f"""## Classification
 
 | Field | Value |
@@ -22,6 +25,9 @@ def classification_table(row: dict) -> str:
 | **Dhando** (Pabrai) | {row['dhando']} |
 | **Stance** | {row['stance']} |
 | **Cycle** | {cycle} |
+| **Implied 10yr IRR** (Lawrence) | {implied_irr} |
+| **IRR method** | {irr_method} |
+| **Lawrence bucket** | {lawrence_bucket} |
 """
 
 

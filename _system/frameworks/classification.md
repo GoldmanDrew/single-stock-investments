@@ -1,6 +1,8 @@
-# Holdings classification (Munger / Pabrai / Stahl)
+# Holdings classification (Decision Stack)
 
-Replace the old single **thesis status** (intact / weakening / strengthening / unclear) with four independent axes plus an optional cycle tag for croupiers.
+Unified labels from `_system/frameworks/decision_stack.md` — layers 1–5.
+
+Replace the old single **thesis status** (intact / weakening / strengthening / unclear) with independent axes plus Lawrence return fields.
 
 ## Fields
 
@@ -11,12 +13,18 @@ Replace the old single **thesis status** (intact / weakening / strengthening / u
 | **Dhando** | Pabrai | `full`, `partial`, `none`, `pending` | Heads I win, tails I don't lose much? |
 | **Stance** | Pabrai | `core`, `accumulate`, `hold`, `watch`, `trim`, `exit` | What do we *do* with capital? |
 | **Cycle** | Stahl (croupiers) | `peak`, `mid`, `trough`, `—` | Normalized earnings vs current activity |
+| **Implied 10yr IRR** | Lawrence | e.g. `17% (base)`, `pending` | Expected return at today's price (base case) |
+| **IRR method** | Lawrence | `full`, `yield_curve`, `scenario`, `pending` | How IRR was computed |
+| **Lawrence bucket** | Lawrence | `pricing_power`, `multi_sided`, `low_cost`, `other` | Oakcliff business taxonomy |
 
 ## Source of truth
 
+- Pipeline: `_system/frameworks/decision_stack.md`
 - Portfolio map: `_system/portfolio/classification.json`
 - Per-ticker copy: `{TICKER}/research/thesis.md` → `## Classification` table
+- Valuation + stance proposal: `{TICKER}/research/valuation.json`
 - Dashboard: parsed by `_system/scripts/build_dashboard_data.py`
+- Sync check: `python _system/scripts/sync_classification.py`
 
 ## Report footer (replaces thesis status)
 
@@ -32,6 +40,9 @@ Every deep dive and thesis update ends with:
 | **Dhando** (Pabrai) | … |
 | **Stance** | … |
 | **Cycle** | … |
+| **Implied 10yr IRR** (Lawrence) | … |
+| **IRR method** | … |
+| **Lawrence bucket** | … |
 
 ## [HUMAN REVIEW]
 …

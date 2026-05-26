@@ -196,11 +196,25 @@ def parse_classification_from_thesis(ticker_dir: Path) -> dict | None:
         ("dhando", r"Dhando"),
         ("stance", r"Stance"),
         ("cycle", r"Cycle"),
+        ("implied_irr", r"Implied 10yr IRR"),
+        ("irr_method", r"IRR method"),
+        ("lawrence_bucket", r"Lawrence bucket"),
     ]:
         m = re.search(rf"\*\*{label}\*\*[^|]*\|\s*([^\|]+)", text)
         if m:
             fields[key] = m.group(1).strip()
     return fields if fields else None
+
+
+def load_valuation(ticker_dir: Path) -> dict | None:
+    for name in ("valuation.json", "irr_model.json"):
+        path = ticker_dir / "research" / name
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                return None
+    return None
 
 
 def classification_for(ticker: str, ticker_dir: Path, portfolio: dict[str, dict]) -> dict:
@@ -213,8 +227,28 @@ def classification_for(ticker: str, ticker_dir: Path, portfolio: dict[str, dict]
         "dhando": "pending",
         "stance": "watch",
         "cycle": "—",
+        "implied_irr": "pending",
+        "irr_method": "pending",
+        "lawrence_bucket": "—",
     }
-    return {k: merged.get(k, defaults[k]) for k in defaults}
+    out = {k: merged.get(k, defaults[k]) for k in defaults}
+    val = load_valuation(ticker_dir)
+    if val:
+        implied = val.get("implied_return", {})
+        if implied.get("display") and out.get("implied_irr") in ("pending", "—", None):
+            out["implied_irr"] = implied["display"]
+        method = val.get("method", val.get("irr_method"))
+        if method and out.get("irr_method") == "pending":
+            out["irr_method"] = method
+        bucket = val.get("lawrence_bucket")
+        if bucket and out.get("lawrence_bucket") == "—":
+            out["lawrence_bucket"] = bucket
+        proposal = val.get("stance_proposal", {})
+        if proposal.get("suggested"):
+            out["stance_proposed"] = proposal["suggested"]
+        if proposal.get("irr_band"):
+            out["irr_band"] = proposal["irr_band"]
+    return out
 
 
 def thesis_status(ticker_dir: Path) -> str:

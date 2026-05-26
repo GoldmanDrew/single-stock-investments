@@ -18,10 +18,11 @@ Single-stock research workflow for this workspace.
 - Proxy / governance docs for US holdings
 
 ## 4. Analyze
-- Apply `_system/frameworks/mental_models.md` (Tier 1 always; Tier 2 by archetype; Tier 3 by trigger)
-- Apply `quality_checklist.md`
+- Apply `_system/frameworks/decision_stack.md` (single pipeline: what → durable → payoff → return → stance)
+- Tier 2 prompts from `archetype_models.json`; appendix detail in `mental_models.md` / `lawrence_irr.md` only if needed
 - Apply `ai_disruption_lens.md` where relevant
 - Write to `{TICKER}/research/` — not chat-only
+- Valuation: `{TICKER}/research/valuation.json` + `marvin_valuation.py --write`
 
 ## 5. Review loop
 - Copy summary to `_system/reviews/pending/`
@@ -31,9 +32,11 @@ Single-stock research workflow for this workspace.
 
 ## Output standards
 Every report ends with:
-- **Classification** table (archetype, moat, dhando, stance, cycle) — see `_system/frameworks/classification.md`
+- **Classification** table (archetype, moat, dhando, stance, cycle, implied_irr, irr_method, lawrence_bucket) — see `_system/frameworks/classification.md`
 - [HUMAN REVIEW] items
 - [PROPOSED MEMORY] bullets (daily log only)
+
+Sync: `python _system/scripts/sync_classification.py` · Lint: `python _system/scripts/lint_deep_dive.py {TICKER}`
 
 Separate **facts**, **inferences**, and **opinions**. Cite file paths and page refs where possible.
 
