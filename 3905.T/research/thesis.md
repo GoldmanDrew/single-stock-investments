@@ -1,6 +1,6 @@
 # 3905.T — Investment Thesis
 
-**Last updated:** 2026-05-23
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | none |
 | **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 5.7% (base) |
+| **IRR method** | scenario |
+| **Lawrence bucket** | other |
 
 ## One-line thesis
 

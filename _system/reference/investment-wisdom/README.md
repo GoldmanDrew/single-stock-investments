@@ -1,6 +1,6 @@
 # Investment Wisdom Library
 
-Curated PDF writings for Marvin's mental-model layer: **Charlie Munger**, **Mohnish Pabrai**, **Murray Stahl**, and **Horizon Kinetics** extracts.
+Curated PDF writings for Marvin's mental-model layer: **Charlie Munger**, **Mohnish Pabrai**, **Murray Stahl**, **Horizon Kinetics**, and **Chris Hohn / TCI** extracts.
 
 **Path:** `_system/reference/investment-wisdom/`
 
@@ -18,7 +18,8 @@ investment-wisdom/
 ├── munger/             ← mental models, psychology, worldly wisdom
 ├── pabrai/             ← Dhando, partner letters, capital allocation
 ├── stahl/              ← croupiers, exchanges, diversification, spinoffs
-└── horizon-kinetics/   ← equity yield curve, quarterly commentary extracts (.txt)
+├── horizon-kinetics/   ← equity yield curve, quarterly commentary extracts (.txt)
+└── tci/                ← Chris Hohn letters; operating mechanics + valuation bridge
 ```
 
 ## Stahl source vault

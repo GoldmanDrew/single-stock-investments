@@ -4,8 +4,23 @@
 
 ## Executive summary
 
-Consensus Mining & Seigniorage Corporation (CMSG, OTCQX) is a Delaware digital-asset miner formed in 2021 from Horizon Kinetics–spawned predecessors, managed under contract by Horizon affiliates, with materially all revenue from mined Bitcoin plus merge-mined Litecoin/Dogecoin. **Accounting earnings swing almost entirely from fair-value marks on cryptocurrency** under ASU 2023-08: FY2024 showed large **unrealized appreciation** income; FY2025 flipped to **unrealized depreciation**, producing a modest **reported net loss** despite roughly **$60.5M cash** and **~$31.3M fair-value digital assets** at year-end. Operating mining economics remain thin: FY2025 **operating loss ~$1.37M** on **~$4.5M mining revenue**, with hosting and depreciation the main cash costs.
+Consensus Mining & Seigniorage (CMSG, OTCQX) is a Horizon-affiliated digital-asset miner whose economics split between thin operating mining (~$4.5M FY2025 revenue, ~$1.4M operating loss) and a large treasury (~$60.5M cash + ~$31.3M fair-value crypto). GAAP earnings swing on ASU 2023-08 marks, not hash cash flow. At ~$30, base scenario IRR **7.7%** → **watch**. Primary risk: hash-share erosion and related-party fees post-waiver.
 
-**Controlled-related-party surface area is elevated:** HM Tech hosts a portion of fleets (meaningful hosting fees + loan receivable); Horizon earns a revamped fee (**1% of quarter-end crypto + equipment**, with a temporary waiver cap through May 2026); Foundry USA Pool concentrates pool economics. OTCQX liquidity and **no SEC registration** tighten disclosure familiarity costs versus exchange-listed miners.
+## Classification
 
-**Classification drafted:** archetype optionality · moat unproven · dhando partial · stance watch.
+| Field | Value |
+|-------|-------|
+| **Archetype** (Stahl) | optionality |
+| **Moat** (Munger) | unproven |
+| **Dhando** (Pabrai) | partial |
+| **Stance** | watch |
+| **Implied 10yr IRR** | 7.7% (base) |
+
+## [HUMAN REVIEW]
+
+- Confirm OTCQX price and BTC mark vs YE2025 fair value
+- Horizon fee redesign post-May 2026 waiver
+
+## [PROPOSED MEMORY]
+
+- [PROPOSED COMPANY] CMSG base **7.7%** scenario IRR; watch — `CMSG/research/valuation.json`

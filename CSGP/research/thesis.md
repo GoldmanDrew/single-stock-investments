@@ -1,6 +1,6 @@
 # CSGP — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -8,15 +8,18 @@
 |-------|-------|
 | **Archetype** (Stahl) | platform |
 | **Moat** (Munger) | stable |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 8.6% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | multi_sided |
 
-**Deep dive:** `research/deep_dive_2026-05-21.md`
+**Deep dive:** `research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 
-Wide-moat CRE data and marketplace subscriptions fund an expensive Homes.com and Matterport expansion — moat intact in core; GAAP earnings not yet proof of compounder status.
+Wide-moat CRE platform de-rated to ~$33 (−54% YoY); Homes.com/Matterport distort GAAP — watch at 8.6% base IRR until normalized FCF proves out.
 
 ## Conviction drivers
 

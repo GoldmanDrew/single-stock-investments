@@ -1,6 +1,6 @@
 # CPRT — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,12 +11,15 @@
 | **Dhando** (Pabrai) | full |
 | **Stance** | core |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 9.2% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
-**Deep dive:** `research/deep_dive_2026-05-21.md`
+**Deep dive:** `research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 
-Global salvage-vehicle auction toll booth with oligopoly economics, fortress balance sheet, and float-driven interest income — own for durable ROIC while monitoring U.S. assignment/fee growth.
+Global salvage-vehicle auction toll booth de-rated to ~$33 — oligopoly economics intact; base IRR 9.2% (core override) while monitoring U.S. assignment/fee growth and Q3 FY2026 trends.
 
 ## Conviction drivers
 

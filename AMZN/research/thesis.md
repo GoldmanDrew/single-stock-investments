@@ -1,6 +1,6 @@
 # AMZN — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | hold |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 3.6% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
 ## One-line thesis
 

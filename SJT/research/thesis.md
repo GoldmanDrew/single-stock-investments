@@ -1,6 +1,6 @@
 # SJT — Investment Thesis
 
-**Last updated:** 2026-05-22
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -8,10 +8,12 @@
 |-------|-------|
 | **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | n/a |
-| **Dhando** (Pabrai) | partial |
+| **Dhando** (Pabrai) | none |
 | **Stance** | watch |
-| **Cycle** | - |
-| **Predictive attribute** | equity_yield_curve, market_structure_discount, transitory_problem |
+| **Cycle** | trough |
+| **Implied 10yr IRR** (Lawrence) | 5.8% (base) |
+| **IRR method** | yield_curve |
+| **Lawrence bucket** | other |
 
 ## One-line thesis
 

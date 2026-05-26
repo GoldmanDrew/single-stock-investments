@@ -1,6 +1,6 @@
 # WBI — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -10,7 +10,10 @@
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
-| **Cycle** | - |
+| **Cycle** | mid |
+| **Implied 10yr IRR** (Lawrence) | 12.1% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | low_cost |
 
 ## One-line thesis
 
@@ -38,4 +41,4 @@ Delaware drilling collapse, major customer loss, sponsor conflicts, leverage/ref
 
 ## Pending review
 
-See `_system/reviews/pending/WBI_deep_dive_2026-05-21.md`
+See `_system/reviews/pending/WBI_deep_dive_2026-05-26.md`

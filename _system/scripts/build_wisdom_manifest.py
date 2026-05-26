@@ -15,6 +15,7 @@ THEMES = {
     "pabrai": "dhando_letters",
     "stahl": "croupier_diversification",
     "horizon-kinetics": "equity_yield_curve",
+    "tci": "operating_mechanics",
 }
 
 
@@ -24,7 +25,7 @@ def main() -> None:
         if not sub.is_dir() or sub.name.startswith("."):
             continue
         genius = sub.name
-        patterns = ("*.pdf",) if genius != "horizon-kinetics" else ("*.pdf", "*.txt")
+        patterns = ("*.pdf",) if genius not in ("horizon-kinetics", "tci") else ("*.pdf", "*.txt")
         for pattern in patterns:
             for doc in sorted(sub.glob(pattern)):
                 if doc.name.upper() == "README.MD":

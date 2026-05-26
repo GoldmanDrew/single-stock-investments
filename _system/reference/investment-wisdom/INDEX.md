@@ -1,6 +1,6 @@
 # Investment Wisdom — Index
 
-Last updated: 2026-05-22 — added Horizon Kinetics extracts + mental models catalog
+Last updated: 2026-05-26 — added Chris Hohn / TCI letters + hohn_business_analysis framework
 
 | Genius | Folder | Count | Primary use in Marvin |
 |--------|--------|-------|------------------------|
@@ -8,6 +8,7 @@ Last updated: 2026-05-22 — added Horizon Kinetics extracts + mental models cat
 | Mohnish Pabrai | `pabrai/` | 37 PDFs | Dhando payoff, letters, concentration discipline |
 | Murray Stahl | `stahl/` | 6 PDFs | Croupiers, exchanges, diversification, spinoffs, philosophy |
 | Horizon Kinetics | `horizon-kinetics/` | 5 extracts | Equity yield curve, predictive attributes, time arbitrage |
+| Chris Hohn / TCI | `tci/` | 32 letters + extract | Operating mechanics, thesis pillars, valuation bridge |
 
 **Mental models catalog:** `_system/frameworks/mental_models.md`
 
@@ -93,14 +94,32 @@ Curated **text extracts** from `C:\Users\werdn\Documents\Investing\Horizon Kinet
 
 ---
 
+## Chris Hohn / TCI (`tci/`)
+
+32 quarterly investor letters (2004 Q1 – 2018 Q2) extracted from TCI Letters Portfolio.pdf. See `tci/README.md`.
+
+| File | Theme | Apply when |
+|------|-------|------------|
+| `Hohn-Analysis-Framework-extract.txt` | Distilled letter patterns — pillars, valuation bridge, return bar | **Every deep dive** — read first |
+| `TCI-Letter-2004-Q1-extract.txt` | Entry criteria, barriers, absolute value, shorts | Onboard; stance at extremes |
+| `TCI-Letter-2007-Q4-extract.txt` | Exchange, rails, activism, emerging markets banks | Croupiers, turnarounds, governance |
+| `TCI-Letter-2010-Q1-extract.txt` | Deep operating reviews (Visa, banks, Oracle, defense) | Any name — template for depth |
+| `TCI-Q2-2018-Investor-Newsletter-extract.txt` | IRR bridges, events, segment builds, infrastructure | Modern Hohn format; media/infra/holdcos |
+
+**Framework doc:** `_system/frameworks/hohn_business_analysis.md`
+
+**Memory section:** `_system/memory/MEMORY.md` → Approved beliefs — Chris Hohn (after human promotion)
+
+---
+
 ## Cross-reference to holdings
 
 | Holding | Primary genius lens |
 |---------|---------------------|
-| 8697.T, ICE, OTCM | Stahl (croupier / exchange) |
+| 8697.T, ICE, OTCM | Stahl (croupier / exchange) + Hohn (volume, fee yield, cycle norm) |
 | FRMO | Stahl (HK affiliate; capital allocator) |
-| SPGI | Stahl (index/passive infrastructure) |
-| CSU, CPRT, DHR | Munger + Pabrai (compounders) |
+| SPGI | Stahl (index/passive infrastructure) + Hohn (pricing vs volume, buyback capacity) |
+| CSU, CPRT, DHR | Munger + Pabrai (compounders) + Hohn (pillar math, FCF bridge) |
 | SJT | HK equity yield curve + transitory NPI deficit + market structure discount |
 | All names | Munger inversion on every deep dive |
 | Portfolio-level | Stahl diversification + Pabrai concentration tension |

@@ -1,6 +1,6 @@
 # OTCM — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | mid |
+| **Implied 10yr IRR** (Lawrence) | 9.7% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | multi_sided |
 
 ## One-line thesis
 
@@ -37,4 +40,4 @@ Simple business and moat: good. Downside at cycle-high activity: **partial** —
 
 ## Pending review
 
-See `_system/reviews/pending/OTCM_deep_dive_2026-05-21.md`
+See `_system/reviews/pending/OTCM_deep_dive_2026-05-26.md`

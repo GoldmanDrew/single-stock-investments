@@ -11,6 +11,7 @@
 | Layer | Genius | Fields | Question |
 |-------|--------|--------|----------|
 | **1. What** | Stahl + Lawrence | `archetype`, `cycle`, `lawrence_bucket` | What business type; normalize earnings? |
+| **1b. Mechanics** | Hohn | — (in report body) | How does it earn; thesis pillars; valuation bridge? |
 | **2. Durable** | Munger | `moat` | Will it last 10 years? |
 | **3. Payoff shape** | Pabrai | `dhando` | Is the bear case bounded? |
 | **4. Return at price** | Lawrence / HK | `implied_irr`, `irr_method` | Expected return at today's price? |
@@ -37,6 +38,19 @@ One table — maps to all geniuses; do not duplicate elsewhere in the report.
 ## Step 2 — Archetype prompts (Tier 2)
 
 Load `_system/frameworks/archetype_models.json`. When `archetype` is set, answer listed models inline under **Business & moat** — not as separate report sections.
+
+## Step 2b — Business mechanics (Hohn)
+
+Read `_system/frameworks/hohn_business_analysis.md` (or `tci/Hohn-Analysis-Framework-extract.txt` for quick reference).
+
+Under **Business & moat → Business mechanics (Hohn)**, every deep dive must include:
+
+1. **Operating snapshot** — latest quarter trends with numbers  
+2. **Thesis pillars** — 2–4 structural drivers, quantified  
+3. **Valuation bridge** — ≥2 methods; base case with explicit return math  
+4. **Primary risk** — one dominant failure mode  
+
+Reconcile Hohn base-case return with Lawrence `implied_irr` or explain in [HUMAN REVIEW].
 
 ---
 
@@ -94,8 +108,8 @@ Approved `stance` lives in `classification.json` + `thesis.md`. Run `sync_classi
 Use `_system/prompts/deep_dive_template.md`. Five blocks only:
 
 1. **Executive summary** + classification table
-2. **Business & moat** — Stahl archetype + Munger + Tier 2 prompts
-3. **Payoff & return** — dhando + five-question gate + expected return table
+2. **Business & moat** — Stahl archetype + **Hohn mechanics** + Munger + Tier 2 prompts
+3. **Payoff & return** — dhando + five-question gate + expected return table (Hohn bridge should align with Lawrence/HK methods)
 4. **Risks & inversion**
 5. **[HUMAN REVIEW]** + **[PROPOSED MEMORY]**
 
@@ -130,7 +144,8 @@ python _system/scripts/build_dashboard_data.py
 ## Read order for agents (deep dive)
 
 1. `_system/frameworks/decision_stack.md` (this file)
-2. `_system/memory/MEMORY.md` (approved beliefs)
+2. `_system/frameworks/hohn_business_analysis.md` (operating mechanics — every deep dive)
+3. `_system/memory/MEMORY.md` (approved beliefs)
 3. Primary docs in `{TICKER}/`
 4. `_system/prompts/deep_dive_template.md` (output shape)
 5. Appendix only if needed: `mental_models.md`, `lawrence_irr.md`

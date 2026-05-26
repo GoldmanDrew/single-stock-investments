@@ -1,6 +1,6 @@
 # KEWL — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,8 +11,11 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | -2.9% (base) |
+| **IRR method** | yield_curve |
+| **Lawrence bucket** | other |
 
-**Deep dive:** `KEWL/research/deep_dive_2026-05-21.md`
+**Deep dive:** `KEWL/research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 

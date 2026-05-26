@@ -1,6 +1,6 @@
 # SPGI — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | hold |
 | **Cycle** | mid |
+| **Implied 10yr IRR** (Lawrence) | 10.1% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | multi_sided |
 
 ## One-line thesis
 

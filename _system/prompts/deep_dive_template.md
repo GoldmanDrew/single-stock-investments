@@ -32,6 +32,42 @@ Copy structure for `{TICKER}/research/deep_dive_{date}.md`. Follow `_system/fram
 |-------|---------|
 | {from archetype_models.json} | … |
 
+### Business mechanics (Hohn)
+
+See `_system/frameworks/hohn_business_analysis.md`.
+
+#### Operating snapshot
+
+| Metric | Latest | Prior Q / YoY | Source |
+|--------|--------|---------------|--------|
+| Revenue / net revenues | … | … | … |
+| Volume / activity | … | … | … |
+| Pricing / yield | … | … | … |
+| Margin / mix | … | … | … |
+
+**Run-rate vs one-off:** …
+
+#### Thesis pillars
+
+| # | Pillar | Mechanism | Numbers / timeline | Evidence |
+|---|--------|-----------|-------------------|----------|
+| 1 | … | reversionary pricing / volume / cost / capital / catalyst | … | `{TICKER}/…pdf` |
+| 2 | … | … | … | … |
+
+**Fieldwork / management:** … (or "none this period")
+
+**Disruption / competitive watch:** …
+
+#### Valuation bridge
+
+| Case | Method | Key inputs | Implied return | vs ~15% Hohn bar |
+|------|--------|------------|----------------|------------------|
+| Bear | … | … | …% | … |
+| Base | EPS path × exit multiple / FCF yield + growth / … | … | …% | pass / fail |
+| Bull | … | … | …% | … |
+
+**Returns statement:** We expect …% over … years based on …; primary risk: …
+
 ### Moat (Munger)
 
 {Widening / stable / eroding — evidence from filings.}

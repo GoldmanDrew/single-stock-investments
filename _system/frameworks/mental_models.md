@@ -71,7 +71,27 @@ Each model has: **Trigger** (when to apply), **Question** (what to ask), **Tier*
 |-------|---------|----------|
 | **Spinoff / simplification** | Conglomerate, forced separation | Does complexity hide segment economics that separation would reveal? |
 
-**Source:** `stahl/Stahl-Spinoffs-Going-Separate-Ways-2015.pdf`
+**Sources:** `stahl/Stahl-Spinoffs-Going-Separate-Ways-2015.pdf`
+
+### Hohn — Operating mechanics & valuation bridge
+
+Apply on **every deep dive** under Business mechanics. Full template: `_system/frameworks/hohn_business_analysis.md`.
+
+| Model | Trigger | Question |
+|-------|---------|----------|
+| **Operating snapshot** | Always | What changed in the latest quarter on volume, price, mix, margin — with numbers? |
+| **Thesis pillars** | Always | What 2–4 **structural** drivers (not hope) carry the return case — each quantified? |
+| **Reversionary pricing / cost gap** | Regulated tariffs, legacy contracts, peer margin gap | What rolls off or closes on a known timeline? |
+| **Normalized earnings** | Cycle, M&A, one-offs | What is run-rate EPS/FCF after pro forma adjustments? |
+| **Valuation bridge** | Always | ≥2 methods; base case shows explicit annualized return math |
+| **Hohn return bar** | Stance / accumulate decision | Does base case clear ~15% medium-term with ~10% downside on bear case? |
+| **Primary risk** | Always | What single factor breaks the thesis? |
+| **Fieldwork delta** | After earnings, investor day, mgmt meeting | What did we learn that sell-side or filings underweight? |
+| **Disintermediation watch** | Platforms, payments, distribution | What channel could bypass the franchise — and why might it fail? |
+| **Hidden / zero-valued asset** | Holdcos, conglomerates, optionality | Is value priced at zero inside the multiple? |
+| **Capital return capacity** | Cash-rich, regulated, buyback stories | What can balance sheet return without hurting moat? |
+
+**Sources:** `tci/Hohn-Analysis-Framework-extract.txt`, `tci/TCI-Letter-2007-Q4-extract.txt`, `tci/TCI-Letter-2010-Q1-extract.txt`, `tci/TCI-Q2-2018-Investor-Newsletter-extract.txt`
 
 ### Munger — Compounders
 

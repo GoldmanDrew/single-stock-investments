@@ -1,6 +1,6 @@
 # QDEL — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | none |
 | **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 10.9% (base) |
+| **IRR method** | scenario |
+| **Lawrence bucket** | pricing_power |
 
 ## One-line thesis
 

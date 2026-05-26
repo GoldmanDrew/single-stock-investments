@@ -1,6 +1,6 @@
 # FRMO — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -9,10 +9,13 @@
 | **Archetype** (Stahl) | holding_co |
 | **Moat** (Munger) | stable |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | hold |
+| **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 4.7% (base) |
+| **IRR method** | yield_curve |
+| **Lawrence bucket** | other |
 
-**Deep dive:** `FRMO/research/deep_dive_2026-05-21.md`
+**Deep dive:** `FRMO/research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 

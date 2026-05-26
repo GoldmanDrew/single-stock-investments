@@ -1,6 +1,6 @@
 # GOOGL — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -9,10 +9,13 @@
 | **Archetype** (Stahl) | compounder |
 | **Moat** (Munger) | widening |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | hold |
+| **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 2.1% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
-**Deep dive:** `GOOGL/research/deep_dive_2026-05-21.md`
+**Deep dive:** `GOOGL/research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 

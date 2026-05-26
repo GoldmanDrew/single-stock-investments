@@ -1,6 +1,6 @@
 # DHR — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,12 +11,15 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | hold |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 10.1% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
-**Deep dive:** `research/deep_dive_2026-05-21.md`
+**Deep dive:** `research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 
-DBS-driven life science and diagnostics platform with recurring consumables on installed instruments — quality compounder cyclically tied to biopharma funding and China diagnostics.
+DBS-driven life science/diagnostics platform — hold at 10.1% base IRR (quality override); cyclically tied to biopharma funding and China diagnostics recovery.
 
 ## Conviction drivers
 

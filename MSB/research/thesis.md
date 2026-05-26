@@ -1,6 +1,6 @@
 # MSB — Investment Thesis
 
-**Last updated:** 2026-05-25 (`MSB/research/deep_dive_2026-05-25.md`)
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,11 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | mid |
+| **Implied 10yr IRR** (Lawrence) | 3.5% (base) |
+| **IRR method** | yield_curve |
+| **Lawrence bucket** | other |
+
+**Deep dive:** `MSB/research/deep_dive_2026-05-26.md`
 
 Predictive-attribute tag (portfolio JSON): **equity_yield_curve** — legal/pricing hiatus vs long-lived pellet royalty contract (human to confirm usefulness).
 
@@ -28,4 +33,4 @@ Mesabi Trust is a **contractual iron‑ore pellet royalty** on Cleveland-Cliffs�
 
 ## [HUMAN REVIEW]
 
-See `_system/reviews/pending/MSB_deep_dive_2026-05-25.md` for Marvin’s open items.
+See `_system/reviews/pending/MSB_deep_dive_2026-05-26.md` for Marvin’s open items.

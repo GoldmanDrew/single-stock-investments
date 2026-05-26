@@ -1,6 +1,6 @@
 # ICE — Investment Thesis
 
-**Last updated:** 2026-05-22
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -9,13 +9,13 @@
 | **Archetype** (Stahl) | croupier |
 | **Moat** (Munger) | stable |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | watch |
+| **Stance** | hold |
 | **Cycle** | mid |
-| **Implied 10yr IRR** (Lawrence) | 10.7% (base) |
+| **Implied 10yr IRR** (Lawrence) | 11.0% (base) |
 | **IRR method** | full |
 | **Lawrence bucket** | multi_sided |
 
-**Deep dive:** `ICE/research/deep_dive_2026-05-22.md` (Lawrence IRR) · `ICE/research/deep_dive_2026-05-21.md` (full business)
+**Deep dive:** `ICE/research/deep_dive_2026-05-26.md` · `ICE/research/deep_dive_2026-05-21.md` (full business)
 
 ## One-line thesis
 

@@ -1,6 +1,6 @@
 # CSU — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,12 +11,15 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | core |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 16.0% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
-**Deep dive:** `research/deep_dive_2026-05-21.md`
+**Deep dive:** `research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 
-Decentralized VMS acquirer that reinvests all FCFA2S at hurdle rates — compound via capital allocation and micro-moat subsidiaries, not headline GAAP net income.
+Decentralized VMS acquirer reinvesting FCFA2S at hurdle rates — base 16.0% IRR supports core stance; GAAP net income secondary to FCFA2S compounding.
 
 ## Conviction drivers
 

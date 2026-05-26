@@ -1,6 +1,6 @@
 # CMSG — Investment Thesis
 
-**Last updated:** 2026-05-26 · **Deep dive:** `CMSG/research/deep_dive_2026-05-26.md`
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -10,11 +10,16 @@
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | — |
+| **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 7.7% (base) |
+| **IRR method** | scenario |
+| **Lawrence bucket** | other |
+
+**Deep dive:** `research/deep_dive_2026-05-26.md`
 
 ## One-line thesis
 
-CMSG is a cash-rich OTCQX bitcoin/scrypt miner where **marked-to-market digital assets dominate GAAP earnings**; the equity is largely an **BTC-treasury and hash-share option** under Horizon-affiliated governance — watch liquidity, fee redesign post-2026, and network-share trends.
+CMSG is a cash-rich OTCQX bitcoin/scrypt miner where **marked-to-market digital assets dominate GAAP earnings**; the equity is largely a **BTC-treasury and hash-share option** under Horizon-affiliated governance — watch at 7.7% base IRR; fee redesign post-2026 and network-share trends.
 
 ## Key questions
 

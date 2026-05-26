@@ -1,6 +1,6 @@
 # TEQ.ST — Investment Thesis
 
-**Last updated:** 2026-05-21
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | hold |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | 13.7% (base) |
+| **IRR method** | full |
+| **Lawrence bucket** | pricing_power |
 
 ## One-line thesis
 
@@ -37,4 +40,4 @@ Interesting if market prices organic weakness; **partial** dhando until M&A trac
 
 ## Pending review
 
-See `_system/reviews/pending/TEQ.ST_deep_dive_2026-05-21.md`
+See `_system/reviews/pending/TEQ.ST_deep_dive_2026-05-26.md`
