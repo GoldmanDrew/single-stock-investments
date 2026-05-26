@@ -1,27 +1,28 @@
 # CMSG — Investment Thesis
 
-**Last updated:** 2026-05-26
+**Last updated:** 2026-05-26 · **Deep dive:** `CMSG/research/deep_dive_2026-05-26.md`
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
+| **Cycle** | — |
 
 ## One-line thesis
 
-Consensus Mining & Seigniorage Corp — thesis pending Marvin deep dive.
+CMSG is a cash-rich OTCQX bitcoin/scrypt miner where **marked-to-market digital assets dominate GAAP earnings**; the equity is largely an **BTC-treasury and hash-share option** under Horizon-affiliated governance — watch liquidity, fee redesign post-2026, and network-share trends.
 
 ## Key questions
 
-- [ ] Read latest annual report
-- [ ] Read latest quarterly report
-- [ ] Apply `_system/frameworks/mental_models.md` Tier 1 lenses
+- [x] OTCQX FY2025 disclosure + audited financials (embedded exhibit)
+- [x] Latest interim letters (through Q2 2025 on site); refresh when Q3/Q4 2025 / Q1 2026 PDFs post
+- [x] Proxy / director structure (2026)
+- [ ] Human: position size vs FRMO/other HK-linked exposure + OTC liquidity
 
 ## [HUMAN REVIEW]
 
-- Onboarded 2026-05-26; awaiting deep dive.
+- Deep dive 2026-05-26 — confirm classification and stance after price / portfolio context.

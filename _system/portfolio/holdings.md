@@ -11,7 +11,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-05-26.
 | AMZN | AMZN/ | Amazon.com | US | 2026-05-25 | 2026-05-26 | compounder | hold |
 | APLD | APLD/ | Applied Digital | US | 2026-05-25 | 2026-05-26 | optionality | watch |
 | BN | BN/ | Brookfield Corporation | US | 2026-05-25 | 2026-05-26 | platform | hold |
-| CMSG | CMSG/ | Consensus Mining & Seigniorage Corp | US | — | — | unknown | watch |
+| CMSG | CMSG/ | Consensus Mining & Seigniorage Corp | US | 2026-05-26 | 2026-05-26 | optionality | watch |
 | CPRT | CPRT/ | Copart | US | 2026-05-25 | 2026-05-26 | compounder | core |
 | CSGP | CSGP/ | CoStar Group | US | 2026-05-25 | 2026-05-26 | platform | watch |
 | CSU | CSU/ | Constellation Software | CA | 2026-05-25 | 2026-05-26 | compounder | core |
