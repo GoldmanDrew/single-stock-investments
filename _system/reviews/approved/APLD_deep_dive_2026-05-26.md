@@ -1,5 +1,7 @@
 # APLD — Pending review (superseded by approval)
 
+**Status:** Approved by human (2026-05-26 batch)
+
 **Full report:** `APLD/research/deep_dive_2026-05-26.md`  
 **Update:** May 20, 2026 Polaris Forge 3 lease (~$7.5B, 300 MW); 1,200 MW / ~$31B contracted.
 

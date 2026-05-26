@@ -1,35 +1,19 @@
-# QDEL Deep Dive Review — Decision Stack (2026-05-26)
+# QDEL — Pending review (NOT approved)
 
-**Agent:** Marvin  
 **Full report:** `QDEL/research/deep_dive_2026-05-26.md`  
-**Style:** `report_prose.md` refresh
+**Cross-check:** `QDEL/research/cross_check_McIntyre_2026-05-26.md`  
+**External:** `QDEL/investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf`
 
----
+## Summary
 
-## Executive summary
+Human approved **all other** 2026-05-26 deep dives; **QDEL held back** pending McIntyre reconciliation.
 
-QuidelOrtho post-merger **turnaround**: FY2025 adj. EBITDA margin **21.9%** (+240 bps) while revenue falls; FY2026 guide flat sales **$2.70–2.75B**. At **~$12.18**, base **10.9%** scenario IRR on haircut owner cash (**~$1.05/sh**). **Dhando none**, moat **unproven**. Stance proposal: **watch**.
-
-## Expected return
-
-| Scenario | Return |
-|----------|--------|
-| Bear | 3.6% |
-| Base | **10.9%** |
-| Bull | 14.6% |
-
-`python _system/scripts/marvin_valuation.py --ticker QDEL --write`
-
-## Classification
-
-| Field | Value |
-|-------|-------|
-| Stance | watch (proposed) |
-| Implied 10yr IRR | 10.9% (base) |
-| IRR method | scenario |
-| Lawrence bucket | pricing_power |
+| Lens | Stance | Base return | Key view |
+|------|--------|-------------|----------|
+| **Marvin** | watch | 10.9% | Haircut owner cash $1.05/sh; dhando none |
+| **McIntyre** | max long (>20% fund) | ~97% IRR to $60 | $4 FCF/sh 2028 × 15× |
 
 ## [HUMAN REVIEW]
 
-- 10-K debt maturity and covenant headroom
-- Reconcile Q1 revenue decline drivers
+- Reconcile FCF bridges before approve
+- Price: letter ~$11 vs dive ~$12.18
