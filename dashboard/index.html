@@ -133,6 +133,13 @@
   .badge-purple { color: var(--accent-purple); background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.35); }
   .bar-wrap { width: 72px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+  .irr-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .irr-pass { color: var(--accent-green); }
+  .irr-mid { color: var(--accent-amber); }
+  .irr-low { color: var(--text-secondary); }
+  .irr-fail { color: var(--negative); }
+  .irr-pending { color: var(--text-muted); font-weight: 500; }
+  .irr-sub { display: block; font-size: 10px; font-weight: 500; color: var(--text-muted); margin-top: 2px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .detail {
     border-left: 1px solid var(--border); background: var(--bg-secondary);
@@ -280,6 +287,7 @@
             <th data-sort="completeness">Complete</th>
             <th data-sort="last_download">Download</th>
             <th data-sort="classification.archetype">Archetype</th>
+            <th data-sort="classification.analysis_irr_pct">Analysis IRR</th>
             <th data-sort="classification.stance">Stance</th>
           </tr>
         </thead>
@@ -382,6 +390,39 @@ function linkHtml(url, label, className = '') {
 
 function escapeHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
+function parseIrrPct(implied) {
+  if (!implied || implied === 'pending' || implied === '—') return null;
+  const m = String(implied).match(/^(-?\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function irrLabel(implied) {
+  if (!implied || implied === 'pending' || implied === '—') return '';
+  const m = String(implied).match(/^\d+(?:\.\d+)?%\s*(?:\((.+)\))?$/);
+  return m && m[1] ? m[1] : '';
+}
+
+function irrClass(pct) {
+  if (pct == null) return 'irr-pending';
+  if (pct >= 15) return 'irr-pass';
+  if (pct >= 10) return 'irr-mid';
+  if (pct >= 0) return 'irr-low';
+  return 'irr-fail';
+}
+
+function renderIrrCell(t) {
+  const implied = t.classification?.implied_irr;
+  const pct = t.classification?.analysis_irr_pct ?? parseIrrPct(implied);
+  if (pct == null && (!implied || implied === 'pending')) {
+    return '<span class="irr-cell irr-pending">—</span>';
+  }
+  const label = irrLabel(implied);
+  const asOf = t.classification?.analysis_as_of;
+  const title = [implied, asOf ? `as of ${asOf}` : ''].filter(Boolean).join(' · ');
+  const head = pct != null ? `${pct.toFixed(pct % 1 ? 1 : 0)}%` : escapeHtml(implied);
+  return `<span class="irr-cell ${irrClass(pct)}" title="${escapeHtml(title)}">${head}${label ? `<span class="irr-sub">${escapeHtml(label)}</span>` : ''}</span>`;
 }
 
 async function load() {
@@ -529,8 +570,15 @@ function filtered() {
       av = a[parts[0]]?.[parts[1]];
       bv = b[parts[0]]?.[parts[1]];
     }
-    if (typeof av === 'string') av = av.toLowerCase();
-    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (sortKey === 'classification.analysis_irr_pct') {
+      av = a.classification?.analysis_irr_pct ?? parseIrrPct(a.classification?.implied_irr);
+      bv = b.classification?.analysis_irr_pct ?? parseIrrPct(b.classification?.implied_irr);
+      av = av == null ? -Infinity : av;
+      bv = bv == null ? -Infinity : bv;
+    } else {
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+    }
     if (av < bv) return sortAsc ? -1 : 1;
     if (av > bv) return sortAsc ? 1 : -1;
     return 0;
@@ -555,6 +603,7 @@ function renderTable() {
       </td>
       <td class="mono" style="font-size:11px;color:var(--text-secondary)">${t.last_download || '—'}</td>
       <td><span class="badge ${ARCHETYPE_BADGE[t.classification?.archetype] || 'badge-warn'}">${t.classification?.archetype || '—'}</span></td>
+      <td>${renderIrrCell(t)}</td>
       <td><span class="badge ${STANCE_BADGE[t.classification?.stance] || 'badge-warn'}">${t.classification?.stance || '—'}</span></td>
     </tr>`).join('');
   tbody.querySelectorAll('tr').forEach(tr => {
@@ -578,6 +627,7 @@ function selectTicker(ticker) {
         <div class="metric"><div class="k">Stance</div><div class="v"><span class="badge ${STANCE_BADGE[t.classification?.stance] || 'badge-warn'}">${t.classification?.stance || '—'}</span></div></div>
         <div class="metric"><div class="k">Moat</div><div class="v"><span class="badge ${MOAT_BADGE[t.classification?.moat] || 'badge-warn'}">${t.classification?.moat || '—'}</span></div></div>
         <div class="metric"><div class="k">Dhando</div><div class="v">${t.classification?.dhando || '—'}</div></div>
+        <div class="metric"><div class="k">Analysis IRR</div><div class="v">${renderIrrCell(t)}${t.classification?.analysis_as_of ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px">as of ${escapeHtml(t.classification.analysis_as_of)}</div>` : ''}</div></div>
         ${t.classification?.cycle && t.classification.cycle !== '-' && t.classification.cycle !== '—' ? `<div class="metric"><div class="k">Cycle</div><div class="v">${t.classification.cycle}</div></div>` : ''}
       </div>
     </div>

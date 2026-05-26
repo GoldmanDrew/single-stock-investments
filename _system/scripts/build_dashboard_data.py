@@ -206,6 +206,13 @@ def parse_classification_from_thesis(ticker_dir: Path) -> dict | None:
     return fields if fields else None
 
 
+def parse_irr_pct(implied: str | None) -> float | None:
+    if not implied or implied in ("pending", "—", "-", None):
+        return None
+    m = re.match(r"(-?\d+(?:\.\d+)?)", str(implied).strip())
+    return float(m.group(1)) if m else None
+
+
 def load_valuation(ticker_dir: Path) -> dict | None:
     for name in ("valuation.json", "irr_model.json"):
         path = ticker_dir / "research" / name
@@ -248,6 +255,9 @@ def classification_for(ticker: str, ticker_dir: Path, portfolio: dict[str, dict]
             out["stance_proposed"] = proposal["suggested"]
         if proposal.get("irr_band"):
             out["irr_band"] = proposal["irr_band"]
+        if val.get("as_of"):
+            out["analysis_as_of"] = val["as_of"]
+        out["analysis_irr_pct"] = parse_irr_pct(out.get("implied_irr"))
     return out
 
 
