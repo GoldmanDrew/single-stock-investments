@@ -51,6 +51,22 @@ Every deep dive and thesis update ends with:
 …
 ```
 
+## Terms (this report) — optional glossary
+
+After **Classification**, add when body text still uses short codes without spelling them out on first use:
+
+```markdown
+## Terms (this report)
+
+| Term | Meaning here |
+|------|----------------|
+| Dhando | Asymmetric payoff (Pabrai): … |
+| Croupier | Toll on transactions (Stahl): … |
+| … | … |
+```
+
+List only terms used in that report. Skip if every framework term was defined in prose per `report_prose.md`.
+
 ## Dashboard display
 
 - **Table column:** Archetype (primary badge)

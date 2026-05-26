@@ -1,26 +1,36 @@
-# CMSG — Pending review (deep dive 2026-05-26)
+# CMSG Deep Dive Review — Decision Stack (2026-05-26)
 
-**Full report:** `CMSG/research/deep_dive_2026-05-26.md`
+**Agent:** Marvin  
+**Full report:** `CMSG/research/deep_dive_2026-05-26.md`  
+**Style:** `report_prose.md` refresh
+
+---
 
 ## Executive summary
 
-Consensus Mining & Seigniorage (CMSG, OTCQX) is a Horizon-affiliated digital-asset miner whose economics split between thin operating mining (~$4.5M FY2025 revenue, ~$1.4M operating loss) and a large treasury (~$60.5M cash + ~$31.3M fair-value crypto). GAAP earnings swing on ASU 2023-08 marks, not hash cash flow. At ~$30, base scenario IRR **7.7%** → **watch**. Primary risk: hash-share erosion and related-party fees post-waiver.
+Horizon-affiliated **OTCQX miner** with thin operating revenue (**~$4.5M** FY2025, **~$1.4M** op loss) and large treasury (**~$60.5M** cash + **~$31.3M** crypto YE2025). At **~$30**, base **7.7%** scenario IRR; **~$42/sh** indicative NAV ≈ **29%** discount. **Partial dhando**, moat **unproven**. Stance proposal: **watch**.
+
+## Expected return
+
+| Scenario | Return |
+|----------|--------|
+| Bear | -5.6% |
+| Base | **7.7%** |
+| Bull | 18.8% |
+
+`python _system/scripts/marvin_valuation.py --ticker CMSG --write`
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | optionality |
-| **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | partial |
-| **Stance** | watch |
-| **Implied 10yr IRR** | 7.7% (base) |
+| Stance | watch (proposed) |
+| Implied 10yr IRR | 7.7% (base) |
+| IRR method | scenario |
+| Lawrence bucket | other |
 
 ## [HUMAN REVIEW]
 
-- Confirm OTCQX price and BTC mark vs YE2025 fair value
-- Horizon fee redesign post-May 2026 waiver
-
-## [PROPOSED MEMORY]
-
-- [PROPOSED COMPANY] CMSG base **7.7%** scenario IRR; watch — `CMSG/research/valuation.json`
+- Confirm live OTCQX price and BTC marks
+- Post-waiver Horizon fee run-rate (mid-2026)
+- Size vs FRMO/Horizon sleeve overlap

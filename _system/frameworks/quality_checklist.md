@@ -27,8 +27,18 @@
 - [ ] Bear / base / bull returns documented
 - [ ] Stance proposal vs approved stance reconciled (override if needed)
 
+## Prose & Hohn essentials (→ `report_prose.md`, `hohn_business_analysis.md`)
+- [ ] `## What this business is` and `## Why the market might be wrong` present
+- [ ] Executive summary 120–180 words; does not open with archetype labels
+- [ ] `#### Return math in plain English` + `**Upside / downside from price:**`
+- [ ] `**Primary risk:**` once; ≤3 secondary risks
+- [ ] Fieldwork or "None this period" + what would upgrade conviction
+- [ ] holding_co/optionality: look-through + SOTP/NAV + catalyst path in body
+- [ ] `### Mental models in plain English` after Tier 2
+- [ ] No em dashes in narrative (max 1 per report)
+
 ## Documentation
 - [ ] Cite primary sources with file paths
-- [ ] Separate facts / inferences / opinions
-- [ ] End with classification table and [HUMAN REVIEW] items
-- [ ] `sync_classification.py` and `lint_deep_dive.py` pass
+- [ ] Separate facts / inferences / opinions ([Fact] / [Inference] / [Opinion] where non-obvious)
+- [ ] End with classification table, optional Terms, and [HUMAN REVIEW] items
+- [ ] `sync_classification.py` and `lint_deep_dive.py` pass (use `--legacy` only for unrefreshed old dives)

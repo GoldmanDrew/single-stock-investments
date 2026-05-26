@@ -1,13 +1,14 @@
 # TEQ.ST Deep Dive Review — Decision Stack (2026-05-26)
 
 **Agent:** Marvin  
-**Full report:** `TEQ.ST/research/deep_dive_2026-05-26.md`
+**Full report:** `TEQ.ST/research/deep_dive_2026-05-26.md`  
+**Style:** `report_prose.md` refresh
 
 ---
 
-## Summary
+## Executive summary
 
-Decision-stack refresh at **~158 SEK**. Teqnion unchanged as **serial_acquirer / stable moat / partial dhando**. Margin/FCF turnaround strengthening (Q1 2026 EBITA margin **14.3%**). Base **13.7%** 10yr IRR — **below 15% hold band**. Stance proposal: **watch** (prior hold should be reviewed).
+Teqnion unchanged as **serial_acquirer / stable moat / partial dhando**. Margin/FCF turnaround strengthening (Q1 2026 EBITA margin **14.3%**; FCF ex-acquisitions **173.1 MSEK** FY2025). At **~158 SEK**, base **13.7%** 10yr IRR is **below 15% hold band**. Stance proposal: **watch** (prior hold should be reviewed).
 
 ## Expected return
 

@@ -19,6 +19,7 @@ Single-stock research workflow for this workspace.
 
 ## 4. Analyze
 - Apply `_system/frameworks/decision_stack.md` (single pipeline: what → durable → payoff → return → stance)
+- Write prose per `_system/frameworks/report_prose.md` (Hohn/HK voice; spell out mental models; no em dashes)
 - Tier 2 prompts from `archetype_models.json`; appendix detail in `mental_models.md` / `lawrence_irr.md` only if needed
 - Apply `ai_disruption_lens.md` where relevant
 - Write to `{TICKER}/research/` — not chat-only
@@ -36,7 +37,7 @@ Every report ends with:
 - [HUMAN REVIEW] items
 - [PROPOSED MEMORY] bullets (daily log only)
 
-Sync: `python _system/scripts/sync_classification.py` · Lint: `python _system/scripts/lint_deep_dive.py {TICKER}`
+Sync: `python _system/scripts/sync_classification.py` · Lint: `python _system/scripts/lint_deep_dive.py {TICKER}` (`--legacy` until dive refreshed to new template)
 
 Separate **facts**, **inferences**, and **opinions**. Cite file paths and page refs where possible.
 

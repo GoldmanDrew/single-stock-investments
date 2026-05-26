@@ -22,6 +22,28 @@ Hohn writes like an **operating analyst + activist owner**: recent quarter → s
 
 ---
 
+## Hohn essentials (every deep dive — keep these simple)
+
+Distilled from TCI letters. **Do these in prose + numbers;** do not add framework labels in the narrative.
+
+| # | Rule | Example |
+|---|------|---------|
+| 1 | **Show the return math in words** | "8% FCF yield + 5–7% growth ≈ 14% total return" (Oracle); "$40 × 15× = $600 in 3 years → 27% p.a." (Charter) |
+| 2 | **State upside / downside from today's price** | "Base payoff $18 from $6.70 = ~169% total upside; bear $9.5 ≈ 42% upside; book $8.55 caps fundamental floor" |
+| 3 | **2–4 thesis pillars, each quantified** | Volume trough → recovery %; cost program €X → Y% EPS; legacy re-pricing over N years |
+| 4 | **Label structural vs cyclical** in one short paragraph on the pillars | Not only in a table footnote |
+| 5 | **One primary risk** | Single named risk in returns statement and first line of Risks; at most 3 secondary bullets |
+| 6 | **Fieldwork or honest gap** | "None this period" + what meeting/data would change conviction |
+| 7 | **Normalize one-offs** | Rebates base, unrealized marks, provisions — separate run-rate |
+
+**Operating companies:** latest quarter vs prior quarter vs trend; **% changes** on volume, price, margin. Name one peer when comparing cost, yield, or multiple.
+
+**Holding companies / optionality:** parent may have no operating P&L — then **look-through snapshot** (top 3–5 stakes) + **sum-of-parts or NAV table** in the report body (not only in [HUMAN REVIEW]). **Catalyst path:** 2–3 bullets with timing (Altaba-style: tender date, tax cliff, next liquidation step).
+
+**Target:** ~15% p.a. medium-term on base case; screen **~25–30%+ upside / ~10% downside** from price where applicable (maps to Pabrai dhando, not a separate lecture).
+
+---
+
 ## Entry criteria (Hohn screen — use at onboard / stance)
 
 From TCI Q1 2004 and recurring letters:
@@ -130,7 +152,7 @@ Load with Tier 2 from `archetype_models.json` → `hohn_prompts`.
 | **compounder** | Pricing vs volume split? Reinvestment rate vs FCF return? M&A EBIT math (Sun: $5bn, $1.5bn EBIT Y1)? |
 | **infrastructure** | Regulated vs merchant return; RAB/cap rate; traffic vs opex leverage (Aena: +9% traffic, +1% opex)? |
 | **turnaround** | Provisioning peak? NIM path? Capital ratio floors and CoCo triggers? Catalyst date? |
-| **holding_co** | Sum-of-parts; zero-valued subs; NAV discount; liquidation path and tax? |
+| **holding_co** | **Required:** look-through table + SOTP/NAV vs price + catalyst path with dates; Altaba-style discount % and liquidation/tender steps |
 | **serial_acquirer** | Synergy €/timeline; pro forma multiple on fully synergized earnings? |
 
 ---
@@ -148,7 +170,7 @@ For framework onboarding, read extracts in this order:
 
 ## Report integration
 
-In `deep_dive_template.md`, section **Business mechanics (Hohn)** sits after Tier 2 prompts and before Moat (Munger), or merged if moat evidence is the same bullet.
+In `deep_dive_template.md`, section **Business mechanics (Hohn)** sits after **Tier 2 prompts** and **Mental models in plain English**, before Moat (Munger). Narrative rules: `_system/frameworks/report_prose.md`.
 
 Cross-checks: update operating snapshot + valuation bridge when new quarter drops — full pillar rewrite only if thesis changed.
 

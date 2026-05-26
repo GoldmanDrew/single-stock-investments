@@ -15,7 +15,7 @@
 | **IRR method** | yield_curve |
 | **Lawrence bucket** | other |
 
-**Deep dive:** `FRMO/research/deep_dive_2026-05-26.md`
+**Deep dive:** `FRMO/research/deep_dive_2026-05-26.md` (style reference: `report_prose.md`)
 
 ## One-line thesis
 

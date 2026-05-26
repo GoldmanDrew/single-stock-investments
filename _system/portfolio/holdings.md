@@ -16,7 +16,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-05-26.
 | CSGP | CSGP/ | CoStar Group | US | 2026-05-26 | 2026-05-26 | platform | watch |
 | CSU | CSU/ | Constellation Software | CA | 2026-05-26 | 2026-05-26 | compounder | core |
 | DHR | DHR/ | Danaher Corporation | US | 2026-05-26 | 2026-05-26 | compounder | hold |
-| FRMO | FRMO/ | FRMO Corporation | US | 2026-05-26 | 2026-05-26 | holding_co | hold |
+| FRMO | FRMO/ | FRMO Corporation | US | 2026-05-26 | 2026-05-26 | holding_co | accumulate |
 | GOOGL | GOOGL/ | Alphabet Inc. | US | 2026-05-26 | 2026-05-26 | compounder | hold |
 | ICE | ICE/ | Intercontinental Exchange | US | 2026-05-26 | 2026-05-26 | croupier | hold |
 | KEWL | KEWL/ | Keweenaw Land Association | US | 2026-05-26 | 2026-05-26 | optionality | watch |

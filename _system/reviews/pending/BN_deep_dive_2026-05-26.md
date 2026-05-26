@@ -1,23 +1,27 @@
 # BN Deep Dive Review — Decision Stack (2026-05-26)
 
 **Agent:** Marvin  
-**Full report:** `BN/research/deep_dive_2026-05-26.md`
+**Full report:** `BN/research/deep_dive_2026-05-26.md`  
+**Format:** `report_prose.md` refresh
 
 ---
 
 ## Executive summary
 
-Brookfield **platform / stable moat / partial dhando**. Q1-26 DE **$0.66/sh**; LTM DE **$2.54/sh**; FBC **$614B**. At **~$45.93**, base **12.1%** 10yr IRR. Stance proposal: **watch** (just below 15% band).
+Brookfield **platform / stable moat / partial dhando**. Q1-26 FBC **$614B**; FRE **+11%**; LTM DE **$2.54/sh**. At **~$45.93**, base **12.1%** 10yr IRR (below 15% band). Stance proposal **watch**; prior **hold** = allocator sleeve override.
 
 ## Expected return
 
-| Scenario | Return |
-|----------|--------|
-| Bear | 8.4% |
-| Base | **12.1%** |
-| Bull | 14.7% |
+| Scenario | Return | Terminal (Y10, model) |
+|----------|--------|------------------------|
+| Bear | 8.4% | ~$55/sh |
+| Base | **12.1%** | ~$80/sh |
+| Bull | 14.7% | ~$103/sh |
 
-`python _system/scripts/marvin_valuation.py --ticker BN --write`
+**Primary risk:** Fundraising drought compressing FRE.
+
+`python _system/scripts/marvin_valuation.py --ticker BN --write`  
+`python _system/scripts/lint_deep_dive.py BN`
 
 ## Classification
 
@@ -25,11 +29,11 @@ Brookfield **platform / stable moat / partial dhando**. Q1-26 DE **$0.66/sh**; L
 |-------|-------|
 | Stance | watch (proposed) |
 | Implied 10yr IRR | 12.1% (base) |
-| IRR method | full |
+| Predictive attribute | none |
 | Lawrence bucket | multi_sided |
 
 ## [HUMAN REVIEW]
 
-- Confirm live price and DE yield vs history.
-- Prior **hold** — override for core allocator exposure?
-- BN+BNT merger impact on DE per share.
+- Confirm live price; DE yield vs history.
+- BN+BNT merger model on DE/sh.
+- Hold override for allocator sleeve.

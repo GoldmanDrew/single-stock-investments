@@ -43,12 +43,13 @@ Load `_system/frameworks/archetype_models.json`. When `archetype` is set, answer
 
 Read `_system/frameworks/hohn_business_analysis.md` (or `tci/Hohn-Analysis-Framework-extract.txt` for quick reference).
 
-Under **Business & moat → Business mechanics (Hohn)**, every deep dive must include:
+Under **Business & moat → Business mechanics (Hohn)**, every deep dive must include (`hohn_business_analysis.md` § Hohn essentials):
 
-1. **Operating snapshot** — latest quarter trends with numbers  
-2. **Thesis pillars** — 2–4 structural drivers, quantified  
-3. **Valuation bridge** — ≥2 methods; base case with explicit return math  
-4. **Primary risk** — one dominant failure mode  
+1. **Operating snapshot** (or **look-through** for holding_co / optionality)  
+2. **Thesis pillars** — 2–4 drivers, quantified; structural vs cyclical in prose  
+3. **Valuation bridge** + **return math in plain English** + **upside/downside from price**  
+4. **SOTP/NAV + catalyst path** when holding_co or optionality  
+5. **Primary risk** — one dominant failure mode (max 3 secondary in Risks)  
 
 Reconcile Hohn base-case return with Lawrence `implied_irr` or explain in [HUMAN REVIEW].
 
@@ -115,15 +116,19 @@ Approved `stance` lives in `classification.json` + `thesis.md`. Run `sync_classi
 
 ## Step 5 — Report template
 
-Use `_system/prompts/deep_dive_template.md`. Five blocks only:
+Use `_system/prompts/deep_dive_template.md` and `_system/frameworks/report_prose.md`. Reader-first order:
 
-1. **Executive summary** + classification table
-2. **Business & moat** — Stahl archetype + **Hohn mechanics** + Munger + Tier 2 prompts
-3. **Payoff & return** — dhando + five-question gate + expected return table (Hohn bridge should align with Lawrence/HK methods)
-4. **Risks & inversion**
-5. **[HUMAN REVIEW]** + **[PROPOSED MEMORY]**
+1. **What this business is** — five plain sentences (no framework codes)
+2. **Why the market might be wrong** — HK predictive attribute in prose
+3. **Executive summary** — 120–180 words; synthesize 1–2 + return + stance
+4. **Business & moat** — Stahl + Tier 2 + **Mental models in plain English** + **Hohn mechanics** + Munger
+5. **Payoff & return** — five-question gate + dhando + expected return (Hohn bridge aligns with Lawrence/HK)
+6. **Risks & inversion**
+7. **Classification** + optional **Terms** + **[HUMAN REVIEW]** + **[PROPOSED MEMORY]**
 
-Cross-checks / refreshes: update blocks 3–5 unless business changed.
+Cross-checks / refreshes: update sections 1–5 when new filings arrive; full pillar rewrite only if thesis changed.
+
+Lint: `python _system/scripts/lint_deep_dive.py {TICKER}` (`--legacy` for pre-refresh dives).
 
 ---
 
@@ -154,9 +159,10 @@ python _system/scripts/build_dashboard_data.py
 ## Read order for agents (deep dive)
 
 1. `_system/frameworks/decision_stack.md` (this file)
-2. `_system/frameworks/hohn_business_analysis.md` (operating mechanics — every deep dive)
-3. `_system/frameworks/optionality_valuation.md` (if FRMO / MSB / KEWL / SJT)
-4. `_system/memory/MEMORY.md` (approved beliefs)
-3. Primary docs in `{TICKER}/`
-4. `_system/prompts/deep_dive_template.md` (output shape)
-5. Appendix only if needed: `mental_models.md`, `lawrence_irr.md`
+2. `_system/frameworks/report_prose.md` (voice and structure)
+3. `_system/frameworks/hohn_business_analysis.md` (operating mechanics — every deep dive)
+4. `_system/frameworks/optionality_valuation.md` (if FRMO / MSB / KEWL / SJT)
+5. `_system/memory/MEMORY.md` (approved beliefs)
+6. Primary docs in `{TICKER}/`
+7. `_system/prompts/deep_dive_template.md` (output shape)
+8. Appendix only if needed: `mental_models.md`, `lawrence_irr.md`
