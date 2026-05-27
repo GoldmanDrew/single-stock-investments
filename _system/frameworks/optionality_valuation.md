@@ -24,7 +24,7 @@ Set `valuation_mode: optionality` in `{TICKER}/research/valuation.json` and docu
 
 ### A. Holdco flywheel + catalyst stack (FRMO)
 
-**Sources:** `_system/reference/investment-wisdom/stahl/`; Special Situation Investing — [FRMO frictionless flywheel](https://specialsituationinvesting.substack.com/p/frmo-corp-a-frictionless-flywheel)
+**Sources:** `_system/reference/investment-wisdom/stahl/`; approved Substacks — `_system/frameworks/approved_substacks.md`, `FRMO/third-party-analyses/references.md`; [SSI FRMO flywheel](https://specialsituationinvesting.substack.com/p/frmo-corp-a-frictionless-flywheel); [LCI crypto conglomerate](https://lemoncakesinvesting.substack.com/p/frmo-frmo-corp-commentary-on-frmos)
 
 | Lens | Question |
 |------|----------|

@@ -130,9 +130,23 @@ See `_system/frameworks/optionality_valuation.md`. Skip if standard Lawrence/Hoh
 
 ---
 
+## Approved Substack context
+
+{Required when ticker is in `approved_substacks.md` topic map (FRMO, CMSG, KEWL, etc.). Index: `{TICKER}/third-party-analyses/references.md`. Cross-check: `{TICKER}/research/cross_check_approved_substacks_{date}.md`.}
+
+| Theme | SSI | Lemon Cakes | Filing check |
+|-------|-----|-------------|--------------|
+| … | … | … | … |
+
+{Synthesis paragraph: support vs supersede Marvin numbers.}
+
+{Skip if no approved Substack posts indexed for this ticker.}
+
+---
+
 ## Blended estimate (best judgment)
 
-{Required when an external manager letter, research note, or material press release is cited. Not binary Marvin vs external.}
+{Required when an external manager letter, **approved Substack**, research note, or material press release is cited. Not binary Marvin vs external.}
 
 | Lens | Key metric (owner cash Y0 or equivalent) | Return / horizon | Stance hint |
 |------|------------------------------------------|------------------|-------------|

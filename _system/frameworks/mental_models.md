@@ -106,7 +106,7 @@ Full template: `_system/frameworks/optionality_valuation.md`. Use when Lawrence/
 | **Market structure discount** | OTC royalty trusts | Is mispricing from index/yield exclusion, not fundamentals? |
 | **Pabrai low risk / high uncertainty** | Optionality at asset floor | Is uncertainty high but fundamental risk low (cash, no debt, passive trust)? |
 
-**External refs:** [SSI FRMO flywheel](https://specialsituationinvesting.substack.com/p/frmo-corp-a-frictionless-flywheel); [SSI KEWL](https://specialsituationinvesting.substack.com/p/keweenaw-land-association-kewl); HK Q4-2024 / Q1-2025 / Q3-2025 commentaries (Mesabi).
+**External refs:** Human-approved Substacks — `_system/frameworks/approved_substacks.md` (SSI + Lemon Cakes: FRMO, CMSG, WELX, HK); [SSI FRMO flywheel](https://specialsituationinvesting.substack.com/p/frmo-corp-a-frictionless-flywheel); [SSI KEWL](https://specialsituationinvesting.substack.com/p/keweenaw-land-association-kewl); HK Q4-2024 / Q1-2025 / Q3-2025 commentaries (Mesabi).
 
 ### Munger — Compounders
 
@@ -206,8 +206,9 @@ Promote to MEMORY after review. Apply when trigger matches.
 | Model | Trigger | Question |
 |-------|---------|----------|
 | **Triangulated estimate** | Manager letter, Substack, material press release, or prior cross-check | What is Marvin floor vs external vs **blended best estimate** (weighted middle)? Avoid binary Marvin-only or full external adopt. |
+| **Approved Substack lens** | Ticker has `third-party-analyses/references.md` entry | Which SSI / Lemon Cakes mental model applies (flywheel, seigniorage, modular stack)? Reconcile stale dates to filings. |
 
-**Framework:** `_system/frameworks/external_view_blend.md`
+**Framework:** `_system/frameworks/external_view_blend.md` · **Approved publishers:** `_system/frameworks/approved_substacks.md`
 
 ---
 

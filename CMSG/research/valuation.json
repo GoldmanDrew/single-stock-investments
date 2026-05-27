@@ -12,10 +12,48 @@
   "inputs": {
     "price": 30.0,
     "price_source": "OTCQX quote ~May 26, 2026 (Yahoo Finance)",
-    "per_share": 1.35,
-    "fcf_source": "Normalized owner earnings: FY2025 interest income $2.42M + breakeven mining ops \u2248 $3.0M \u00f7 2.25M shares; digital-asset marks excluded",
+    "per_share": 1.45,
+    "fcf_source": "Blended best estimate (65% Marvin $1.35 / 35% partial LCI seigniorage-treasury credit)",
     "shares_millions": 2.25,
-    "normalization_note": "Scenario on run-rate cash yield + optional BTC/alt treasury re-rating; GAAP net loss from ASU 2023-08 marks not starting point"
+    "normalization_note": "Primary metric = blended_best; marvin_floor retained for stress"
+  },
+  "estimates": {
+    "marvin_floor": {
+      "per_share": 1.35,
+      "return_pct": 7.7,
+      "exit_multiple": 14,
+      "growth_y1_5": 0.08,
+      "growth_y6_10": 0.05,
+      "notes": "Interest + breakeven mining; marks excluded"
+    },
+    "external": [
+      {
+        "source_id": "lci",
+        "source": "Lemon Cakes: FRMO crypto conglomerate + seigniorage",
+        "path": "CMSG/third-party-analyses/references.md",
+        "per_share": null,
+        "return_pct_approx": 18.8,
+        "horizon_years": 10,
+        "notes": "Treasury accrual framing; bull path if BTC re-rates"
+      },
+      {
+        "source_id": "ssi",
+        "source": "SSI: FRMO flywheel (CMSC listing)",
+        "path": "CMSG/third-party-analyses/references.md",
+        "per_share": null,
+        "return_pct_approx": null,
+        "notes": "Catalyst narrative; listing timeline stale vs OTCQX status"
+      }
+    ],
+    "blended_best": {
+      "per_share": 1.45,
+      "return_pct": 8.7,
+      "exit_multiple": 14,
+      "growth_y1_5": 0.08,
+      "growth_y6_10": 0.05,
+      "weights": "65% marvin_floor / 35% approved Substack (LCI/SSI)",
+      "notes": "approved_substacks.md; still below 15% bar"
+    }
   },
   "scenarios": {
     "bear": {
@@ -49,9 +87,10 @@
     }
   },
   "implied_return": {
-    "base_pct": 7.7,
-    "label": "scenario IRR",
-    "display": "7.7% (base)"
+    "base_pct": 8.7,
+    "label": "blended scenario IRR (best estimate)",
+    "display": "8.7% (blended best estimate)",
+    "marvin_floor_pct": 7.7
   },
   "stance_proposal": {
     "suggested": "watch",

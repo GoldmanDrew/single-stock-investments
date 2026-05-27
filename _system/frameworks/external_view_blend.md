@@ -1,6 +1,8 @@
 # External views — triangulated blend (not binary)
 
-**Purpose:** When a credible external analysis exists (manager letter, Substack, sell-side, press release with economics), Marvin **triangulates** it into a **best estimate**. Do not treat the outcome as “Marvin right / external wrong” or auto-adopt the external case.
+**Purpose:** When a credible external analysis exists (manager letter, **human-approved Substack**, sell-side, press release with economics), Marvin **triangulates** it into a **best estimate**. Do not treat the outcome as “Marvin right / external wrong” or auto-adopt the external case.
+
+**Approved Substacks only:** Special Situation Investing (`ssi`) and Lemon Cakes Investing (`lci`) — registry and topic map in `_system/frameworks/approved_substacks.md`. Index posts in `{TICKER}/third-party-analyses/references.md`.
 
 **Placement:** Deep dive section `## Blended estimate (best judgment)`; detail file `{TICKER}/research/external_blend_{source}_{date}.md` or `cross_check_{source}_{date}.md` with synthesis tables.
 

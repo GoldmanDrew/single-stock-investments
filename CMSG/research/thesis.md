@@ -11,7 +11,7 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | - |
-| **Implied 10yr IRR** (Lawrence) | 7.7% (base) |
+| **Implied 10yr IRR** (Lawrence) | 8.7% (blended best estimate) |
 | **IRR method** | scenario |
 | **Lawrence bucket** | other |
 
@@ -19,7 +19,7 @@
 
 ## One-line thesis
 
-CMSG is a cash-rich OTCQX bitcoin/scrypt miner where **marked-to-market digital assets dominate GAAP earnings**; the equity is largely a **BTC-treasury and hash-share option** under Horizon-affiliated governance — watch at 7.7% base IRR; fee redesign post-2026 and network-share trends.
+CMSG is a cash-rich OTCQX bitcoin/scrypt miner where **marked-to-market digital assets dominate GAAP earnings**; the equity is largely a **BTC-treasury and hash-share option** under Horizon-affiliated governance — watch at **8.7%** blended IRR (Marvin floor 7.7%); approved Substacks (LCI seigniorage) add partial treasury credit; fee redesign post-2026 and network-share trends.
 
 ## Key questions
 
