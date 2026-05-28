@@ -2,8 +2,11 @@
 
 **Purpose:** Make Marvin deep dives read like security analyses (Chris Hohn / TCI, Horizon Kinetics), not classification dashboards. Complements `decision_stack.md` (what to analyze) with **how to write it**.
 
+**Structure (sections, dedup):** `_system/frameworks/deep_dive_structure.md` — **single source** for what goes in the report.  
 **Template:** `_system/prompts/deep_dive_template.md`  
-**Lint:** `python _system/scripts/lint_deep_dive.py {TICKER}` (`--strict` for prose as errors; `--legacy` for old-format dives)
+**IRR:** `_system/frameworks/irr_assumption_ledger.md` + `lawrence_irr.md` § F — at **end** of report only.  
+**Third party:** `_system/frameworks/third_party_sources.md`  
+**Lint:** `refresh_deep_dive_v2.py` then `lint_deep_dive.py {TICKER}`
 
 ---
 
@@ -14,10 +17,11 @@
 | 1 | `## What this business is` | Five sentences max: customers, revenue engine, segments, geography if relevant. **No** archetype/moat/dhando codes. |
 | 2 | `## Why the market might be wrong` | 2–3 sentences. HK predictive attribute in plain English, or explicit "no dated payoff / no clear mispricing signal." |
 | 3 | `## Executive summary` | 120–180 words: synthesize 1–2 + base return + stance. **Do not** open with `**Stahl**` / `**Archetype**` labels. |
-| 4 | `## Business & moat` | Stahl + Hohn mechanics + Munger + Tier 2 + **Mental models in plain English** |
-| 5 | `## Payoff & return` | Five-question gate, dhando, returns, stance proposal |
-| 6 | `## Risks & inversion` | Munger inversion, primary risk echoed from Hohn |
-| 7 | Footer | Classification → optional Terms → [HUMAN REVIEW] → [PROPOSED MEMORY] |
+| 4 | `## Business & moat` | Stahl + Hohn mechanics + **Mental models** — **no IRR math** |
+| 5 | `## Payoff & return` | Gates, dhando, stance — points to Valuation & IRR |
+| 6 | `## Risks & inversion` | Primary risk + inversion |
+| 7 | `## Valuation & IRR (assumption ledger)` | Bridge + **every assumption** + IRR arithmetic |
+| 8 | Footer | Classification → Terms → [HUMAN REVIEW] → [PROPOSED MEMORY] |
 
 Classification enums belong in the footer table, not the opening paragraph.
 
@@ -38,19 +42,9 @@ Spell out jargon once in the body; the footer may keep short codes.
 
 ---
 
-## Mental models in plain English
+## Mental models (one subsection)
 
-Required subsection after **Tier 2 prompts** when that table is present.
-
-**Format (one sentence each):**
-
-> **{Model name} ({Genius}):** {Question in plain English}? **{Yes/No/Partial}** — {one-line evidence} (`{TICKER}/path/file.pdf`).
-
-**Example:**
-
-> **Croupier toll (Stahl):** Does the company earn fees on activity without taking principal risk? **Yes** — exchange and clearing revenue, ~80% segment margin (ICE/1Q26 press release).
-
-Do not leave Tier 2 as a table-only checklist with unexplained model names.
+See `deep_dive_structure.md`. Use **### Mental models** only (no separate Tier 2 + plain English duplicate). Table: Model | Finding | Source.
 
 ---
 
@@ -60,12 +54,12 @@ From `_system/frameworks/hohn_business_analysis.md`. **Narrative uses plain Engl
 
 | Must have | Where |
 |-----------|--------|
-| Return math in words | `#### Return math in plain English` after valuation bridge |
-| Upside / downside from price | `**Upside / downside from price:**` one line under return math |
+| IRR arithmetic | `#### IRR arithmetic (show your work)` after valuation bridge — **required** (`lawrence_irr.md` § F) |
+| Upside / downside from price | One line **after** IRR arithmetic |
 | Quantified pillars + structural/cyclical | Thesis pillars table + one prose paragraph |
 | One primary risk | Returns statement + first line under `## Risks & inversion` |
-| Fieldwork or gap | "None this period" + what would upgrade conviction |
-| Show the math | e.g. "$6.70 → $18 in 5 years ≈ 21.9% p.a." not only a table cell |
+| Fieldwork or gap | Under Business mechanics only (not Primary sources) |
+| Show the math | Step-by-step in IRR arithmetic; valuation bridge table is summary only |
 
 **Operating companies:** % changes on volume, price, margin; name one peer when relevant.
 

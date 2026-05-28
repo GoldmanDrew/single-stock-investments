@@ -314,7 +314,26 @@ def build_ticker(ticker: str) -> int:
 
     digest_path = evidence_dir / f"filing_digest_{TODAY}.md"
     digest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"OK {ticker}: docs={len(processed)} full={sum(1 for p in processed if p.get('tier')=='full')} partial={sum(1 for p in processed if p.get('tier')=='partial')}")
+
+    try:
+        import sys
+
+        scripts = Path(__file__).resolve().parent
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        from filing_facts import write_filing_facts_json
+
+        ff = write_filing_facts_json(ticker_dir, TODAY)
+        if ff:
+            lines.append("")
+            lines.append(f"**Filing facts:** `{ff.relative_to(ticker_dir).as_posix()}`")
+    except Exception as e:
+        print(f"WARN {ticker}: filing_facts — {e}")
+
+    print(
+        f"OK {ticker}: docs={len(processed)} full={sum(1 for p in processed if p.get('tier') == 'full')} "
+        f"partial={sum(1 for p in processed if p.get('tier') == 'partial')}"
+    )
     return len(processed)
 
 

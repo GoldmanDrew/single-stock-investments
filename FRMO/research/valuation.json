@@ -38,7 +38,171 @@
       "price": 6.7,
       "payoff": 18.0,
       "years": 5,
-      "notes": "HK re-mark + partial SOTP close; book compounding"
+      "payoff_logic": "Sum of parts in valuation.json sotp_build + deep_dive IRR Step 3; sums to $18.00/sh. Multiples 2.1x book and 2.7x price are results, not inputs.",
+      "years_logic": "Model assumption: 5yr mid-point of 3-7yr catalyst window; not 10yr Lawrence; not company guidance.",
+      "notes": "HK re-mark + partial SOTP close; book compounding",
+      "sotp_build": {
+        "shares": 44022781,
+        "shares_source": "2026-02-28_Quarterly_Report.pdf",
+        "book_equity_m": 376.704,
+        "book_per_share": 8.55,
+        "lines": [
+          {
+            "id": "book",
+            "label": "GAAP book (anchor)",
+            "gaap_per_share": 8.55,
+            "uplift_per_share": 0.0,
+            "year5_per_share": 8.55,
+            "math": "376,704,000 / 44,022,781"
+          },
+          {
+            "id": "investment_a",
+            "label": "Investment A look-through (82% of equity)",
+            "gaap_per_share": 7.02,
+            "uplift_per_share": 4.5,
+            "year5_per_share": null,
+            "math": "Incremental on book: 7.02 x 64% = 4.50. GAAP 309M/44.02M=7.02 inside book; TPL/GBTC not disclosed."
+          },
+          {
+            "id": "hkhc",
+            "label": "HKHC 4.42% + royalty + subsidiary marks",
+            "gaap_per_share": 0.85,
+            "uplift_per_share": 2.0,
+            "year5_per_share": null,
+            "math": "Incremental: +2.00/sh (~88M). GAAP 37.4M/44.02M=0.85 inside book. SSI HK gap illustrative; HUMAN REVIEW."
+          },
+          {
+            "id": "mih",
+            "label": "MIH/MIAX direct stake",
+            "gaap_per_share": 0.32,
+            "uplift_per_share": 0.5,
+            "year5_per_share": null,
+            "math": "Incremental +0.50/sh. GAAP 13.9M/44.02M=0.32; ~271k MIAX sh at ~$51; price + fund look-through"
+          },
+          {
+            "id": "winland_cmsg",
+            "label": "Winland + CMSG + small options",
+            "gaap_per_share": 0.15,
+            "uplift_per_share": 0.4,
+            "year5_per_share": null,
+            "math": "Incremental +0.40/sh option value; Winland 5.5M + CMSG 0.7M in/near book"
+          },
+          {
+            "id": "investment_b",
+            "label": "Investment B LP sleeve",
+            "gaap_per_share": 0.76,
+            "uplift_per_share": 0.25,
+            "year5_per_share": null,
+            "math": "Incremental: 0.76 x 33% = 0.25/sh. GAAP 33.4M/44.02M inside book"
+          },
+          {
+            "id": "book_growth",
+            "label": "Organic book growth (non-catalyst)",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 1.36,
+            "year5_per_share": null,
+            "math": "8.55 x (1.03^5 - 1) = 1.36/sh. Exactly 3%/yr; not 1.80 (that implied ~3.9%/yr)."
+          },
+          {
+            "id": "tie_out",
+            "label": "Tie-out to $18 payoff (slack / Investment A marks via HKHC)",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 0.44,
+            "year5_per_share": null,
+            "math": "17.56 subtotal + 0.44 = 18.00; replace when Investment A look-through filed"
+          }
+        ],
+        "incremental_uplifts_sum": 9.45,
+        "year5_economic_nav_per_share": 18.0,
+        "sum_check": "8.55 + 4.50 + 2.00 + 0.50 + 0.40 + 0.25 + 1.36 + 0.44 = 18.00",
+        "payoff_equals": "See assumption_ledger in valuation.json; deep_dive Step 3g",
+        "assumption_ledger": {
+          "hkhc": {
+            "uplift_per_share": 2.0,
+            "components": [
+              {
+                "name": "royalty_participation",
+                "today_m": 10.2,
+                "year5_m": 32.0,
+                "incremental_m": 21.8,
+                "per_share": 0.49,
+                "source": "2026-02-28_Quarterly_Report.pdf"
+              },
+              {
+                "name": "ssi_hk_gap_haircut",
+                "gap_m": 20.0,
+                "haircut_pct": 40,
+                "incremental_m": 8.0,
+                "per_share": 0.18,
+                "source": "cross_check_approved_substacks_2026-05-26.md (SSI illustrative; not filing)"
+              },
+              {
+                "name": "hkhc_equity_method",
+                "today_m": 27.187,
+                "year5_m": 43.187,
+                "incremental_m": 16.0,
+                "per_share": 0.36,
+                "source": "2026-02-28_Quarterly_Report.pdf"
+              },
+              {
+                "name": "hkhc_equity_cagr",
+                "hkhc_equity_m_mar2025": 361.018,
+                "cagr_pct": 7,
+                "years": 5,
+                "frmo_pct": 4.42,
+                "incremental_m": 6.4,
+                "per_share": 0.15,
+                "source": "2025-05-31_Annual_Report.pdf HKHC financials"
+              },
+              {
+                "name": "investment_a_hkhc_marks_slack",
+                "incremental_m": 35.8,
+                "per_share": 0.81,
+                "note": "Brings HKHC line to 2.00/sh; HUMAN REVIEW"
+              }
+            ]
+          },
+          "mih_miax": {
+            "uplift_per_share": 0.5,
+            "gaap_fair_value_m": 13.917,
+            "miax_price_today": 51.42,
+            "implied_shares": 270563,
+            "miax_price_year5": 60.0,
+            "direct_incremental_m": 2.321,
+            "fund_miax_shares_assumed": 380000,
+            "fund_incremental_m": 3.26,
+            "exchange_rerate_m": 16.43
+          },
+          "winland_cmsg": {
+            "uplift_per_share": 0.4,
+            "winland_shares": 2262,
+            "winland_gaap_m": 5.542,
+            "winland_economic_m": 12.0,
+            "cmsg_gaap_m": 0.742,
+            "cmsg_economic_m": 3.0,
+            "platform_option_m": 10.0
+          },
+          "investment_b": {
+            "uplift_per_share": 0.25,
+            "gaap_m": 33.426,
+            "mark_up_pct": 33,
+            "south_lasalle_fair_m": 26.287,
+            "source": "2026-02-28_Quarterly_Report.pdf concentration + Note 4"
+          },
+          "book_growth": {
+            "uplift_per_share": 1.36,
+            "rate_pct": 3.0,
+            "years": 5,
+            "formula": "8.55 * (1.03^5 - 1)",
+            "historical_book_per_share": {
+              "2024-05-31": 5.09,
+              "2025-05-31": 7.26,
+              "2026-02-28": 8.55
+            },
+            "note": "Below recent mark-driven growth; conservative residual"
+          }
+        }
+      }
     },
     "bull": {
       "price": 6.7,

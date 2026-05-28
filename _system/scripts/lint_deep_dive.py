@@ -24,9 +24,13 @@ REQUIRED_SECTIONS = [
     (r"## (Business & moat|Business overview)", "Business & moat (or legacy Business overview)"),
     (r"## (Payoff & return|Lawrence IRR)", "Payoff & return (or legacy Lawrence IRR)"),
     (r"## (Risks & inversion|Risks)", "Risks & inversion"),
+    (r"## Valuation & IRR \(assumption ledger\)", "Valuation & IRR (assumption ledger)"),
     (r"## Classification", "Classification"),
     (r"## \[HUMAN REVIEW\]", "[HUMAN REVIEW]"),
 ]
+
+ASSUMPTION_LEDGER = re.compile(r"### Assumption ledger \(base case\)", re.IGNORECASE)
+VALUATION_SECTION = re.compile(r"## Valuation & IRR \(assumption ledger\)", re.IGNORECASE)
 
 FORBIDDEN = [
     (r"\*\*Thesis status:\*\*", "Legacy thesis status — use Classification table"),
@@ -39,8 +43,10 @@ EXEC_SUMMARY_LABEL_OPEN = re.compile(
 )
 
 TIER2_HEADER = re.compile(r"### Tier 2 prompts", re.IGNORECASE)
-MENTAL_MODELS = re.compile(r"### Mental models in plain English", re.IGNORECASE)
+MENTAL_MODELS = re.compile(r"### Mental models\b", re.IGNORECASE)
+MENTAL_MODELS_LEGACY = re.compile(r"### Mental models in plain English", re.IGNORECASE)
 RETURN_MATH = re.compile(r"#### Return math in plain English", re.IGNORECASE)
+IRR_ARITHMETIC = re.compile(r"#### IRR arithmetic \(show your work\)", re.IGNORECASE)
 UPSIDE_DOWN = re.compile(r"\*\*Upside / downside from price:\*\*", re.IGNORECASE)
 PRIMARY_RISK = re.compile(r"\*\*Primary risk:\*\*", re.IGNORECASE)
 HOLDING_CO = re.compile(r"\*\*Archetype\*\*.*holding_co", re.IGNORECASE)
@@ -104,12 +110,41 @@ def lint_file(path: Path, *, legacy: bool, strict: bool) -> tuple[list[str], lis
 
     body = body_before_classification(text)
 
-    if TIER2_HEADER.search(text) and not MENTAL_MODELS.search(text):
-        msg = f"{rel}: Tier 2 prompts present but missing ### Mental models in plain English"
-        errors.append(msg)
+    if TIER2_HEADER.search(text) and (MENTAL_MODELS.search(text) or MENTAL_MODELS_LEGACY.search(text)):
+        warnings.append(
+            f"{rel}: has both Tier 2 prompts and Mental models — consolidate per deep_dive_structure.md"
+        )
+    if not (MENTAL_MODELS.search(text) or MENTAL_MODELS_LEGACY.search(text)):
+        errors.append(f"{rel}: missing ### Mental models (deep_dive_structure.md)")
 
-    if not RETURN_MATH.search(text):
-        errors.append(f"{rel}: missing #### Return math in plain English (Hohn essentials)")
+    if not VALUATION_SECTION.search(text):
+        errors.append(
+            f"{rel}: missing ## Valuation & IRR (assumption ledger) — must be at end (irr_assumption_ledger.md)"
+        )
+    if not ASSUMPTION_LEDGER.search(text):
+        errors.append(
+            f"{rel}: missing ### Assumption ledger (base case) (irr_assumption_ledger.md)"
+        )
+    if not IRR_ARITHMETIC.search(text):
+        errors.append(
+            f"{rel}: missing #### IRR arithmetic (show your work) (lawrence_irr.md § F)"
+        )
+    elif RETURN_MATH.search(text):
+        warnings.append(
+            f"{rel}: legacy #### Return math in plain English — rename to #### IRR arithmetic (show your work)"
+        )
+    elif IRR_ARITHMETIC.search(text) and VALUATION_SECTION.search(text):
+        irr_pos = IRR_ARITHMETIC.search(text).start()
+        val_pos = VALUATION_SECTION.search(text).start()
+        if irr_pos < val_pos:
+            errors.append(
+                f"{rel}: IRR arithmetic must be inside ## Valuation & IRR section at end of report"
+            )
+        biz_end = text.find("## Valuation & IRR")
+        if biz_end > 0 and IRR_ARITHMETIC.search(text[:biz_end]):
+            warnings.append(
+                f"{rel}: IRR arithmetic still in overview — run refresh_deep_dive_v2.py"
+            )
     if not UPSIDE_DOWN.search(text):
         errors.append(f"{rel}: missing **Upside / downside from price:** (Hohn essentials)")
     if not PRIMARY_RISK.search(text):
@@ -157,6 +192,11 @@ def main() -> None:
         action="store_true",
         help="Treat prose warnings as errors",
     )
+    parser.add_argument(
+        "--milly",
+        action="store_true",
+        help="Also run lint_adversarial.py on same ticker(s)",
+    )
     args = parser.parse_args()
 
     paths: list[Path] = []
@@ -192,6 +232,21 @@ def main() -> None:
         for e in all_errors:
             print(f"LINT: {e}")
         sys.exit(1)
+
+    if args.milly:
+        import subprocess
+
+        py = sys.executable
+        adv_script = Path(__file__).resolve().parent / "lint_adversarial.py"
+        cmd = [py, str(adv_script)]
+        if args.ticker:
+            cmd.append(args.ticker)
+        if args.strict:
+            cmd.append("--strict")
+        print("--- Milly / adversarial lint ---")
+        r = subprocess.run(cmd, cwd=ROOT)
+        if r.returncode != 0:
+            sys.exit(r.returncode)
 
     suffix = ""
     if args.legacy:

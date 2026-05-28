@@ -1,0 +1,151 @@
+# Filing digest — CSU
+
+**Generated:** 2026-05-28  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `CSU/research/evidence/document_inventory.json`  
+
+Documents in folder: **11** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | proxy | — | `official-reports/ConstellationSoftware_SEDAR_Proxy_E02-2026.pdf` | 6480 |
+| partial | shareholder | — | `official-reports/Q1-2025-Shareholder-Report.pdf` | 44708 |
+| partial | shareholder | — | `official-reports/Q1-2026-Shareholder-Report.pdf` | 44183 |
+| partial | shareholder | — | `official-reports/Q2-2025-Shareholder-Report.pdf` | 53707 |
+| partial | shareholder | — | `official-reports/Q3-2025-Shareholder-Report.pdf` | 54570 |
+| partial | shareholder | — | `official-reports/Q4-2025-Shareholder-Report.pdf` | 52153 |
+| inventory | other | — | `official-reports/CSI-Financial-Statement-Q126-Final.pdf` | 0 |
+| inventory | other | — | `official-reports/CSI-MDA-Q1-2026-Final.pdf` | 0 |
+| inventory | other | — | `official-reports/CSI-ONLQ_Hybrid-Summit-User-Guide_EN-2026.pdf` | 0 |
+| inventory | other | — | `official-reports/ConstellationSoftware_SEDAR_Notice_E03-2026.pdf` | 0 |
+| inventory | other | — | `official-reports/MIC-EN-2026.pdf` | 0 |
+
+## Tier: full — extracts
+
+### `official-reports/ConstellationSoftware_SEDAR_Proxy_E02-2026.pdf`
+**Keyword snippets (related party, financials, segments):**
+- adjournment or postponement thereof. If you wish to appoint a person or company other than the persons whose names are printed herein, please insert the name of
+- 2.  If the securities are registered in the name of more than one owner (for example, joint ownership, trustees, executors, etc.), then all those registered should sign this proxy. If you are
+- Re-appointment of KPMG LLP, as auditors of the Corporation for the ensuing year and to authorize the directors to fix the remuneration to be paid to the auditors.
+- 3. Advisory Vote on Executive Compensation
+- An advisory vote to accept the Corporation’s approach to executive compensation as more particularly described in the accompanying management information
+- 1. Election of Directors
+
+## Tier: partial — extracts
+
+### `official-reports/Q4-2025-Shareholder-Report.pdf`
+**Keyword snippets (related party, financials, segments):**
+- interest paid on lease obligations, interest paid on debt, debt  transaction costs, payments of lease obligations, the
+- us to generate significant cash flows and revenue growth during the past several years.
+- Our revenue consists primarily of software license fees, maintenance and other recurring fees, professional
+- service fees and hardware sales.  Software license revenue is comprised of non -recurring license fees charged for
+- recurring revenue primarily consists of fees charged for customer support on software products post -delivery and
+- also includes recurring fees derived from combined software/support c ontracts, transaction revenues, managed
+- Professional service revenue consists of fees charged for implementation services, custom programming, product
+- training, certain managed services, and consulting.   Hardware and other revenue includes the resale of third party
+- Preferred Share Investment in Lumine
+- Revenue 3,177       2,703    474        18% 11,623    10,066   1,557     15%
+- Revaluation of investment accounted for using the
+- Net income (loss) attributable to:
+- Net income (loss) 166          320       (154)       -48% 586        767        (181)       -24%
+- Net income (loss) per share
+- Total assets 16,171    12,848   3,323     26%
+- Total revenue for the quarter ended December 31, 2025 was $3,177 million, an increase of 18 %, or $474 million,
+- revenues were $ 11,623 million, an increase of 15 %, or $1, 557 million, compared to $ 10,066 million for the
+- organic growth is calculated as the difference between actual revenues achieved by each company in the financial
+- period following acquisition compared to the estimated revenues they achieved in the corresponding financial
+- The following table displays the breakdown of our revenue according to revenue type:
+
+### `official-reports/Q3-2025-Shareholder-Report.pdf`
+**Keyword snippets (related party, financials, segments):**
+- interest paid on lease obligations, interest paid on debt, debt transaction costs, payments of lease obligations, the
+- us to generate significant cash flows and revenue growth during the past several years.
+- Our revenue consists primarily of software license fees, maintenance and other recurring fees, professional
+- service fees and hardware sales.  Software license revenue is comprised of non -recurring license fees charged for
+- recurring revenue primarily consists of fees charged for customer support on software products post -delivery and
+- also includes recurring fees derived from combined software/support c ontracts, transaction revenue s, managed
+- Professional service revenue consists of fees charged for implementation services, custom programming, product
+- training, certain managed services, and consulting.  Hardware and other revenue includes the resale of third party
+- Preferred Share Investment in Lumine
+- Revenue 2,948       2,541    407        16% 8,446     7,363     1,083     15%
+- Revaluation of investment accounted for using the
+- Net income (loss) attributable to:
+- Net income (loss) 162          187       (25)        -13% 420        448        (28)         -6%
+- Net income (loss) per share
+- Total revenue for the quarter ended September 30, 2025 was $2,948 million, an increase of 16%, or $407 million,
+- compared to $2,541 million for the comparable period in 202 4.  For the first nine months of 2025 total revenues
+- is calculated as the difference between actual revenues achieved by each company in the financial period following
+- acquisition compared to the estimated revenues they achieved in the corresponding financial period preceding the
+- The following table displays the breakdown of our revenue according to revenue type:
+- the prior year by revenue type since Q3 2023.  Note that the estimated revenues achieved by acquired companies in
+
+### `official-reports/Q2-2025-Shareholder-Report.pdf`
+**Keyword snippets (related party, financials, segments):**
+- interest paid on lease obligations, interest paid on debt, debt  transaction costs, payments of lease obligations, the
+- us to generate significant cash flows and revenue growth during the past several years.
+- Our revenue consists primarily of software license fees, maintenance and other recurring fees, professional
+- service fees and hardware sales.  Software license revenue is comprised of non -recurring license fees charged for
+- recurring revenue primarily consists of fees charged for customer support on software products post -delivery and
+- also includes recurring fees derived from combined software/support c ontracts, transaction revenues, managed
+- Professional service revenue consists of fees charged for implementation services, custom programming, product
+- training, certain managed services, and consulting.   Hardware and other revenue includes the resale of third party
+- Preferred Share Investment in Lumine
+- Revenue 2,844       2,468    376        15% 5,498     4,822     676        14%
+- Net income (loss) attributable to:
+- Net income (loss) (Note 1) 85            187       (102)       -55% 258        261        (2)          -1%
+- Net income (loss) per share
+- increase in current income tax expense of $2 million and an increase in net income of $34 for the three months ended March 31, 2025.  The Company w ill recast the comparative interim
+- Total revenue for the quarter ended June 30, 2025 was $ 2,844 million, an increase of 15 %, or $ 376 million,
+- compared to $2,468 million for the comparable period in 2024.  For the first six months of 2025 total revenues were
+- as the difference between actual revenues achieved by each company in the financial period following acquisition
+- compared to the estimated revenues they achieved in the corresponding financial period preceding the date of
+- The following table displays the breakdown of our revenue according to revenue type:
+- the prior year by revenue type since Q2 2023.  Note that the estimated revenues achieved by acquired companies in
+
+### `official-reports/Q1-2026-Shareholder-Report.pdf`
+**Keyword snippets (related party, financials, segments):**
+- interest paid on lease obligations, interest paid on debt, debt  transaction costs, payments of lease obligations, the
+- us to generate significant cash flows and revenue growth during the past several years.
+- Our revenue consists primarily of software license fees, maintenance and other recurring fees, professional
+- service fees and hardware sales.  Software license revenue is comprised of non -recurring license fees charged for
+- recurring revenue primarily consists of fees charged for cus tomer support on software products post -delivery and
+- also includes recurring fees derived from combined software/support cont racts, transaction revenue s, managed
+- Professional service revenue consists of fees charged for impleme ntation services, custom programming, product
+- training, certain managed services, and consulting.  Hardware and other revenue includes the resale of third party
+- Preferred Share Investment in Lumine
+- Revenue 3,181     2,654     527        20%
+- Net income (loss) attributable to:
+- Net income (loss) (Note 1) 400        174        227        131%
+- Net income (loss) per share
+- million and an increase in net income of $34 for the three months ended March 31, 2025.  The Company has recast the
+- Total revenue for the quarter ended March 31, 202 6 was $3,181 million, an increase of 20%, or $ 527 million,
+- business.  For acquired companies, organic growth is calculated as the difference between actual revenues achieved
+- by each company in the financial period following acquisition compare d to the estimated revenues they achieved
+- The following table displays the breakdown of our revenue according to revenue type:
+- the prior year by revenue type since Q1 2024.  Note that the estimated revenues achieved by acquired companies in
+- Note 1: Estimated pre-acquisition revenues for the three months ended March 31, 2025 from companies
+
+### `official-reports/Q1-2025-Shareholder-Report.pdf`
+**Keyword snippets (related party, financials, segments):**
+- interest paid on lease obligations, interest paid on debt, debt transaction costs, payments of lease obligations, the
+- us to generate significant cash flows and revenue growth during the past several years.
+- Our revenue consists primarily of software license fees, maintenance and other recurring fees, professional
+- service fees and hardware sales.  Software license revenue  is comprised of non-recurring license fees charged for
+- recurring revenue primarily consists of  fees charged for customer support on  software products post-delivery and
+- also includes recurring fees derived fr om combined software/support contr acts, transaction revenues, managed
+- Professional service revenue consists of fees charged for implementation services, custom programming, product
+- training, certain managed services, and consulting.  Hardwa re and other revenue includes the resale of third party
+- Preferred Share Investment in Lumine
+- Revenue 2,654      2,353      300         13%
+- Net income (loss) attributable to:
+- Net income (loss) 140        74           66           90%
+- Total revenue for the quarter ended March 31, 2025 was $2,654 million, an increase of 13%, or $300 million,
+- business.  For acquired companies, organic growth is calculated as the difference between actual revenues achieved
+- by each company in the financial period following acquis ition compared to the estimat ed revenues they achieved
+- The following table displays the breakdown of our revenue according to revenue type:
+- the prior year by revenue type since Q1 2023.  Note that the estimated revenues achieved by acquired companies in
+- Note 1: Estimated pre-acquisition revenues for the three months ended March 31, 2024 from
+- Revenue 2% 4% 7% 6% 4% 2% 2% 2% 0%
+- compared to $1,800 million during the same period in 2024. As a percentage  of total revenue, expenses equalled

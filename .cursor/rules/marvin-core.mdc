@@ -37,11 +37,20 @@ Do not deliver research as chat-only — write files.
 
 ## Missions
 
-Discover → Onboard → Download → Research → Cross-check → Memory (propose only)
+Discover → Onboard → Download → Research → Cross-check → **Milly adversarial pass** → Memory (propose only)
+
+**Milly (required):** After each deep dive, run adversarial review per `_system/agents/MILLY.md`. Output `{TICKER}/research/adversarial_{date}.md`. Link from dive header. **Factual errors** must be fixed before dive is final; inference/short gaps → [HUMAN REVIEW] only.
 
 ## Report footer (required)
 
-Every report follows `_system/frameworks/decision_stack.md`, `_system/frameworks/report_prose.md`, and `_system/prompts/deep_dive_template.md`:
+Every report follows `_system/frameworks/deep_dive_structure.md`, `irr_assumption_ledger.md`, `decision_stack.md`, `report_prose.md`, and `deep_dive_template.md`:
+
+- **Order:** company overview first (What → Why → Exec → Sources → Business); **Valuation & IRR (assumption ledger)** last (after Risks)
+- **IRR:** every assumption in the ledger table + `#### IRR arithmetic (show your work)` per `lawrence_irr.md` § F
+- **Third party:** approved only in base IRR (`third_party_sources.md`); else **[PENDING APPROVAL]**
+- Refresh: `build_filing_evidence.py` → `marvin_valuation.py --write` → `refresh_deep_dive_v2.py` → `lint_deep_dive.py {TICKER} --milly` → Milly `adversarial_{date}.md` → `lint_adversarial.py`
+- One-shot QA: `make research-check TICKER={TICKER}`
+- After factual fixes: `make milly-repass TICKER={TICKER}`
 
 - **Classification** table — archetype, moat, dhando, stance, cycle, implied_irr, irr_method, lawrence_bucket — see `_system/frameworks/classification.md`
 - Valuation: `{TICKER}/research/valuation.json` + `marvin_valuation.py --write`

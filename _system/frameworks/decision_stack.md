@@ -2,7 +2,8 @@
 
 **Purpose:** Single pipeline for Marvin deep dives. Replaces reading four separate framework docs on every run.
 
-**Appendix references (detail only):** `mental_models.md`, `lawrence_irr.md`, `classification.md`, `quality_checklist.md`
+**Report shape (dedup):** `deep_dive_structure.md` — sections and what not to repeat.  
+**Appendix references (detail only):** `mental_models.md`, `lawrence_irr.md` § F (IRR arithmetic), `classification.md`, `quality_checklist.md`
 
 ---
 
@@ -47,11 +48,11 @@ Under **Business & moat → Business mechanics (Hohn)**, every deep dive must in
 
 1. **Operating snapshot** (or **look-through** for holding_co / optionality)  
 2. **Thesis pillars** — 2–4 drivers, quantified; structural vs cyclical in prose  
-3. **Valuation bridge** + **return math in plain English** + **upside/downside from price**  
-4. **SOTP/NAV + catalyst path** when holding_co or optionality  
+3. **Business overview** (no IRR in body) → **Payoff & return** (gates only) → **`## Valuation & IRR (assumption ledger)`** at end (`irr_assumption_ledger.md`)  
+4. **SOTP/NAV + catalyst path** when holding_co or optionality (no duplicate Optionality overlay table)  
 5. **Primary risk** — one dominant failure mode (max 3 secondary in Risks)  
 
-Reconcile Hohn base-case return with Lawrence `implied_irr` or explain in [HUMAN REVIEW].
+Reconcile base IRR in arithmetic with `valuation.json` and footer `implied_irr`.
 
 ## Step 2c — Optionality overlay (when triggered)
 

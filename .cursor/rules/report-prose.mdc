@@ -1,68 +1,85 @@
 ---
+
 description: Report prose — Hohn / HK voice, plain English, no em dashes
+
 alwaysApply: true
+
 ---
+
+
 
 # Report prose (Hohn / Horizon Kinetics voice)
 
-Before writing `{TICKER}/research/deep_dive_*.md`, cross-checks, or thesis updates, read `_system/frameworks/report_prose.md` and `_system/prompts/deep_dive_template.md`.
+
+
+Before writing `{TICKER}/research/deep_dive_*.md`, read **`deep_dive_structure.md`**, **`irr_assumption_ledger.md`**, `decision_stack.md`, `report_prose.md`.
+
+
 
 ## Reader-first order
 
-1. **What the company does** (`## What this business is`) — five sentences max; who pays whom, segments, how cash is generated. No archetype codes.
-2. **Why it might be mispriced** (`## Why the market might be wrong`) — HK-style reason in plain English, or state no clear mispricing signal.
-3. **Investment case** — Hohn operating snapshot, pillars, valuation bridge (tables OK).
-4. **Return at today's price** — one base case in words, then Lawrence/Hohn tables.
-5. **Classification footer** — short enum labels last; optional `## Terms (this report)` glossary.
 
-## Plain English over codes
 
-On **first use** in the report body, spell out framework terms (footer table may keep enums):
+1. **What this business is** — company overview; ≤5 sentences.
 
-| Code | First-use spelling |
-|------|-------------------|
-| croupier | toll collector on transactions (Stahl) |
-| dhando | asymmetric payoff: limited downside, open upside (Pabrai) |
-| moat | durable competitive advantage (Munger) |
-| lawrence bucket | name the bucket in words (e.g. multi-sided network) |
-| implied IRR | expected annual return at today's price (Lawrence) |
+2. **Why the market might be wrong** — 2–3 sentences.
 
-## Mental models
+3. **Executive summary** — one base IRR % only; **no formulas**.
 
-After **Tier 2 prompts**, include **### Mental models in plain English**: one sentence per model used — **model → question → answer → cite**.
+4. **Primary sources** — 10-K, 10-Q, IR; approved vs pending third party.
+
+5. **Business & moat** — mechanics, mental models, moat — **no IRR math here**.
+
+6. **Payoff & return** — gates, dhando, stance; point to **Valuation & IRR** at end.
+
+7. **Risks & inversion**
+
+8. **Valuation & IRR (assumption ledger)** — bridge + **every assumption** + IRR arithmetic.
+
+9. **Classification** footer.
+
+
+
+## IRR (end of report only)
+
+
+
+Per `irr_assumption_ledger.md`:
+
+
+
+- **`### Assumption ledger (base case)`** — one row per input; source or **[Assumption]** / **[HUMAN REVIEW]**.
+
+- **`#### IRR arithmetic (show your work)`** — numbered steps; SOTP must add to payoff.
+
+- **`**Returns statement:**`** — same base % as executive summary.
+
+
+
+## Third party
+
+
+
+- **Approved:** `third_party_sources.md` + `approved_substacks.md` only in base IRR.
+
+- **Pending:** cite with **[PENDING APPROVAL]**; do not put in `valuation.json` base without human OK.
+
+
 
 ## Punctuation and tone
 
-- **No em dashes (—)** in narrative prose. Use periods, commas, colons, or parentheses. Max one em dash per entire report (footnotes only).
+
+
+- **No em dashes (—)** in narrative. Max one per report (footnotes).
+
 - Short sentences in executive summary and returns statement.
-- Avoid AI filler: "it's worth noting," "notably," "landscape," "robust," "compelling," "underscores."
 
-## Hohn essentials (simple)
 
-Read `_system/frameworks/hohn_business_analysis.md` § Hohn essentials.
 
-- After valuation bridge: **`#### Return math in plain English`** (show formula: yield + growth, or EPS × multiple → IRR).
-- **`**Upside / downside from price:**`** — % to base/bear payoff from current price (Hohn: ~25–30%+ upside, ~10% downside screen).
-- **`**Primary risk:**`** once; max 3 other risks.
-- **Fieldwork:** "None this period" + what would change conviction.
-- **holding_co / optionality:** look-through + SOTP/NAV table + catalyst path **in the report**, not only [HUMAN REVIEW].
-- Explain **predictive attribute** in prose even when `none`.
+## Lint
 
-## External views (triangulate, not binary)
 
-When citing manager letters / research notes / material PR: read `_system/frameworks/external_view_blend.md`.
 
-- Include **`## Blended estimate (best judgment)`** with Marvin floor | external | **weighted middle**.
-- Cross-check files must end with **Synthesis (best estimate)**, not Marvin wins / external wins.
-- `valuation.json` may use `estimates.marvin_floor`, `estimates.external[]`, `estimates.blended_best`.
+`python _system/scripts/refresh_deep_dive_v2.py {TICKER}` then `lint_deep_dive.py {TICKER}`.
 
-## Facts / inferences / opinions
 
-Tag non-obvious judgments inline: **[Fact]**, **[Inference]**, **[Opinion]**.
-
-## Length
-
-- Executive summary: **120–180 words**, no tables; do not open with archetype/moat/dhando labels.
-- Hohn mechanics: **400–800 words**, ≥50% complete sentences (not bullet-only stacks).
-
-Run `python _system/scripts/lint_deep_dive.py {TICKER}` before handoff. Use `--legacy` only for pre-2026-05-27 dives not yet refreshed.
