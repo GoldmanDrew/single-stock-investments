@@ -50,6 +50,7 @@
 | Business mechanics (Hohn) | Yes | snapshot, pillars, fieldwork, disruption |
 | Moat (Munger) | Yes | Valuation bridge, assumption ledger |
 | Look-through / catalyst (holdco only) | If needed | Full SOTP math — that lives in §11 |
+| **Segment map** (multi-segment compounder) | If `segment_cashflow` overlay | Segment PV math — that lives in §11 |
 
 ---
 
@@ -64,8 +65,9 @@
 | **Upside / downside from price** | One line |
 | **Returns statement** | One sentence; = exec summary % |
 | SOTP / look-through tables | If `holding_co` / `optionality` |
+| **Segment cash-flow build** | If `valuation_overlay: segment_cashflow` (GOOGL-style) |
 
-Spec: `irr_assumption_ledger.md`. JSON: `valuation.json` + `sotp_build` when SOTP.
+Spec: `irr_assumption_ledger.md`. JSON: `valuation.json` + `sotp_build` when SOTP; + `segment_build` when segment overlay.
 
 ---
 

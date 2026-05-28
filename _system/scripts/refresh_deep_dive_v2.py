@@ -135,6 +135,18 @@ def write_pending_md(ticker: str, items: list[dict]) -> None:
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def bridge_bar(pct: float | None, *, stance_gate: bool = True) -> str:
+    if pct is None:
+        return "info"
+    if not stance_gate:
+        return "overlay"
+    if pct >= 15:
+        return "pass"
+    if pct >= 10:
+        return "marginal"
+    return "fail"
+
+
 def bridge_table(val: dict) -> str:
     method = val.get("method", "full")
     results = val.get("results", {})
@@ -144,9 +156,7 @@ def bridge_table(val: dict) -> str:
         sc = scenarios.get(case, {})
         res = results.get(case, {})
         pct = res.get("return_pct", "—")
-        bar = "pass" if isinstance(pct, (int, float)) and pct >= 15 else "fail"
-        if isinstance(pct, (int, float)) and 10 <= pct < 15:
-            bar = "marginal"
+        bar = bridge_bar(pct if isinstance(pct, (int, float)) else None)
         notes = sc.get("notes", "")[:60]
         if method == "yield_curve" and "payoff" in sc:
             key = f"Payoff ${sc['payoff']} / {sc['years']}yr @ ${sc.get('price', val.get('inputs', {}).get('price', '?'))}"
@@ -155,6 +165,19 @@ def bridge_table(val: dict) -> str:
         else:
             key = notes or case
         rows.append(f"| {case.capitalize()} | {method} | {key} | **{pct}%** p.a. | {bar} |")
+
+    for ov in val.get("overlay_results") or []:
+        case = ov.get("case", "Overlay")
+        m = ov.get("method", "overlay")
+        key = ov.get("key_inputs", "")[:70]
+        if ov.get("display"):
+            ret_cell = f"**{ov['display']}**"
+        elif ov.get("return_pct") is not None:
+            ret_cell = f"**{format_overlay_return_pct(ov['return_pct'])}** p.a."
+        else:
+            ret_cell = "—"
+        bar = bridge_bar(ov.get("return_pct"), stance_gate=ov.get("stance_gate", False))
+        rows.append(f"| {case} | {m} | {key} | {ret_cell} | {bar} |")
     return "\n".join(rows)
 
 
@@ -222,12 +245,136 @@ def assumption_ledger(val: dict) -> str:
             n += 1
         rows.append(f"| {n} | Horizon | **10 years** | Lawrence full / scenario method |")
         n += 1
+        ai = val.get("ai_overlay") or {}
+        bull = ai.get("ai_inflection_bull") or {}
+        if bull.get("fcf_per_share_y0") is not None:
+            rows.append(
+                f"| {n} | AI inflection FCF₀ (sensitivity) | **${bull['fcf_per_share_y0']}/sh** | {bull.get('fcf_y0_note', '[Assumption]')} |"
+            )
+            n += 1
+            if bull.get("computed_return_pct") is not None:
+                rows.append(
+                    f"| {n} | AI inflection implied return | **{bull['computed_return_pct']}%** | `marvin_valuation.py` overlay |"
+                )
+                n += 1
+        stress = ai.get("capex_stress_2026") or {}
+        if stress.get("implied_fcf_per_share") is not None:
+            rows.append(
+                f"| {n} | Capex stress Y0 FCF | **${stress['implied_fcf_per_share']}/sh** | {stress.get('capex_source', 'mgmt guide')} |"
+            )
+            n += 1
+        recon = (val.get("segment_build") or {}).get("reconciliation") or {}
+        if recon.get("sum_pv_per_share_at_explicit_discount") is not None:
+            rows.append(
+                f"| {n} | Segment sum PV | **${recon['sum_pv_per_share_at_explicit_discount']}/sh** | @ {recon.get('explicit_discount_rate_pct', 10)}% discount |"
+            )
+            n += 1
+        if recon.get("implied_business_return_pct") is not None:
+            rows.append(
+                f"| {n} | Segment implied return | **{format_overlay_return_pct(recon['implied_business_return_pct'])}** | reverse DCF (segment PV = P₀) |"
+            )
+            n += 1
         blend = val.get("estimates", {}).get("blended_best")
         if blend:
             rows.append(
                 f"| {n} | Blended owner cash | **${blend.get('per_share')}** | {blend.get('weights', 'external_view_blend')} |"
             )
     return "\n".join(rows)
+
+
+def format_overlay_return_pct(pct: float | int | None) -> str:
+    if pct is None:
+        return "—"
+    if isinstance(pct, (int, float)) and abs(pct) < 0.05:
+        return f"~{pct:.2f}%"
+    return f"{pct}%"
+
+
+def extract_preserved_block(preserved: str | None, heading: str) -> str | None:
+    """Keep narrative blocks (segment build, segment IRR steps) across refresh."""
+    if not preserved:
+        return None
+    pat = re.compile(rf"({re.escape(heading)}.*?)(?=\n#### |\n### |\n\*\*Upside / downside|\n## |\Z)", re.DOTALL | re.IGNORECASE)
+    m = pat.search(preserved)
+    if m and len(m.group(1).strip()) > 80:
+        return m.group(1).strip()
+    return None
+
+
+def segment_build_section(val: dict, preserved: str | None) -> str:
+    """Render ### Segment cash-flow build from valuation.json or preserved markdown."""
+    kept = extract_preserved_block(preserved, "### Segment cash-flow build")
+    if kept:
+        return kept
+    build = val.get("segment_build") or {}
+    if not build.get("segments"):
+        return ""
+    recon = build.get("reconciliation") or {}
+    disc = recon.get("explicit_discount_rate_pct") or (build.get("discount_rate_explicit", 0.1) * 100)
+    sum_pv = recon.get("sum_pv_per_share_at_explicit_discount") or recon.get("sum_pv_per_share_at_10pct")
+    implied = recon.get("implied_business_return_pct")
+    ai = (val.get("ai_overlay") or {}).get("ai_inflection_bull") or {}
+    ai_irr = ai.get("computed_return_pct")
+    lawrence = recon.get("lawrence_base_irr_pct") or (val.get("results") or {}).get("base", {}).get("return_pct")
+
+    lines = [
+        "### Segment cash-flow build (Speedwell / Hohn overlay)",
+        "",
+        "| # | Segment / option | Owner cash Y0 ($/sh) | Growth Y1–5 / Y6–10 | Exit × Y10 | PV @ {:.0f}% ($/sh) | Source |".format(disc),
+        "|---|------------------|----------------------|---------------------|------------|-----------------|--------|",
+    ]
+    n = 1
+    for seg in build.get("segments", []):
+        g1 = seg.get("growth_y1_5", 0) * 100
+        g2 = seg.get("growth_y6_10", 0) * 100
+        ex = seg.get("exit_pfcf_y10", "?")
+        pv = seg.get("pv_per_share_at_10pct") or seg.get("pv_per_share_at_explicit_discount")
+        pv_s = f"~${pv:.0f}" if pv is not None else "—"
+        f0 = seg.get("owner_cash_y0_per_share")
+        f0_s = f"${f0:.2f}" if f0 is not None else "—"
+        lines.append(
+            f"| {n} | {seg.get('label', seg.get('id', 'Segment'))} | {f0_s} | "
+            f"{g1:.0f}% / {g2:.0f}% | {ex}× | {pv_s} | {seg.get('owner_cash_y0_source', seg.get('notes', ''))[:40]} |"
+        )
+        n += 1
+    for opt in build.get("options", []):
+        drag = opt.get("annual_drag_per_share")
+        pv = opt.get("pv_drag_per_share_at_10pct")
+        drag_s = f"(${drag:.2f})/yr drag" if drag is not None else "—"
+        pv_s = f"~(${abs(pv):.0f})" if pv is not None and pv < 0 else (f"~${pv:.0f}" if pv is not None else "—")
+        lines.append(
+            f"| {n} | {opt.get('label', opt.get('id', 'Option'))} | {drag_s} | — | $0 | {pv_s} | {opt.get('notes', '')[:40]} |"
+        )
+        n += 1
+    corp = build.get("corporate_drag") or {}
+    if corp.get("alphabet_level_drag_per_share") is not None:
+        drag = corp["alphabet_level_drag_per_share"]
+        pv = corp.get("pv_drag_per_share_at_10pct")
+        pv_s = f"~(${abs(pv):.0f})" if pv is not None and pv < 0 else "—"
+        lines.append(
+            f"| {n} | Alphabet-level | (${drag:.2f})/yr drag | — | $0 | {pv_s} | {corp.get('notes', '')[:40]} |"
+        )
+
+    footer = f"**Sum PV/sh @ {disc:.0f}%:** **${sum_pv}**" if sum_pv is not None else ""
+    if ai_irr is not None:
+        footer += f" · **AI inflection (normalized ${ai.get('fcf_per_share_y0', '?')} FCF₀):** **{ai_irr}%** 10yr IRR"
+    if lawrence is not None:
+        footer += f" · **Lawrence base:** **{lawrence}%**"
+    lines += ["", footer, ""]
+
+    seg_irr = extract_preserved_block(preserved, "#### Segment IRR arithmetic")
+    if seg_irr:
+        lines.append(seg_irr)
+    elif sum_pv is not None:
+        price = (val.get("inputs") or {}).get("price", "?")
+        imp_disp = format_overlay_return_pct(implied) if implied is not None else "—"
+        lines += [
+            "#### Segment IRR arithmetic (show your work)",
+            "",
+            f"**Step 1–5:** Segment owner-cash from `valuation.json`; drags burdened; sum PV @ {disc:.0f}% = **${sum_pv}/sh** vs P₀ **${price}** → implied segment return **{imp_disp}** (`overlay_results`).",
+            "",
+        ]
+    return "\n".join(lines)
 
 
 def irr_arithmetic(val: dict, ticker: str, preserved: str | None) -> str:
@@ -309,6 +456,7 @@ def build_valuation_section(ticker: str, val: dict, preserved_val: str | None) -
     src = inputs.get("price_source", "")
     method = val.get("method", "full")
     base_pct = val.get("implied_return", {}).get("base_pct") or val.get("results", {}).get("base", {}).get("return_pct", "?")
+    seg_body = segment_build_section(val, preserved_val)
     irr_body = irr_arithmetic(val, ticker, preserved_val)
     upside = ""
     if preserved_val:
@@ -342,6 +490,8 @@ def build_valuation_section(ticker: str, val: dict, preserved_val: str | None) -
             "### Assumption ledger (base case)",
             "",
             assumption_ledger(val),
+            "",
+            seg_body,
             "",
             irr_body,
             "",
@@ -410,6 +560,16 @@ def refresh_ticker(ticker: str, out_date: str) -> Path | None:
         body = sections[key]
         if key == "## Business & moat":
             body = strip_valuation_from_business(body)
+            ai_irr = ((val.get("ai_overlay") or {}).get("ai_inflection_bull") or {}).get("computed_return_pct")
+            if ai_irr is not None:
+                body = body.replace(
+                    "**Bull AI path** in `valuation.json` → `ai_overlay.ai_inflection_bull` is a **placeholder** "
+                    "($8/sh normalized FCF, higher growth) for sensitivity only — **not computed IRR yet**; "
+                    "needs a filing-backed bridge from Cloud OI, depreciation on new capex, and TPU revenue if disclosed.",
+                    f"**Bull AI path** (`ai_overlay.ai_inflection_bull`): sensitivity **{ai_irr}%** 10yr IRR at normalized "
+                    f"${(val.get('ai_overlay') or {}).get('ai_inflection_bull', {}).get('fcf_per_share_y0', 8)}/sh FCF₀ — "
+                    "**not** the stance gate; needs filing-backed bridge from Cloud OI, capex normalization, and TPU revenue if disclosed.",
+                )
         if key == "## Payoff & return":
             body = re.sub(
                 r"#### Valuation bridge.*?#### ",

@@ -45,6 +45,7 @@ Compare deep dive **numeric claims** to:
 | 6 | Owner cash $/sh (IRR starting point) |
 | 7 | Base / blended IRR in **three places** (exec, returns, classification) |
 | 8 | Stance vs `valuation.json` gates |
+| 9 | **AI / capex** — if `ai_overlay` or hyperscaler: FCF₀ year, capex guide vs modeled capex, backlog $ |
 
 Output: table **Claim in dive | Filing value | Match? | Severity**
 
@@ -58,6 +59,26 @@ Output: table **Claim in dive | Filing value | Match? | Severity**
 | Empty `#### Look-through` / `#### Catalyst path` | `lint_adversarial.py` |
 
 Run `lint_deep_dive.py {TICKER} --milly` first.
+
+### 2b. AI & valuation staleness
+
+When `valuation.json` contains `ai_overlay` or ticker is AI hyperscaler per `ai_infrastructure_valuation.md`:
+
+| Check | Severity if failed |
+|-------|-------------------|
+| Dive has `#### AI infrastructure — model coverage` | **Inference risk** (warn); error under `--strict` |
+| `ai_overlay.in_model` matches what dive claims is in math | **Factual error** if dive says “modeled” but JSON says not |
+| `not_in_model_requires_refresh` items addressed in dive or [HUMAN REVIEW] | **Inference risk** per open item |
+| FCF₀ uses filing OCF−capex; capex **guide** ≠ FCF₀ capex | **Warn** `valuation_staleness` — not block unless wrong period |
+| `capex_stress` present when guide **>1.5×** FCF₀-year capex | **Warn** if missing |
+| TPU / JV / cost-cut **%** from press only | **Warn** — require filing cite or [Assumption] |
+
+Add to adversarial **Internal consistency** table and YAML:
+
+```yaml
+valuation_staleness: pass   # pass | warn | fail
+ai_coverage: partial        # n/a | partial | complete
+```
 
 ### 3. Short activist scan
 
@@ -122,6 +143,8 @@ re_pass: false
 | `short` | no_hit / hit / stale_hit / litigation |
 | `block_final` | true blocks `lint_adversarial` until false |
 | `blocking_issues` | machine-readable ids e.g. `returns_statement_irr` |
+| `valuation_staleness` | pass / warn / fail — FCF₀ period vs capex guide (`ai_infrastructure_valuation.md`) |
+| `ai_coverage` | n/a / partial / complete — AI overlay completeness |
 
 After Marvin fixes: set `block_final: false`, add **Resolved in dive** section, run `milly_repass.py {TICKER}`.
 

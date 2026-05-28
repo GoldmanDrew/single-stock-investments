@@ -16,6 +16,7 @@ Replace the old single **thesis status** (intact / weakening / strengthening / u
 | **Implied 10yr IRR** | Lawrence | e.g. `17% (base)`, `pending` | Expected return at today's price (base case) |
 | **IRR method** | Lawrence | `full`, `yield_curve`, `scenario`, `pending` | How IRR was computed |
 | **Lawrence bucket** | Lawrence | `pricing_power`, `multi_sided`, `low_cost`, `other` | Oakcliff business taxonomy |
+| **Valuation overlay** | Speedwell / Hohn | `—`, `segment_cashflow` | Per-segment cash-flow sum + reverse DCF cross-check (`segment_cashflow_valuation.md`) |
 
 ## Source of truth
 
@@ -43,6 +44,7 @@ Every deep dive and thesis update ends with:
 | **Implied 10yr IRR** (Lawrence) | … |
 | **IRR method** | … |
 | **Lawrence bucket** | … |
+| **Valuation overlay** | … |
 
 ## [HUMAN REVIEW]
 …

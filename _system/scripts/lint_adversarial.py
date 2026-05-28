@@ -57,7 +57,17 @@ def subsection_empty(text: str, header: str) -> bool:
 YAML_BLOCK = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL | re.MULTILINE)
 
 HOLDING_CO = re.compile(r"holding_co", re.I)
+AI_HYPERSCALERS = frozenset({"GOOGL", "AMZN", "META", "MSFT"})
+AI_INFRA = re.compile(r"#### AI infrastructure\b", re.I)
 TOLERANCE = 0.25  # percentage points
+
+
+def registry_flags(ticker: str) -> dict:
+    reg = ROOT / "_system" / "portfolio" / "registry.json"
+    if not reg.exists():
+        return {}
+    data = json.loads(reg.read_text(encoding="utf-8"))
+    return ((data.get("holdings") or {}).get(ticker) or {}).get("valuation_flags") or {}
 
 
 def tickers_from_registry() -> list[str]:
@@ -248,6 +258,30 @@ def lint_ticker(
     ok, msg = sotp_sum_check(val)
     if not ok:
         errors.append(f"{rel_dive}: {msg}")
+
+    ai = val.get("ai_overlay") or {}
+    need_ai = bool(ai) or registry_flags(ticker).get("ai_hyperscaler") or ticker in AI_HYPERSCALERS
+    if need_ai and not val.get("overlay_results"):
+        warnings.append(f"{rel_dive}: missing overlay_results — run marvin_valuation.py --write")
+    if need_ai:
+        if not AI_INFRA.search(text):
+            (errors if strict else warnings).append(
+                f"{rel_dive}: missing #### AI infrastructure — model coverage"
+            )
+        gaps = ai.get("not_in_model_requires_refresh") or []
+        if gaps:
+            human = "## [HUMAN REVIEW]" in text
+            for gap in gaps[:3]:
+                snippet = str(gap)[:60]
+                if snippet.lower() not in text.lower() and not human:
+                    warnings.append(
+                        f"{rel_dive}: ai_overlay gap not in dive or [HUMAN REVIEW]: {snippet}…"
+                    )
+                    break
+        stress = ai.get("capex_stress_2026") or ai.get("capex_stress") or {}
+        guide = stress.get("capex_bn")
+        if guide and not stress.get("implied_fcf_per_share") and "capex" not in text.lower():
+            warnings.append(f"{rel_dive}: ai_overlay has capex_stress but dive omits capex trough")
 
     if HOLDING_CO.search(text):
         if LOOKTHROUGH_HDR.search(text):

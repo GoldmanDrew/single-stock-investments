@@ -154,6 +154,31 @@ Copy structure for `{TICKER}/research/deep_dive_{date}.md`.
 
 {Every input. **[Assumption]** or filing path. SOTP: running sum to payoff.}
 
+{If `valuation_overlay: segment_cashflow` — see `segment_cashflow_valuation.md`:}
+
+{If `ai_overlay` or AI hyperscaler — see `ai_infrastructure_valuation.md`:}
+
+#### AI infrastructure — model coverage
+
+| Theme | Filing / news fact | In current math? |
+|-------|-------------------|------------------|
+| Cloud AI / backlog | | |
+| Data-center capex (guide vs FCF₀ year) | | |
+| Custom chips (TPU) | | |
+| Cost / margin path | | |
+| Services AI monetization | | |
+
+### Segment cash-flow build (Speedwell / Hohn overlay)
+
+| # | Segment / option | Owner cash Y0 | Growth Y1–5 / Y6–10 | Exit × Y10 | PV $/sh | Source |
+|---|------------------|---------------|---------------------|------------|---------|--------|
+
+**Sum PV/sh:** … · **Implied business return at P₀:** … · **Lawrence consolidated base IRR:** …
+
+#### Segment IRR arithmetic (show your work)
+
+{Steps 1–5: segment map → Y0 → project → options (base $0) → sum + tie-out.}
+
 ### IRR arithmetic (show your work)
 
 {Numbered steps per `lawrence_irr.md` § F and `irr_assumption_ledger.md`.}

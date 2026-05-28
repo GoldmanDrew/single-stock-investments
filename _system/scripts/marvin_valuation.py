@@ -16,6 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CLASS_PATH = ROOT / "_system" / "portfolio" / "classification.json"
+AI_HYPERSCALERS = frozenset({"GOOGL", "AMZN", "META", "MSFT"})
+SEGMENT_DISCOUNT_DEFAULT = 0.10
 
 
 def cashflows_full(
@@ -178,6 +180,186 @@ def propose_stance(
     }
 
 
+def pv_stream(
+    fcf0: float,
+    g1: float,
+    g2: float,
+    exit_mult: float,
+    r: float,
+    years: int = 10,
+) -> float:
+    fcf = fcf0
+    pv = 0.0
+    for year in range(1, years + 1):
+        g = g1 if year <= 5 else g2
+        fcf *= 1 + g
+        pv += fcf / (1 + r) ** year
+    pv += (fcf * exit_mult) / (1 + r) ** years
+    return pv
+
+
+def solve_segment_implied_rate(
+    price: float,
+    segments: list[dict],
+    drags: list[float],
+    years: int = 10,
+) -> float:
+    """Discount rate where sum of segment PVs + drags = price."""
+    rate = 0.10
+    for _ in range(200):
+
+        def total_pv(r: float) -> float:
+            pv = 0.0
+            for seg in segments:
+                pv += pv_stream(
+                    seg["owner_cash_y0_per_share"],
+                    seg["growth_y1_5"],
+                    seg["growth_y6_10"],
+                    seg["exit_pfcf_y10"],
+                    r,
+                    years,
+                )
+            for d in drags:
+                pv += sum(-d / (1 + r) ** y for y in range(1, years + 1))
+            return pv
+
+        pv = total_pv(rate)
+        eps = 1e-5
+        d = (total_pv(rate + eps) - pv) / eps
+        if abs(d) < 1e-12:
+            break
+        rate -= (pv - price) / d
+    return rate
+
+
+def compute_segment_overlay(data: dict) -> dict | None:
+    build = data.get("segment_build") or {}
+    if data.get("valuation_overlay") != "segment_cashflow" and not build.get("segments"):
+        return None
+    price = (data.get("inputs") or {}).get("price")
+    if not price:
+        return None
+    years = int(build.get("horizon_years", 10))
+    r_explicit = float(build.get("discount_rate_explicit", SEGMENT_DISCOUNT_DEFAULT))
+
+    segments = []
+    for seg in build.get("segments", []):
+        f0 = seg.get("owner_cash_y0_per_share")
+        if f0 is None:
+            continue
+        segments.append(
+            {
+                "owner_cash_y0_per_share": float(f0),
+                "growth_y1_5": float(seg.get("growth_y1_5", 0.08)),
+                "growth_y6_10": float(seg.get("growth_y6_10", 0.06)),
+                "exit_pfcf_y10": float(seg.get("exit_pfcf_y10", 18)),
+            }
+        )
+    if not segments:
+        return None
+
+    drags: list[float] = []
+    for opt in build.get("options", []):
+        if opt.get("annual_drag_per_share") is not None:
+            drags.append(float(opt["annual_drag_per_share"]))
+    corp = (build.get("corporate_drag") or {}).get("alphabet_level_drag_per_share")
+    if corp is not None:
+        drags.append(float(corp))
+
+    pv_at_r = 0.0
+    for seg in segments:
+        pv_at_r += pv_stream(
+            seg["owner_cash_y0_per_share"],
+            seg["growth_y1_5"],
+            seg["growth_y6_10"],
+            seg["exit_pfcf_y10"],
+            r_explicit,
+            years,
+        )
+    for d in drags:
+        pv_at_r += sum(-d / (1 + r_explicit) ** y for y in range(1, years + 1))
+
+    raw_implied = solve_segment_implied_rate(price, segments, drags, years) * 100
+    implied_pct = round(raw_implied, 1) if raw_implied >= 0.05 else round(raw_implied, 2)
+    out = {
+        "sum_pv_per_share_at_explicit_discount": round(pv_at_r, 1),
+        "explicit_discount_rate_pct": round(r_explicit * 100, 1),
+        "implied_business_return_pct": implied_pct,
+        "lawrence_base_irr_pct": (data.get("results") or {}).get("base", {}).get("return_pct"),
+    }
+    recon = build.setdefault("reconciliation", {})
+    recon.update(out)
+    return out
+
+
+def compute_ai_overlay_rows(data: dict, lawrence_results: dict) -> list[dict]:
+    """Extra valuation bridge rows — not stance gate unless noted."""
+    rows: list[dict] = []
+    ai = data.get("ai_overlay") or {}
+    price = (data.get("inputs") or {}).get("price")
+    method = data.get("method", "full")
+
+    bull = ai.get("ai_inflection_bull") or {}
+    fcf0 = bull.get("fcf_per_share_y0")
+    if price and fcf0 is not None:
+        sc = {
+            "growth_y1_5": bull.get("growth_y1_5", 0.15),
+            "growth_y6_10": bull.get("growth_y6_10", 0.10),
+            "exit_pfcf_y10": bull.get("exit_pfcf_y10", 28),
+        }
+        pct = run_full_scenario(float(price), float(fcf0), sc)["return_pct"]
+        g1, g2, ex = sc["growth_y1_5"], sc["growth_y6_10"], sc["exit_pfcf_y10"]
+        rows.append(
+            {
+                "case": "AI inflection",
+                "method": f"{method} (normalized FCF)",
+                "key_inputs": f"FCF₀=${fcf0} g1={g1*100:.0f}% g2={g2*100:.0f}% exit={ex:.0f}×",
+                "return_pct": pct,
+                "stance_gate": False,
+                "notes": bull.get("fcf_y0_note", "[Assumption] post-capex normalization"),
+            }
+        )
+        ai.setdefault("ai_inflection_bull", {})["computed_return_pct"] = pct
+
+    stress = ai.get("capex_stress_2026") or ai.get("capex_stress") or {}
+    trough = stress.get("implied_fcf_per_share")
+    if trough is not None and price:
+        rows.append(
+            {
+                "case": "Capex stress Y0",
+                "method": "illustrative trough",
+                "key_inputs": f"OCF {stress.get('ocf_bn_assumption')}B − capex {stress.get('capex_bn')}B",
+                "return_pct": None,
+                "display": f"FCF ~${trough}/sh (not 10yr IRR)",
+                "stance_gate": False,
+            }
+        )
+
+    seg = compute_segment_overlay(data)
+    if seg and price:
+        rows.append(
+            {
+                "case": "Segment sum",
+                "method": f"segment @ {seg['explicit_discount_rate_pct']:.0f}%",
+                "key_inputs": f"PV ${seg['sum_pv_per_share_at_explicit_discount']}/sh vs P₀ ${price}",
+                "return_pct": None,
+                "display": f"${seg['sum_pv_per_share_at_explicit_discount']}/sh",
+                "stance_gate": False,
+            }
+        )
+        rows.append(
+            {
+                "case": "Segment implied",
+                "method": "reverse DCF (segments)",
+                "key_inputs": "Services + Cloud + drags; options $0",
+                "return_pct": seg["implied_business_return_pct"],
+                "stance_gate": False,
+            }
+        )
+
+    return rows
+
+
 def load_classification(ticker: str) -> dict:
     if not CLASS_PATH.exists():
         return {}
@@ -243,6 +425,13 @@ def compute_valuation(data: dict) -> dict:
         "label": return_label,
         "display": f"{base_pct}% (base)" if base_pct is not None else "pending",
     }
+
+    data["overlay_results"] = compute_ai_overlay_rows(data, results)
+    ticker = data.get("ticker", "")
+    if ticker in AI_HYPERSCALERS and not data.get("ai_overlay"):
+        data.setdefault("ai_overlay", {})["status"] = "missing — run ai_infrastructure_valuation.md"
+
+    data["as_of"] = data.get("as_of") or str(date.today())
     return data
 
 

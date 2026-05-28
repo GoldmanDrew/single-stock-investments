@@ -149,7 +149,7 @@ Load with Tier 2 from `archetype_models.json` → `hohn_prompts`.
 | Archetype | Extra Hohn questions |
 |-----------|---------------------|
 | **croupier / platform** | Volume vs share? Fee yield trajectory? Cyclical normalization on activity? Disintermediation channel? |
-| **compounder** | Pricing vs volume split? Reinvestment rate vs FCF return? M&A EBIT math (Sun: $5bn, $1.5bn EBIT Y1)? |
+| **compounder** | Pricing vs volume split? Reinvestment rate vs FCF return? M&A EBIT math (Sun: $5bn, $1.5bn EBIT Y1)? If **≥2 reportable segments**, add segment economics table and point to `segment_cashflow_valuation.md` (Alphabet: Search / YouTube / Cloud / Waymo zero base — TCI Q2 2018). |
 | **infrastructure** | Regulated vs merchant return; RAB/cap rate; traffic vs opex leverage (Aena: +9% traffic, +1% opex)? |
 | **turnaround** | Provisioning peak? NIM path? Capital ratio floors and CoCo triggers? Catalyst date? |
 | **holding_co** | **Required:** look-through table + SOTP/NAV vs price + catalyst path with dates; Altaba-style discount % and liquidation/tender steps |

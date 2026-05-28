@@ -35,9 +35,21 @@ Every deep dive (`deep_dive_structure.md`):
 2. **Valuation & IRR (assumption ledger) last** (after Risks) — every assumption explicit (`irr_assumption_ledger.md`)
 3. Footer: Classification, [HUMAN REVIEW], [PROPOSED MEMORY]
 
-Refresh pipeline: `build_filing_evidence.py` → `marvin_valuation.py --write` → `refresh_deep_dive_v2.py` → `lint_deep_dive.py`
+Refresh pipeline: `build_filing_evidence.py` → `marvin_valuation.py --write` → `refresh_deep_dive_v2.py` → `lint_deep_dive.py` → Milly → `lint_adversarial.py`
 
 Third party: approved registry in `third_party_sources.md`; pending PDFs flagged in `{TICKER}/third-party-analyses/pending.md`.
+
+### Valuation overlays (codified)
+
+| Overlay | Framework | JSON keys | Dive sections |
+|---------|-----------|-------------|---------------|
+| **Segment cash-flow** | `segment_cashflow_valuation.md` | `valuation_overlay`, `segment_build` | `#### Segment map`; `### Segment cash-flow build` |
+| **AI infrastructure** | `ai_infrastructure_valuation.md` | `ai_overlay` | `#### AI infrastructure — model coverage` |
+| **Holdco / optionality** | `optionality_valuation.md` | `valuation_mode`, `optionality_gate` | Look-through, SOTP, catalyst path |
+
+**Lawrence consolidated IRR** remains stance gate unless human switches method. Overlays explain and cross-check — they do not silently replace FCF₀ with bullish AI assumptions.
+
+**AI hyperscalers (GOOGL, AMZN, META, MSFT):** require both overlays on full refresh unless [HUMAN REVIEW] documents why not.
 
 ## Peer templates
 - Best JP structure: `8697.T/`

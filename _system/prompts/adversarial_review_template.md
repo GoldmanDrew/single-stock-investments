@@ -13,6 +13,8 @@ consistency: pass
 disclosure: pass
 short: no_hit
 third_party: n/a
+valuation_staleness: pass
+ai_coverage: n/a
 block_final: false
 blocking_issues: []
 re_pass: false
@@ -63,6 +65,23 @@ re_pass: false
 | Classification Implied 10yr IRR | | | |
 | Valuation bridge base row | | | |
 | SOTP sum (if holdco) | | | |
+
+---
+
+## AI & valuation staleness
+
+{If `ai_overlay` or hyperscaler — `ai_infrastructure_valuation.md`}
+
+| Check | Status | Note |
+|-------|--------|------|
+| `#### AI infrastructure` in dive | | |
+| FCF₀ period vs latest filing | | |
+| Capex guide vs FCF₀-year capex | | |
+| `not_in_model_requires_refresh` addressed | | |
+| Press-only AI claims labeled | | |
+
+**valuation_staleness:** pass / warn / fail  
+**ai_coverage:** n/a / partial / complete
 
 ---
 

@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -58,6 +59,35 @@ CATALYST_PATH = re.compile(r"#### Catalyst path", re.IGNORECASE)
 EM_DASH = "\u2014"  # —
 EXEC_SUMMARY_MAX_WORDS = 220
 EM_DASH_MAX = 1
+
+AI_HYPERSCALERS = frozenset({"GOOGL", "AMZN", "META", "MSFT"})
+SEGMENT_MAP = re.compile(r"#### Segment map\b", re.IGNORECASE)
+SEGMENT_BUILD = re.compile(r"### Segment cash-flow build\b", re.IGNORECASE)
+AI_INFRA = re.compile(r"#### AI infrastructure\b", re.IGNORECASE)
+
+
+def ticker_from_dive_path(path: Path) -> str | None:
+    parts = path.parts
+    for i, p in enumerate(parts):
+        if p == "research" and i > 0:
+            return parts[i - 1]
+    return None
+
+
+def load_valuation(ticker: str) -> dict:
+    val_path = ROOT / ticker / "research" / "valuation.json"
+    if not val_path.exists():
+        return {}
+    return json.loads(val_path.read_text(encoding="utf-8"))
+
+
+def registry_flags(ticker: str) -> dict:
+    reg = ROOT / "_system" / "portfolio" / "registry.json"
+    if not reg.exists():
+        return {}
+    data = json.loads(reg.read_text(encoding="utf-8"))
+    holding = (data.get("holdings") or {}).get(ticker) or {}
+    return holding.get("valuation_flags") or {}
 
 
 def latest_dive(ticker_dir: Path) -> Path | None:
@@ -173,6 +203,32 @@ def lint_file(path: Path, *, legacy: bool, strict: bool) -> tuple[list[str], lis
         wc = word_count(exec_sum)
         if wc > EXEC_SUMMARY_MAX_WORDS:
             msg = f"{rel}: executive summary is {wc} words (target ≤{EXEC_SUMMARY_MAX_WORDS})"
+            (errors if strict else warnings).append(msg)
+
+    ticker = ticker_from_dive_path(path)
+    if ticker and not legacy:
+        val = load_valuation(ticker)
+        overlay = val.get("valuation_overlay")
+        if overlay == "segment_cashflow":
+            if not SEGMENT_MAP.search(text):
+                errors.append(
+                    f"{rel}: valuation_overlay segment_cashflow — missing #### Segment map"
+                )
+            if not SEGMENT_BUILD.search(text):
+                errors.append(
+                    f"{rel}: valuation_overlay segment_cashflow — missing ### Segment cash-flow build"
+                )
+        flags = registry_flags(ticker) if ticker else {}
+        need_ai = (
+            val.get("ai_overlay") is not None
+            or flags.get("ai_hyperscaler")
+            or ticker in AI_HYPERSCALERS
+        )
+        if need_ai and not AI_INFRA.search(text):
+            msg = (
+                f"{rel}: AI hyperscaler or ai_overlay — missing "
+                "#### AI infrastructure — model coverage (ai_infrastructure_valuation.md)"
+            )
             (errors if strict else warnings).append(msg)
 
     return errors, warnings

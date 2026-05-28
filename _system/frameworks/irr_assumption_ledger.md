@@ -83,6 +83,20 @@
 
 Run `python _system/scripts/marvin_valuation.py --ticker X --write` and cite outputs.
 
+### `segment_cashflow` overlay (`valuation_overlay` in `valuation.json`)
+
+Use **with** `method: full` (or `scenario`). Consolidated ledger rows stay; **add**:
+
+| # | Typical assumption |
+|---|-------------------|
+| … | Per-segment owner cash Y0, growth, exit multiple |
+| … | Each option (base terminal $0; bull value) |
+| … | Corporate capex drag / allocation |
+| … | Sum PV/sh + implied business return at P₀ |
+| … | Tie-out vs Lawrence consolidated IRR |
+
+Subsections: `### Segment cash-flow build` + `#### Segment IRR arithmetic`. Spec: `segment_cashflow_valuation.md`.
+
 ### `pending`
 
 - State why IRR is not computed.

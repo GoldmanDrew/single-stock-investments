@@ -1,7 +1,8 @@
 {
   "ticker": "GOOGL",
-  "as_of": "2026-05-26",
+  "as_of": "2026-05-29",
   "method": "full",
+  "valuation_overlay": "segment_cashflow",
   "lawrence_bucket": "pricing_power",
   "classification_inputs": {
     "archetype": "compounder",
@@ -16,6 +17,99 @@
     "fcf_source": "FY2025 OCF $125.3B \u2212 capex $52.5B \u00f7 ~12.45B diluted shares (10-K)",
     "shares_millions": 12447,
     "normalization_note": "Reported FY2025 FCF/sh; 2026 capex guide $180\u2013190B compresses near-term FCF \u2014 Hohn bridge uses adj. EPS path for medium-term"
+  },
+  "ai_overlay": {
+    "as_of": "2026-05-29",
+    "status": "partial \u2014 narrative cites AI; math mostly FY2025 FCF + generic Cloud growth",
+    "in_model": {
+      "cloud_growth_y1_5": "25% segment_build (proxy for Cloud/AI demand)",
+      "consolidated_growth_base": "11%/8% blended; bull 14%/10%",
+      "cloud_backlog": ">460B Q1 2026 CEO (8-K) \u2014 not a dated revenue schedule",
+      "capex_2026_guide": "$180\u2013190B noted; not subtracted from FCF0 in Lawrence base"
+    },
+    "not_in_model_requires_refresh": [
+      "TPU / custom silicon as separate revenue and margin line",
+      "Inference cost curve (mgmt cost-per-query claims \u2014 verify transcript)",
+      "Cloud backlog to revenue conversion timing",
+      "2026\u20132027 capex peak then FCF normalization",
+      "Services AI monetization separate from 9% Services growth",
+      "Data-center JV economics (Blackstone JV \u2014 press until filing)"
+    ],
+    "capex_stress_2026": {
+      "ocf_bn_assumption": 144,
+      "ocf_assumption_note": "[Assumption] ~15% YoY on FY2025 OCF",
+      "capex_bn": 185,
+      "capex_source": "Mgmt guide $180\u2013190B",
+      "implied_fcf_bn": -41,
+      "implied_fcf_per_share": -3.3
+    },
+    "ai_inflection_bull": {
+      "fcf_per_share_y0": 8.0,
+      "fcf_y0_note": "[Assumption] normalized ~2028 post-capex; needs filing bridge",
+      "growth_y1_5": 0.18,
+      "growth_y6_10": 0.1,
+      "exit_pfcf_y10": 28,
+      "drivers": "Cloud backlog, TPU external sales, Search AI yield, Cloud margin expansion",
+      "computed_return_pct": 11.2
+    }
+  },
+  "segment_build": {
+    "framework": "speedwell_reverse_dcf",
+    "as_of": "2026-05-29",
+    "horizon_years": 10,
+    "discount_rate_explicit": 0.1,
+    "segments": [
+      {
+        "id": "google_services",
+        "label": "Google Services (Search, YouTube, Play, Android)",
+        "type": "operating",
+        "owner_cash_y0_bn": 66.15,
+        "owner_cash_y0_per_share": 5.32,
+        "owner_cash_y0_source": "FY2025 FCF allocated 90.9% by segment OI share [Assumption]",
+        "growth_y1_5": 0.09,
+        "growth_y6_10": 0.07,
+        "exit_pfcf_y10": 22,
+        "pv_per_share_at_10pct": 146.6,
+        "notes": "Core ad + subscription engine; FY2025 OI $139.4B"
+      },
+      {
+        "id": "google_cloud",
+        "label": "Google Cloud",
+        "type": "operating",
+        "owner_cash_y0_bn": 6.65,
+        "owner_cash_y0_per_share": 0.53,
+        "owner_cash_y0_source": "FY2025 FCF allocated 9.1% by segment OI share [Assumption]",
+        "growth_y1_5": 0.25,
+        "growth_y6_10": 0.12,
+        "exit_pfcf_y10": 18,
+        "pv_per_share_at_10pct": 29.1,
+        "notes": "Q1 2026 +63% rev; FY2025 OI $13.9B"
+      }
+    ],
+    "options": [
+      {
+        "id": "other_bets",
+        "label": "Other Bets (Waymo, etc.)",
+        "annual_drag_per_share": 0.6,
+        "base_terminal_value_bn": 0,
+        "pv_drag_per_share_at_10pct": -3.7,
+        "notes": "TCI Q2 2018: zero base; FY2025 op loss $7.5B"
+      }
+    ],
+    "corporate_drag": {
+      "alphabet_level_drag_per_share": 1.35,
+      "pv_drag_per_share_at_10pct": -8.3,
+      "notes": "FY2025 Alphabet-level op loss $16.8B; FY2026 capex guide $180-190B"
+    },
+    "reconciliation": {
+      "sum_pv_per_share_at_10pct": 163.7,
+      "implied_business_return_pct": 0.01,
+      "lawrence_base_irr_pct": 2.1,
+      "price_per_share": 386.0,
+      "slack_notes": "Segment sum @ 10% ~$164 vs $386 \u2014 gap = lower discount (~1%), higher Cloud growth, or options not in base",
+      "sum_pv_per_share_at_explicit_discount": 163.7,
+      "explicit_discount_rate_pct": 10.0
+    }
   },
   "scenarios": {
     "bear": {
@@ -61,5 +155,38 @@
       "dhando_ok": true
     },
     "override_reason": null
-  }
+  },
+  "overlay_results": [
+    {
+      "case": "AI inflection",
+      "method": "full (normalized FCF)",
+      "key_inputs": "FCF\u2080=$8.0 g1=18% g2=10% exit=28\u00d7",
+      "return_pct": 11.2,
+      "stance_gate": false,
+      "notes": "[Assumption] normalized ~2028 post-capex; needs filing bridge"
+    },
+    {
+      "case": "Capex stress Y0",
+      "method": "illustrative trough",
+      "key_inputs": "OCF 144B \u2212 capex 185B",
+      "return_pct": null,
+      "display": "FCF ~$-3.3/sh (not 10yr IRR)",
+      "stance_gate": false
+    },
+    {
+      "case": "Segment sum",
+      "method": "segment @ 10%",
+      "key_inputs": "PV $163.7/sh vs P\u2080 $386.0",
+      "return_pct": null,
+      "display": "$163.7/sh",
+      "stance_gate": false
+    },
+    {
+      "case": "Segment implied",
+      "method": "reverse DCF (segments)",
+      "key_inputs": "Services + Cloud + drags; options $0",
+      "return_pct": 0.01,
+      "stance_gate": false
+    }
+  ]
 }

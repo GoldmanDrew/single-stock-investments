@@ -205,6 +205,34 @@ Source of truth: `_system/portfolio/classification.json` + `{TICKER}/research/th
 | **Munger moat** | Gates question 2 — eroding moat → lower terminal multiple |
 | **Pabrai dhando** | Downside in bear case must be bounded before sizing up on high IRR |
 | **HK equity yield curve** | Use instead of full model when payoff is dated and contractual |
+| **Segment cash-flow overlay** | Multi-segment compounders: sum segment PVs + options; cross-check consolidated IRR — `segment_cashflow_valuation.md` |
+
+---
+
+## I. Segment cash-flow overlay (multi-segment compounders)
+
+When `valuation_overlay: segment_cashflow` in `valuation.json`, run **both**:
+
+1. **Lawrence consolidated** `full` IRR (`marvin_valuation.py`) — **stance gate**
+2. **Segment build** — Speedwell-style explicit assumptions per reportable segment; **sum** discounted owner cash; **reverse DCF** business return at P₀
+
+**Speedwell (Drew Cohen):** invert valuation—fix price, model cash flows, solve implied return; burden loss segments (e.g. Reality Labs) with **zero** option terminal in base.
+
+**Hohn / TCI:** segment narrative (Alphabet: Search, YouTube, Cloud, Waymo **$0** base) in `_system/reference/investment-wisdom/tci/TCI-Q2-2018-Investor-Newsletter-extract.txt`.
+
+**Report:** `### Segment cash-flow build` + `#### Segment IRR arithmetic` in Valuation & IRR; `#### Segment map` in Business & moat. Spec: `segment_cashflow_valuation.md`.
+
+### F2. Segment IRR arithmetic (snippet)
+
+```markdown
+#### Segment IRR arithmetic (show your work)
+
+**Step 1 — Segments from 10-K** (cite path)  
+**Step 2 — Owner cash Y0 per segment** (op income bridge; capex alloc **[Assumption]**)  
+**Step 3 — Project Y1–10 + terminal per segment**  
+**Step 4 — Options** (base $0; bull if any)  
+**Step 5 — Sum PV/sh** = $A · **Lawrence consolidated IRR** = B% · **Tie-out slack** = …
+```
 
 ---
 
