@@ -24,8 +24,9 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-05-28.
 | OTCM | OTCM/ | OTC Markets Group | US | 2026-05-28 | 2026-05-28 | croupier | watch |
 | QDEL | QDEL/ | QuidelOrtho | US | 2026-05-28 | 2026-05-28 | turnaround | hold |
 | SJT | SJT/ | San Juan Basin Royalty Trust | US | 2026-05-28 | 2026-05-28 | optionality | watch |
+| SNOW | SNOW/ | Snowflake Inc | US | — | — | unknown | watch |
 | SPGI | SPGI/ | S&P Global | US | 2026-05-28 | 2026-05-28 | croupier | hold |
 | TEQ.ST | TEQ.ST/ | Teqnion AB | SE | 2026-05-28 | 2026-05-28 | serial_acquirer | hold |
 | WBI | WBI/ | WaterBridge Infrastructure | US | 2026-05-28 | 2026-05-28 | infrastructure | watch |
 
-**21 holdings total.** Registry: `_system/portfolio/registry.json`
+**22 holdings total.** Registry: `_system/portfolio/registry.json`
