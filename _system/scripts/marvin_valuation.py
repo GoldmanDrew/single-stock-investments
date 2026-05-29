@@ -496,7 +496,20 @@ def main() -> None:
                 for k in ("moat", "dhando", "archetype", "cycle")
             }
 
+    prior = data.get("stance_proposal") or {}
+    prior_override = prior.get("override_reason")
+    prior_approved = data.get("approved_stance") or prior.get("approved_stance")
+    prior_human = data.get("human_review")
+
     computed = compute_valuation(data)
+
+    if prior_override:
+        computed.setdefault("stance_proposal", {})["override_reason"] = prior_override
+    if prior_approved:
+        computed["approved_stance"] = prior_approved
+        computed.setdefault("stance_proposal", {})["approved_stance"] = prior_approved
+    if prior_human:
+        computed["human_review"] = prior_human
 
     if args.write:
         path.parent.mkdir(parents=True, exist_ok=True)

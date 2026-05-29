@@ -8,9 +8,9 @@
 |-------|-------|
 | **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | n/a |
-| **Dhando** (Pabrai) | none |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | trough |
+| **Cycle** | - |
 | **Implied 10yr IRR** (Lawrence) | 5.8% (base) |
 | **IRR method** | yield_curve |
 | **Lawrence bucket** | other |

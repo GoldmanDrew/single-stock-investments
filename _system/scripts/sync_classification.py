@@ -153,8 +153,14 @@ def check_ticker(ticker: str, portfolio: dict, fix: bool) -> list[str]:
             updated["irr_method"] = from_val["irr_method"]
         if from_val.get("lawrence_bucket"):
             updated["lawrence_bucket"] = from_val["lawrence_bucket"]
+        approved = val.get("approved_stance") or (val.get("stance_proposal") or {}).get("approved_stance")
+        if approved:
+            updated["stance"] = approved
         portfolio[ticker] = updated
-        update_thesis(ticker, updated)
+        update_thesis(ticker, portfolio[ticker])
+
+    elif fix and from_json:
+        update_thesis(ticker, from_json)
 
     return issues
 

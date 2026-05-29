@@ -10,7 +10,7 @@
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
-| **Cycle** | mid |
+| **Cycle** | - |
 | **Implied 10yr IRR** (Lawrence) | 12.1% (base) |
 | **IRR method** | full |
 | **Lawrence bucket** | low_cost |

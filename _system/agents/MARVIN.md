@@ -37,6 +37,8 @@ Every deep dive (`deep_dive_structure.md`):
 
 Refresh pipeline: `build_filing_evidence.py` → `marvin_valuation.py --write` → `refresh_deep_dive_v2.py` → `lint_deep_dive.py` → Milly → `lint_adversarial.py`
 
+**Prose:** `report_prose.md` (fewer abbreviations) + `archetype_valuation_prose.md` (valuation section by Stahl archetype).
+
 Third party: approved registry in `third_party_sources.md`; pending PDFs flagged in `{TICKER}/third-party-analyses/pending.md`.
 
 ### Valuation overlays (codified)

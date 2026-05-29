@@ -42,6 +42,41 @@ Spell out jargon once in the body; the footer may keep short codes.
 
 ---
 
+## Fewer abbreviations (required)
+
+**Default:** write for a smart reader who does not work in finance. Short codes belong in `valuation.json` and the **Classification** footer, not in executive summary, Business & moat, or assumption ledger tables.
+
+### Banned or restricted in narrative and Valuation & IRR tables
+
+| Do not use (alone) | Use instead |
+|--------------------|-------------|
+| P₀, P0 | price today |
+| FCF₀, FCF/sh | starting free cash flow per share / owner cash per share |
+| g1, g2, exit=25× | growth in years 1–5; growth in years 6–10; selling multiple in year 10 (25 times cash flow) |
+| OCF, capex (unexpanded) | cash from operations; capital spending |
+| rev, op income, OI | revenue; operating profit |
+| bn, B (in prose) | billion ("$52.5 billion") |
+| mgmt, ops | management, operations |
+| TTM | trailing twelve months (once) |
+| YoY | versus last year / year-over-year (once) |
+| SOTP, NAV | sum of the parts; net asset value |
+| PV | present value |
+| approx., est. | approximately, estimate (or drop) |
+
+**IRR:** In executive summary and returns statement, prefer **"X% per year"** or **"annual return"**. First use in Valuation section: **"annual return at today's price"**; then IRR in the bridge table column is fine.
+
+**Archetype-specific valuation layout:** `_system/frameworks/archetype_valuation_prose.md` — section titles, ledger row labels, and bridge wording per Stahl archetype (`compounder`, `croupier`, `holding_co`, etc.).
+
+### Readable valuation headings
+
+| Internal / lint name | Reader-facing title in prose |
+|----------------------|------------------------------|
+| Valuation bridge | **Valuation bridge (bear, base, bull)** — columns: Case · Method · Main assumptions · Annual return · Versus 15% target |
+| Assumption ledger | **Assumption ledger (base case)** — Assumption column = full phrases, not codes |
+| IRR arithmetic | Open with: **"How we calculated the annual return"** (keep `#### IRR arithmetic` for lint) |
+
+---
+
 ## Mental models (one subsection)
 
 See `deep_dive_structure.md`. Use **### Mental models** only (no separate Tier 2 + plain English duplicate). Table: Model | Finding | Source.

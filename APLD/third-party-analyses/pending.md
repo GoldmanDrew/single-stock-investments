@@ -1,9 +1,9 @@
 # APLD — Pending third-party sources
 
-**Updated:** 2026-05-28
+**Updated:** 2026-05-29
 
-All prior items **approved** 2026-05-28. See `references.md` and `_system/frameworks/third_party_sources.md`.
+Approve in `_system/frameworks/third_party_sources.md` before using in base IRR.
 
 | File | Status |
 |------|--------|
-| *(none pending)* | — |
+| (none) | — |

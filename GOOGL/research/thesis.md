@@ -9,7 +9,7 @@
 | **Archetype** (Stahl) | compounder |
 | **Moat** (Munger) | widening |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | watch |
+| **Stance** | hold |
 | **Cycle** | - |
 | **Implied 10yr IRR** (Lawrence) | 2.1% (base) |
 | **IRR method** | full |

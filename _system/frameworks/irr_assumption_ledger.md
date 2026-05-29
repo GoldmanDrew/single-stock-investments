@@ -5,7 +5,9 @@
 **Placement:** `## Valuation & IRR (assumption ledger)` — **last major section**, after `## Risks & inversion`, **before** `## Classification`.  
 **Not** inside Business & moat.
 
-**Companion files:** `lawrence_irr.md` § F · `deep_dive_structure.md` · `{TICKER}/research/valuation.json`
+**Companion files:** `lawrence_irr.md` § F · `deep_dive_structure.md` · `archetype_valuation_prose.md` · `{TICKER}/research/valuation.json`
+
+**Readable labels:** Assumption ledger rows and bridge "Main assumptions" use **plain English** (no `P₀`, `g1`, `FCF₀`). Archetype-specific examples: `archetype_valuation_prose.md`.
 
 ---
 

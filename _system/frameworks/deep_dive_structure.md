@@ -15,6 +15,7 @@
 | IRR assumption ledger (repeatable) | `irr_assumption_ledger.md` |
 | Analysis order | `decision_stack.md` |
 | Voice / plain English | `report_prose.md` |
+| Valuation readable by archetype | `archetype_valuation_prose.md` |
 | IRR formulas | `lawrence_irr.md` § F |
 | Third-party approval | `third_party_sources.md` |
 | Approved Substacks | `approved_substacks.md` |

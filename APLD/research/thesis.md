@@ -11,7 +11,7 @@
 | **Dhando** (Pabrai) | none |
 | **Stance** | watch |
 | **Cycle** | - |
-| **Implied 10yr IRR** (Lawrence) | 12.6% (blended best estimate) |
+| **Implied 10yr IRR** (Lawrence) | 12.6% (base) |
 | **IRR method** | scenario |
 | **Lawrence bucket** | other |
 

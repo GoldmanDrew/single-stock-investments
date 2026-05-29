@@ -2,7 +2,7 @@
 
 Copy structure for `{TICKER}/research/deep_dive_{date}.md`.
 
-**Read order:** `deep_dive_structure.md` → `irr_assumption_ledger.md` → `decision_stack.md` → `report_prose.md`
+**Read order:** `deep_dive_structure.md` → `irr_assumption_ledger.md` → `archetype_valuation_prose.md` (match ticker archetype) → `decision_stack.md` → `report_prose.md`
 
 ---
 
@@ -135,21 +135,24 @@ Copy structure for `{TICKER}/research/deep_dive_{date}.md`.
 ## Valuation & IRR (assumption ledger)
 
 **Price today:** ${price} ({source}, {date})  
-**Method:** {method} · **Base IRR:** {base_pct}% · `{TICKER}/research/valuation.json`
+**Method:** {method} · **Base annual return:** {base_pct}% per year · `{TICKER}/research/valuation.json`
 
-### Valuation bridge
+Use `archetype_valuation_prose.md` for archetype-specific subsection titles and ledger rows. **Plain English only** in tables (no P₀, FCF₀, g1, exit=25×).
 
-| Case | Method | Key inputs | Implied return | vs ~15% bar |
-|------|--------|------------|----------------|-------------|
-| Bear | … | … | …% | … |
-| Base | … | … | …% | … |
-| Bull | … | … | …% | … |
+### Valuation bridge (bear, base, bull)
+
+| Case | Method | Main assumptions | Annual return | Versus 15% target |
+|------|--------|------------------|---------------|-------------------|
+| Bear | … | … (full phrases) | …% per year | … |
+| Base | … | … | …% per year | … |
+| Bull | … | … | …% per year | … |
 
 ### Assumption ledger (base case)
 
 | # | Assumption | Value | Source or judgment |
 |---|------------|-------|-------------------|
-| 1 | Price today (P₀) | … | … |
+| 1 | Price today | … | … |
+| 2 | Starting free cash flow per share | … | … |
 | … | … | … | … |
 
 {Every input. **[Assumption]** or filing path. SOTP: running sum to payoff.}
@@ -181,11 +184,11 @@ Copy structure for `{TICKER}/research/deep_dive_{date}.md`.
 
 ### IRR arithmetic (show your work)
 
-{Numbered steps per `lawrence_irr.md` § F and `irr_assumption_ledger.md`.}
+How we calculated the annual return — {numbered steps per `lawrence_irr.md` § F, `irr_assumption_ledger.md`, and archetype playbook.}
 
 **Upside / downside from price:** …
 
-**Returns statement:** …
+**Returns statement:** At **${price}**, we expect about **{base_pct}% per year** on the base case (…one plain phrase for starting cash…).
 
 ---
 

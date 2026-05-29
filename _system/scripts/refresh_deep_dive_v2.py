@@ -135,6 +135,71 @@ def write_pending_md(ticker: str, items: list[dict]) -> None:
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+METHOD_LABELS = {
+    "full": "Ten-year cash flow",
+    "yield_curve": "Dated payoff",
+    "scenario": "Scenarios",
+    "pending": "Pending",
+}
+
+
+def method_label(method: str) -> str:
+    return METHOD_LABELS.get(method, method)
+
+
+def stance_proposal_block(val: dict) -> str:
+    base_pct = val.get("implied_return", {}).get("base_pct") or (val.get("results") or {}).get("base", {}).get(
+        "return_pct", "?"
+    )
+    proposal = val.get("stance_proposal") or {}
+    suggested = proposal.get("suggested", "pending")
+    approved = val.get("approved_stance") or proposal.get("approved_stance")
+    stance = approved or suggested
+    lines = [
+        "### Stance proposal",
+        "",
+        f"Base **{base_pct}%** per year → **{stance}**"
+        + (
+            f" (model suggested **{suggested}**; human approved **{approved}**)"
+            if approved and approved != suggested
+            else ""
+        )
+        + ".",
+    ]
+    override = proposal.get("override_reason")
+    if override:
+        lines.append(f"**Override:** {override}")
+    entry = (val.get("human_review") or {}).get("entry_band_15pct")
+    if entry:
+        lines.append(f"**Entry band (~15% base):** {entry}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def patch_classification_stance(text: str, val: dict) -> str:
+    approved = val.get("approved_stance") or (val.get("stance_proposal") or {}).get("approved_stance")
+    if not approved:
+        return text
+    return re.sub(
+        r"(\|\s*\*\*Stance\*\*[^|]*\|\s*)([^|]+)(\|)",
+        rf"\1{approved}     \3",
+        text,
+        count=1,
+    )
+
+
+def bridge_key_plain(sc: dict) -> str:
+    if "growth_y1_5" in sc:
+        g1 = sc.get("growth_y1_5", 0) * 100
+        g2 = sc.get("growth_y6_10", 0) * 100
+        ex = sc.get("exit_pfcf_y10", sc.get("exit_multiple", "?"))
+        return (
+            f"Cash flow grows {g1:.0f}% then {g2:.0f}%; "
+            f"sell at {ex:.0f} times year-10 cash flow"
+        )
+    return (sc.get("notes") or "")[:70]
+
+
 def bridge_bar(pct: float | None, *, stance_gate: bool = True) -> str:
     if pct is None:
         return "info"
@@ -159,12 +224,18 @@ def bridge_table(val: dict) -> str:
         bar = bridge_bar(pct if isinstance(pct, (int, float)) else None)
         notes = sc.get("notes", "")[:60]
         if method == "yield_curve" and "payoff" in sc:
-            key = f"Payoff ${sc['payoff']} / {sc['years']}yr @ ${sc.get('price', val.get('inputs', {}).get('price', '?'))}"
+            key = (
+                f"Payoff ${sc['payoff']} in {sc['years']} years "
+                f"vs price ${sc.get('price', val.get('inputs', {}).get('price', '?'))}"
+            )
         elif "growth_y1_5" in sc:
-            key = f"g1={sc['growth_y1_5']*100:.0f}% g2={sc.get('growth_y6_10',0)*100:.0f}% exit={sc.get('exit_pfcf_y10', sc.get('exit_multiple','?'))}×"
+            key = bridge_key_plain(sc)
         else:
             key = notes or case
-        rows.append(f"| {case.capitalize()} | {method} | {key} | **{pct}%** p.a. | {bar} |")
+        rows.append(
+            f"| {case.capitalize()} | {method_label(method)} | {key} | "
+            f"**{pct}%** per year | {bar} |"
+        )
 
     for ov in val.get("overlay_results") or []:
         case = ov.get("case", "Overlay")
@@ -191,7 +262,7 @@ def assumption_ledger(val: dict) -> str:
     n = 1
     price = inputs.get("price", "?")
     src = inputs.get("price_source", "market")
-    rows.append(f"| {n} | Price today (P₀) | **${price}** | {src} |")
+    rows.append(f"| {n} | Price today | **${price}** | {src} |")
     n += 1
 
     if method == "yield_curve" or val.get("valuation_mode") == "optionality":
@@ -228,22 +299,38 @@ def assumption_ledger(val: dict) -> str:
         fcf = inputs.get("fcf_per_share") or inputs.get("per_share")
         fcf_src = inputs.get("fcf_source") or inputs.get("per_share_source", "normalization")
         if fcf is not None:
-            rows.append(f"| {n} | Owner cash / FCF₀ per share | **${fcf}** | {fcf_src} |")
+            rows.append(
+                f"| {n} | Starting free cash flow per share | **${fcf}** | {fcf_src} |"
+            )
+            n += 1
+        arch = (val.get("classification_inputs") or {}).get("archetype")
+        cycle = (val.get("classification_inputs") or {}).get("cycle")
+        norm = inputs.get("normalization_note")
+        if arch == "croupier" and (cycle or norm):
+            rows.append(
+                f"| {n} | Cycle adjustment (starting cash) | **{cycle or 'see note'}** | {norm or '[Assumption]'} |"
+            )
             n += 1
         base = val.get("scenarios", {}).get("base", {})
         g1 = base.get("growth_y1_5")
         g2 = base.get("growth_y6_10")
         ex = base.get("exit_pfcf_y10") or base.get("exit_multiple")
         if g1 is not None:
-            rows.append(f"| {n} | Growth years 1–5 | **{g1*100:.1f}%/yr** | {base.get('notes', '[Assumption]')} |")
+            rows.append(
+                f"| {n} | Growth in years 1 through 5 | **{g1*100:.1f}%** per year | {base.get('notes', '[Assumption]')} |"
+            )
             n += 1
         if g2 is not None:
-            rows.append(f"| {n} | Growth years 6–10 | **{g2*100:.1f}%/yr** | Scenario base |")
+            rows.append(
+                f"| {n} | Growth in years 6 through 10 | **{g2*100:.1f}%** per year | Scenario base |"
+            )
             n += 1
         if ex is not None:
-            rows.append(f"| {n} | Exit multiple year 10 | **{ex}×** | Scenario base |")
+            rows.append(
+                f"| {n} | Selling multiple in year 10 | **{ex} times cash flow** | Scenario base |"
+            )
             n += 1
-        rows.append(f"| {n} | Horizon | **10 years** | Lawrence full / scenario method |")
+        rows.append(f"| {n} | Time horizon | **10 years** | Ten-year owner-cash model |")
         n += 1
         ai = val.get("ai_overlay") or {}
         bull = ai.get("ai_inflection_bull") or {}
@@ -385,7 +472,9 @@ def irr_arithmetic(val: dict, ticker: str, preserved: str | None) -> str:
             re.DOTALL | re.IGNORECASE,
         )
         if m and len(m.group(1).strip()) > 200:
-            return "#### IRR arithmetic (show your work)\n\n" + m.group(1).strip()
+            body = m.group(1).strip()
+            if not re.search(r"P₀|FCF₀|Cash₀/sh|g1=|exit=\d", body):
+                return "#### IRR arithmetic (show your work)\n\n" + body
 
     method = val.get("method", "full")
     inputs = val.get("inputs", {})
@@ -436,13 +525,16 @@ def irr_arithmetic(val: dict, ticker: str, preserved: str | None) -> str:
         g2 = base.get("growth_y6_10", 0.03)
         ex = base.get("exit_pfcf_y10") or base.get("exit_multiple", 10)
         lines += [
-            f"**Base case** — verify: `python _system/scripts/marvin_valuation.py --ticker {ticker}`",
+            "How we calculated the annual return (base case) — verify with "
+            f"`python _system/scripts/marvin_valuation.py --ticker {ticker}`",
             "",
-            f"- P₀ = **${price}**",
-            f"- Cash₀/sh = **${fcf}** ({inputs.get('per_share_source', inputs.get('fcf_source', ''))})",
-            f"- Growth Y1–5 = **{g1*100:.1f}%/yr** · Y6–10 = **{g2*100:.1f}%/yr**",
-            f"- Exit year 10 = **{ex}×**",
-            f"- IRR = **{base_pct}%**/yr (10-year owner-cash stream in valuation.json)",
+            f"1. **Price today:** **${price}**",
+            f"2. **Starting free cash flow per share:** **${fcf}** "
+            f"({inputs.get('per_share_source', inputs.get('fcf_source', ''))})",
+            f"3. **Growth in years 1–5:** **{g1*100:.1f}%** per year · **years 6–10:** **{g2*100:.1f}%** per year",
+            f"4. **Selling multiple in year 10:** **{ex} times** year-10 cash flow",
+            f"5. **Annual return at today's price:** **{base_pct}%** per year over ten years "
+            "(full stream in `valuation.json`)",
         ]
         return "\n".join(lines)
 
@@ -479,12 +571,12 @@ def build_valuation_section(ticker: str, val: dict, preserved_val: str | None) -
             "## Valuation & IRR (assumption ledger)",
             "",
             f"**Price today:** **${price}** ({src})  ",
-            f"**Method:** `{method}` · **Base IRR:** **{base_pct}%** · `{ticker}/research/valuation.json`",
+            f"**Method:** {method_label(method)} (`{method}`) · **Base annual return:** **{base_pct}%** per year · `{ticker}/research/valuation.json`",
             "",
-            "### Valuation bridge",
+            "### Valuation bridge (bear, base, bull)",
             "",
-            "| Case | Method | Key inputs | Implied return | vs ~15% bar |",
-            "|------|--------|------------|----------------|-------------|",
+            "| Case | Method | Main assumptions | Annual return | Versus 15% target |",
+            "|------|--------|------------------|---------------|-------------------|",
             bridge_table(val),
             "",
             "### Assumption ledger (base case)",
@@ -577,13 +669,12 @@ def refresh_ticker(ticker: str, out_date: str) -> Path | None:
                 body,
                 flags=re.DOTALL,
             )
-            if "Valuation & IRR" not in body:
-                body = re.sub(
-                    r"(### Stance proposal.*?)$",
-                    r"\1\n\n**Scenarios and every IRR assumption:** see **## Valuation & IRR (assumption ledger)** and `valuation.json`.\n",
-                    body,
-                    flags=re.DOTALL,
-                )
+            body = re.sub(
+                r"### Stance proposal.*?(?=\n---|\n## |\Z)",
+                stance_proposal_block(val) + "\n**Scenarios and every IRR assumption:** see **## Valuation & IRR (assumption ledger)** and `valuation.json`.\n",
+                body,
+                flags=re.DOTALL,
+            )
         out_parts.append(key)
         out_parts.append(body)
         out_parts.append("\n---\n")
@@ -594,7 +685,8 @@ def refresh_ticker(ticker: str, out_date: str) -> Path | None:
     for key in ("## Classification", "## Terms (optional)", "## [HUMAN REVIEW]", "## [PROPOSED MEMORY]"):
         if key in sections:
             out_parts.append(key)
-            out_parts.append(sections[key])
+            block = patch_classification_stance(sections[key], val) if key == "## Classification" else sections[key]
+            out_parts.append(block)
             out_parts.append("\n")
 
     pending = scan_pending_third_party(ticker)

@@ -9,7 +9,7 @@
 | **Archetype** (Stahl) | serial_acquirer |
 | **Moat** (Munger) | stable |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | watch |
+| **Stance** | hold |
 | **Cycle** | - |
 | **Implied 10yr IRR** (Lawrence) | 13.7% (base) |
 | **IRR method** | full |

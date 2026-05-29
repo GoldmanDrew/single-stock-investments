@@ -9,7 +9,7 @@
 | **Archetype** (Stahl) | croupier |
 | **Moat** (Munger) | stable |
 | **Dhando** (Pabrai) | partial |
-| **Stance** | watch |
+| **Stance** | hold |
 | **Cycle** | peak |
 | **Implied 10yr IRR** (Lawrence) | 4.7% (base) |
 | **IRR method** | full |

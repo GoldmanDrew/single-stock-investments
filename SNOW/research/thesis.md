@@ -1,6 +1,6 @@
 # SNOW — Investment Thesis
 
-**Last updated:** 2026-05-28
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,6 +11,9 @@
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
 | **Cycle** | - |
+| **Implied 10yr IRR** (Lawrence) | — |
+| **IRR method** | — |
+| **Lawrence bucket** | — |
 
 ## One-line thesis
 
