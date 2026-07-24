@@ -268,6 +268,16 @@ _INFRA_PRESERVE_KEYS = (
     "recent_files",
 )
 
+# Valuation payloads require ticker research trees. Sparse pages/letter rebuilds
+# must keep the prior VAL/IRR/range fields instead of publishing "missing".
+_VALUATION_PRESERVE_KEYS = (
+    "valuation_decision",
+    "total_return_panel",
+    "component_valuation",
+    "valuation_workbench",
+    "classification",
+)
+
 
 def load_prior_dashboard_rows() -> dict[str, dict]:
     prior = _load_json(OUTPUT) or {}
@@ -310,8 +320,20 @@ def workspace_is_sparse(tickers: list[str]) -> bool:
     return present < floor
 
 
+def _valuation_field_missing(key: str, value) -> bool:
+    if value in (None, False, 0, "", [], {}):
+        return True
+    if key == "valuation_decision":
+        return isinstance(value, dict) and value.get("status") in (None, "missing")
+    if key == "total_return_panel":
+        if not isinstance(value, dict):
+            return True
+        return value.get("status") == "missing" or value.get("error") == "no_valuation_json"
+    return False
+
+
 def preserve_infra_from_prior(rows: list[dict], prior_by_ticker: dict[str, dict]) -> int:
-    """Fill infra fields hidden by sparse checkout from the prior dashboard."""
+    """Fill infra/valuation fields hidden by sparse checkout from the prior dashboard."""
     restored = 0
     for row in rows:
         prior = prior_by_ticker.get(row["ticker"])
@@ -325,6 +347,14 @@ def preserve_infra_from_prior(rows: list[dict], prior_by_ticker: dict[str, dict]
             if key == "completeness":
                 missing_now = float(current_value or 0) < float(prior_value or 0)
             if missing_now and prior_value not in (None, False, 0, "", [], {}):
+                row[key] = prior[key]
+                changed = True
+        for key in _VALUATION_PRESERVE_KEYS:
+            current_value = row.get(key)
+            prior_value = prior.get(key)
+            if _valuation_field_missing(key, current_value) and not _valuation_field_missing(
+                key, prior_value
+            ):
                 row[key] = prior[key]
                 changed = True
         restored += int(changed)
@@ -349,6 +379,33 @@ def refuse_infra_collapse(payload: dict, prior_by_ticker: dict[str, dict]) -> No
             f"clobber infra stats (new pdfs={total_pdfs} research={with_research}; "
             f"prior pdfs={prior_pdfs} research={prior_research}). "
             "Rebuild with ticker trees present, or deploy committed dashboard/ as-is."
+        )
+
+
+def refuse_valuation_collapse(payload: dict, prior_by_ticker: dict[str, dict]) -> None:
+    """Abort write when sparse rebuild would wipe VAL/IRR/range payloads."""
+    rows = payload.get("tickers") or []
+    if len(rows) < 50 or len(prior_by_ticker) < 50:
+        return
+    missing_now = sum(
+        1
+        for row in rows
+        if _valuation_field_missing("valuation_decision", row.get("valuation_decision"))
+    )
+    prior_ok = sum(
+        1
+        for row in prior_by_ticker.values()
+        if not _valuation_field_missing("valuation_decision", row.get("valuation_decision"))
+    )
+    # Collapse: most rows missing now while prior had broad valuation coverage.
+    if prior_ok >= max(50, len(prior_by_ticker) // 2) and missing_now >= max(
+        50, int(0.5 * len(rows))
+    ):
+        raise SystemExit(
+            "Refusing to write dashboard_data.json: sparse/empty research checkout would "
+            f"clobber valuation payloads (missing VAL now={missing_now}/{len(rows)}; "
+            f"prior decision-ready≈{prior_ok}/{len(prior_by_ticker)}). "
+            "Rebuild with ticker research trees present, or preserve prior valuation fields."
         )
 
 
@@ -2930,6 +2987,7 @@ def main() -> None:
     memory_doc = build_research_memory()
     payload = build()
     refuse_infra_collapse(payload, prior_by_ticker)
+    refuse_valuation_collapse(payload, prior_by_ticker)
     attach_pdf_store_rows(payload["tickers"], document_catalog)
     merge_equity_model_rows(payload["tickers"], equity_payload)
     model_ready = sum(1 for r in payload["tickers"] if (r.get("equity_model") or {}).get("ready"))

@@ -246,6 +246,9 @@ jobs:
           python _system/scripts/sync_pdf_store_google_drive.py --root-key hedge_fund_letters
 
       - name: Rebuild ops dashboard payloads
+        env:
+          # pages sparse checkout omits ticker research/valuation.json; keep prior VAL/IRR.
+          DASHBOARD_PRESERVE_DOCUMENT_REGISTRY: "1"
         run: |
           python _system/scripts/repair_letter_dates.py --apply
           python _system/scripts/build_document_registry.py
