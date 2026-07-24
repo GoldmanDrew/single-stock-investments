@@ -20,6 +20,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import kpi_history_stats as khs  # noqa: E402
 import predictability as pred  # noqa: E402
 import resolve_linkages  # noqa: E402
 import world_model_common as wm  # noqa: E402
@@ -261,7 +262,15 @@ def _is_soft_fail(row: dict) -> bool:
     return str(row.get("gameability") or "") in {"med", "high"}
 
 
-def build_strip(state: dict, month: str, cards: list, superorgs: list, horizons: list, industry: list) -> dict:
+def build_strip(
+    state: dict,
+    month: str,
+    cards: list,
+    superorgs: list,
+    horizons: list,
+    industry: list,
+    history_series: dict | None = None,
+) -> dict:
     hard_broken = [r for r in state["broken"] if not _is_soft_fail(r)]
     soft_broken = [r for r in state["broken"] if _is_soft_fail(r)]
     broken_n = len(state["broken"])
@@ -381,6 +390,7 @@ def build_strip(state: dict, month: str, cards: list, superorgs: list, horizons:
         "drifted_edges": state["drifted_edges"],
         "unchecked": state["unchecked"][:20],
         "passes": state["passes"],
+        "history_series": history_series or {},
         "ledgers": state["ledgers"],
         "prediction_cards": cards,
         "superorgs": superorgs,
@@ -422,15 +432,24 @@ def main() -> int:
         )
 
     state = collect_kpi_state()
+    # Seed sparse ledger archives from prior monthly cold snapshots, then annotate.
+    khs.bootstrap_ledger_from_monthly_history()
+    hist_rows = (
+        list(state["broken"])
+        + list(state["stale"])
+        + list(state["passes"])
+        + list(state["unchecked"])
+    )
+    history_series = khs.annotate_rows(hist_rows)
     cards = load_prediction_cards()
     superorgs = load_superorg_digests()
     horizons = load_expert_horizons()
     industry = load_industry_nodes()
-    strip = build_strip(state, month, cards, superorgs, horizons, industry)
+    strip = build_strip(state, month, cards, superorgs, horizons, industry, history_series)
 
     hot = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "schema_version": "2.1",
+        "schema_version": "2.2",
         "strip": strip,
     }
     wm.write_json(wm.DASHBOARD_WORLD_MODEL, hot)
@@ -456,10 +475,17 @@ def main() -> int:
 
     print(f"wrote {wm.DASHBOARD_WORLD_MODEL.relative_to(wm.ROOT)}")
     print(f"wrote {history_path.relative_to(wm.ROOT)}")
+    z_ok = sum(
+        1
+        for r in (strip.get("passes") or [])
+        if (r.get("history") or {}).get("z_score") is not None
+    )
     print(
         f"world_model: label={strip['label']} "
         f"claim_ceiling={strip.get('claim_ceiling')} "
         f"fail={strip['counts']['fail']} pass={strip['counts']['pass']} "
+        f"z_ok={z_ok}/{strip['counts']['pass']} "
+        f"series={len(history_series)} "
         f"cards={strip['counts']['prediction_cards']} "
         f"superorgs={strip['counts']['superorgs']}"
     )

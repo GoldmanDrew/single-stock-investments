@@ -99,7 +99,11 @@ CI: Data Pipeline cron `0 16 * * 0` (Sunday UTC) → profile `world-model-weekly
 | `expert_horizons/{domain}.csv` | Public arrival-date quotes |
 | `../industry/{node}.json` | Industry checklists |
 | `../kpi/history/{YYYY-MM}.json` | Monthly cold snapshots |
+| `../kpi/series/{TICKER}__{kpi_id}.csv` | Sparse ledger actual archive (non-theme) |
+| `../../market-data/themes/{id}.csv` | Dense theme history (primary z-score source) |
 | `../../linkages/` | Cross-ticker derivation edges |
+
+**History / z-scores (schema 2.2):** `build_world_model_snapshot.py` annotates strip rows with `history` (z, mean, σ, sparkline) and shared `strip.history_series` for Magis UI drilldown. Theme KPIs use theme CSVs; valuation/manual KPIs append to `kpi/series/`. Z is descriptive only — never a Magis gate or capital stance. Plan: `_system/proposals/kpi_history_zscore_magis_2026-07-24.md`.
 
 **First portfolio Superorg:** `superorg/ice.json`.  
 **Demand proxy Superorg:** `superorg/hyperscaler_ai_builders.json`.

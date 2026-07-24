@@ -146,6 +146,32 @@ def test_predictability_classes_and_ceiling():
     assert pred.find_banned_phrases("This is a complexity IRR fantasy") == ["complexity irr"]
 
 
+def test_kpi_history_zscore_from_theme_csv():
+    import kpi_history_stats as khs  # noqa: WPS433
+
+    points = khs.load_theme_points("vix_level")
+    assert len(points) >= 20
+    stats = khs.compute_stats(points, trailing=252, min_n=20)
+    assert stats["status"] == "ok"
+    assert stats["z_score"] is not None
+    assert stats["n"] >= 20
+    assert 0 <= float(stats["percentile"]) <= 100
+
+    rows = [{
+        "ticker": "ICE",
+        "kpi_id": "vix_level",
+        "label": "VIX",
+        "source": "theme:vix_level",
+        "actual": points[-1][1],
+        "last_checked": points[-1][0],
+    }]
+    series = khs.annotate_rows(rows)
+    assert rows[0]["history"]["series_key"] == "theme:vix_level"
+    assert rows[0]["z_score"] is not None
+    assert "theme:vix_level" in series
+    assert len(series["theme:vix_level"]["points"]) >= 20
+
+
 def test_soft_vol_floor_fail_is_attention_not_broken():
     import build_world_model_snapshot as snap  # noqa: WPS433
 
@@ -214,6 +240,7 @@ if __name__ == "__main__":
     test_foresight_artifacts_exist()
     test_apply_world_model_context_ice()
     test_predictability_classes_and_ceiling()
+    test_kpi_history_zscore_from_theme_csv()
     test_soft_vol_floor_fail_is_attention_not_broken()
     test_exchange_vol_map_regions()
     print("test_world_model: ok")

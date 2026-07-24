@@ -1525,6 +1525,137 @@
     return m ? `P${m[1]}` : String(cls);
   }
 
+  function wmZBadge(z, escapeHtml) {
+    if (z == null || Number.isNaN(Number(z))) {
+      return `<span class="badge badge-us" title="Insufficient history for z-score">n/a</span>`;
+    }
+    const n = Number(z);
+    const abs = Math.abs(n);
+    const cls = abs >= 2 ? 'badge-bad' : (abs >= 1 ? 'badge-warn' : 'badge-ok');
+    const sign = n > 0 ? '+' : '';
+    return `<span class="badge ${cls}" title="Z vs trailing history (descriptive; not a Magis gate)">${escapeHtml(sign + n.toFixed(2))}</span>`;
+  }
+
+  function wmSparklineSvg(values, width, height) {
+    const vals = (values || []).map(Number).filter(v => Number.isFinite(v));
+    const w = width || 72;
+    const h = height || 22;
+    if (vals.length < 2) {
+      return `<svg width="${w}" height="${h}" aria-hidden="true"></svg>`;
+    }
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const span = max - min || 1;
+    const pts = vals.map((v, i) => {
+      const x = (i / (vals.length - 1)) * (w - 2) + 1;
+      const y = h - 2 - ((v - min) / span) * (h - 4);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="display:block">
+      <polyline fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.85" points="${pts}"/>
+    </svg>`;
+  }
+
+  function wmHistoryChartSvg(points, stats, width, height) {
+    const pts = (points || []).filter(p => p && p.d != null && Number.isFinite(Number(p.v)));
+    const w = width || 420;
+    const h = height || 120;
+    if (pts.length < 2) {
+      return `<p class="tier-sub">Not enough history points for a chart.</p>`;
+    }
+    const vals = pts.map(p => Number(p.v));
+    const mean = stats && stats.mean != null ? Number(stats.mean) : null;
+    const stdev = stats && stats.stdev != null ? Number(stats.stdev) : null;
+    let min = Math.min(...vals);
+    let max = Math.max(...vals);
+    if (mean != null && stdev != null && Number.isFinite(stdev)) {
+      min = Math.min(min, mean - stdev);
+      max = Math.max(max, mean + stdev);
+    }
+    const span = max - min || 1;
+    const padL = 36;
+    const padR = 8;
+    const padT = 8;
+    const padB = 22;
+    const iw = w - padL - padR;
+    const ih = h - padT - padB;
+    const xy = (i, v) => {
+      const x = padL + (i / (pts.length - 1)) * iw;
+      const y = padT + ih - ((v - min) / span) * ih;
+      return [x, y];
+    };
+    const line = vals.map((v, i) => {
+      const [x, y] = xy(i, v);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    let band = '';
+    if (mean != null && stdev != null && stdev > 0) {
+      const [, yHi] = xy(0, mean + stdev);
+      const [, yLo] = xy(0, mean - stdev);
+      band = `<rect x="${padL}" y="${Math.min(yHi, yLo).toFixed(1)}" width="${iw}" height="${Math.abs(yLo - yHi).toFixed(1)}" fill="currentColor" opacity="0.08"/>`;
+      const [, yM] = xy(0, mean);
+      band += `<line x1="${padL}" y1="${yM.toFixed(1)}" x2="${w - padR}" y2="${yM.toFixed(1)}" stroke="currentColor" stroke-dasharray="3 3" opacity="0.45"/>`;
+    }
+    const [lx, ly] = xy(pts.length - 1, vals[vals.length - 1]);
+    const d0 = pts[0].d;
+    const d1 = pts[pts.length - 1].d;
+    const y0 = min.toFixed(min >= 100 ? 0 : 2);
+    const y1 = max.toFixed(max >= 100 ? 0 : 2);
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="KPI history">
+      ${band}
+      <polyline fill="none" stroke="var(--accent, #6aa1ff)" stroke-width="1.6" points="${line}"/>
+      <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.2" fill="var(--accent, #6aa1ff)"/>
+      <text x="${padL}" y="${h - 6}" font-size="10" fill="currentColor" opacity="0.65">${d0}</text>
+      <text x="${w - padR}" y="${h - 6}" font-size="10" fill="currentColor" opacity="0.65" text-anchor="end">${d1}</text>
+      <text x="4" y="${padT + 8}" font-size="10" fill="currentColor" opacity="0.65">${y1}</text>
+      <text x="4" y="${h - padB}" font-size="10" fill="currentColor" opacity="0.65">${y0}</text>
+    </svg>`;
+  }
+
+  function wmHistoryDetailRow(r, historySeries, escapeHtml, colSpan) {
+    const hist = r.history || {};
+    const key = hist.series_key || r.series_key || '';
+    const series = (historySeries && key && historySeries[key]) || null;
+    const stats = (series && series.stats) || hist;
+    const points = (series && series.points) || [];
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}`.replace(/[^\w.\-]+/g, '_');
+    const zLine = hist.z_score != null
+      ? `z=${Number(hist.z_score) >= 0 ? '+' : ''}${Number(hist.z_score).toFixed(2)}`
+      : 'z=n/a';
+    const meanLine = stats.mean != null ? `mean ${Number(stats.mean).toPrecision(4)}` : '';
+    const sdLine = stats.stdev != null ? `σ ${Number(stats.stdev).toPrecision(4)}` : '';
+    const nLine = stats.n != null ? `n=${stats.n}` : '';
+    const pctLine = stats.percentile != null ? `pct ${stats.percentile}` : '';
+    const win = stats.window || hist.window || '';
+    const meta = [zLine, meanLine, sdLine, nLine, pctLine, win, hist.source_kind || '', hist.status || '']
+      .filter(Boolean).join(' · ');
+    return `<tr class="wm-hist-detail" data-wm-hist-detail="${escapeHtml(rowId)}" hidden>
+      <td colspan="${colSpan || 7}" style="padding:10px 12px;background:rgba(127,127,127,0.06)">
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start">
+          <div style="min-width:280px;flex:1 1 320px">${wmHistoryChartSvg(points, stats)}</div>
+          <div style="flex:1 1 220px;font-size:12px;max-width:420px">
+            <div class="mono" style="margin-bottom:4px">${escapeHtml(key || 'no series')}</div>
+            <div class="tier-sub" style="margin-bottom:6px">${escapeHtml(meta)}</div>
+            <div class="tier-sub">Descriptive vs own history. Does not change the gate or capital stance.</div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  function wmKpiHistCells(r, escapeHtml) {
+    const hist = r.history || {};
+    const spark = wmSparklineSvg(hist.sparkline || []);
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}`.replace(/[^\w.\-]+/g, '_');
+    const title = 'Click to view time series and z-score vs history';
+    return {
+      rowId,
+      actualCell: `<td class="mono"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${r.actual != null ? escapeHtml(String(r.actual)) : '—'}</button></td>`,
+      sparkCell: `<td style="color:var(--text-secondary)"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${spark}</button></td>`,
+      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(hist.z_score != null ? hist.z_score : r.z_score, escapeHtml)}</button></td>`,
+    };
+  }
+
   function renderWorldModelStrip(worldModel, escapeHtml) {
     const strip = worldModel && worldModel.strip;
     if (!strip) {
@@ -1539,6 +1670,7 @@
     const claimCeiling = strip.claim_ceiling || bounds.claim_ceiling || 'P3_oriented';
     const ceilingShort = wmClassShort(claimCeiling);
     const counts = strip.counts || {};
+    const historySeries = strip.history_series || {};
     const countLine = [
       counts.fail_hard != null ? `${counts.fail_hard} hard-fail` : (counts.fail != null ? `${counts.fail} failed` : ''),
       counts.fail_soft != null && counts.fail_soft ? `${counts.fail_soft} soft-floor` : '',
@@ -1553,27 +1685,36 @@
       ...(strip.broken || []).map(r => ({ ...r, _kind: 'hard' })),
       ...(strip.soft_fails || []).map(r => ({ ...r, _kind: 'soft' })),
       ...(strip.stale || []).map(r => ({ ...r, _kind: 'stale' })),
-    ].slice(0, 12).map(r => `
+    ].slice(0, 12).map(r => {
+      const cells = wmKpiHistCells(r, escapeHtml);
+      return `
       <tr>
         <td class="mono">${escapeHtml(r.ticker || '')}</td>
         <td><span class="badge ${r._kind === 'hard' ? 'badge-bad' : 'badge-warn'}">${escapeHtml(r._kind === 'soft' ? 'soft-floor' : (r.status || r._kind || ''))}</span></td>
         <td style="font-size:12px">${escapeHtml(r.kpi_id || r.label || '')}${r.gameability ? ` <span class="badge badge-warn" title="Goodhart risk — does not alone mark strip broken">g:${escapeHtml(r.gameability)}</span>` : ''}</td>
+        ${cells.actualCell}
+        ${cells.sparkCell}
+        ${cells.zCell}
         <td><span class="badge badge-us">${escapeHtml(wmClassShort(r.predictability_class))}</span></td>
-      </tr>`).join('');
+      </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 7)}`;
+    }).join('');
 
     const passRows = (strip.passes || []).slice(0, 80).map(r => {
       const role = r.prediction_role || '';
       const inds = (r.industry_node_ids || []).join(', ');
       const exp = r.expected || {};
       const gate = exp.op && exp.value != null ? `${exp.op} ${exp.value}` : '';
+      const cells = wmKpiHistCells(r, escapeHtml);
       return `<tr>
         <td class="mono">${escapeHtml(r.ticker || '')}</td>
         <td class="tier-sub" style="font-size:11px">${escapeHtml(inds)}</td>
         <td style="font-size:12px">${escapeHtml(r.kpi_id || '')}${role ? ` <span class="badge badge-us">${escapeHtml(role)}</span>` : ''}${r.gameability ? ` <span class="badge badge-warn">g:${escapeHtml(r.gameability)}</span>` : ''}</td>
-        <td class="mono">${r.actual != null ? escapeHtml(String(r.actual)) : '—'}</td>
+        ${cells.actualCell}
+        ${cells.sparkCell}
+        ${cells.zCell}
         <td class="mono tier-sub">${escapeHtml(gate)}</td>
         <td><span class="badge badge-us">${escapeHtml(wmClassShort(r.predictability_class))}</span></td>
-      </tr>`;
+      </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 8)}`;
     }).join('');
 
     const cardRows = (strip.prediction_cards || []).map(c => `<tr>
@@ -1657,8 +1798,8 @@
         <p style="margin:0 0 8px;font-size:12px;max-width:900px;color:var(--text-secondary)">${escapeHtml(industryScope)}</p>
         ${strip.ev_stance ? `<p style="margin:0 0 10px;font-size:12px;max-width:900px;color:var(--text-secondary)">${escapeHtml(strip.ev_stance)}</p>` : ''}
         ${alertRows ? `
-        <table class="darwin-table" style="max-width:960px;margin-bottom:8px">
-          <thead><tr><th>Ticker</th><th>Status</th><th>KPI</th><th>Class</th></tr></thead>
+        <table class="darwin-table" style="max-width:1100px;margin-bottom:8px">
+          <thead><tr><th>Ticker</th><th>Status</th><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Class</th></tr></thead>
           <tbody>${alertRows}</tbody>
         </table>` : `<p class="tier-sub" style="margin-bottom:8px">No exceptions — expand panels below for passing KPIs across industry buckets. Steady means gates held, not path certainty.</p>`}
         <details class="world-model-panel" style="margin:6px 0" open>
@@ -1682,8 +1823,9 @@
         </details>
         <details class="world-model-panel" style="margin:6px 0" ${label === 'steady' || label === 'attention' ? 'open' : ''}>
           <summary style="cursor:pointer;font-size:13px">Passing KPIs (${(strip.passes || []).length})</summary>
-          ${passRows ? `<table class="darwin-table" style="max-width:1040px;margin-top:8px">
-            <thead><tr><th>Ticker</th><th>Industry</th><th>KPI</th><th>Actual</th><th>Gate</th><th>Class</th></tr></thead>
+          <p class="tier-sub" style="margin:8px 0 0;max-width:900px">Click Actual, Hist, or Z for time series vs own history (theme CSV or ledger archive). Z is descriptive only — gates stay fixed.</p>
+          ${passRows ? `<table class="darwin-table" style="max-width:1180px;margin-top:8px">
+            <thead><tr><th>Ticker</th><th>Industry</th><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Gate</th><th>Class</th></tr></thead>
             <tbody>${passRows}</tbody>
           </table>` : '<p class="tier-sub">No pass rows.</p>'}
         </details>
@@ -1728,6 +1870,26 @@
         </details>
         <p class="tier-sub" style="margin-top:8px">Courtenay foresight + Magis claim gate — fails open diligence; Santa Fe is wisdom-only (no merge/simulator). House value = Power Zone / contract / IC / human.</p>
       </div>`;
+  }
+
+  function attachWorldModelHistoryHandlers(container) {
+    if (!container) return;
+    container.querySelectorAll('[data-wm-hist-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-wm-hist-toggle');
+        if (!id) return;
+        let detail = null;
+        container.querySelectorAll('[data-wm-hist-detail]').forEach(row => {
+          if (row.getAttribute('data-wm-hist-detail') === id) detail = row;
+        });
+        if (!detail) return;
+        const open = detail.hasAttribute('hidden');
+        container.querySelectorAll('[data-wm-hist-detail]').forEach(row => row.setAttribute('hidden', ''));
+        if (open) detail.removeAttribute('hidden');
+      });
+    });
   }
 
   function renderPortfolioMacroStrip(portfolioMacroRegime, escapeHtml, linkHtml, portfolioMacro) {
@@ -4009,6 +4171,7 @@
     diversifyEvents,
     attachConsensusHandlers,
     attachTickerInsightsHandlers,
+    attachWorldModelHistoryHandlers,
     buildConsensusCsv,
     buildTimeModel,
     STANCE_BADGE,
