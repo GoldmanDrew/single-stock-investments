@@ -4,7 +4,7 @@
 
 | Indicator | Latest | As of | YoY | Direction | In base IRR? |
 |-----------|--------|-------|-----|-----------|--------------|
-| Hyperscaler capex guide (USD bn, latest) | 320.0 | 2026-07-25 | n/a | flat | no (context) |
+| Hyperscaler capex guide (USD bn, latest) | 467.3 | 2026-07-25 | n/a | flat | no (context) |
 | Henry Hub natural gas spot (USD/MMBtu) | 2.871000051498413 | 2026-07-24 | -7.2% | down | no (context) |
 | US avg electricity price (cents/kWh) | 0.198 (stale) | 2026-06-01 | +4.2% | up | no (context) |
 | WTI crude (USD/bbl) | 89.30999755859375 | 2026-07-24 | +35.3% | up | no (context) |
