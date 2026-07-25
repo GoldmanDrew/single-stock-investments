@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
   "ticker": "TPL",
-  "as_of": "2026-07-24",
+  "as_of": "2026-07-25",
   "decision": {
     "status": "evidence_blocked",
     "price_per_share": 405.87,
@@ -20,9 +20,9 @@
     "downside_to_low_pct": -68.01,
     "unvalued_component_count": 0,
     "unresolved_evidence_count": 2,
-    "proof_complete_pct": 92.9,
-    "model_hash": "54cd2f4fd14f968d439e511e923ab668859bc1652a3a9ed93306e9fe92bf5b5f",
-    "primary_power_zone": "Scarce assets, royalties, and optionality",
+    "proof_complete_pct": 100.0,
+    "model_hash": "c48bf7a4aa72ecf0120c5f31f77a51055699839519a4d807c336ad02029a5b30",
+    "primary_power_zone": "Predictable cash-flow security",
     "owner_decision": null,
     "next_action": "Close critical evidence gaps before freezing a decision-grade packet."
   },
@@ -12245,35 +12245,36 @@
     ]
   },
   "method_fit": {
-    "profile_id": "predictable_cash_flow",
-    "label": "Predictable cash-flow security",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
     "current_archetype": "infrastructure",
     "primary_methods": [
-      "owner_cash_or_dividend_discount"
+      "component_owner_cash_and_unit_nav"
     ],
     "corroborating_methods": [
-      "regulated_asset_base",
-      "yield_and_reverse_dcf"
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
     ],
     "primary_personas": [
-      "buffett_weschler",
-      "hohn"
+      "hk",
+      "stahl"
     ],
     "cross_check_personas": [
+      "klarman_asset_value",
       "marks_credit_cycle"
     ],
     "silent_personas": [
+      "buffett_weschler",
       "greenblatt",
-      "hk",
-      "klarman_asset_value",
+      "hohn",
       "marathon_capital_cycle",
       "munger",
-      "pabrai",
-      "stahl"
+      "pabrai"
     ],
     "routing_reasons": [
-      "archetype=infrastructure",
-      "component categories=infrastructure, operating_business"
+      "component categories=infrastructure, real_option",
+      "existing methods=land, option, replacement, royalty, unit_nav",
+      "explicit reviewed profile"
     ],
     "required_evidence": [
       "legal economic claim",
@@ -12282,14 +12283,55 @@
       "realization timing",
       "remaining owner capital"
     ],
-    "applicability_tests": [],
-    "failure_modes": [
-      "dividend treated as earning power",
-      "growth capital and dilution omitted",
-      "contract renewal or regulatory reset ignored"
+    "applicability_tests": [
+      "The security owns a legally enforceable economic claim on scarce assets or royalties.",
+      "Material value is omitted or poorly represented by current GAAP earnings.",
+      "Asset quantities, ownership, overlap, timing, and remaining capital can be reconciled.",
+      "Comparable values can be adjusted for location, quality, control, liquidity, and realization time."
     ],
-    "validation_cohort": [],
-    "rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision."
+    "failure_modes": [
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
+    ],
+    "validation_cohort": [
+      {
+        "ticker": "MSB",
+        "archetype": "royalty_asset",
+        "primary_profile": "scarce_asset_optionality",
+        "purpose": "Test depletion, commodity exposure, finite reserves, and royalty-unit reconciliation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "C",
+        "archetype": "financial_balance_sheet",
+        "primary_profile": "credit_and_normalized_returns",
+        "purpose": "Test tangible capital, credit losses, funding, regulation, and excess-capital realization.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NVR",
+        "archetype": "quality_reinvestment",
+        "primary_profile": "quality_reinvestment",
+        "purpose": "Test owner earnings, capital-light reinvestment, cyclicality, and buyback value creation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NUE",
+        "archetype": "capital_cycle",
+        "primary_profile": "capital_cycle",
+        "purpose": "Test normalized margins, industry supply response, replacement cost, and reinvestment timing.",
+        "status": "queued"
+      },
+      {
+        "ticker": "BIIB",
+        "archetype": "binary_special_situation",
+        "primary_profile": "probability_weighted_special_situation",
+        "purpose": "Test product concentration, pipeline probabilities, patent cliffs, and catalyst timing.",
+        "status": "queued"
+      }
+    ],
+    "rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
   },
   "outcomes": {
     "status": "waiting_for_owner_decision",

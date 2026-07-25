@@ -14,7 +14,7 @@
 | Systems backlog and deferred revenue conversion option | risk_adjusted_milestone_value | $0.00 | $12.11 | $36.00 |
 | Net cash and debt-free balance-sheet claims on common equity | net_asset_value | $3.20 | $4.60 | $5.80 |
 | WFE downcycle, China exposure, and backlog-decline reserve | net_asset_value | $-42.00 | $-20.00 | $-8.00 |
-| **Total** |  | **$-9.35** | **$56.51** | **$133.67** |
+| **Total** |  | **$0.00** | **$56.51** | **$133.67** |
 
 Base value versus price: **-57.1%**. Current or contracted operating and financial assets support approximately **$44.40** per share; the market asks investors to pay another **$87.30** for growth, inventory, projects, or scarcity.
 

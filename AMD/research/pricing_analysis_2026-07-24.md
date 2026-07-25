@@ -77,7 +77,7 @@ Entry prices were computed mechanically from the routed power-zone profile (High
 
 **Strongest counter-explanation:** growth projected without its capital cost
 
-**Committee routing:** not_initialized — not initialized
+**Committee routing:** round_one_open — buffett_weschler, hohn, munger
 
 **Falsifiers:**
 

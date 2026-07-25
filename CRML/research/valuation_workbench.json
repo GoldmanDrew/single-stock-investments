@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
   "ticker": "CRML",
-  "as_of": "2026-07-24",
+  "as_of": "2026-07-25",
   "decision": {
     "status": "decision_grade",
     "price_per_share": 6.4,
@@ -24,7 +24,7 @@
     "model_hash": "3fcbc020fd0bba70e19fb7c5eaab06e210fa8d3cc4e6765c9b10b9bb5e062ff7",
     "primary_power_zone": "High-return compounder",
     "owner_decision": null,
-    "next_action": "Freeze the evidence packet and select three method-independent raters."
+    "next_action": "Complete isolated rater outputs, proposer case, pre-mortem, and research response without sharing peer votes."
   },
   "business": {
     "status": "complete",
@@ -3334,18 +3334,29 @@
     "rule": "Every option requires a beneficiary, probability, timing, remaining capital, failure case, and non-overlap control; absence of option value must be explicit rather than unvalued."
   },
   "committee": {
-    "status": "not_started",
-    "as_of": null,
-    "packet_hash": null,
-    "stage": null,
-    "selected_raters": [],
+    "status": "independent_review_open",
+    "as_of": "2026-07-24",
+    "packet_hash": "ccf7bc48c6981193ea27b5338a9771f4e4e53595aa5488166211570b5fbaaefd",
+    "stage": "round_one_open",
+    "selected_raters": [
+      "buffett_weschler",
+      "hohn",
+      "munger"
+    ],
     "analysis_progress": {
-      "completed": 0,
-      "required": 7
+      "completed": 1,
+      "required": 13
     },
-    "completed_outputs": [],
+    "completed_outputs": [
+      "proposer.json"
+    ],
     "missing_outputs": [
-      "proposer.json",
+      "round_1/buffett_weschler.json",
+      "round_1/hohn.json",
+      "round_1/munger.json",
+      "round_2/buffett_weschler.json",
+      "round_2/hohn.json",
+      "round_2/munger.json",
       "pre_mortem.json",
       "evidence_tribunal.json",
       "research_response.json",
@@ -3357,10 +3368,10 @@
     "owner_decision": null,
     "strongest_dissent": null,
     "unresolved_items": [],
-    "next_action": "Freeze the evidence packet and select three method-independent raters.",
+    "next_action": "Complete isolated rater outputs, proposer case, pre-mortem, and research response without sharing peer votes.",
     "record_ref": null,
     "previous_record_ref": null,
-    "manifest_ref": null
+    "manifest_ref": "CRML/research/committee_work/2026-07-24/manifest.json"
   },
   "evidence": {
     "status": "clear",
@@ -3369,51 +3380,93 @@
     "gaps": []
   },
   "method_fit": {
-    "profile_id": "quality_reinvestment",
-    "label": "High-return compounder",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
     "current_archetype": "optionality",
     "primary_methods": [
-      "owner_earnings_reinvestment_dcf"
+      "component_owner_cash_and_unit_nav"
     ],
     "corroborating_methods": [
-      "reverse_dcf",
-      "incremental_roic_runway"
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
     ],
     "primary_personas": [
-      "buffett_weschler",
-      "hohn"
-    ],
-    "cross_check_personas": [
-      "munger",
-      "marathon_capital_cycle"
-    ],
-    "silent_personas": [
-      "greenblatt",
       "hk",
-      "klarman_asset_value",
-      "marks_credit_cycle",
-      "pabrai",
       "stahl"
     ],
+    "cross_check_personas": [
+      "klarman_asset_value",
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hohn",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai"
+    ],
     "routing_reasons": [
-      "archetype=compounder",
+      "archetype=optionality",
+      "component categories=real_option",
       "explicit reviewed profile"
     ],
     "required_evidence": [
-      "normalized owner earnings",
-      "incremental return on capital",
-      "reinvestment runway",
-      "diluted share count",
-      "competitive-advantage mechanism"
+      "legal economic claim",
+      "non-overlapping physical inventory",
+      "unit economics",
+      "realization timing",
+      "remaining owner capital"
     ],
-    "applicability_tests": [],
+    "applicability_tests": [
+      "The security owns a legally enforceable economic claim on scarce assets or royalties.",
+      "Material value is omitted or poorly represented by current GAAP earnings.",
+      "Asset quantities, ownership, overlap, timing, and remaining capital can be reconciled.",
+      "Comparable values can be adjusted for location, quality, control, liquidity, and realization time."
+    ],
     "failure_modes": [
-      "growth projected without its capital cost",
-      "stock compensation or acquisitions omitted",
-      "terminal value unsupported by a durable mechanism"
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
     ],
-    "validation_cohort": [],
-    "rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision."
+    "validation_cohort": [
+      {
+        "ticker": "MSB",
+        "archetype": "royalty_asset",
+        "primary_profile": "scarce_asset_optionality",
+        "purpose": "Test depletion, commodity exposure, finite reserves, and royalty-unit reconciliation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "C",
+        "archetype": "financial_balance_sheet",
+        "primary_profile": "credit_and_normalized_returns",
+        "purpose": "Test tangible capital, credit losses, funding, regulation, and excess-capital realization.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NVR",
+        "archetype": "quality_reinvestment",
+        "primary_profile": "quality_reinvestment",
+        "purpose": "Test owner earnings, capital-light reinvestment, cyclicality, and buyback value creation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NUE",
+        "archetype": "capital_cycle",
+        "primary_profile": "capital_cycle",
+        "purpose": "Test normalized margins, industry supply response, replacement cost, and reinvestment timing.",
+        "status": "queued"
+      },
+      {
+        "ticker": "BIIB",
+        "archetype": "binary_special_situation",
+        "primary_profile": "probability_weighted_special_situation",
+        "purpose": "Test product concentration, pipeline probabilities, patent cliffs, and catalyst timing.",
+        "status": "queued"
+      }
+    ],
+    "rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
   },
   "outcomes": {
     "status": "waiting_for_owner_decision",

@@ -14,7 +14,7 @@
 | Deferred revenue and customer deposit conversion option | risk_adjusted_milestone_value | $0.00 | $12.19 | $36.24 |
 | Net cash and financial claims per share | net_asset_value | $0.80 | $1.05 | $1.30 |
 | Cycle, customer concentration, and dilution reserve | net_asset_value | $-12.00 | $-6.00 | $-2.00 |
-| **Total** |  | **$-10.61** | **$9.79** | **$49.96** |
+| **Total** |  | **$0.00** | **$9.79** | **$49.96** |
 
 Base value versus price: **-87.3%**. Current or contracted operating and financial assets support approximately **$-2.40** per share; the market asks investors to pay another **$79.76** for growth, inventory, projects, or scarcity.
 

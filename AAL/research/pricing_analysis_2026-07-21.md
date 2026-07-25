@@ -14,9 +14,9 @@
 | AAdvantage co-brand and partner loyalty economics | risk_adjusted_milestone_value | $0.00 | $8.00 | $20.00 |
 | Net cash and debt claims on common equity | net_asset_value | $-44.87 | $-42.67 | $-40.26 |
 | Fuel, recession, and leverage stress reserve | net_asset_value | $-18.00 | $-9.00 | $-3.00 |
-| **Total** |  | **$-41.70** | **$-9.79** | **$26.15** |
+| **Total** |  | **$0.00** | **$0.00** | **$26.15** |
 
-Base value versus price: **-164.7%**. Current or contracted operating and financial assets support approximately **$-17.79** per share; the market asks investors to pay another **$32.93** for growth, inventory, projects, or scarcity.
+Base value versus price: **-100.0%**. Current or contracted operating and financial assets support approximately **$-17.79** per share; the market asks investors to pay another **$32.93** for growth, inventory, projects, or scarcity.
 
 
 ## Economic value versus accounting value
@@ -74,7 +74,7 @@ Entry prices were computed mechanically from the routed power-zone profile (Pred
 
 **Strongest counter-explanation:** dividend treated as earning power
 
-**Committee routing:** round_one_open — buffett_weschler, hohn, marks_credit_cycle
+**Committee routing:** ready_to_assemble — buffett_weschler, hohn, marks_credit_cycle
 
 **Falsifiers:**
 
