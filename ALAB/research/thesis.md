@@ -1,6 +1,6 @@
 # ALAB — Investment Thesis
 
-**Last updated:** 2026-07-25
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,8 +11,13 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | peak |
-| **MOI bucket** (legacy) | operating |
+| **Implied 7yr IRR** (base) | -16.95% (contract base) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
 | **Payoff lens** | operating |
+| **MOI bucket** | pending |
+
+**Deep dive:** `ALAB/research/deep_dive_2026-07-25.md` (auto-sync)
 
 ## One-line thesis
 

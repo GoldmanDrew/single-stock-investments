@@ -1,11 +1,13 @@
 {
   "schema_version": "2.0",
-  "status": "default_needs_review",
+  "status": "routed",
   "profile_id": "quality_reinvestment",
   "label": "High-return compounder",
-  "score": 0.0,
+  "score": 10.0,
   "reasons": [
-    "No decisive classification was supplied; owner-earnings is the conservative operating default."
+    "archetype=compounder",
+    "component categories=operating_business",
+    "existing methods=dcf, owner_cash, reinvestment"
   ],
   "primary_methods": [
     "owner_earnings_reinvestment_dcf"
@@ -42,31 +44,62 @@
     "stock compensation or acquisitions omitted",
     "terminal value unsupported by a durable mechanism"
   ],
-  "secondary_profiles": [],
+  "secondary_profiles": [
+    {
+      "profile_id": "capital_cycle",
+      "score": 4.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=capacity, cycle, midcycle"
+      ]
+    },
+    {
+      "profile_id": "predictable_cash_flow",
+      "score": 3.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=dividend, owner_cash"
+      ]
+    }
+  ],
   "scorecard": {
     "scarce_asset_optionality": {
       "score": 0.0,
       "reasons": []
     },
     "quality_reinvestment": {
-      "score": 0.0,
-      "reasons": []
+      "score": 10.0,
+      "reasons": [
+        "archetype=compounder",
+        "component categories=operating_business",
+        "existing methods=dcf, owner_cash, reinvestment"
+      ]
     },
     "capital_cycle": {
-      "score": 0.0,
-      "reasons": []
+      "score": 4.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=capacity, cycle, midcycle"
+      ]
     },
     "credit_and_normalized_returns": {
-      "score": 0.0,
-      "reasons": []
+      "score": 2.0,
+      "reasons": [
+        "component categories=financial_asset, liability_or_reserve"
+      ]
     },
     "catalyst_asset_value": {
-      "score": 0.0,
-      "reasons": []
+      "score": 1.0,
+      "reasons": [
+        "component categories=financial_asset"
+      ]
     },
     "predictable_cash_flow": {
-      "score": 0.0,
-      "reasons": []
+      "score": 3.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=dividend, owner_cash"
+      ]
     },
     "binary_milestone": {
       "score": 0.0,
@@ -75,23 +108,58 @@
   },
   "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
   "ticker": "ALAB",
-  "as_of": "2026-07-20",
+  "as_of": "2026-07-25",
   "route_source": "canonical_power_zone_router",
   "config_path": "_system/frameworks/power_zones.json",
   "config_updated": "2026-07-14",
   "classification": {
-    "archetype": "unknown",
+    "archetype": "compounder",
     "moat": "unproven",
-    "dhando": "pending",
+    "dhando": "partial",
     "stance": "watch",
-    "cycle": "-",
+    "cycle": "peak",
     "moi_bucket": "pending",
-    "payoff_lens": "pending",
-    "investment_sleeve": "ls_algo_underlying"
+    "payoff_lens": "operating",
+    "investment_sleeve": "ls_algo_underlying",
+    "lawrence_bucket": "pricing_power",
+    "predictive_attribute": "growth_multiple_compression"
   },
-  "specialist_power_zones": [],
+  "specialist_power_zones": [
+    {
+      "persona": "lawrence",
+      "label": "Bryan Lawrence",
+      "independence_group": "quality_reinvestment",
+      "in_power_zone": true,
+      "fit": 0.667,
+      "matched": 2,
+      "known_fields": 3,
+      "matched_fields": [
+        "archetype",
+        "dhando"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 57
+    },
+    {
+      "persona": "marks_credit_cycle",
+      "label": "Howard Marks / Oaktree",
+      "independence_group": "credit_cycle",
+      "in_power_zone": true,
+      "fit": 0.667,
+      "matched": 2,
+      "known_fields": 3,
+      "matched_fields": [
+        "cycle",
+        "dhando"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 57
+    }
+  ],
   "committee": {
-    "candidate_count": 4,
+    "candidate_count": 5,
     "independence_group_count": 3,
     "committee_seatable": true,
     "candidates": [
@@ -110,9 +178,13 @@
       {
         "persona": "marathon_capital_cycle",
         "independence_group": "capital_cycle"
+      },
+      {
+        "persona": "lawrence",
+        "independence_group": "quality_reinvestment"
       }
     ]
   },
-  "input_hash": "46d2641d4b1f8eeadf0871e341745bb408b3d49410a180104992ff28d5ee530c",
-  "generated_at": "2026-07-20T17:13:53.878641+00:00"
+  "input_hash": "59c169de8117cc87f3dfa8f3b92195224fe168051ea801e9d672dc6cb0d6e3de",
+  "generated_at": "2026-07-25T18:35:10.790204+00:00"
 }
