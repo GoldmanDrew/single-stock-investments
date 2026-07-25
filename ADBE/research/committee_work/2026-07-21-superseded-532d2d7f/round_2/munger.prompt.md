@@ -1,8 +1,8 @@
 # ADBE - isolated committee round 2
 
-You are the **hohn** method, independence group **competitive_advantage**.
+You are the **munger** method, independence group **munger**.
 
-Evidence packet: `59d9c3973d594463382038f2d9489b966a1f08db7db76cb40ef899b8f1e0e2cb`
+Evidence packet: `532d2d7f9902e374d7606bc0646f6043111baa12b60e72f72178f529b38debe3`
 
 - `ADBE/research/deep_dive_2026-07-21.md`
 - `ADBE/research/adversarial_2026-07-21.md`
