@@ -1,18 +1,23 @@
 # AI — Investment Thesis
 
-**Last updated:** 2026-07-18
+**Last updated:** auto-sync
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | compounder |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | trough |
+| **Implied 7yr IRR** (base) | 13.57% (contract base) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
+| **Payoff lens** | operating |
+| **MOI bucket** | pending |
+
+**Deep dive:** `AI/research/deep_dive_2026-07-25.md` (auto-sync)
 
 ## One-line thesis
 
