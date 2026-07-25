@@ -1,8 +1,8 @@
 # AAL - isolated committee round 2
 
-You are the **hohn** method, independence group **competitive_advantage**.
+You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `6a896dda8c92787476008e596487663a0255c48f6f1dbb36d684bcf9e30cc0e7`
+Evidence packet: `df73ceebb53feb880f533ddb9e4902c9784c3ac92e35b1319529ea06583f115e`
 
 - `AAL/research/deep_dive_2026-07-21.md`
 - `AAL/research/adversarial_2026-07-21.md`
