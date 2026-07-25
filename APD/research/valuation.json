@@ -1,6 +1,6 @@
 {
   "ticker": "APD",
-  "as_of": "2026-07-10",
+  "as_of": "2026-07-25",
   "method": "full",
   "lawrence_bucket": "pricing_power",
   "classification_inputs": {
@@ -15,9 +15,13 @@
     "price_source": "Yahoo APD close 2026-07-10",
     "price_as_of": "2026-07-10",
     "fcf_per_share": 8.62,
-    "fcf_source": "FY2025 cash from operations $3.26B less estimated maintenance capital spending $1.35B, divided by 222.7M diluted shares (10-K FY2025); GAAP FCF negative due to NEOM/JIGPC growth capex",
+    "fcf_source": "valuation.json FY FCF \\.62/sh on 222.7M shares",
     "shares_millions": 222.7,
-    "normalization_note": "Core industrial gases earn adjusted operating income $2.9B and adjusted diluted EPS $12.03; Lawrence base uses maintenance-level owner cash, not growth project spend or FY2025 $3.7B project-exit charges"
+    "normalization_note": "Core industrial gases earn adjusted operating income $2.9B and adjusted diluted EPS $12.03; Lawrence base uses maintenance-level owner cash, not growth project spend or FY2025 $3.7B project-exit charges",
+    "shares_outstanding": 222700000,
+    "shares_source": "222.7M diluted shares (valuation.json)",
+    "cash_m": 1856.0,
+    "total_debt_m": 16769.9
   },
   "scenarios": {
     "bear": {
@@ -527,5 +531,3360 @@
     "contributor_count": 7,
     "in_base_irr": false,
     "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "valuation_mode": "economic_value",
+  "valuation_methodology": {
+    "mode": "component_economic_value",
+    "horizon_years": 7,
+    "decision_rule": "Use one complete non-overlapping component schedule. Lawrence return remains a separate stance gate."
+  },
+  "component_valuation": {
+    "schema_version": "1.0",
+    "all_material_components_identified": true,
+    "coverage_statement": "Four additive components map owner cash, reinvestment runway, net financial claims, and cycle reserve once each.",
+    "components": [
+      {
+        "id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "category": "operating_business",
+        "overlap_key": "core_engine",
+        "treatment": "additive",
+        "valuation": {
+          "method": "owner_cash_or_dividend_discount",
+          "basis": "per_share",
+          "low": 117.094,
+          "base": 189.7592,
+          "high": 274.8498,
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "assumption_summary": "Filing-grounded schedule 2026-07-25",
+          "cross_check": "Reconcile to primary filing before decision use.",
+          "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+          "valuation_status": "bounded_estimate",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "owner_cash_or_dividend_discount",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "growth_y1_5",
+                "label": "Growth years 1\u20135",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.02,
+                  "base": 0.06,
+                  "high": 0.09
+                },
+                "unit": "ratio",
+                "rationale": "Filing-aligned growth bands.",
+                "allowed_range": {
+                  "min": -0.1,
+                  "max": 0.4
+                }
+              },
+              {
+                "id": "growth_y6_10",
+                "label": "Growth years 6\u20137",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.02,
+                  "base": 0.04,
+                  "high": 0.06
+                },
+                "unit": "ratio",
+                "rationale": "Fade toward mid-cycle.",
+                "allowed_range": {
+                  "min": -0.1,
+                  "max": 0.25
+                }
+              },
+              {
+                "id": "discount_rate",
+                "label": "Required return on owner cash",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.09,
+                  "base": 0.07,
+                  "high": 0.06
+                },
+                "unit": "ratio",
+                "rationale": "Business risk bounds.",
+                "allowed_range": {
+                  "min": 0.06,
+                  "max": 0.18
+                }
+              },
+              {
+                "id": "exit_multiple",
+                "label": "Selling multiple in year 7",
+                "kind": "judgment",
+                "values": {
+                  "low": 14,
+                  "base": 18,
+                  "high": 22
+                },
+                "unit": "multiple",
+                "rationale": "Aligned to Lawrence exit multiples.",
+                "allowed_range": {
+                  "min": 8,
+                  "max": 45
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "growth_factor_y1",
+                "op": "add",
+                "args": [
+                  1,
+                  "growth_y1_5"
+                ],
+                "unit": "ratio"
+              },
+              {
+                "id": "growth_factor_y2",
+                "op": "add",
+                "args": [
+                  1,
+                  "growth_y6_10"
+                ],
+                "unit": "ratio"
+              },
+              {
+                "id": "owner_cash_y1",
+                "op": "multiply",
+                "args": [
+                  "normalized_owner_cash",
+                  "growth_factor_y1"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y2",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y1",
+                  "growth_factor_y1"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y3",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y2",
+                  "growth_factor_y1"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y4",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y3",
+                  "growth_factor_y1"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y5",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y4",
+                  "growth_factor_y1"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y6",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y5",
+                  "growth_factor_y2"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "owner_cash_y7",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y6",
+                  "growth_factor_y2"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "cash_pv",
+                "op": "present_value",
+                "args": [
+                  "owner_cash_y1",
+                  1,
+                  "owner_cash_y2",
+                  2,
+                  "owner_cash_y3",
+                  3,
+                  "owner_cash_y4",
+                  4,
+                  "owner_cash_y5",
+                  5,
+                  "owner_cash_y6",
+                  6,
+                  "discount_rate"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "terminal_cash",
+                "op": "multiply",
+                "args": [
+                  "owner_cash_y7",
+                  "exit_multiple"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "terminal_pv",
+                "op": "discount",
+                "args": [
+                  "terminal_cash",
+                  "discount_rate",
+                  7
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "value_per_share",
+                "op": "add",
+                "args": [
+                  "cash_pv",
+                  "terminal_pv"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          }
+        }
+      },
+      {
+        "id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "category": "operating_business",
+        "overlap_key": "reinvestment_runway",
+        "treatment": "additive",
+        "valuation": {
+          "method": "owner_earnings_reinvestment_dcf",
+          "basis": "per_share",
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0,
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "assumption_summary": "Filing-grounded schedule 2026-07-25",
+          "cross_check": "Reconcile to primary filing before decision use.",
+          "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+          "valuation_status": "bounded_estimate",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "owner_earnings_reinvestment_dcf",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "pipeline_value_per_share",
+                "label": "Hydrogen / project runway per share",
+                "kind": "judgment",
+                "values": {
+                  "low": 5.0,
+                  "base": 25.0,
+                  "high": 60.0
+                },
+                "unit": "USD_per_share",
+                "rationale": "Bounded claim on NEOM and clean-hydrogen backlog above mid-cycle FCF.",
+                "allowed_range": {
+                  "min": 0,
+                  "max": 100
+                }
+              }
+            ],
+            "calculations": [],
+            "outputs": {
+              "low": "pipeline_value_per_share",
+              "base": "pipeline_value_per_share",
+              "high": "pipeline_value_per_share"
+            }
+          }
+        }
+      },
+      {
+        "id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "category": "financial_asset",
+        "overlap_key": "net_financial_claims",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": -70.7337,
+          "base": -66.9686,
+          "high": -63.2034,
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "assumption_summary": "Filing-grounded schedule 2026-07-25",
+          "cross_check": "Reconcile to primary filing before decision use.",
+          "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+          "valuation_status": "bounded_estimate",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "net_asset_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "cash_m",
+                "label": "Cash and cash equivalents",
+                "kind": "fact",
+                "value": 1856.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "CashAndCashEquivalents",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "long_term_debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 16769.9,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "net_claim_m",
+                "label": "Cash minus long-term debt (debt-mark stress)",
+                "kind": "judgment",
+                "values": {
+                  "low": -15752.4,
+                  "base": -14913.9,
+                  "high": -14075.4
+                },
+                "unit": "USD_m",
+                "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high.",
+                "allowed_range": {
+                  "min": -50000,
+                  "max": 20000
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "value_per_share",
+                "op": "divide",
+                "args": [
+                  "net_claim_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          }
+        }
+      },
+      {
+        "id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "category": "liability_or_reserve",
+        "overlap_key": "cycle_reserve",
+        "treatment": "additive",
+        "valuation": {
+          "method": "midcycle_capacity_value",
+          "basis": "per_share",
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0,
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "assumption_summary": "Filing-grounded schedule 2026-07-25",
+          "cross_check": "Reconcile to primary filing before decision use.",
+          "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+          "valuation_status": "bounded_estimate",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "midcycle_capacity_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "price_per_share",
+                "label": "Market price per share",
+                "kind": "fact",
+                "value": 296.75,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/research/valuation.json",
+                  "locator": "inputs.price",
+                  "as_of": "2026-07-25"
+                },
+                "locked": true
+              },
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "cycle_reserve_per_share",
+                "label": "Project cost-overrun and energy-cycle reserve per share",
+                "kind": "judgment",
+                "values": {
+                  "low": -50.0,
+                  "base": -15.0,
+                  "high": -4.0
+                },
+                "unit": "USD_per_share",
+                "rationale": "Negative reserve for project delays and energy demand trough.",
+                "allowed_range": {
+                  "min": -100,
+                  "max": 0
+                }
+              }
+            ],
+            "calculations": [],
+            "outputs": {
+              "low": "cycle_reserve_per_share",
+              "base": "cycle_reserve_per_share",
+              "high": "cycle_reserve_per_share"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "economic_value": {
+    "schema_version": "1.0",
+    "method": "component_economic_value",
+    "economic_claim": {
+      "description": "One diluted Air Products share claim on industrial-gas owner cash, clean-hydrogen runway, net cash/debt, less project/execution reserve.",
+      "unit_label": "diluted share",
+      "unit_count": 222700000,
+      "unit_source": "222.7M diluted shares (valuation.json)",
+      "enterprise_to_equity_reconciliation": "Operating owner cash and runway valued once; cash/debt and cycle reserve are separate non-overlapping components."
+    },
+    "gaap_role": "cross_check",
+    "accounting_reference": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; APD/research/evidence/filing_facts_2026-07-10.json",
+    "component_groups": [
+      {
+        "id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "component_ids": [
+          "core_engine"
+        ],
+        "economic_claim": "Industrial gas owner-cash engine",
+        "valuation_basis": "owner_cash_or_dividend_discount proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key core_engine."
+      },
+      {
+        "id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "component_ids": [
+          "reinvestment_runway"
+        ],
+        "economic_claim": "Clean hydrogen / mega-project runway",
+        "valuation_basis": "owner_earnings_reinvestment_dcf proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key reinvestment_runway."
+      },
+      {
+        "id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "component_ids": [
+          "net_financial_claims"
+        ],
+        "economic_claim": "Net cash and long-term debt claims",
+        "valuation_basis": "net_asset_value proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key net_financial_claims."
+      },
+      {
+        "id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "component_ids": [
+          "cycle_reserve"
+        ],
+        "economic_claim": "Project-execution and energy-cycle reserve",
+        "valuation_basis": "midcycle_capacity_value proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key cycle_reserve."
+      }
+    ],
+    "limitations": [
+      "Debt from filing digest LongTermDebtAndCapitalLeaseObligations."
+    ]
+  },
+  "economic_value_analysis": {
+    "schema_version": "1.0",
+    "status": "complete",
+    "trigger": {
+      "required": true,
+      "reasons": [
+        "explicit_component_schedule"
+      ],
+      "policy": "A complete economic-value analysis is required when any trigger fires; otherwise it is recommended."
+    },
+    "method": "component_economic_value",
+    "economic_claim": {
+      "description": "One diluted Air Products share claim on industrial-gas owner cash, clean-hydrogen runway, net cash/debt, less project/execution reserve.",
+      "unit_label": "diluted share",
+      "unit_count": 222700000,
+      "unit_source": "222.7M diluted shares (valuation.json)",
+      "enterprise_to_equity_reconciliation": "Operating owner cash and runway valued once; cash/debt and cycle reserve are separate non-overlapping components."
+    },
+    "gaap_role": "cross_check",
+    "accounting_reference": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; APD/research/evidence/filing_facts_2026-07-10.json",
+    "comparable_hierarchy": [
+      "issuer_arm_length_transaction",
+      "same_asset_transaction",
+      "public_peer",
+      "replacement_cost",
+      "approved_external_analysis"
+    ],
+    "gross_comparable_nav_per_share": null,
+    "risked_present_value_per_share": {
+      "low": 1.36,
+      "base": 132.79,
+      "high": 267.65
+    },
+    "component_groups": [
+      {
+        "id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "component_ids": [
+          "core_engine"
+        ],
+        "economic_claim": "Industrial gas owner-cash engine",
+        "valuation_basis": "owner_cash_or_dividend_discount proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key core_engine.",
+        "risked_present_value_per_share": {
+          "low": 117.09,
+          "base": 189.76,
+          "high": 274.85
+        }
+      },
+      {
+        "id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "component_ids": [
+          "reinvestment_runway"
+        ],
+        "economic_claim": "Clean hydrogen / mega-project runway",
+        "valuation_basis": "owner_earnings_reinvestment_dcf proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key reinvestment_runway.",
+        "risked_present_value_per_share": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0
+        }
+      },
+      {
+        "id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "component_ids": [
+          "net_financial_claims"
+        ],
+        "economic_claim": "Net cash and long-term debt claims",
+        "valuation_basis": "net_asset_value proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key net_financial_claims.",
+        "risked_present_value_per_share": {
+          "low": -70.73,
+          "base": -66.97,
+          "high": -63.2
+        }
+      },
+      {
+        "id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "component_ids": [
+          "cycle_reserve"
+        ],
+        "economic_claim": "Project-execution and energy-cycle reserve",
+        "valuation_basis": "midcycle_capacity_value proof outputs.",
+        "adjustments": "Non-overlapping overlap key.",
+        "overlap_control": "Unique overlap key cycle_reserve.",
+        "risked_present_value_per_share": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        }
+      }
+    ],
+    "valuation_proof": [
+      {
+        "component_id": "core_engine",
+        "economic_claim": "Industrial gas owner-cash engine",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "owner_cash_or_dividend_discount",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Non-overlapping overlap key.",
+        "range_per_share": {
+          "low": 117.09,
+          "base": 189.76,
+          "high": 274.85
+        },
+        "treatment": "additive",
+        "overlap_key": "core_engine",
+        "overlap_control": "Unique overlap key core_engine.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "economic_claim": "Clean hydrogen / mega-project runway",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "owner_earnings_reinvestment_dcf",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Non-overlapping overlap key.",
+        "range_per_share": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0
+        },
+        "treatment": "additive",
+        "overlap_key": "reinvestment_runway",
+        "overlap_control": "Unique overlap key reinvestment_runway.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "net_financial_claims",
+        "economic_claim": "Net cash and long-term debt claims",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Non-overlapping overlap key.",
+        "range_per_share": {
+          "low": -70.73,
+          "base": -66.97,
+          "high": -63.2
+        },
+        "treatment": "additive",
+        "overlap_key": "net_financial_claims",
+        "overlap_control": "Unique overlap key net_financial_claims.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "cycle_reserve",
+        "economic_claim": "Project-execution and energy-cycle reserve",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Non-overlapping overlap key.",
+        "range_per_share": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        },
+        "treatment": "additive",
+        "overlap_key": "cycle_reserve",
+        "overlap_control": "Unique overlap key cycle_reserve.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "risk_and_timing": null
+      }
+    ],
+    "wisdom_applied": [],
+    "limitations": [
+      "Debt from filing digest LongTermDebtAndCapitalLeaseObligations."
+    ],
+    "complete_component_coverage": true,
+    "validation_errors": [],
+    "registry_version": "1.0"
+  },
+  "component_valuation_results": {
+    "status": "complete",
+    "decision_rule": "Use the complete low/base/high component schedule. Embedded components are estimated but not added twice. Security equity value per share is floored at 0 (limited liability).",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "category": "operating_business",
+        "overlap_key": "core_engine",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_cash_or_dividend_discount",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 8.62,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "values": {
+                "low": 0.02,
+                "base": 0.06,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Filing-aligned growth bands.",
+              "allowed_range": {
+                "min": -0.1,
+                "max": 0.4
+              }
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "values": {
+                "low": 0.02,
+                "base": 0.04,
+                "high": 0.06
+              },
+              "unit": "ratio",
+              "rationale": "Fade toward mid-cycle.",
+              "allowed_range": {
+                "min": -0.1,
+                "max": 0.25
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "values": {
+                "low": 0.09,
+                "base": 0.07,
+                "high": 0.06
+              },
+              "unit": "ratio",
+              "rationale": "Business risk bounds.",
+              "allowed_range": {
+                "min": 0.06,
+                "max": 0.18
+              }
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "values": {
+                "low": 14,
+                "base": 18,
+                "high": 22
+              },
+              "unit": "multiple",
+              "rationale": "Aligned to Lawrence exit multiples.",
+              "allowed_range": {
+                "min": 8,
+                "max": 45
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "growth_factor_y1",
+              "op": "add",
+              "args": [
+                1,
+                "growth_y1_5"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "growth_factor_y2",
+              "op": "add",
+              "args": [
+                1,
+                "growth_y6_10"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "owner_cash_y1",
+              "op": "multiply",
+              "args": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y2",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y3",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y4",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y5",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y6",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "owner_cash_y7",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "cash_pv",
+              "op": "present_value",
+              "args": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "terminal_cash",
+              "op": "multiply",
+              "args": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "terminal_pv",
+              "op": "discount",
+              "args": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "value_per_share",
+              "op": "add",
+              "args": [
+                "cash_pv",
+                "terminal_pv"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "cross_check": "Reconcile to primary filing before decision use.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Filing-grounded schedule 2026-07-25",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "scenario_assumptions": null,
+        "low_per_share": 117.09,
+        "base_per_share": 189.76,
+        "high_per_share": 274.85
+      },
+      {
+        "id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "category": "operating_business",
+        "overlap_key": "reinvestment_runway",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "owner_earnings_reinvestment_dcf",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_earnings_reinvestment_dcf",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 222.7,
+              "unit": "million_shares",
+              "source": {
+                "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                "locator": "222.7M diluted shares (valuation.json)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "pipeline_value_per_share",
+              "label": "Hydrogen / project runway per share",
+              "kind": "judgment",
+              "values": {
+                "low": 5.0,
+                "base": 25.0,
+                "high": 60.0
+              },
+              "unit": "USD_per_share",
+              "rationale": "Bounded claim on NEOM and clean-hydrogen backlog above mid-cycle FCF.",
+              "allowed_range": {
+                "min": 0,
+                "max": 100
+              }
+            }
+          ],
+          "calculations": [],
+          "outputs": {
+            "low": "pipeline_value_per_share",
+            "base": "pipeline_value_per_share",
+            "high": "pipeline_value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "cross_check": "Reconcile to primary filing before decision use.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Filing-grounded schedule 2026-07-25",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "scenario_assumptions": null,
+        "low_per_share": 5.0,
+        "base_per_share": 25.0,
+        "high_per_share": 60.0
+      },
+      {
+        "id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "category": "financial_asset",
+        "overlap_key": "net_financial_claims",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents",
+              "kind": "fact",
+              "value": 1856.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                "locator": "CashAndCashEquivalents",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "long_term_debt_m",
+              "label": "Long-term debt",
+              "kind": "fact",
+              "value": 16769.9,
+              "unit": "USD_m",
+              "source": {
+                "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 222.7,
+              "unit": "million_shares",
+              "source": {
+                "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                "locator": "222.7M diluted shares (valuation.json)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "net_claim_m",
+              "label": "Cash minus long-term debt (debt-mark stress)",
+              "kind": "judgment",
+              "values": {
+                "low": -15752.4,
+                "base": -14913.9,
+                "high": -14075.4
+              },
+              "unit": "USD_m",
+              "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high.",
+              "allowed_range": {
+                "min": -50000,
+                "max": 20000
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "net_claim_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "cross_check": "Reconcile to primary filing before decision use.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Filing-grounded schedule 2026-07-25",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "scenario_assumptions": null,
+        "low_per_share": -70.73,
+        "base_per_share": -66.97,
+        "high_per_share": -63.2
+      },
+      {
+        "id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "category": "liability_or_reserve",
+        "overlap_key": "cycle_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 296.75,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "APD/research/valuation.json",
+                "locator": "inputs.price",
+                "as_of": "2026-07-25"
+              },
+              "locked": true
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 8.62,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Project cost-overrun and energy-cycle reserve per share",
+              "kind": "judgment",
+              "values": {
+                "low": -50.0,
+                "base": -15.0,
+                "high": -4.0
+              },
+              "unit": "USD_per_share",
+              "rationale": "Negative reserve for project delays and energy demand trough.",
+              "allowed_range": {
+                "min": -100,
+                "max": 0
+              }
+            }
+          ],
+          "calculations": [],
+          "outputs": {
+            "low": "cycle_reserve_per_share",
+            "base": "cycle_reserve_per_share",
+            "high": "cycle_reserve_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "cross_check": "Reconcile to primary filing before decision use.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Filing-grounded schedule 2026-07-25",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "scenario_assumptions": null,
+        "low_per_share": -50.0,
+        "base_per_share": -15.0,
+        "high_per_share": -4.0
+      }
+    ],
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 1.36,
+      "base": 132.79,
+      "high": 267.65
+    },
+    "material_component_count": 4,
+    "additive_component_count": 4,
+    "embedded_component_count": 0,
+    "market_price_per_share": 296.75,
+    "upside_downside_pct": {
+      "low": -99.5,
+      "base": -55.3,
+      "high": -9.8
+    }
+  },
+  "component_review_queue": {
+    "status": "ready_for_committee_review",
+    "decision_rule": "Each assigned rater records accept, challenge, or reject with a proposed range and evidence. The aggregator may not silently average disputed ranges.",
+    "items": [
+      {
+        "component_id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 117.09,
+          "base": 189.76,
+          "high": 274.85
+        },
+        "range_width_pct_of_base": 83.1,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "hohn",
+          "marathon_capital_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0
+        },
+        "range_width_pct_of_base": 220.0,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "hohn",
+          "marathon_capital_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": -70.73,
+          "base": -66.97,
+          "high": -63.2
+        },
+        "range_width_pct_of_base": 11.2,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "greenblatt",
+          "marks_credit_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        },
+        "range_width_pct_of_base": 306.7,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "marks_credit_cycle",
+          "pabrai"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      }
+    ]
+  },
+  "valuation_method_route": {
+    "schema_version": "1.0",
+    "status": "routed",
+    "profile_id": "predictable_cash_flow",
+    "label": "Predictable cash-flow security",
+    "score": 9.0,
+    "reasons": [
+      "archetype=infrastructure",
+      "component categories=operating_business",
+      "existing methods=dividend, owner_cash"
+    ],
+    "primary_methods": [
+      "owner_cash_or_dividend_discount"
+    ],
+    "corroborating_methods": [
+      "regulated_asset_base",
+      "yield_and_reverse_dcf"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "cash-flow durability",
+      "maintenance capital",
+      "funding plan",
+      "distribution policy",
+      "contract or regulatory reset terms"
+    ],
+    "failure_modes": [
+      "dividend treated as earning power",
+      "growth capital and dilution omitted",
+      "contract renewal or regulatory reset ignored"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dcf, owner_cash, reinvestment"
+        ]
+      },
+      {
+        "profile_id": "capital_cycle",
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=capacity, cycle, midcycle"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "quality_reinvestment": {
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dcf, owner_cash, reinvestment"
+        ]
+      },
+      "capital_cycle": {
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=capacity, cycle, midcycle"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=financial_asset"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 9.0,
+        "reasons": [
+          "archetype=infrastructure",
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
+      },
+      "binary_milestone": {
+        "score": 0.0,
+        "reasons": []
+      }
+    },
+    "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+  },
+  "universal_valuation_contract": {
+    "schema_version": "2.0",
+    "status": "decision_grade",
+    "ticker": "APD",
+    "as_of": "2026-07-25",
+    "economic_ownership_map": [
+      {
+        "component_id": "core_engine",
+        "label": "Industrial gas owner-cash engine",
+        "category": "operating_business",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Industrial gas owner-cash engine",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "owner_cash_or_dividend_discount",
+          "version": "1.0",
+          "label": "Predictable owner-cash discount model",
+          "power_zones": [
+            "predictable_cash_flow"
+          ],
+          "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+          "sources": [
+            {
+              "ref": "_system/frameworks/segment_cashflow_valuation.md",
+              "locator": "Cash-flow duration and funding"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 117.094,
+          "base": 189.7592,
+          "high": 274.8498
+        },
+        "legacy_range_per_share": {
+          "low": 117.09,
+          "base": 189.76,
+          "high": 274.85
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "owner_cash_or_dividend_discount",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 117.094,
+            "base": 189.7592,
+            "high": 274.8498
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "growth_y1_5",
+                "label": "Growth years 1\u20135",
+                "kind": "judgment",
+                "value": 0.02,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Filing-aligned growth bands."
+              },
+              {
+                "id": "growth_y6_10",
+                "label": "Growth years 6\u20137",
+                "kind": "judgment",
+                "value": 0.02,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Fade toward mid-cycle."
+              },
+              {
+                "id": "discount_rate",
+                "label": "Required return on owner cash",
+                "kind": "judgment",
+                "value": 0.09,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Business risk bounds."
+              },
+              {
+                "id": "exit_multiple",
+                "label": "Selling multiple in year 7",
+                "kind": "judgment",
+                "value": 14.0,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Aligned to Lawrence exit multiples."
+              },
+              {
+                "id": "growth_factor_y1",
+                "label": "growth_factor_y1",
+                "kind": "calculation",
+                "value": 1.02,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y1_5",
+                "substituted_formula": "1 + 0.02",
+                "dependencies": [
+                  1,
+                  "growth_y1_5"
+                ]
+              },
+              {
+                "id": "growth_factor_y2",
+                "label": "growth_factor_y2",
+                "kind": "calculation",
+                "value": 1.02,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y6_10",
+                "substituted_formula": "1 + 0.02",
+                "dependencies": [
+                  1,
+                  "growth_y6_10"
+                ]
+              },
+              {
+                "id": "owner_cash_y1",
+                "label": "owner_cash_y1",
+                "kind": "calculation",
+                "value": 8.7924,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+                "substituted_formula": "8.62 \u00d7 1.02",
+                "dependencies": [
+                  "normalized_owner_cash",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y2",
+                "label": "owner_cash_y2",
+                "kind": "calculation",
+                "value": 8.968248,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+                "substituted_formula": "8.7924 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y1",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y3",
+                "label": "owner_cash_y3",
+                "kind": "calculation",
+                "value": 9.14761296,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+                "substituted_formula": "8.968248 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y2",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y4",
+                "label": "owner_cash_y4",
+                "kind": "calculation",
+                "value": 9.33056522,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+                "substituted_formula": "9.147613 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y3",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y5",
+                "label": "owner_cash_y5",
+                "kind": "calculation",
+                "value": 9.51717652,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+                "substituted_formula": "9.3305652 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y4",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y6",
+                "label": "owner_cash_y6",
+                "kind": "calculation",
+                "value": 9.70752005,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+                "substituted_formula": "9.5171765 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y5",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "owner_cash_y7",
+                "label": "owner_cash_y7",
+                "kind": "calculation",
+                "value": 9.90167046,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+                "substituted_formula": "9.7075201 \u00d7 1.02",
+                "dependencies": [
+                  "owner_cash_y6",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "cash_pv",
+                "label": "cash_pv",
+                "kind": "calculation",
+                "value": 41.26224894,
+                "unit": "USD_per_share",
+                "operation": "present_value",
+                "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+                "substituted_formula": "present_value(8.7924, 1, 8.968248, 2, 9.147613, 3, 9.3305652, 4, 9.5171765, 5, 9.7075201, 6, 0.09)",
+                "dependencies": [
+                  "owner_cash_y1",
+                  1,
+                  "owner_cash_y2",
+                  2,
+                  "owner_cash_y3",
+                  3,
+                  "owner_cash_y4",
+                  4,
+                  "owner_cash_y5",
+                  5,
+                  "owner_cash_y6",
+                  6,
+                  "discount_rate"
+                ]
+              },
+              {
+                "id": "terminal_cash",
+                "label": "terminal_cash",
+                "kind": "calculation",
+                "value": 138.62338637,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y7 \u00d7 exit_multiple",
+                "substituted_formula": "9.9016705 \u00d7 14",
+                "dependencies": [
+                  "owner_cash_y7",
+                  "exit_multiple"
+                ]
+              },
+              {
+                "id": "terminal_pv",
+                "label": "terminal_pv",
+                "kind": "calculation",
+                "value": 75.83173948,
+                "unit": "USD_per_share",
+                "operation": "discount",
+                "formula": "discount(terminal_cash, discount_rate, 7)",
+                "substituted_formula": "discount(138.62339, 0.09, 7)",
+                "dependencies": [
+                  "terminal_cash",
+                  "discount_rate",
+                  7
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": 117.09398843,
+                "unit": "USD_per_share",
+                "operation": "add",
+                "formula": "cash_pv + terminal_pv",
+                "substituted_formula": "41.262249 + 75.831739",
+                "dependencies": [
+                  "cash_pv",
+                  "terminal_pv"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "growth_y1_5",
+                "label": "Growth years 1\u20135",
+                "kind": "judgment",
+                "value": 0.06,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Filing-aligned growth bands."
+              },
+              {
+                "id": "growth_y6_10",
+                "label": "Growth years 6\u20137",
+                "kind": "judgment",
+                "value": 0.04,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Fade toward mid-cycle."
+              },
+              {
+                "id": "discount_rate",
+                "label": "Required return on owner cash",
+                "kind": "judgment",
+                "value": 0.07,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Business risk bounds."
+              },
+              {
+                "id": "exit_multiple",
+                "label": "Selling multiple in year 7",
+                "kind": "judgment",
+                "value": 18.0,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Aligned to Lawrence exit multiples."
+              },
+              {
+                "id": "growth_factor_y1",
+                "label": "growth_factor_y1",
+                "kind": "calculation",
+                "value": 1.06,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y1_5",
+                "substituted_formula": "1 + 0.06",
+                "dependencies": [
+                  1,
+                  "growth_y1_5"
+                ]
+              },
+              {
+                "id": "growth_factor_y2",
+                "label": "growth_factor_y2",
+                "kind": "calculation",
+                "value": 1.04,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y6_10",
+                "substituted_formula": "1 + 0.04",
+                "dependencies": [
+                  1,
+                  "growth_y6_10"
+                ]
+              },
+              {
+                "id": "owner_cash_y1",
+                "label": "owner_cash_y1",
+                "kind": "calculation",
+                "value": 9.1372,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+                "substituted_formula": "8.62 \u00d7 1.06",
+                "dependencies": [
+                  "normalized_owner_cash",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y2",
+                "label": "owner_cash_y2",
+                "kind": "calculation",
+                "value": 9.685432,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+                "substituted_formula": "9.1372 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y1",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y3",
+                "label": "owner_cash_y3",
+                "kind": "calculation",
+                "value": 10.26655792,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+                "substituted_formula": "9.685432 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y2",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y4",
+                "label": "owner_cash_y4",
+                "kind": "calculation",
+                "value": 10.8825514,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+                "substituted_formula": "10.266558 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y3",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y5",
+                "label": "owner_cash_y5",
+                "kind": "calculation",
+                "value": 11.53550448,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+                "substituted_formula": "10.882551 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y4",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y6",
+                "label": "owner_cash_y6",
+                "kind": "calculation",
+                "value": 11.99692466,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+                "substituted_formula": "11.535504 \u00d7 1.04",
+                "dependencies": [
+                  "owner_cash_y5",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "owner_cash_y7",
+                "label": "owner_cash_y7",
+                "kind": "calculation",
+                "value": 12.47680164,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+                "substituted_formula": "11.996925 \u00d7 1.04",
+                "dependencies": [
+                  "owner_cash_y6",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "cash_pv",
+                "label": "cash_pv",
+                "kind": "calculation",
+                "value": 49.90059917,
+                "unit": "USD_per_share",
+                "operation": "present_value",
+                "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+                "substituted_formula": "present_value(9.1372, 1, 9.685432, 2, 10.266558, 3, 10.882551, 4, 11.535504, 5, 11.996925, 6, 0.07)",
+                "dependencies": [
+                  "owner_cash_y1",
+                  1,
+                  "owner_cash_y2",
+                  2,
+                  "owner_cash_y3",
+                  3,
+                  "owner_cash_y4",
+                  4,
+                  "owner_cash_y5",
+                  5,
+                  "owner_cash_y6",
+                  6,
+                  "discount_rate"
+                ]
+              },
+              {
+                "id": "terminal_cash",
+                "label": "terminal_cash",
+                "kind": "calculation",
+                "value": 224.5824296,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y7 \u00d7 exit_multiple",
+                "substituted_formula": "12.476802 \u00d7 18",
+                "dependencies": [
+                  "owner_cash_y7",
+                  "exit_multiple"
+                ]
+              },
+              {
+                "id": "terminal_pv",
+                "label": "terminal_pv",
+                "kind": "calculation",
+                "value": 139.85865006,
+                "unit": "USD_per_share",
+                "operation": "discount",
+                "formula": "discount(terminal_cash, discount_rate, 7)",
+                "substituted_formula": "discount(224.58243, 0.07, 7)",
+                "dependencies": [
+                  "terminal_cash",
+                  "discount_rate",
+                  7
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": 189.75924924,
+                "unit": "USD_per_share",
+                "operation": "add",
+                "formula": "cash_pv + terminal_pv",
+                "substituted_formula": "49.900599 + 139.85865",
+                "dependencies": [
+                  "cash_pv",
+                  "terminal_pv"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "growth_y1_5",
+                "label": "Growth years 1\u20135",
+                "kind": "judgment",
+                "value": 0.09,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Filing-aligned growth bands."
+              },
+              {
+                "id": "growth_y6_10",
+                "label": "Growth years 6\u20137",
+                "kind": "judgment",
+                "value": 0.06,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Fade toward mid-cycle."
+              },
+              {
+                "id": "discount_rate",
+                "label": "Required return on owner cash",
+                "kind": "judgment",
+                "value": 0.06,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Business risk bounds."
+              },
+              {
+                "id": "exit_multiple",
+                "label": "Selling multiple in year 7",
+                "kind": "judgment",
+                "value": 22.0,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Aligned to Lawrence exit multiples."
+              },
+              {
+                "id": "growth_factor_y1",
+                "label": "growth_factor_y1",
+                "kind": "calculation",
+                "value": 1.09,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y1_5",
+                "substituted_formula": "1 + 0.09",
+                "dependencies": [
+                  1,
+                  "growth_y1_5"
+                ]
+              },
+              {
+                "id": "growth_factor_y2",
+                "label": "growth_factor_y2",
+                "kind": "calculation",
+                "value": 1.06,
+                "unit": "ratio",
+                "operation": "add",
+                "formula": "1 + growth_y6_10",
+                "substituted_formula": "1 + 0.06",
+                "dependencies": [
+                  1,
+                  "growth_y6_10"
+                ]
+              },
+              {
+                "id": "owner_cash_y1",
+                "label": "owner_cash_y1",
+                "kind": "calculation",
+                "value": 9.3958,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+                "substituted_formula": "8.62 \u00d7 1.09",
+                "dependencies": [
+                  "normalized_owner_cash",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y2",
+                "label": "owner_cash_y2",
+                "kind": "calculation",
+                "value": 10.241422,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+                "substituted_formula": "9.3958 \u00d7 1.09",
+                "dependencies": [
+                  "owner_cash_y1",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y3",
+                "label": "owner_cash_y3",
+                "kind": "calculation",
+                "value": 11.16314998,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+                "substituted_formula": "10.241422 \u00d7 1.09",
+                "dependencies": [
+                  "owner_cash_y2",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y4",
+                "label": "owner_cash_y4",
+                "kind": "calculation",
+                "value": 12.16783348,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+                "substituted_formula": "11.16315 \u00d7 1.09",
+                "dependencies": [
+                  "owner_cash_y3",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y5",
+                "label": "owner_cash_y5",
+                "kind": "calculation",
+                "value": 13.26293849,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+                "substituted_formula": "12.167833 \u00d7 1.09",
+                "dependencies": [
+                  "owner_cash_y4",
+                  "growth_factor_y1"
+                ]
+              },
+              {
+                "id": "owner_cash_y6",
+                "label": "owner_cash_y6",
+                "kind": "calculation",
+                "value": 14.0587148,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+                "substituted_formula": "13.262938 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y5",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "owner_cash_y7",
+                "label": "owner_cash_y7",
+                "kind": "calculation",
+                "value": 14.90223769,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+                "substituted_formula": "14.058715 \u00d7 1.06",
+                "dependencies": [
+                  "owner_cash_y6",
+                  "growth_factor_y2"
+                ]
+              },
+              {
+                "id": "cash_pv",
+                "label": "cash_pv",
+                "kind": "calculation",
+                "value": 56.81132953,
+                "unit": "USD_per_share",
+                "operation": "present_value",
+                "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+                "substituted_formula": "present_value(9.3958, 1, 10.241422, 2, 11.16315, 3, 12.167833, 4, 13.262938, 5, 14.058715, 6, 0.06)",
+                "dependencies": [
+                  "owner_cash_y1",
+                  1,
+                  "owner_cash_y2",
+                  2,
+                  "owner_cash_y3",
+                  3,
+                  "owner_cash_y4",
+                  4,
+                  "owner_cash_y5",
+                  5,
+                  "owner_cash_y6",
+                  6,
+                  "discount_rate"
+                ]
+              },
+              {
+                "id": "terminal_cash",
+                "label": "terminal_cash",
+                "kind": "calculation",
+                "value": 327.84922915,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "owner_cash_y7 \u00d7 exit_multiple",
+                "substituted_formula": "14.902238 \u00d7 22",
+                "dependencies": [
+                  "owner_cash_y7",
+                  "exit_multiple"
+                ]
+              },
+              {
+                "id": "terminal_pv",
+                "label": "terminal_pv",
+                "kind": "calculation",
+                "value": 218.03846204,
+                "unit": "USD_per_share",
+                "operation": "discount",
+                "formula": "discount(terminal_cash, discount_rate, 7)",
+                "substituted_formula": "discount(327.84923, 0.06, 7)",
+                "dependencies": [
+                  "terminal_cash",
+                  "discount_rate",
+                  7
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": 274.84979157,
+                "unit": "USD_per_share",
+                "operation": "add",
+                "formula": "cash_pv + terminal_pv",
+                "substituted_formula": "56.81133 + 218.03846",
+                "dependencies": [
+                  "cash_pv",
+                  "terminal_pv"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "normalized_owner_cash",
+              "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+              "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+              "as_of": "2025-12-31",
+              "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+              "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "41f3118cb8e92e27e5c0f8a9a67b919131eb6df64befa22714e8d223e3d7c259"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "overlap_key": "core_engine",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "label": "Clean hydrogen / mega-project runway",
+        "category": "operating_business",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Clean hydrogen / mega-project runway",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "owner_earnings_reinvestment_dcf",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "owner_earnings_reinvestment_dcf",
+          "version": "1.0",
+          "label": "Owner earnings and reinvestment-return DCF",
+          "power_zones": [
+            "quality_reinvestment"
+          ],
+          "equation": "cash_t = cash_(t-1)*(1+reinvestment*incremental_ROIC); value = PV(distributable cash + terminal owner earnings)",
+          "sources": [
+            {
+              "ref": "_system/frameworks/segment_cashflow_valuation.md",
+              "locator": "Owner cash, reinvestment and reverse expectations"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0
+        },
+        "legacy_range_per_share": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 60.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "owner_earnings_reinvestment_dcf",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 5.0,
+            "base": 25.0,
+            "high": 60.0
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "pipeline_value_per_share",
+                "label": "Hydrogen / project runway per share",
+                "kind": "judgment",
+                "value": 5.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Bounded claim on NEOM and clean-hydrogen backlog above mid-cycle FCF."
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "pipeline_value_per_share",
+                "label": "Hydrogen / project runway per share",
+                "kind": "judgment",
+                "value": 25.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Bounded claim on NEOM and clean-hydrogen backlog above mid-cycle FCF."
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "pipeline_value_per_share",
+                "label": "Hydrogen / project runway per share",
+                "kind": "judgment",
+                "value": 60.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Bounded claim on NEOM and clean-hydrogen backlog above mid-cycle FCF."
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+              "locator": "222.7M diluted shares (valuation.json)",
+              "as_of": "2025-12-31",
+              "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+              "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "9118e95f4d9906b213c32968ba5ef94370de11ba3d3ed887d4680cd9d6e5c775"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "overlap_key": "reinvestment_runway",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Net cash and long-term debt claims",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "net_asset_value",
+          "version": "1.0",
+          "label": "Reconciled net asset value",
+          "power_zones": [
+            "scarce_asset_optionality",
+            "catalyst_asset_value",
+            "credit_and_normalized_returns"
+          ],
+          "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+              "locator": "Economic ownership and unit NAV"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -70.7337,
+          "base": -66.9686,
+          "high": -63.2034
+        },
+        "legacy_range_per_share": {
+          "low": -70.73,
+          "base": -66.97,
+          "high": -63.2
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -70.7337,
+            "base": -66.9686,
+            "high": -63.2034
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "cash_m",
+                "label": "Cash and cash equivalents",
+                "kind": "fact",
+                "value": 1856.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "CashAndCashEquivalents",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "0c94617def266c837bfb9457f2710c3011e7e8c1ab71b290b2304f845b44c0e8"
+                },
+                "rationale": null
+              },
+              {
+                "id": "long_term_debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 16769.9,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "657461c35a9ca39f0a5665eaec22d65631c3fa4879b95ab84aaff2df110110fb"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "net_claim_m",
+                "label": "Cash minus long-term debt (debt-mark stress)",
+                "kind": "judgment",
+                "value": -15752.4,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": -70.7337225,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_claim_m \u00f7 shares_m",
+                "substituted_formula": "-15752.4 \u00f7 222.7",
+                "dependencies": [
+                  "net_claim_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "cash_m",
+                "label": "Cash and cash equivalents",
+                "kind": "fact",
+                "value": 1856.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "CashAndCashEquivalents",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "0c94617def266c837bfb9457f2710c3011e7e8c1ab71b290b2304f845b44c0e8"
+                },
+                "rationale": null
+              },
+              {
+                "id": "long_term_debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 16769.9,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "657461c35a9ca39f0a5665eaec22d65631c3fa4879b95ab84aaff2df110110fb"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "net_claim_m",
+                "label": "Cash minus long-term debt (debt-mark stress)",
+                "kind": "judgment",
+                "value": -14913.9,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": -66.96856758,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_claim_m \u00f7 shares_m",
+                "substituted_formula": "-14913.9 \u00f7 222.7",
+                "dependencies": [
+                  "net_claim_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "cash_m",
+                "label": "Cash and cash equivalents",
+                "kind": "fact",
+                "value": 1856.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "CashAndCashEquivalents",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "0c94617def266c837bfb9457f2710c3011e7e8c1ab71b290b2304f845b44c0e8"
+                },
+                "rationale": null
+              },
+              {
+                "id": "long_term_debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 16769.9,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+                  "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+                  "source_id": "657461c35a9ca39f0a5665eaec22d65631c3fa4879b95ab84aaff2df110110fb"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Diluted shares (millions)",
+                "kind": "fact",
+                "value": 222.7,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "222.7M diluted shares (valuation.json)",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+                },
+                "rationale": null
+              },
+              {
+                "id": "net_claim_m",
+                "label": "Cash minus long-term debt (debt-mark stress)",
+                "kind": "judgment",
+                "value": -14075.4,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+              },
+              {
+                "id": "value_per_share",
+                "label": "value_per_share",
+                "kind": "calculation",
+                "value": -63.20341266,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_claim_m \u00f7 shares_m",
+                "substituted_formula": "-14075.4 \u00f7 222.7",
+                "dependencies": [
+                  "net_claim_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "cash_m",
+              "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+              "locator": "CashAndCashEquivalents",
+              "as_of": "2025-12-31",
+              "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+              "source_id": "0c94617def266c837bfb9457f2710c3011e7e8c1ab71b290b2304f845b44c0e8"
+            },
+            {
+              "node_id": "long_term_debt_m",
+              "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+              "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+              "as_of": "2025-12-31",
+              "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+              "source_id": "657461c35a9ca39f0a5665eaec22d65631c3fa4879b95ab84aaff2df110110fb"
+            },
+            {
+              "node_id": "shares_m",
+              "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+              "locator": "222.7M diluted shares (valuation.json)",
+              "as_of": "2025-12-31",
+              "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+              "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "8955bb48ac1aab87b60d2498cf08915f40e25026f78bd2117258c66f643517ad"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "overlap_key": "net_financial_claims",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "label": "Project-execution and energy-cycle reserve",
+        "category": "liability_or_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Project-execution and energy-cycle reserve",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "midcycle_capacity_value",
+          "version": "1.0",
+          "label": "Capital-cycle normalized capacity value",
+          "power_zones": [
+            "capital_cycle"
+          ],
+          "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+          "sources": [
+            {
+              "ref": "_system/frameworks/power_zones.json",
+              "locator": "capital_cycle profile"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        },
+        "legacy_range_per_share": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -50.0,
+            "base": -15.0,
+            "high": -4.0
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "price_per_share",
+                "label": "Market price per share",
+                "kind": "fact",
+                "value": 296.75,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/research/valuation.json",
+                  "locator": "inputs.price",
+                  "as_of": "2026-07-25",
+                  "content_sha256": "f289327eebbb4b29b503a741ca2aee06a8640793852e03d1db76889c77e45209",
+                  "source_id": "44ea22932066f495b6ee291162f2947882ebeb119c1527de3868167fd2c5eb70"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_reserve_per_share",
+                "label": "Project cost-overrun and energy-cycle reserve per share",
+                "kind": "judgment",
+                "value": -50.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Negative reserve for project delays and energy demand trough."
+              }
+            ],
+            "base": [
+              {
+                "id": "price_per_share",
+                "label": "Market price per share",
+                "kind": "fact",
+                "value": 296.75,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/research/valuation.json",
+                  "locator": "inputs.price",
+                  "as_of": "2026-07-25",
+                  "content_sha256": "f289327eebbb4b29b503a741ca2aee06a8640793852e03d1db76889c77e45209",
+                  "source_id": "44ea22932066f495b6ee291162f2947882ebeb119c1527de3868167fd2c5eb70"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_reserve_per_share",
+                "label": "Project cost-overrun and energy-cycle reserve per share",
+                "kind": "judgment",
+                "value": -15.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Negative reserve for project delays and energy demand trough."
+              }
+            ],
+            "high": [
+              {
+                "id": "price_per_share",
+                "label": "Market price per share",
+                "kind": "fact",
+                "value": 296.75,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/research/valuation.json",
+                  "locator": "inputs.price",
+                  "as_of": "2026-07-25",
+                  "content_sha256": "f289327eebbb4b29b503a741ca2aee06a8640793852e03d1db76889c77e45209",
+                  "source_id": "44ea22932066f495b6ee291162f2947882ebeb119c1527de3868167fd2c5eb70"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash",
+                "label": "Normalized owner cash per share",
+                "kind": "fact",
+                "value": 8.62,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+                  "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+                  "as_of": "2025-12-31",
+                  "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+                  "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_reserve_per_share",
+                "label": "Project cost-overrun and energy-cycle reserve per share",
+                "kind": "judgment",
+                "value": -4.0,
+                "unit": "USD_per_share",
+                "source": null,
+                "rationale": "Negative reserve for project delays and energy demand trough."
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "price_per_share",
+              "ref": "APD/research/valuation.json",
+              "locator": "inputs.price",
+              "as_of": "2026-07-25",
+              "content_sha256": "f289327eebbb4b29b503a741ca2aee06a8640793852e03d1db76889c77e45209",
+              "source_id": "44ea22932066f495b6ee291162f2947882ebeb119c1527de3868167fd2c5eb70"
+            },
+            {
+              "node_id": "normalized_owner_cash",
+              "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+              "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+              "as_of": "2025-12-31",
+              "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+              "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "8a480b6d0ae03d2e6f58b46c39571313188b5101433c1e9201f8e8ef70ec52f5"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+        "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "overlap_key": "cycle_reserve",
+        "assumption_type": "judgment"
+      }
+    ],
+    "component_coverage": {
+      "all_material_components_identified": true,
+      "material_component_count": 4,
+      "additive_component_count": 4,
+      "embedded_component_count": 0,
+      "unvalued_component_count": 0,
+      "double_counting_flags": []
+    },
+    "input_classification": {
+      "facts": [],
+      "estimates": [],
+      "judgments": [
+        {
+          "component_id": "core_engine",
+          "label": "Industrial gas owner-cash engine",
+          "kind": "judgment",
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "method": "owner_cash_or_dividend_discount",
+          "valuation_status": "bounded_estimate"
+        },
+        {
+          "component_id": "reinvestment_runway",
+          "label": "Clean hydrogen / mega-project runway",
+          "kind": "judgment",
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "method": "owner_earnings_reinvestment_dcf",
+          "valuation_status": "bounded_estimate"
+        },
+        {
+          "component_id": "net_financial_claims",
+          "label": "Net cash and long-term debt claims",
+          "kind": "judgment",
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "method": "net_asset_value",
+          "valuation_status": "bounded_estimate"
+        },
+        {
+          "component_id": "cycle_reserve",
+          "label": "Project-execution and energy-cycle reserve",
+          "kind": "judgment",
+          "evidence_tier": "primary_derived",
+          "evidence": "Primary bridge from APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm; component schedule reconciled 2026-07-25.",
+          "method": "midcycle_capacity_value",
+          "valuation_status": "bounded_estimate"
+        }
+      ]
+    },
+    "method_route": {
+      "schema_version": "1.0",
+      "status": "routed",
+      "profile_id": "predictable_cash_flow",
+      "label": "Predictable cash-flow security",
+      "score": 9.0,
+      "reasons": [
+        "archetype=infrastructure",
+        "component categories=operating_business",
+        "existing methods=dividend, owner_cash"
+      ],
+      "primary_methods": [
+        "owner_cash_or_dividend_discount"
+      ],
+      "corroborating_methods": [
+        "regulated_asset_base",
+        "yield_and_reverse_dcf"
+      ],
+      "primary_personas": [
+        "buffett_weschler",
+        "hohn"
+      ],
+      "cross_check_personas": [
+        "marks_credit_cycle"
+      ],
+      "silent_personas": [
+        "greenblatt",
+        "hk",
+        "klarman_asset_value",
+        "marathon_capital_cycle",
+        "munger",
+        "pabrai",
+        "stahl"
+      ],
+      "required_evidence": [
+        "cash-flow durability",
+        "maintenance capital",
+        "funding plan",
+        "distribution policy",
+        "contract or regulatory reset terms"
+      ],
+      "failure_modes": [
+        "dividend treated as earning power",
+        "growth capital and dilution omitted",
+        "contract renewal or regulatory reset ignored"
+      ],
+      "secondary_profiles": [
+        {
+          "profile_id": "quality_reinvestment",
+          "score": 4.0,
+          "reasons": [
+            "component categories=operating_business",
+            "existing methods=dcf, owner_cash, reinvestment"
+          ]
+        },
+        {
+          "profile_id": "capital_cycle",
+          "score": 4.0,
+          "reasons": [
+            "component categories=operating_business",
+            "existing methods=capacity, cycle, midcycle"
+          ]
+        }
+      ],
+      "scorecard": {
+        "scarce_asset_optionality": {
+          "score": 0.0,
+          "reasons": []
+        },
+        "quality_reinvestment": {
+          "score": 4.0,
+          "reasons": [
+            "component categories=operating_business",
+            "existing methods=dcf, owner_cash, reinvestment"
+          ]
+        },
+        "capital_cycle": {
+          "score": 4.0,
+          "reasons": [
+            "component categories=operating_business",
+            "existing methods=capacity, cycle, midcycle"
+          ]
+        },
+        "credit_and_normalized_returns": {
+          "score": 2.0,
+          "reasons": [
+            "component categories=financial_asset, liability_or_reserve"
+          ]
+        },
+        "catalyst_asset_value": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=financial_asset"
+          ]
+        },
+        "predictable_cash_flow": {
+          "score": 9.0,
+          "reasons": [
+            "archetype=infrastructure",
+            "component categories=operating_business",
+            "existing methods=dividend, owner_cash"
+          ]
+        },
+        "binary_milestone": {
+          "score": 0.0,
+          "reasons": []
+        }
+      },
+      "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+    },
+    "market": {
+      "price_per_share": 296.75,
+      "fully_diluted_shares": 222700000,
+      "market_cap_m": 66086.23,
+      "enterprise_value_m": 81000.12
+    },
+    "valuation": {
+      "value_per_share": {
+        "low": 1.3603,
+        "base": 132.7906,
+        "high": 267.6464
+      },
+      "priced_components_per_share": {
+        "low": 1.3603,
+        "base": 132.7906,
+        "high": 267.6464
+      },
+      "legacy_value_per_share": {
+        "low": 1.36,
+        "base": 132.79,
+        "high": 267.65
+      },
+      "probability_weighted_value_per_share": 132.7906,
+      "expected_distributions_per_share": 0.0,
+      "annualized_return_at_price_pct": {
+        "low": -53.67,
+        "base": -10.85,
+        "high": -1.46
+      },
+      "downside_to_low_pct": -99.54,
+      "horizon_years": 7,
+      "equity_liability_floor": 0.0,
+      "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    },
+    "scenario_contract": {
+      "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+      "top_value_drivers": [
+        {
+          "component_id": "core_engine",
+          "label": "Industrial gas owner-cash engine",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 189.7592,
+          "legacy_base_per_share": 189.76,
+          "range_width_per_share": 157.7558,
+          "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+        },
+        {
+          "component_id": "reinvestment_runway",
+          "label": "Clean hydrogen / mega-project runway",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 25.0,
+          "legacy_base_per_share": 25.0,
+          "range_width_per_share": 55.0,
+          "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+        },
+        {
+          "component_id": "cycle_reserve",
+          "label": "Project-execution and energy-cycle reserve",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": -15.0,
+          "legacy_base_per_share": -15.0,
+          "range_width_per_share": 46.0,
+          "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+        },
+        {
+          "component_id": "net_financial_claims",
+          "label": "Net cash and long-term debt claims",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": -66.9686,
+          "legacy_base_per_share": -66.97,
+          "range_width_per_share": 7.5303,
+          "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+        }
+      ],
+      "reverse_expectations": null
+    },
+    "calculation_proof_summary": {
+      "component_count": 4,
+      "priced_component_count": 4,
+      "proof_complete_pct": 100.0,
+      "status_counts": {
+        "bounded_estimate": 4,
+        "calculated": 0,
+        "legacy_sensitivity": 0,
+        "unpriced": 0
+      },
+      "all_material_components_priced": true,
+      "calculation_errors": [],
+      "aggregate_proof_hash": "57db62b93d018b9287363c18a39287fb0e3eca924ca8a597dbf1f94c3dfcc282"
+    },
+    "source_lineage": [
+      {
+        "component_id": "core_engine",
+        "node_id": "normalized_owner_cash",
+        "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+        "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+        "as_of": "2025-12-31",
+        "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+        "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "node_id": "shares_m",
+        "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+        "locator": "222.7M diluted shares (valuation.json)",
+        "as_of": "2025-12-31",
+        "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+        "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "node_id": "cash_m",
+        "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+        "locator": "CashAndCashEquivalents",
+        "as_of": "2025-12-31",
+        "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+        "source_id": "0c94617def266c837bfb9457f2710c3011e7e8c1ab71b290b2304f845b44c0e8"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "node_id": "long_term_debt_m",
+        "ref": "APD/research/evidence/filing_facts_2026-07-10.json",
+        "locator": "LongTermDebtAndCapitalLeaseObligations 16,769.9 (filing digest)",
+        "as_of": "2025-12-31",
+        "content_sha256": "e38b13c5b80f9a3ee39f1fbdedb22cdfc175ee3b6e3d3d4d8b5ab7a3185184de",
+        "source_id": "657461c35a9ca39f0a5665eaec22d65631c3fa4879b95ab84aaff2df110110fb"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "node_id": "shares_m",
+        "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+        "locator": "222.7M diluted shares (valuation.json)",
+        "as_of": "2025-12-31",
+        "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+        "source_id": "156bb1bda7e2cab5d03f058278f06a1771522b8af632230d5c2a7d652a92c353"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "node_id": "price_per_share",
+        "ref": "APD/research/valuation.json",
+        "locator": "inputs.price",
+        "as_of": "2026-07-25",
+        "content_sha256": "f289327eebbb4b29b503a741ca2aee06a8640793852e03d1db76889c77e45209",
+        "source_id": "44ea22932066f495b6ee291162f2947882ebeb119c1527de3868167fd2c5eb70"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "node_id": "normalized_owner_cash",
+        "ref": "APD/investor-documents/sec-edgar/10-K_20251120_rpt20250930_acc0000002969_25_000055.htm",
+        "locator": "valuation.json FY FCF \\.62/sh on 222.7M shares",
+        "as_of": "2025-12-31",
+        "content_sha256": "d66b9bd952a9c7a9d4296eb85bd4a1edf1c2aef3705aee9fe9ec86b38f673981",
+        "source_id": "ce8fcf7fc5f936d8b4814f4ee11fbe2873c98e7ebc2d1c4839e1d716ab8f3557"
+      }
+    ],
+    "model_checks": {
+      "calculation_graphs_valid": true,
+      "component_sum_reconciles": true,
+      "no_double_counting": true,
+      "all_material_components_priced": true,
+      "low_base_high_ordered": true
+    },
+    "evidence": {
+      "unresolved_count": 0,
+      "blockers": [],
+      "validation_errors": []
+    },
+    "monitoring": {
+      "falsifiers": [
+        "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "Primary evidence shows owner cash or capital structure materially worse than low case.",
+        "Primary evidence shows owner cash or capital structure materially worse than low case."
+      ],
+      "required_refresh_triggers": [
+        "new filing or material operating update",
+        "capital-structure change",
+        "material price move",
+        "component milestone or falsifier"
+      ]
+    },
+    "change_control": {
+      "model_hash": "86bb508a3ada54bf82d77063d3b31f4910668054ad14027380192a550063919d",
+      "method_versions": [
+        "midcycle_capacity_value@1.0",
+        "net_asset_value@1.0",
+        "owner_cash_or_dividend_discount@1.0",
+        "owner_earnings_reinvestment_dcf@1.0"
+      ],
+      "change_log": [],
+      "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+    },
+    "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved."
   }
 }
