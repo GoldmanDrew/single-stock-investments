@@ -1,8 +1,8 @@
 # AAL - isolated committee round 1
 
-You are the **marks_credit_cycle** method, independence group **credit_cycle**.
+You are the **buffett_weschler** method, independence group **quality_reinvestment**.
 
-Evidence packet: `df73ceebb53feb880f533ddb9e4902c9784c3ac92e35b1319529ea06583f115e`
+Evidence packet: `d451def32a5e3eb93f510e446d179841ffb35f9bc1e2f1b0bb1a38cc6e7bf707`
 
 - `AAL/research/deep_dive_2026-07-21.md`
 - `AAL/research/adversarial_2026-07-21.md`
