@@ -1,29 +1,31 @@
 # ADM — Investment Thesis
 
-**Last updated:** 2026-07-10
+**Last updated:** 2026-07-25
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | cyclical |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
+| **Cycle** | mid |
 | **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Payoff lens** | operating |
 
 ## One-line thesis
 
-Archer Daniels Midland — thesis pending Marvin deep dive.
+Global ag processor and origination network at mid-cycle: normalized owner cash **$6.50/sh** supports **12.4%** Lawrence return at **$85.67**, but component contract is roughly flat after cycle reserve and net debt; **watch** until moat and capex are filing-verified.
 
 ## Key questions
 
-- [ ] Read latest annual report
-- [ ] Read latest quarterly report
-- [ ] Apply `_system/frameworks/mental_models.md` Tier 1 lenses
+- [x] Read latest annual report (FY2025 10-K)
+- [x] Read latest quarterly report (Q1 2026 10-Q)
+- [ ] Validate maintenance vs growth capital spending split
+- [ ] Confirm DOJ matter status post-SEC settlement
 
 ## [HUMAN REVIEW]
 
-- Onboarded 2026-07-10; awaiting deep dive.
+- Stance **watch** only; capital authority via `human_decision.json`
+- Live price confirmation vs **$85.67** stub
