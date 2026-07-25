@@ -43,7 +43,7 @@ No approved third-party research sources are indexed for AXTI as of this scan. T
 
 **Weights:** 100% Marvin filings (no approved external sources).
 
-**Returns statement (blended):** At **$45.86**, Marvin synthesis base case **-9.92%** per year over 7 years on **$0.12/sh** normalized owner cash. Lawrence scenario-only reference: **-32.8%**. Component economic value base: **$1.74/sh** (proof-backed).
+**Returns statement (blended):** At **$47.23**, Marvin synthesis base case **-9.92%** per year over 7 years on **$0.12/sh** normalized owner cash. Lawrence scenario-only reference: **-32.8%**. Component economic value base: **$1.74/sh** (proof-backed).
 
 ## [HUMAN REVIEW]
 

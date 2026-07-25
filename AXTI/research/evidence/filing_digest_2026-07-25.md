@@ -4,7 +4,7 @@
 **Agent:** Marvin (`build_filing_evidence.py`)  
 **Inventory:** `AXTI/research/evidence/document_inventory.json`  
 
-Documents in folder: **55** (all listed below; Tier 1–3 extracted or keyword-scanned).
+Documents in folder: **70** (all listed below; Tier 1–3 extracted or keyword-scanned).
 
 ## Document inventory
 
@@ -33,6 +33,7 @@ Documents in folder: **55** (all listed below; Tier 1–3 extracted or keyword-s
 | scan | proxy | 2024-04-05 | `investor-documents/sec-edgar/DEF 14A_20240405_rpt20240516_acc0001558370_24_004782.htm` | 8000 |
 | scan | proxy | 2025-04-03 | `investor-documents/sec-edgar/DEF 14A_20250403_rpt20250515_acc0001558370_25_004393.htm` | 8000 |
 | full | proxy | 2026-03-31 | `investor-documents/sec-edgar/DEF 14A_20260331_rpt20260514_acc0001437749_26_010661.htm` | 120000 |
+| scan | 8-K | 2024-10-31 | `investor-documents/sec-edgar/8-K_20241031_rpt20241031_acc0001558370_24_014054.htm` | 5085 |
 | scan | 8-K | 2025-02-20 | `investor-documents/sec-edgar/8-K_20250220_rpt20250220_acc0001558370_25_001218.htm` | 5123 |
 | scan | 8-K | 2025-05-01 | `investor-documents/sec-edgar/8-K_20250501_rpt20250501_acc0001558370_25_006107.htm` | 5024 |
 | scan | 8-K | 2025-05-16 | `investor-documents/sec-edgar/8-K_20250516_rpt20250515_acc0001558370_25_007952.htm` | 7164 |
@@ -65,6 +66,20 @@ Documents in folder: **55** (all listed below; Tier 1–3 extracted or keyword-s
 | inventory | other | 2026-04-20 | `investor-documents/sec-edgar/S-3ASR_20260420_rpt_acc0001213900_26_045578.htm` | 0 |
 | inventory | other | 2021-07-27 | `investor-documents/sec-edgar/S-3_20210727_rpt_acc0001558370_21_009364.htm` | 0 |
 | inventory | other | 2025-11-07 | `investor-documents/sec-edgar/S-3_20251107_rpt_acc0001437749_25_033870.htm` | 0 |
+| inventory | other | 2018-02-05 | `third-party-analyses/activist_reports/long/SC-13G/A_20180205_acc0000897069_18_000079.htm` | 0 |
+| inventory | other | 2018-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20180209_acc0001258897_18_001498.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0001258897_19_001490.htm` | 0 |
+| inventory | other | 2019-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20190212_acc0001193125_19_036166.htm` | 0 |
+| inventory | other | 2020-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20200211_acc0001193125_20_031279.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0001258897_20_000807.htm` | 0 |
+| inventory | other | 2021-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20210212_acc0000354204_21_000090.htm` | 0 |
+| inventory | other | 2022-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20220208_acc0000354204_22_001485.htm` | 0 |
+| inventory | other | 2023-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20230210_acc0000354204_23_001335.htm` | 0 |
+| inventory | other | 2024-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20240209_acc0000354204_24_002917.htm` | 0 |
+| inventory | other | 2018-02-14 | `third-party-analyses/activist_reports/long/SC-13G_20180214_acc0001193125_18_044370.htm` | 0 |
+| inventory | other | 2019-04-12 | `third-party-analyses/activist_reports/long/SC-13G_20190412_acc0001558370_19_002941.htm` | 0 |
+| inventory | other | 2024-02-13 | `third-party-analyses/activist_reports/long/SC-13G_20240213_acc0001104659_24_020386.htm` | 0 |
+| inventory | other | 2024-10-17 | `third-party-analyses/activist_reports/long/SC-13G_20241017_acc0000919574_24_005896.htm` | 0 |
 
 ## Tier: full — extracts
 
