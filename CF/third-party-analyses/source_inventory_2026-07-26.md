@@ -1,0 +1,10 @@
+# CF — Third-party source inventory
+
+**Date:** 2026-07-26
+**Sources:** 1 total (0 approved, 0 pending, 1 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| activist_long | Terra Nitrogen GP Inc. 2) — SC 13D/A | `CF/third-party-analyses/activist_reports/long/SC-13D/A_20180208_acc0001104659_18_007674.htm` | context | activist/long — sec_edgar |
+
+Cross-check required: `CF/research/cross_check_third_party_2026-07-26.md`
