@@ -22,14 +22,14 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-26.
 | ABX | ABX/ | Abacus Life Inc. | US | 2026-07-22 | 2026-07-26 | unknown | watch |
 | ACGL | ACGL/ | Arch Capital Group | US | 2026-07-22 | 2026-07-26 | unknown | watch |
 | ACHR | ACHR/ | ACHR | US | 2026-07-22 | 2026-07-26 | unknown | watch |
-| ACLS | ACLS/ | ACLS | US | 2026-07-22 | 2026-07-26 | unknown | watch |
-| ACMR | ACMR/ | ACMR | US | 2026-07-21 | 2026-07-26 | unknown | watch |
-| ACN | ACN/ | Accenture | US | 2026-07-09 | 2026-07-26 | unknown | watch |
-| ADBE | ADBE/ | Adobe Inc. | US | 2026-07-09 | 2026-07-26 | unknown | watch |
-| ADI | ADI/ | Analog Devices | US | 2026-07-09 | 2026-07-26 | unknown | watch |
-| ADM | ADM/ | Archer Daniels Midland | US | 2026-07-09 | 2026-07-26 | unknown | watch |
-| ADN.TO | ADN.TO/ | Acadian Timber Corp. | CA | 2026-07-09 | 2026-07-26 | optionality | watch |
-| ADP | ADP/ | Automatic Data Processing | US | 2026-07-09 | 2026-07-26 | unknown | watch |
+| ACLS | ACLS/ | ACLS | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ACMR | ACMR/ | ACMR | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ACN | ACN/ | Accenture | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ADBE | ADBE/ | Adobe Inc. | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ADI | ADI/ | Analog Devices | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ADM | ADM/ | Archer Daniels Midland | US | 2026-07-26 | 2026-07-26 | unknown | watch |
+| ADN.TO | ADN.TO/ | Acadian Timber Corp. | CA | 2026-07-26 | 2026-07-26 | optionality | watch |
+| ADP | ADP/ | Automatic Data Processing | US | 2026-07-26 | 2026-07-26 | unknown | watch |
 | ADSK | ADSK/ | Autodesk | US | 2026-07-09 | 2026-07-26 | unknown | watch |
 | AEE | AEE/ | Ameren | US | 2026-07-09 | 2026-07-26 | unknown | watch |
 | AEHR | AEHR/ | AEHR | US | 2026-07-23 | 2026-07-26 | unknown | watch |

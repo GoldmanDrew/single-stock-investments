@@ -1,0 +1,28 @@
+# ARE — Insider conviction (2026-07-26)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| MARCUS JOEL S | 2026-02-12 | 17300 | $53.74 | $929702.0 | 2.022 |
+| MARCUS JOEL S | 2026-02-12 | 7700 | $54.31 | $418187.0 | 1.862 |
+| MARCUS JOEL S | 2026-05-06 | 3989 | $45.99 | $183454.11 | 1.472 |
+| MARCUS JOEL S | 2026-05-04 | 10000 | $41.02 | $410200.0 | 1.441 |
+| MARCUS JOEL S | 2026-05-06 | 3511 | $46.74 | $164104.14 | 1.432 |
+
+**Routine / planned sales (context):**
+
+- Moglia Peter M: 1068 @ $52.85 on 2026-06-30
+- Moglia Peter M: 1067 @ $49.68 on 2026-05-29
+- Moglia Peter M: 1069 @ $40.51 on 2026-04-30
+
+Source: `_system/reference/market-data/insider/ARE_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
