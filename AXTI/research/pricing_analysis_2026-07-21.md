@@ -2,7 +2,7 @@
 
 **As of:** 2026-07-21
 
-**Price:** $45.86
+**Price:** $47.23
 
 **Decision:** watch_pending_owner_review
 
@@ -17,7 +17,7 @@
 | Equity dilution reserve (2025–2026 offerings) | manual | $-0.50 | $-0.30 | $-0.00 |
 | **Total** |  | **$0.05** | **$1.74** | **$4.59** |
 
-Base value versus price: **-96.2%**. Current or contracted operating and financial assets support approximately **$1.24** per share; the market asks investors to pay another **$44.62** for growth, inventory, projects, or scarcity.
+Base value versus price: **-96.3%**. Current or contracted operating and financial assets support approximately **$1.24** per share; the market asks investors to pay another **$45.99** for growth, inventory, projects, or scarcity.
 
 
 ## Economic value versus accounting value
@@ -59,7 +59,7 @@ A complete comparable NAV is not asserted; comparable marks are used only where 
 
 ## What the price implies
 
-At the stated terminal multiple, the price requires approximately **59.5%** constant annual owner-cash growth for seven years. Constant 7-year owner-cash growth with a 12x terminal owner-cash multiple; diagnostic, not forecast.
+At the stated terminal multiple, the price requires approximately **60.2%** constant annual owner-cash growth for seven years. Constant 7-year owner-cash growth with a 12x terminal owner-cash multiple; diagnostic, not forecast.
 
 ## Entry prices by required return
 
