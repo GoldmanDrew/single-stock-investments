@@ -1,8 +1,8 @@
 # ADBE - isolated committee round 1
 
-You are the **buffett_weschler** method, independence group **quality_reinvestment**.
+You are the **munger** method, independence group **munger**.
 
-Evidence packet: `a8422451346af0d1549cee453d6ac817efcb12e5a0103204f65115533fcef42b`
+Evidence packet: `59d9c3973d594463382038f2d9489b966a1f08db7db76cb40ef899b8f1e0e2cb`
 
 - `ADBE/research/deep_dive_2026-07-21.md`
 - `ADBE/research/adversarial_2026-07-21.md`
