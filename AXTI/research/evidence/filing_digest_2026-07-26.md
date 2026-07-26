@@ -4,7 +4,7 @@
 **Agent:** Marvin (`build_filing_evidence.py`)  
 **Inventory:** `AXTI/research/evidence/document_inventory.json`  
 
-Documents in folder: **55** (all listed below; Tier 1–3 extracted or keyword-scanned).
+Documents in folder: **56** (all listed below; Tier 1–3 extracted or keyword-scanned).
 
 ## Document inventory
 
@@ -57,6 +57,7 @@ Documents in folder: **55** (all listed below; Tier 1–3 extracted or keyword-s
 | scan | 8-K | 2026-06-22 | `investor-documents/sec-edgar/8-K_20260622_rpt20260617_acc0001437749_26_021307.htm` | 6325 |
 | scan | 8-K | 2026-07-02 | `investor-documents/sec-edgar/8-K_20260702_rpt20260626_acc0001437749_26_022557.htm` | 5777 |
 | scan | 8-K | 2026-07-08 | `investor-documents/sec-edgar/8-K_20260708_rpt20260708_acc0001437749_26_022984.htm` | 5739 |
+| scan | 8-K | 2026-07-22 | `investor-documents/sec-edgar/8-K_20260722_rpt20260716_acc0001437749_26_024184.htm` | 7014 |
 | inventory | other | 2025-12-29 | `investor-documents/sec-edgar/424B5_20251229_rpt_acc0001213900_25_125583.htm` | 0 |
 | inventory | other | 2025-12-30 | `investor-documents/sec-edgar/424B5_20251230_rpt_acc0001213900_25_126273.htm` | 0 |
 | inventory | other | 2026-04-20 | `investor-documents/sec-edgar/424B5_20260420_rpt_acc0001213900_26_045643.htm` | 0 |

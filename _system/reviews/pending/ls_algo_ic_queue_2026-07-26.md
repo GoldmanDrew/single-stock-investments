@@ -40,6 +40,8 @@
 - **NBIS** — workbench evidence_blocked; triggers: material live ls-algo book position
 - **NET** — workbench evidence_blocked; triggers: material live ls-algo book position
 - **NVDA** — workbench evidence_blocked; triggers: material live ls-algo book position
+- **NVTS** — workbench evidence_blocked; triggers: material live ls-algo book position
+- **OKLO** — workbench evidence_blocked; triggers: material live ls-algo book position
 - **ORCL** — workbench evidence_blocked; triggers: material live ls-algo book position
 - **PANW** — workbench evidence_blocked; triggers: material live ls-algo book position
 - **SMCI** — workbench evidence_blocked; triggers: material live ls-algo book position

@@ -540,9 +540,12 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-26.
 | NSC | NSC/ | Norfolk Southern | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | NTAP | NTAP/ | NetApp | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | NTRS | NTRS/ | Northern Trust | US | 2026-07-10 | 2026-07-26 | unknown | watch |
+| NU | NU/ | NU | US | — | 2026-07-26 | unknown | watch |
 | NUE | NUE/ | Nucor | US | 2026-07-21 | 2026-07-26 | unknown | watch |
 | NVDA | NVDA/ | NVIDIA Corporation | US | 2026-07-09 | 2026-07-26 | unknown | watch |
+| NVO | NVO/ | NVO | US | — | 2026-07-26 | unknown | watch |
 | NVR | NVR/ | NVR, Inc. | US | 2026-07-10 | 2026-07-26 | unknown | watch |
+| NVTS | NVTS/ | NVTS | US | — | 2026-07-26 | unknown | watch |
 | NWS | NWS/ | News Corp (Class B) | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | NWSA | NWSA/ | News Corp (Class A) | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | NXPI | NXPI/ | NXP Semiconductors | US | 2026-07-10 | 2026-07-26 | unknown | watch |
@@ -550,6 +553,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-26.
 | O | O/ | Realty Income | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | ODFL | ODFL/ | Old Dominion | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | OKE | OKE/ | Oneok | US | 2026-07-10 | 2026-07-26 | unknown | watch |
+| OKLO | OKLO/ | OKLO | US | — | 2026-07-26 | unknown | watch |
 | OMC | OMC/ | Omnicom Group | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | ON | ON/ | ON Semiconductor | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | OR | OR/ | Osisko Gold Royalties Ltd | US | 2026-07-09 | 2026-07-26 | unknown | watch |
@@ -750,4 +754,4 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-26.
 | ZBRA | ZBRA/ | Zebra Technologies | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 | ZTS | ZTS/ | Zoetis | US | 2026-07-10 | 2026-07-26 | unknown | watch |
 
-**743 holdings total.** Registry: `_system/portfolio/registry.json`
+**747 holdings total.** Registry: `_system/portfolio/registry.json`
