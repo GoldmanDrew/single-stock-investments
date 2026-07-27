@@ -1,0 +1,28 @@
+# JBHT — Insider conviction (2026-07-27)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| ROBO JAMES L | 2026-05-28 | 37856 | $270.24 | $10230205.44 | 2.163 |
+| Biggs M. Brett | 2026-04-23 | 855 | $253.71 | $216922.05 | 1.268 |
+| Lisboa Persio V | 2026-04-23 | 1241 | $253.71 | $314854.11 | 1.183 |
+| Hill Thad | 2026-04-23 | 1320 | $253.71 | $334897.2 | 1.143 |
+| McGee Eric | 2025-08-04 | 1147 | $140.7587 | $161450.23 | 1.077 |
+
+**Routine / planned sales (context):**
+
+- Webb Brian: 1500 @ $284.0101 on 2026-06-05
+- Keefauver David: 703 @ $285.126 on 2026-06-05
+- ROBERTS JOHN N: 172 @ $211.9 on 2026-03-31
+
+Source: `_system/reference/market-data/insider/JBHT_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).

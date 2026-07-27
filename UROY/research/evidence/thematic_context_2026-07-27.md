@@ -4,12 +4,12 @@
 
 | Indicator | Latest | As of | YoY | Direction | In base IRR? |
 |-----------|--------|-------|-----|-----------|--------------|
-| High-yield OAS credit spread (%) | 2.13 | 2026-07-24 | +261.0% | up | no (context) |
-| US Treasury 10Y yield (%) | 4.678999900817871 | 2026-07-24 | +6.1% | up | no (context) |
-| US Treasury 2Y yield (%) | 4.426000118255615 | 2026-07-24 | +11.5% | up | no (context) |
-| Trade-weighted USD index (broad) | 101.2750015258789 | 2026-07-27 | +2.7% | up | no (context) |
-| VIX index level | 17.610000610351562 | 2026-07-27 | +17.2% | up | no (context) |
-| HYG vs TLT 1-month return spread (%) | 3.95 | 2026-07-24 | +91.7% | up | no (context) |
-| SPY 20-day realized vol (annualized %) | 11.36 | 2026-07-24 | +51.1% | up | no (context) |
+| High-yield OAS credit spread (%) | 2.06 | 2026-07-27 | +338.3% | up | no (context) |
+| US Treasury 10Y yield (%) | 4.654999732971191 | 2026-07-27 | +5.3% | up | no (context) |
+| US Treasury 2Y yield (%) | 4.406000137329102 | 2026-07-27 | +10.8% | up | no (context) |
+| Trade-weighted USD index (broad) | 101.4739990234375 | 2026-07-27 | +2.9% | up | no (context) |
+| VIX index level | 19.780000686645508 | 2026-07-27 | +31.6% | up | no (context) |
+| HYG vs TLT 1-month return spread (%) | 3.65 | 2026-07-27 | +49.0% | up | no (context) |
+| SPY 20-day realized vol (annualized %) | 11.07 | 2026-07-27 | +59.7% | up | no (context) |
 
 Source panels: `_system/reference/market-data/themes/manifest.json`.
