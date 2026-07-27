@@ -54,9 +54,6 @@ re_pass: false
 | Classification IRR | -9.92% | -9.92% | Yes |
 | Valuation bridge base | -9.92% | -9.92% | Yes |
 
-**Lint notes:**
-- AXTI/research: adversarial date adversarial_2026-07-24.md != dive 2026-07-25
-
 ---
 
 ## Disclosure scan
