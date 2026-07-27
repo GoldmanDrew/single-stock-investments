@@ -16,7 +16,7 @@
 
 ## One-liner
 
-Polish proximity grocery chain with owned logistics; growth CapEx depresses accounting FCF while owner earnings still compound; Lawrence base 21.1%/yr (synthesis 22.0%) at about PLN 29.45.
+Polish proximity grocery compounder; Power Zone decision-grade base value ~PLN 57/sh vs ~PLN 29.45; ~10%/yr return at price (Lawrence ~21% is legacy reference only).
 
 ## Deep dive
 
