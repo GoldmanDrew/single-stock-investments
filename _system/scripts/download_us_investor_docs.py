@@ -58,12 +58,20 @@ def log(log_file: Path, msg: str) -> None:
         f.write(line + "\n")
 
 
+def encode_iri(url: str) -> str:
+    """Percent-encode non-ASCII path/query so urllib works on Windows."""
+    parts = urllib.parse.urlsplit(url)
+    path = urllib.parse.quote(parts.path, safe="/%:@")
+    query = urllib.parse.quote(parts.query, safe="=&%")
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+
+
 def download(url: str, dest: Path, ua: str, log_file: Path) -> bool:
     if dest.exists() and dest.stat().st_size > 0:
         log(log_file, f"SKIP exists -> {dest}")
         return True
     dest.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(url, headers={"User-Agent": ua})
+    req = urllib.request.Request(encode_iri(url), headers={"User-Agent": ua})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = resp.read()
