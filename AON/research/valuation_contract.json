@@ -1,30 +1,1547 @@
 {
   "schema_version": "2.0",
-  "status": "evidence_blocked",
+  "status": "decision_grade",
   "ticker": "AON",
-  "as_of": "2026-07-20",
-  "economic_ownership_map": [],
+  "as_of": "2026-07-25",
+  "economic_ownership_map": [
+    {
+      "component_id": "core_engine",
+      "label": "Insurance brokerage owner-cash engine",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Insurance brokerage owner-cash engine",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_cash_or_dividend_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 206.4766,
+        "base": 334.6103,
+        "high": 484.6539
+      },
+      "legacy_range_per_share": {
+        "low": 206.48,
+        "base": 334.61,
+        "high": 484.65
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 206.4766,
+          "base": 334.6103,
+          "high": 484.6539
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.02,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Filing-aligned growth bands."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.02,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade toward mid-cycle."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.09,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Business risk bounds."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 14.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence exit multiples."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.02,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.02",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.02,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.02",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 15.504,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "15.2 \u00d7 1.02",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 15.81408,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "15.504 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 16.1303616,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "15.81408 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 16.45296883,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "16.130362 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 16.78202821,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "16.452969 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 17.11766877,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "16.782028 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 17.46002215,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "17.117669 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 72.75941809,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(15.504, 1, 15.81408, 2, 16.130362, 3, 16.452969, 4, 16.782028, 5, 17.117669, 6, 0.09)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 244.44031008,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "17.460022 \u00d7 14",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 133.71722043,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(244.44031, 0.09, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 206.47663852,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "72.759418 + 133.71722",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.06,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Filing-aligned growth bands."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.04,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade toward mid-cycle."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.07,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Business risk bounds."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 18.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence exit multiples."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.06,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.06",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.04,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.04",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 16.112,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "15.2 \u00d7 1.06",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 17.07872,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "16.112 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 18.1034432,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "17.07872 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 19.18964979,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "18.103443 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 20.34102878,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "19.18965 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 21.15466993,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "20.341029 \u00d7 1.04",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 22.00085673,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "21.15467 \u00d7 1.04",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 87.9917758,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(16.112, 1, 17.07872, 2, 18.103443, 3, 19.18965, 4, 20.341029, 5, 21.15467, 6, 0.07)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 396.0154211,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "22.000857 \u00d7 18",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 246.61850127,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(396.01542, 0.07, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 334.61027707,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "87.991776 + 246.6185",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.09,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Filing-aligned growth bands."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.06,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade toward mid-cycle."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.06,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Business risk bounds."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 22.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence exit multiples."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.09,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.09",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.06,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.06",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 16.568,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "15.2 \u00d7 1.09",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 18.05912,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "16.568 \u00d7 1.09",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 19.6844408,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "18.05912 \u00d7 1.09",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 21.45604047,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "19.684441 \u00d7 1.09",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 23.38708411,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "21.45604 \u00d7 1.09",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 24.79030916,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "23.387084 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 26.27772771,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "24.790309 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 100.17775044,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(16.568, 1, 18.05912, 2, 19.684441, 3, 21.45604, 4, 23.387084, 5, 24.790309, 6, 0.06)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 578.11000964,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "26.277728 \u00d7 22",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 384.47617437,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(578.11001, 0.06, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 484.65392481,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "100.17775 + 384.47617",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "normalized_owner_cash",
+            "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+            "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+            "as_of": "2025-12-31",
+            "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "1dbe764fb24d538a01c9e4f36bc4d184f1a262429680977208fca674ad48a325"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+      "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+      "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "overlap_key": "core_engine",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "reinvestment_runway",
+      "label": "NFP synergy and risk-capital runway",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "NFP synergy and risk-capital runway",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_earnings_reinvestment_dcf",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_earnings_reinvestment_dcf",
+        "version": "1.0",
+        "label": "Owner earnings and reinvestment-return DCF",
+        "power_zones": [
+          "quality_reinvestment"
+        ],
+        "equation": "cash_t = cash_(t-1)*(1+reinvestment*incremental_ROIC); value = PV(distributable cash + terminal owner earnings)",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Owner cash, reinvestment and reverse expectations"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 10.0,
+        "base": 35.0,
+        "high": 70.0
+      },
+      "legacy_range_per_share": {
+        "low": 10.0,
+        "base": 35.0,
+        "high": 70.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_earnings_reinvestment_dcf",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 10.0,
+          "base": 35.0,
+          "high": 70.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "NFP synergy / risk capital runway per share",
+              "kind": "judgment",
+              "value": 10.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded claim on NFP integration and wealth/health adjacency."
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "NFP synergy / risk capital runway per share",
+              "kind": "judgment",
+              "value": 35.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded claim on NFP integration and wealth/health adjacency."
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "NFP synergy / risk capital runway per share",
+              "kind": "judgment",
+              "value": 70.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded claim on NFP integration and wealth/health adjacency."
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+            "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+            "as_of": "2025-12-31",
+            "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "84a3b83a63d8fea7058f799bcf1dd888afd27ccc89e1361368347a805ed1b27b"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+      "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+      "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "overlap_key": "reinvestment_runway",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "label": "Net cash and long-term debt claims",
+      "category": "financial_asset",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net cash and long-term debt claims",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -65.7315,
+        "base": -62.338,
+        "high": -58.9444
+      },
+      "legacy_range_per_share": {
+        "low": -65.73,
+        "base": -62.34,
+        "high": -58.94
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -65.7315,
+          "base": -62.338,
+          "high": -58.9444
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents",
+              "kind": "fact",
+              "value": 1195.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "CashAndCashEquivalents",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "dec50b6d1288a65f7fe3aa2cc50501666873d2adb79c54466c171d26781eedfb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "long_term_debt_m",
+              "label": "Long-term debt",
+              "kind": "fact",
+              "value": 14660.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "LongTermDebt",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "9b6ba7a44339cdb86f485df1ed1f5538d2f8c034c3680e53649f0ac1b7652c13"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Cash minus long-term debt (debt-mark stress)",
+              "kind": "judgment",
+              "value": -14198.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -65.73148148,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "-14198 \u00f7 216",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents",
+              "kind": "fact",
+              "value": 1195.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "CashAndCashEquivalents",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "dec50b6d1288a65f7fe3aa2cc50501666873d2adb79c54466c171d26781eedfb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "long_term_debt_m",
+              "label": "Long-term debt",
+              "kind": "fact",
+              "value": 14660.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "LongTermDebt",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "9b6ba7a44339cdb86f485df1ed1f5538d2f8c034c3680e53649f0ac1b7652c13"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Cash minus long-term debt (debt-mark stress)",
+              "kind": "judgment",
+              "value": -13465.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -62.33796296,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "-13465 \u00f7 216",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents",
+              "kind": "fact",
+              "value": 1195.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "CashAndCashEquivalents",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "dec50b6d1288a65f7fe3aa2cc50501666873d2adb79c54466c171d26781eedfb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "long_term_debt_m",
+              "label": "Long-term debt",
+              "kind": "fact",
+              "value": 14660.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+                "locator": "LongTermDebt",
+                "as_of": "2025-12-31",
+                "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+                "source_id": "9b6ba7a44339cdb86f485df1ed1f5538d2f8c034c3680e53649f0ac1b7652c13"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares (millions)",
+              "kind": "fact",
+              "value": 216.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+                "as_of": "2025-12-31",
+                "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Cash minus long-term debt (debt-mark stress)",
+              "kind": "judgment",
+              "value": -12732.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base cash less LTD; \u00b15% debt mark stress in low/high."
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -58.94444444,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "-12732 \u00f7 216",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "cash_m",
+            "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+            "locator": "CashAndCashEquivalents",
+            "as_of": "2025-12-31",
+            "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+            "source_id": "dec50b6d1288a65f7fe3aa2cc50501666873d2adb79c54466c171d26781eedfb"
+          },
+          {
+            "node_id": "long_term_debt_m",
+            "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+            "locator": "LongTermDebt",
+            "as_of": "2025-12-31",
+            "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+            "source_id": "9b6ba7a44339cdb86f485df1ed1f5538d2f8c034c3680e53649f0ac1b7652c13"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+            "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+            "as_of": "2025-12-31",
+            "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "238e7eddd32b7ef9f7059232d4e7b7b1f6e6878b61e88df3bba89428c74740ed"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+      "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+      "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "overlap_key": "net_financial_claims",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "cycle_reserve",
+      "label": "Organic growth and competition reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Organic growth and competition reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -50.0,
+        "base": -15.0,
+        "high": -4.0
+      },
+      "legacy_range_per_share": {
+        "low": -50.0,
+        "base": -15.0,
+        "high": -4.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -50.0,
+          "base": -15.0,
+          "high": -4.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 362.78,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/research/valuation.json",
+                "locator": "inputs.price",
+                "as_of": "2026-07-25",
+                "content_sha256": "2f681236c9fbd360ae7f85c2bbafb63ab3a43a6eb3064fd3a70f1599ee42098f",
+                "source_id": "562b94466e2229fa6ff383f3fd3f6cdc2509dc29566befe7f6ccf6a1983d0ea4"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Organic and talent-competition reserve per share",
+              "kind": "judgment",
+              "value": -50.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for broker competition and synergy miss."
+            }
+          ],
+          "base": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 362.78,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/research/valuation.json",
+                "locator": "inputs.price",
+                "as_of": "2026-07-25",
+                "content_sha256": "2f681236c9fbd360ae7f85c2bbafb63ab3a43a6eb3064fd3a70f1599ee42098f",
+                "source_id": "562b94466e2229fa6ff383f3fd3f6cdc2509dc29566befe7f6ccf6a1983d0ea4"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Organic and talent-competition reserve per share",
+              "kind": "judgment",
+              "value": -15.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for broker competition and synergy miss."
+            }
+          ],
+          "high": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 362.78,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/research/valuation.json",
+                "locator": "inputs.price",
+                "as_of": "2026-07-25",
+                "content_sha256": "2f681236c9fbd360ae7f85c2bbafb63ab3a43a6eb3064fd3a70f1599ee42098f",
+                "source_id": "562b94466e2229fa6ff383f3fd3f6cdc2509dc29566befe7f6ccf6a1983d0ea4"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized owner cash per share",
+              "kind": "fact",
+              "value": 15.2,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+                "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+                "as_of": "2025-12-31",
+                "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Organic and talent-competition reserve per share",
+              "kind": "judgment",
+              "value": -4.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for broker competition and synergy miss."
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "price_per_share",
+            "ref": "AON/research/valuation.json",
+            "locator": "inputs.price",
+            "as_of": "2026-07-25",
+            "content_sha256": "2f681236c9fbd360ae7f85c2bbafb63ab3a43a6eb3064fd3a70f1599ee42098f",
+            "source_id": "562b94466e2229fa6ff383f3fd3f6cdc2509dc29566befe7f6ccf6a1983d0ea4"
+          },
+          {
+            "node_id": "normalized_owner_cash",
+            "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+            "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+            "as_of": "2025-12-31",
+            "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "4c50d6561c5486c064ede526198675566f0bd46b6cba772d6c1c6bd2fb7e70eb"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+      "scenario_assumptions": "Filing-grounded schedule 2026-07-25",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Non-overlapping overlap key.",
+      "falsifier": "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "overlap_key": "cycle_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
   "component_coverage": {
-    "all_material_components_identified": false,
-    "material_component_count": 0,
-    "additive_component_count": 0,
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 4,
     "embedded_component_count": 0,
-    "unvalued_component_count": 1,
+    "unvalued_component_count": 0,
     "double_counting_flags": []
   },
   "input_classification": {
     "facts": [],
     "estimates": [],
-    "judgments": []
+    "judgments": [
+      {
+        "component_id": "core_engine",
+        "label": "Insurance brokerage owner-cash engine",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "label": "NFP synergy and risk-capital runway",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+        "method": "owner_earnings_reinvestment_dcf",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "label": "Organic growth and competition reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm; component schedule reconciled 2026-07-25.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
   },
   "method_route": {
     "schema_version": "2.0",
-    "status": "default_needs_review",
+    "status": "routed",
     "profile_id": "quality_reinvestment",
     "label": "High-return compounder",
-    "score": 0.0,
+    "score": 4.0,
     "reasons": [
-      "No decisive classification was supplied; owner-earnings is the conservative operating default."
+      "component categories=operating_business",
+      "existing methods=dcf, owner_cash, reinvestment"
     ],
     "primary_methods": [
       "owner_earnings_reinvestment_dcf"
@@ -61,31 +1578,61 @@
       "stock compensation or acquisitions omitted",
       "terminal value unsupported by a durable mechanism"
     ],
-    "secondary_profiles": [],
+    "secondary_profiles": [
+      {
+        "profile_id": "capital_cycle",
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=capacity, cycle, midcycle"
+        ]
+      },
+      {
+        "profile_id": "predictable_cash_flow",
+        "score": 3.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
+      }
+    ],
     "scorecard": {
       "scarce_asset_optionality": {
         "score": 0.0,
         "reasons": []
       },
       "quality_reinvestment": {
-        "score": 0.0,
-        "reasons": []
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dcf, owner_cash, reinvestment"
+        ]
       },
       "capital_cycle": {
-        "score": 0.0,
-        "reasons": []
+        "score": 4.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=capacity, cycle, midcycle"
+        ]
       },
       "credit_and_normalized_returns": {
-        "score": 0.0,
-        "reasons": []
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
       },
       "catalyst_asset_value": {
-        "score": 0.0,
-        "reasons": []
+        "score": 1.0,
+        "reasons": [
+          "component categories=financial_asset"
+        ]
       },
       "predictable_cash_flow": {
-        "score": 0.0,
-        "reasons": []
+        "score": 3.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
       },
       "binary_milestone": {
         "score": 0.0,
@@ -94,7 +1641,7 @@
     },
     "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
     "ticker": "AON",
-    "as_of": "2026-07-20",
+    "as_of": "2026-07-27",
     "route_source": "canonical_power_zone_router",
     "config_path": "_system/frameworks/power_zones.json",
     "config_updated": "2026-07-14",
@@ -132,74 +1679,179 @@
         }
       ]
     },
-    "input_hash": "c054856d1457c653031931ffdc94c1dbb48ce9dd2d57f241fc08eb91e1173e36",
-    "generated_at": "2026-07-20T17:13:53.952508+00:00"
+    "input_hash": "65965618edc24bdea99c0ddbb1cf5a63e5826cc6d8f69f3b43957fd48ea4b7d4",
+    "generated_at": "2026-07-27T11:30:20.353423+00:00"
   },
   "market": {
     "price_per_share": 362.78,
-    "fully_diluted_shares": null,
-    "market_cap_m": null,
-    "enterprise_value_m": null
+    "fully_diluted_shares": 216000000,
+    "market_cap_m": 78360.48,
+    "enterprise_value_m": 91825.48
   },
   "valuation": {
     "value_per_share": {
-      "low": null,
-      "base": null,
-      "high": null
+      "low": 100.7451,
+      "base": 292.2723,
+      "high": 491.7095
     },
     "priced_components_per_share": {
-      "low": 0,
-      "base": 0,
-      "high": 0
+      "low": 100.7451,
+      "base": 292.2723,
+      "high": 491.7095
     },
-    "legacy_value_per_share": null,
-    "probability_weighted_value_per_share": null,
+    "legacy_value_per_share": {
+      "low": 100.75,
+      "base": 292.27,
+      "high": 491.71
+    },
+    "probability_weighted_value_per_share": 292.2723,
     "expected_distributions_per_share": 0.0,
     "annualized_return_at_price_pct": {
-      "low": null,
-      "base": null,
-      "high": null
+      "low": -16.73,
+      "base": -3.04,
+      "high": 4.44
     },
-    "downside_to_low_pct": null,
+    "downside_to_low_pct": -72.23,
     "horizon_years": 7,
-    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is not a complete security value."
+    "equity_liability_floor": 0.0,
+    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
   },
   "scenario_contract": {
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
-    "top_value_drivers": [],
+    "top_value_drivers": [
+      {
+        "component_id": "core_engine",
+        "label": "Insurance brokerage owner-cash engine",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 334.6103,
+        "legacy_base_per_share": 334.61,
+        "range_width_per_share": 278.1773,
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+      },
+      {
+        "component_id": "reinvestment_runway",
+        "label": "NFP synergy and risk-capital runway",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 35.0,
+        "legacy_base_per_share": 35.0,
+        "range_width_per_share": 60.0,
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+      },
+      {
+        "component_id": "cycle_reserve",
+        "label": "Organic growth and competition reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -15.0,
+        "legacy_base_per_share": -15.0,
+        "range_width_per_share": 46.0,
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and long-term debt claims",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -62.338,
+        "legacy_base_per_share": -62.34,
+        "range_width_per_share": 6.7871,
+        "scenario_assumptions": "Filing-grounded schedule 2026-07-25"
+      }
+    ],
     "reverse_expectations": null
   },
   "calculation_proof_summary": {
-    "component_count": 0,
-    "priced_component_count": 0,
-    "proof_complete_pct": 0.0,
+    "component_count": 4,
+    "priced_component_count": 4,
+    "proof_complete_pct": 100.0,
     "status_counts": {
-      "bounded_estimate": 0,
+      "bounded_estimate": 4,
       "calculated": 0,
       "legacy_sensitivity": 0,
       "unpriced": 0
     },
-    "all_material_components_priced": false,
+    "all_material_components_priced": true,
     "calculation_errors": [],
-    "aggregate_proof_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    "aggregate_proof_hash": "fe9330a5708381f037b898d3a0a23551ff2dc2b6b87272b6a3b69e2c3e95392c"
   },
-  "source_lineage": [],
+  "source_lineage": [
+    {
+      "component_id": "core_engine",
+      "node_id": "normalized_owner_cash",
+      "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+      "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+      "as_of": "2025-12-31",
+      "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+    },
+    {
+      "component_id": "reinvestment_runway",
+      "node_id": "shares_m",
+      "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+      "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+      "as_of": "2025-12-31",
+      "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "cash_m",
+      "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+      "locator": "CashAndCashEquivalents",
+      "as_of": "2025-12-31",
+      "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+      "source_id": "dec50b6d1288a65f7fe3aa2cc50501666873d2adb79c54466c171d26781eedfb"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "long_term_debt_m",
+      "ref": "AON/research/evidence/filing_facts_2026-07-25.json",
+      "locator": "LongTermDebt",
+      "as_of": "2025-12-31",
+      "content_sha256": "3e57613f22d374ee75260fa88dd603ba0d820954dd9d7bf0d13ccf5221485dbd",
+      "source_id": "9b6ba7a44339cdb86f485df1ed1f5538d2f8c034c3680e53649f0ac1b7652c13"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "shares_m",
+      "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+      "locator": "Implied from FY2025 NI \\,695M / EPS \\.11 \u2248 216M shares",
+      "as_of": "2025-12-31",
+      "source_id": "68e88eceb860c2261f821ceb51321553f7ad5f558212b6c2bcd16123f5c38747"
+    },
+    {
+      "component_id": "cycle_reserve",
+      "node_id": "price_per_share",
+      "ref": "AON/research/valuation.json",
+      "locator": "inputs.price",
+      "as_of": "2026-07-25",
+      "content_sha256": "2f681236c9fbd360ae7f85c2bbafb63ab3a43a6eb3064fd3a70f1599ee42098f",
+      "source_id": "562b94466e2229fa6ff383f3fd3f6cdc2509dc29566befe7f6ccf6a1983d0ea4"
+    },
+    {
+      "component_id": "cycle_reserve",
+      "node_id": "normalized_owner_cash",
+      "ref": "AON/investor-documents/sec-edgar/10-K_20260213_rpt20251231_acc0001628280_26_008116.htm",
+      "locator": "FY2025 OCF \\,481M \u2212 estimated capex/restructuring ~\\ [Assumption] \u00f7 ~216M shares (NI \\,695M / EPS \\.11) \u2248 \\.20/sh",
+      "as_of": "2025-12-31",
+      "source_id": "1383e645c360a4f5d404aec5ae62ed133d940e1178c80659a9dc2530cb589d15"
+    }
+  ],
   "model_checks": {
     "calculation_graphs_valid": true,
-    "component_sum_reconciles": false,
+    "component_sum_reconciles": true,
     "no_double_counting": true,
-    "all_material_components_priced": false,
+    "all_material_components_priced": true,
     "low_base_high_ordered": true
   },
   "evidence": {
-    "unresolved_count": 1,
-    "blockers": [
-      "A complete economic ownership map has not been supplied."
-    ],
+    "unresolved_count": 0,
+    "blockers": [],
     "validation_errors": []
   },
   "monitoring": {
-    "falsifiers": [],
+    "falsifiers": [
+      "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "Primary evidence shows owner cash or capital structure materially worse than low case.",
+      "Primary evidence shows owner cash or capital structure materially worse than low case."
+    ],
     "required_refresh_triggers": [
       "new filing or material operating update",
       "capital-structure change",
@@ -208,12 +1860,17 @@
     ]
   },
   "change_control": {
-    "model_hash": "fb97477abdb09ca95a269172d9635fd88242697f17d43a5450779035a38055ad",
-    "method_versions": [],
+    "model_hash": "f6dceac69f7696e4e8a8347ff3655472031a1ddc2666d359fbd7aebdb1d96616",
+    "method_versions": [
+      "midcycle_capacity_value@1.0",
+      "net_asset_value@1.0",
+      "owner_cash_or_dividend_discount@1.0",
+      "owner_earnings_reinvestment_dcf@1.0"
+    ],
     "change_log": [],
     "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
   },
   "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved.",
   "authority": "universal_valuation_contract",
-  "legacy_reference_present": false
+  "legacy_reference_present": true
 }

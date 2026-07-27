@@ -1,80 +1,1654 @@
 {
   "schema_version": "2.0",
-  "status": "evidence_blocked",
+  "status": "decision_grade",
   "ticker": "AAOI",
-  "as_of": "2026-07-17",
+  "as_of": "2026-07-25",
   "economic_ownership_map": [
     {
-      "component_id": "operating_business_fallback",
-      "label": "Operating business (fallback)",
+      "component_id": "datacenter_optics_engine",
+      "label": "Data-center and CATV optics owner-cash engine",
       "category": "operating_business",
       "treatment": "additive",
       "included_in_component_id": null,
-      "ownership_claim": "Operating business (fallback)",
+      "ownership_claim": "Normalized free cash flow after Taiwan capacity build-out",
       "ownership_percentage": 1.0,
       "quantity": {
         "value": 1,
         "unit": "per-share economic claim"
       },
-      "method": "owner_cash_dcf",
-      "method_version": null,
-      "method_provenance": null,
+      "method": "owner_cash_or_dividend_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
       "comparable_ids": [],
       "range_per_share": {
-        "low": null,
-        "base": null,
-        "high": null
+        "low": 8.0617,
+        "base": 15.0058,
+        "high": 28.8501
       },
       "legacy_range_per_share": {
-        "low": 15.67,
-        "base": 17.47,
-        "high": 19.54
+        "low": 8.06,
+        "base": 15.01,
+        "high": 28.85
       },
-      "valuation_status": "legacy_sensitivity",
-      "calculation_proof": null,
-      "evidence_tier": "model_input",
-      "evidence_level": "analyst_estimated",
-      "evidence": "inputs.fcf_per_share and scenarios.base",
-      "scenario_assumptions": null,
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 8.0617,
+          "base": 15.0058,
+          "high": 28.8501
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share after Taiwan build-out capex",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 OCF $174.4M \u2212 normalized capex $130.0M [Assumption: $49M above mid-cycle maintenance] \u00f7 60.2M FY2025 diluted shares",
+                "as_of": "2025-12-31",
+                "source_id": "d336f6608da239a295231aeb9d3542552b3ccb527f4db41e81f66e2ddffee83b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 174.4,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Net cash from operating activities $174.4M",
+                "as_of": "2025-12-31",
+                "source_id": "804bb66b3cf028bc84525fb220f7db9a37f1454b5c3c0c0fa3dff5c52a195c5d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_m",
+              "label": "FY2025 revenue",
+              "kind": "fact",
+              "value": 455.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 revenue $455.7M (+83% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "e5b41966da99738834cd4129ba9505cc62a0f46b3a74fb5df4e0bcafde1ce674"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.05,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base: data-center mix rises; CATV normalizes; Taiwan capacity converts to FCF."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.02,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade after hyperscaler 800G cycle; concentration risk remains."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.14,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "High customer concentration and optics cycle volatility."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 12.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence scenario exit PFCF multiples in valuation.json."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.05,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.05",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.02,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.02",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 0.777,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "0.74 \u00d7 1.05",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 0.81585,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.777 \u00d7 1.05",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 0.8566425,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.81585 \u00d7 1.05",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 0.89947463,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.8566425 \u00d7 1.05",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 0.94444836,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.89947463 \u00d7 1.05",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 0.96333732,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "0.94444836 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 0.98260407,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "0.96333732 \u00d7 1.02",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 3.34951991,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(0.777, 1, 0.81585, 2, 0.8566425, 3, 0.89947463, 4, 0.94444836, 5, 0.96333732, 6, 0.14)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 11.79124884,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "0.98260407 \u00d7 12",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 4.71222311,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(11.791249, 0.14, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 8.06174302,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "3.3495199 + 4.7122231",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share after Taiwan build-out capex",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 OCF $174.4M \u2212 normalized capex $130.0M [Assumption: $49M above mid-cycle maintenance] \u00f7 60.2M FY2025 diluted shares",
+                "as_of": "2025-12-31",
+                "source_id": "d336f6608da239a295231aeb9d3542552b3ccb527f4db41e81f66e2ddffee83b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 174.4,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Net cash from operating activities $174.4M",
+                "as_of": "2025-12-31",
+                "source_id": "804bb66b3cf028bc84525fb220f7db9a37f1454b5c3c0c0fa3dff5c52a195c5d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_m",
+              "label": "FY2025 revenue",
+              "kind": "fact",
+              "value": 455.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 revenue $455.7M (+83% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "e5b41966da99738834cd4129ba9505cc62a0f46b3a74fb5df4e0bcafde1ce674"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.12,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base: data-center mix rises; CATV normalizes; Taiwan capacity converts to FCF."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.06,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade after hyperscaler 800G cycle; concentration risk remains."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.12,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "High customer concentration and optics cycle volatility."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 16.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence scenario exit PFCF multiples in valuation.json."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.12,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.12",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.06,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.06",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 0.8288,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "0.74 \u00d7 1.12",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 0.928256,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.8288 \u00d7 1.12",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 1.03964672,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.928256 \u00d7 1.12",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 1.16440433,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "1.0396467 \u00d7 1.12",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 1.30413285,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "1.1644043 \u00d7 1.12",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 1.38238082,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "1.3041328 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 1.46532367,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "1.3823808 \u00d7 1.06",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 4.40035714,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(0.8288, 1, 0.928256, 2, 1.0396467, 3, 1.1644043, 4, 1.3041328, 5, 1.3823808, 6, 0.12)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 23.44517864,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "1.4653237 \u00d7 16",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 10.60540816,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(23.445179, 0.12, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 15.00576531,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "4.4003571 + 10.605408",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share after Taiwan build-out capex",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 OCF $174.4M \u2212 normalized capex $130.0M [Assumption: $49M above mid-cycle maintenance] \u00f7 60.2M FY2025 diluted shares",
+                "as_of": "2025-12-31",
+                "source_id": "d336f6608da239a295231aeb9d3542552b3ccb527f4db41e81f66e2ddffee83b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 174.4,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Net cash from operating activities $174.4M",
+                "as_of": "2025-12-31",
+                "source_id": "804bb66b3cf028bc84525fb220f7db9a37f1454b5c3c0c0fa3dff5c52a195c5d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_m",
+              "label": "FY2025 revenue",
+              "kind": "fact",
+              "value": 455.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "FY2025 revenue $455.7M (+83% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "e5b41966da99738834cd4129ba9505cc62a0f46b3a74fb5df4e0bcafde1ce674"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Growth years 1\u20135",
+              "kind": "judgment",
+              "value": 0.2,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base: data-center mix rises; CATV normalizes; Taiwan capacity converts to FCF."
+            },
+            {
+              "id": "growth_y6_10",
+              "label": "Growth years 6\u20137",
+              "kind": "judgment",
+              "value": 0.1,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Fade after hyperscaler 800G cycle; concentration risk remains."
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on owner cash",
+              "kind": "judgment",
+              "value": 0.1,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "High customer concentration and optics cycle volatility."
+            },
+            {
+              "id": "exit_multiple",
+              "label": "Selling multiple in year 7",
+              "kind": "judgment",
+              "value": 20.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Aligned to Lawrence scenario exit PFCF multiples in valuation.json."
+            },
+            {
+              "id": "growth_factor_y1",
+              "label": "growth_factor_y1",
+              "kind": "calculation",
+              "value": 1.2,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y1_5",
+              "substituted_formula": "1 + 0.2",
+              "dependencies": [
+                1,
+                "growth_y1_5"
+              ]
+            },
+            {
+              "id": "growth_factor_y2",
+              "label": "growth_factor_y2",
+              "kind": "calculation",
+              "value": 1.1,
+              "unit": "ratio",
+              "operation": "add",
+              "formula": "1 + growth_y6_10",
+              "substituted_formula": "1 + 0.1",
+              "dependencies": [
+                1,
+                "growth_y6_10"
+              ]
+            },
+            {
+              "id": "owner_cash_y1",
+              "label": "owner_cash_y1",
+              "kind": "calculation",
+              "value": 0.888,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "normalized_owner_cash \u00d7 growth_factor_y1",
+              "substituted_formula": "0.74 \u00d7 1.2",
+              "dependencies": [
+                "normalized_owner_cash",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y2",
+              "label": "owner_cash_y2",
+              "kind": "calculation",
+              "value": 1.0656,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y1 \u00d7 growth_factor_y1",
+              "substituted_formula": "0.888 \u00d7 1.2",
+              "dependencies": [
+                "owner_cash_y1",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y3",
+              "label": "owner_cash_y3",
+              "kind": "calculation",
+              "value": 1.27872,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y2 \u00d7 growth_factor_y1",
+              "substituted_formula": "1.0656 \u00d7 1.2",
+              "dependencies": [
+                "owner_cash_y2",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y4",
+              "label": "owner_cash_y4",
+              "kind": "calculation",
+              "value": 1.534464,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y3 \u00d7 growth_factor_y1",
+              "substituted_formula": "1.27872 \u00d7 1.2",
+              "dependencies": [
+                "owner_cash_y3",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y5",
+              "label": "owner_cash_y5",
+              "kind": "calculation",
+              "value": 1.8413568,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y4 \u00d7 growth_factor_y1",
+              "substituted_formula": "1.534464 \u00d7 1.2",
+              "dependencies": [
+                "owner_cash_y4",
+                "growth_factor_y1"
+              ]
+            },
+            {
+              "id": "owner_cash_y6",
+              "label": "owner_cash_y6",
+              "kind": "calculation",
+              "value": 2.02549248,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y5 \u00d7 growth_factor_y2",
+              "substituted_formula": "1.8413568 \u00d7 1.1",
+              "dependencies": [
+                "owner_cash_y5",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "owner_cash_y7",
+              "label": "owner_cash_y7",
+              "kind": "calculation",
+              "value": 2.22804173,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y6 \u00d7 growth_factor_y2",
+              "substituted_formula": "2.0254925 \u00d7 1.1",
+              "dependencies": [
+                "owner_cash_y6",
+                "growth_factor_y2"
+              ]
+            },
+            {
+              "id": "cash_pv",
+              "label": "cash_pv",
+              "kind": "calculation",
+              "value": 5.98339011,
+              "unit": "USD_per_share",
+              "operation": "present_value",
+              "formula": "present_value(owner_cash_y1, 1, owner_cash_y2, 2, owner_cash_y3, 3, owner_cash_y4, 4, owner_cash_y5, 5, owner_cash_y6, 6, discount_rate)",
+              "substituted_formula": "present_value(0.888, 1, 1.0656, 2, 1.27872, 3, 1.534464, 4, 1.8413568, 5, 2.0254925, 6, 0.1)",
+              "dependencies": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "discount_rate"
+              ]
+            },
+            {
+              "id": "terminal_cash",
+              "label": "terminal_cash",
+              "kind": "calculation",
+              "value": 44.56083456,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_y7 \u00d7 exit_multiple",
+              "substituted_formula": "2.2280417 \u00d7 20",
+              "dependencies": [
+                "owner_cash_y7",
+                "exit_multiple"
+              ]
+            },
+            {
+              "id": "terminal_pv",
+              "label": "terminal_pv",
+              "kind": "calculation",
+              "value": 22.86675401,
+              "unit": "USD_per_share",
+              "operation": "discount",
+              "formula": "discount(terminal_cash, discount_rate, 7)",
+              "substituted_formula": "discount(44.560835, 0.1, 7)",
+              "dependencies": [
+                "terminal_cash",
+                "discount_rate",
+                7
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 28.85014412,
+              "unit": "USD_per_share",
+              "operation": "add",
+              "formula": "cash_pv + terminal_pv",
+              "substituted_formula": "5.9833901 + 22.866754",
+              "dependencies": [
+                "cash_pv",
+                "terminal_pv"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "normalized_owner_cash",
+            "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+            "locator": "FY2025 OCF $174.4M \u2212 normalized capex $130.0M [Assumption: $49M above mid-cycle maintenance] \u00f7 60.2M FY2025 diluted shares",
+            "as_of": "2025-12-31",
+            "source_id": "d336f6608da239a295231aeb9d3542552b3ccb527f4db41e81f66e2ddffee83b"
+          },
+          {
+            "node_id": "operating_cash_flow_m",
+            "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+            "locator": "Net cash from operating activities $174.4M",
+            "as_of": "2025-12-31",
+            "source_id": "804bb66b3cf028bc84525fb220f7db9a37f1454b5c3c0c0fa3dff5c52a195c5d"
+          },
+          {
+            "node_id": "revenue_m",
+            "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+            "locator": "FY2025 revenue $455.7M (+83% YoY)",
+            "as_of": "2025-12-31",
+            "source_id": "e5b41966da99738834cd4129ba9505cc62a0f46b3a74fb5df4e0bcafde1ce674"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "b06eeda647c7cea97dff60c797b7a30f262913e3265a8bf84b632a722ca73c82"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+      "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25.",
       "probability_and_timing": null,
-      "tax_and_realization_adjustments": "Risk and timing are reflected in the low/base/high range.",
-      "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
-      "overlap_key": "operating_business_fallback",
-      "assumption_type": "estimate"
+      "tax_and_realization_adjustments": "Reported FY2025 FCF was negative; uses normalized maintenance capex.",
+      "falsifier": "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "overlap_key": "datacenter_optics_engine",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "hyperscaler_share_runway",
+      "label": "Hyperscaler 800G share and warrant volume runway",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Bounded multi-customer share gains above normalized FCF0",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_earnings_reinvestment_dcf",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_earnings_reinvestment_dcf",
+        "version": "1.0",
+        "label": "Owner earnings and reinvestment-return DCF",
+        "power_zones": [
+          "quality_reinvestment"
+        ],
+        "equation": "cash_t = cash_(t-1)*(1+reinvestment*incremental_ROIC); value = PV(distributable cash + terminal owner earnings)",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Owner cash, reinvestment and reverse expectations"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 1.0,
+        "base": 8.0,
+        "high": 25.0
+      },
+      "legacy_range_per_share": {
+        "low": 1.0,
+        "base": 8.0,
+        "high": 25.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_earnings_reinvestment_dcf",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 1.0,
+          "base": 8.0,
+          "high": 25.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares 75.98M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "132b785d7667937e4f2e5ade86da71163c4087689c3b5647d10f3161dfb80a68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_q1_m",
+              "label": "Q1 2026 revenue",
+              "kind": "fact",
+              "value": 151.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 revenue $151.1M (+51% YoY)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "97440c2f8af8b6de92ce5a005f07d050272854a70cd344848664e2cc1dc5e9a3"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "Hyperscaler 800G share and Amazon warrant volume runway per share",
+              "kind": "judgment",
+              "value": 1.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded non-overlapping claim on multi-hyperscaler share gains above normalized FCF0 path."
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares 75.98M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "132b785d7667937e4f2e5ade86da71163c4087689c3b5647d10f3161dfb80a68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_q1_m",
+              "label": "Q1 2026 revenue",
+              "kind": "fact",
+              "value": 151.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 revenue $151.1M (+51% YoY)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "97440c2f8af8b6de92ce5a005f07d050272854a70cd344848664e2cc1dc5e9a3"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "Hyperscaler 800G share and Amazon warrant volume runway per share",
+              "kind": "judgment",
+              "value": 8.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded non-overlapping claim on multi-hyperscaler share gains above normalized FCF0 path."
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares 75.98M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "132b785d7667937e4f2e5ade86da71163c4087689c3b5647d10f3161dfb80a68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "revenue_q1_m",
+              "label": "Q1 2026 revenue",
+              "kind": "fact",
+              "value": 151.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 revenue $151.1M (+51% YoY)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "97440c2f8af8b6de92ce5a005f07d050272854a70cd344848664e2cc1dc5e9a3"
+              },
+              "rationale": null
+            },
+            {
+              "id": "pipeline_value_per_share",
+              "label": "Hyperscaler 800G share and Amazon warrant volume runway per share",
+              "kind": "judgment",
+              "value": 25.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Bounded non-overlapping claim on multi-hyperscaler share gains above normalized FCF0 path."
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "AAOI/research/valuation.json",
+            "locator": "Q1 2026 weighted average diluted shares 75.98M",
+            "as_of": "2026-03-31",
+            "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+            "source_id": "132b785d7667937e4f2e5ade86da71163c4087689c3b5647d10f3161dfb80a68"
+          },
+          {
+            "node_id": "revenue_q1_m",
+            "ref": "AAOI/research/valuation.json",
+            "locator": "Q1 2026 revenue $151.1M (+51% YoY)",
+            "as_of": "2026-03-31",
+            "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+            "source_id": "97440c2f8af8b6de92ce5a005f07d050272854a70cd344848664e2cc1dc5e9a3"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "2ee5958faa04f5c98ed6a522f52f380e4fd9a81a475bf864d04690d4c5758a44"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+      "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Amazon warrant volume not double-counted in core terminal.",
+      "falsifier": "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "overlap_key": "hyperscaler_share_runway",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "label": "Net cash and debt claims",
+      "category": "financial_asset",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Q1 2026 cash less modest debt after liquidity haircuts",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 3.5132,
+        "base": 5.3382,
+        "high": 5.7171
+      },
+      "legacy_range_per_share": {
+        "low": 3.51,
+        "base": 5.34,
+        "high": 5.72
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 3.5132,
+          "base": 5.3382,
+          "high": 5.7171
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents (Q1 2026)",
+              "kind": "fact",
+              "value": 439.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Cash and equivalents $439.7M at March 31, 2026 (10-Q Q1 2026)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "5f5cebbea9a1eb8b735785bbdc61fa31d7ffd275619500f0f1d7fdaafd01e1a7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares ~76M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "aca9325a10965617b21873c41bb3f2e0e4a3bc4262a871062588edfcc314cc34"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Net liquidity after debt and cash haircut scenarios",
+              "kind": "judgment",
+              "value": 267.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base uses Q1 cash less modest debt; low stresses cash burn/dilution during Taiwan ramp."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": 3.51315789,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "267 \u00f7 76",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents (Q1 2026)",
+              "kind": "fact",
+              "value": 439.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Cash and equivalents $439.7M at March 31, 2026 (10-Q Q1 2026)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "5f5cebbea9a1eb8b735785bbdc61fa31d7ffd275619500f0f1d7fdaafd01e1a7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares ~76M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "aca9325a10965617b21873c41bb3f2e0e4a3bc4262a871062588edfcc314cc34"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Net liquidity after debt and cash haircut scenarios",
+              "kind": "judgment",
+              "value": 405.7,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base uses Q1 cash less modest debt; low stresses cash burn/dilution during Taiwan ramp."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": 5.33815789,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "405.7 \u00f7 76",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "cash_m",
+              "label": "Cash and cash equivalents (Q1 2026)",
+              "kind": "fact",
+              "value": 439.7,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Cash and equivalents $439.7M at March 31, 2026 (10-Q Q1 2026)",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "5f5cebbea9a1eb8b735785bbdc61fa31d7ffd275619500f0f1d7fdaafd01e1a7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 76.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Q1 2026 weighted average diluted shares ~76M",
+                "as_of": "2026-03-31",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "aca9325a10965617b21873c41bb3f2e0e4a3bc4262a871062588edfcc314cc34"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_claim_m",
+              "label": "Net liquidity after debt and cash haircut scenarios",
+              "kind": "judgment",
+              "value": 434.5,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base uses Q1 cash less modest debt; low stresses cash burn/dilution during Taiwan ramp."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": 5.71710526,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claim_m \u00f7 shares_m",
+              "substituted_formula": "434.5 \u00f7 76",
+              "dependencies": [
+                "net_claim_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "cash_m",
+            "ref": "AAOI/research/valuation.json",
+            "locator": "Cash and equivalents $439.7M at March 31, 2026 (10-Q Q1 2026)",
+            "as_of": "2026-03-31",
+            "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+            "source_id": "5f5cebbea9a1eb8b735785bbdc61fa31d7ffd275619500f0f1d7fdaafd01e1a7"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AAOI/research/valuation.json",
+            "locator": "Q1 2026 weighted average diluted shares ~76M",
+            "as_of": "2026-03-31",
+            "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+            "source_id": "aca9325a10965617b21873c41bb3f2e0e4a3bc4262a871062588edfcc314cc34"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "f2c54a425c7683d163f86a6d908cdfaf6004e810ab4f9202cfb0dd71c6bbe83e"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+      "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low case haircuts cash for ongoing dilution/burn.",
+      "falsifier": "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "overlap_key": "net_financial_claims",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "customer_capex_reserve",
+      "label": "Customer concentration and capex overrun reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Hyperscaler concentration, dilution, Taiwan capex stress",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -35.0,
+        "base": -12.0,
+        "high": -3.0
+      },
+      "legacy_range_per_share": {
+        "low": -35.0,
+        "base": -12.0,
+        "high": -3.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -35.0,
+          "base": -12.0,
+          "high": -3.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 99.77,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Yahoo AAOI close 2026-07-17",
+                "as_of": "2026-07-17",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "09d7ed3585be1ee26de70d8fc13b66949af5ed6c40a0a78e331dd9860b63e27d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Normalized FCF $0.74/sh after Taiwan build-out assumption",
+                "as_of": "2025-12-31",
+                "source_id": "1f24e0b2cd679cd059efab0f3f6c1b44f4fd247176499b81f16e4ade7413dc69"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Customer concentration, dilution, and capex overrun reserve per share",
+              "kind": "judgment",
+              "value": -35.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for Digicomm/Microsoft concentration, warrant dilution, and Taiwan capex overruns."
+            }
+          ],
+          "base": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 99.77,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Yahoo AAOI close 2026-07-17",
+                "as_of": "2026-07-17",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "09d7ed3585be1ee26de70d8fc13b66949af5ed6c40a0a78e331dd9860b63e27d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Normalized FCF $0.74/sh after Taiwan build-out assumption",
+                "as_of": "2025-12-31",
+                "source_id": "1f24e0b2cd679cd059efab0f3f6c1b44f4fd247176499b81f16e4ade7413dc69"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Customer concentration, dilution, and capex overrun reserve per share",
+              "kind": "judgment",
+              "value": -12.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for Digicomm/Microsoft concentration, warrant dilution, and Taiwan capex overruns."
+            }
+          ],
+          "high": [
+            {
+              "id": "price_per_share",
+              "label": "Market price per share",
+              "kind": "fact",
+              "value": 99.77,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/research/valuation.json",
+                "locator": "Yahoo AAOI close 2026-07-17",
+                "as_of": "2026-07-17",
+                "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+                "source_id": "09d7ed3585be1ee26de70d8fc13b66949af5ed6c40a0a78e331dd9860b63e27d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "normalized_owner_cash",
+              "label": "Normalized free cash flow per share",
+              "kind": "fact",
+              "value": 0.74,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+                "locator": "Normalized FCF $0.74/sh after Taiwan build-out assumption",
+                "as_of": "2025-12-31",
+                "source_id": "1f24e0b2cd679cd059efab0f3f6c1b44f4fd247176499b81f16e4ade7413dc69"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cycle_reserve_per_share",
+              "label": "Customer concentration, dilution, and capex overrun reserve per share",
+              "kind": "judgment",
+              "value": -3.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve for Digicomm/Microsoft concentration, warrant dilution, and Taiwan capex overruns."
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "price_per_share",
+            "ref": "AAOI/research/valuation.json",
+            "locator": "Yahoo AAOI close 2026-07-17",
+            "as_of": "2026-07-17",
+            "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+            "source_id": "09d7ed3585be1ee26de70d8fc13b66949af5ed6c40a0a78e331dd9860b63e27d"
+          },
+          {
+            "node_id": "normalized_owner_cash",
+            "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+            "locator": "Normalized FCF $0.74/sh after Taiwan build-out assumption",
+            "as_of": "2025-12-31",
+            "source_id": "1f24e0b2cd679cd059efab0f3f6c1b44f4fd247176499b81f16e4ade7413dc69"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "1d4684aef9bb3442e033e046d20376a9342f449f829b789e537c6e0e2bc3cf2f"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+      "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Not a second haircut on the core normalized growth path.",
+      "falsifier": "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "overlap_key": "customer_capex_reserve",
+      "assumption_type": "judgment"
     }
   ],
   "component_coverage": {
-    "all_material_components_identified": false,
-    "material_component_count": 1,
-    "additive_component_count": 1,
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 4,
     "embedded_component_count": 0,
-    "unvalued_component_count": 1,
+    "unvalued_component_count": 0,
     "double_counting_flags": []
   },
   "input_classification": {
     "facts": [],
-    "estimates": [
+    "estimates": [],
+    "judgments": [
       {
-        "component_id": "operating_business_fallback",
-        "label": "Operating business (fallback)",
-        "kind": "estimate",
-        "evidence_tier": "model_input",
-        "evidence": "inputs.fcf_per_share and scenarios.base",
-        "method": "owner_cash_dcf",
-        "valuation_status": "legacy_sensitivity"
+        "component_id": "datacenter_optics_engine",
+        "label": "Data-center and CATV optics owner-cash engine",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "hyperscaler_share_runway",
+        "label": "Hyperscaler 800G share and warrant volume runway",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+        "method": "owner_earnings_reinvestment_dcf",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and debt claims",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "customer_capex_reserve",
+        "label": "Customer concentration and capex overrun reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm and valuation.json market inputs; component schedule reconciled 2026-07-25 contract backfill.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
       }
-    ],
-    "judgments": []
+    ]
   },
   "method_route": {
     "schema_version": "2.0",
     "status": "routed",
     "profile_id": "capital_cycle",
     "label": "Capital cycle and normalized industry economics",
-    "score": 7.0,
+    "score": 10.0,
     "reasons": [
       "archetype=turnaround",
-      "component categories=operating_business"
+      "component categories=operating_business",
+      "existing methods=capacity, cycle, midcycle"
     ],
     "primary_methods": [
       "midcycle_capacity_value"
@@ -114,17 +1688,18 @@
     "secondary_profiles": [
       {
         "profile_id": "catalyst_asset_value",
-        "score": 6.0,
+        "score": 7.0,
         "reasons": [
-          "archetype=turnaround"
+          "archetype=turnaround",
+          "component categories=financial_asset"
         ]
       },
       {
         "profile_id": "quality_reinvestment",
-        "score": 3.0,
+        "score": 4.0,
         "reasons": [
           "component categories=operating_business",
-          "existing methods=dcf, owner_cash"
+          "existing methods=dcf, owner_cash, reinvestment"
         ]
       }
     ],
@@ -134,34 +1709,38 @@
         "reasons": []
       },
       "quality_reinvestment": {
-        "score": 3.0,
+        "score": 4.0,
         "reasons": [
           "component categories=operating_business",
-          "existing methods=dcf, owner_cash"
+          "existing methods=dcf, owner_cash, reinvestment"
         ]
       },
       "capital_cycle": {
-        "score": 7.0,
+        "score": 10.0,
         "reasons": [
           "archetype=turnaround",
-          "component categories=operating_business"
+          "component categories=operating_business",
+          "existing methods=capacity, cycle, midcycle"
         ]
       },
       "credit_and_normalized_returns": {
-        "score": 0.0,
-        "reasons": []
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
       },
       "catalyst_asset_value": {
-        "score": 6.0,
+        "score": 7.0,
         "reasons": [
-          "archetype=turnaround"
+          "archetype=turnaround",
+          "component categories=financial_asset"
         ]
       },
       "predictable_cash_flow": {
-        "score": 2.0,
+        "score": 3.0,
         "reasons": [
           "component categories=operating_business",
-          "existing methods=owner_cash"
+          "existing methods=dividend, owner_cash"
         ]
       },
       "binary_milestone": {
@@ -171,7 +1750,7 @@
     },
     "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
     "ticker": "AAOI",
-    "as_of": "2026-07-20",
+    "as_of": "2026-07-27",
     "route_source": "canonical_power_zone_router",
     "config_path": "_system/frameworks/power_zones.json",
     "config_updated": "2026-07-14",
@@ -206,89 +1785,196 @@
         }
       ]
     },
-    "input_hash": "07e4f2829cf365d84aa41e8106e0f46bad53b534c053deb3cc60fcf53845d1ea",
-    "generated_at": "2026-07-20T17:13:53.748444+00:00"
+    "input_hash": "d176d575394d50ca1f263537b4306b5ded7cc10da93e6acd8badfba2913a47ba",
+    "generated_at": "2026-07-27T11:30:20.143635+00:00"
   },
   "market": {
     "price_per_share": 99.77,
-    "fully_diluted_shares": null,
-    "market_cap_m": null,
-    "enterprise_value_m": null
+    "fully_diluted_shares": 76000000,
+    "market_cap_m": 7582.52,
+    "enterprise_value_m": 7176.82
   },
   "valuation": {
     "value_per_share": {
-      "low": null,
-      "base": null,
-      "high": null
+      "low": 0.0,
+      "base": 16.344,
+      "high": 56.5672
     },
     "priced_components_per_share": {
-      "low": 0,
-      "base": 0,
-      "high": 0
+      "low": -22.4251,
+      "base": 16.344,
+      "high": 56.5672
     },
     "legacy_value_per_share": {
-      "low": 15.67,
-      "base": 17.47,
-      "high": 19.54
+      "low": 0.0,
+      "base": 16.35,
+      "high": 56.57
     },
-    "probability_weighted_value_per_share": null,
+    "probability_weighted_value_per_share": 16.344,
     "expected_distributions_per_share": 0.0,
     "annualized_return_at_price_pct": {
       "low": null,
-      "base": null,
-      "high": null
+      "base": -22.77,
+      "high": -7.79
     },
-    "downside_to_low_pct": null,
+    "downside_to_low_pct": -100.0,
     "horizon_years": 7,
-    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is not a complete security value."
+    "equity_liability_floor": 0.0,
+    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
   },
   "scenario_contract": {
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
     "top_value_drivers": [
       {
-        "component_id": "operating_business_fallback",
-        "label": "Operating business (fallback)",
-        "valuation_status": "legacy_sensitivity",
-        "base_per_share": null,
-        "legacy_base_per_share": 17.47,
-        "range_width_per_share": null,
-        "scenario_assumptions": null
+        "component_id": "customer_capex_reserve",
+        "label": "Customer concentration and capex overrun reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -12.0,
+        "legacy_base_per_share": -12.0,
+        "range_width_per_share": 32.0,
+        "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25."
+      },
+      {
+        "component_id": "hyperscaler_share_runway",
+        "label": "Hyperscaler 800G share and warrant volume runway",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 8.0,
+        "legacy_base_per_share": 8.0,
+        "range_width_per_share": 24.0,
+        "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25."
+      },
+      {
+        "component_id": "datacenter_optics_engine",
+        "label": "Data-center and CATV optics owner-cash engine",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 15.0058,
+        "legacy_base_per_share": 15.01,
+        "range_width_per_share": 20.7884,
+        "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25."
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and debt claims",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 5.3382,
+        "legacy_base_per_share": 5.34,
+        "range_width_per_share": 2.2039,
+        "scenario_assumptions": "Filing-grounded component schedule reconciled 2026-07-25."
       }
     ],
     "reverse_expectations": null
   },
   "calculation_proof_summary": {
-    "component_count": 1,
-    "priced_component_count": 0,
-    "proof_complete_pct": 0.0,
+    "component_count": 4,
+    "priced_component_count": 4,
+    "proof_complete_pct": 100.0,
     "status_counts": {
-      "bounded_estimate": 0,
+      "bounded_estimate": 4,
       "calculated": 0,
-      "legacy_sensitivity": 1,
+      "legacy_sensitivity": 0,
       "unpriced": 0
     },
-    "all_material_components_priced": false,
+    "all_material_components_priced": true,
     "calculation_errors": [],
-    "aggregate_proof_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    "aggregate_proof_hash": "11890c2e35ab178a1dbbf49c4065981acb215404d8235f8e579f745e57d8405c"
   },
-  "source_lineage": [],
+  "source_lineage": [
+    {
+      "component_id": "datacenter_optics_engine",
+      "node_id": "normalized_owner_cash",
+      "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+      "locator": "FY2025 OCF $174.4M \u2212 normalized capex $130.0M [Assumption: $49M above mid-cycle maintenance] \u00f7 60.2M FY2025 diluted shares",
+      "as_of": "2025-12-31",
+      "source_id": "d336f6608da239a295231aeb9d3542552b3ccb527f4db41e81f66e2ddffee83b"
+    },
+    {
+      "component_id": "datacenter_optics_engine",
+      "node_id": "operating_cash_flow_m",
+      "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+      "locator": "Net cash from operating activities $174.4M",
+      "as_of": "2025-12-31",
+      "source_id": "804bb66b3cf028bc84525fb220f7db9a37f1454b5c3c0c0fa3dff5c52a195c5d"
+    },
+    {
+      "component_id": "datacenter_optics_engine",
+      "node_id": "revenue_m",
+      "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+      "locator": "FY2025 revenue $455.7M (+83% YoY)",
+      "as_of": "2025-12-31",
+      "source_id": "e5b41966da99738834cd4129ba9505cc62a0f46b3a74fb5df4e0bcafde1ce674"
+    },
+    {
+      "component_id": "hyperscaler_share_runway",
+      "node_id": "shares_m",
+      "ref": "AAOI/research/valuation.json",
+      "locator": "Q1 2026 weighted average diluted shares 75.98M",
+      "as_of": "2026-03-31",
+      "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+      "source_id": "132b785d7667937e4f2e5ade86da71163c4087689c3b5647d10f3161dfb80a68"
+    },
+    {
+      "component_id": "hyperscaler_share_runway",
+      "node_id": "revenue_q1_m",
+      "ref": "AAOI/research/valuation.json",
+      "locator": "Q1 2026 revenue $151.1M (+51% YoY)",
+      "as_of": "2026-03-31",
+      "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+      "source_id": "97440c2f8af8b6de92ce5a005f07d050272854a70cd344848664e2cc1dc5e9a3"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "cash_m",
+      "ref": "AAOI/research/valuation.json",
+      "locator": "Cash and equivalents $439.7M at March 31, 2026 (10-Q Q1 2026)",
+      "as_of": "2026-03-31",
+      "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+      "source_id": "5f5cebbea9a1eb8b735785bbdc61fa31d7ffd275619500f0f1d7fdaafd01e1a7"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "shares_m",
+      "ref": "AAOI/research/valuation.json",
+      "locator": "Q1 2026 weighted average diluted shares ~76M",
+      "as_of": "2026-03-31",
+      "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+      "source_id": "aca9325a10965617b21873c41bb3f2e0e4a3bc4262a871062588edfcc314cc34"
+    },
+    {
+      "component_id": "customer_capex_reserve",
+      "node_id": "price_per_share",
+      "ref": "AAOI/research/valuation.json",
+      "locator": "Yahoo AAOI close 2026-07-17",
+      "as_of": "2026-07-17",
+      "content_sha256": "ee4056fc0c55058220073b230534ca4ff29c5c7114fc80cb0e42251468662d19",
+      "source_id": "09d7ed3585be1ee26de70d8fc13b66949af5ed6c40a0a78e331dd9860b63e27d"
+    },
+    {
+      "component_id": "customer_capex_reserve",
+      "node_id": "normalized_owner_cash",
+      "ref": "AAOI/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001437749_26_005875.htm",
+      "locator": "Normalized FCF $0.74/sh after Taiwan build-out assumption",
+      "as_of": "2025-12-31",
+      "source_id": "1f24e0b2cd679cd059efab0f3f6c1b44f4fd247176499b81f16e4ade7413dc69"
+    }
+  ],
   "model_checks": {
     "calculation_graphs_valid": true,
-    "component_sum_reconciles": false,
+    "component_sum_reconciles": true,
     "no_double_counting": true,
-    "all_material_components_priced": false,
+    "all_material_components_priced": true,
     "low_base_high_ordered": true
   },
   "evidence": {
-    "unresolved_count": 1,
-    "blockers": [
-      "operating_business_fallback: material component is legacy_sensitivity; a valid calculation proof is required"
-    ],
+    "unresolved_count": 0,
+    "blockers": [],
     "validation_errors": []
   },
   "monitoring": {
     "falsifiers": [
-      "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods."
+      "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case.",
+      "Primary evidence shows hyperscaler share loss or cash burn materially worse than low case."
     ],
     "required_refresh_triggers": [
       "new filing or material operating update",
@@ -298,8 +1984,13 @@
     ]
   },
   "change_control": {
-    "model_hash": "c216ebc4958fc26b34312afb9f402d684fe6e18e50a5a58915354e0d9f76f637",
-    "method_versions": [],
+    "model_hash": "cf6a061b77d1e2e923fe4770d2aa247714c814e817763a0381c2bb8edf1a5293",
+    "method_versions": [
+      "midcycle_capacity_value@1.0",
+      "net_asset_value@1.0",
+      "owner_cash_or_dividend_discount@1.0",
+      "owner_earnings_reinvestment_dcf@1.0"
+    ],
     "change_log": [],
     "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
   },
