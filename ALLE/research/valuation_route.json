@@ -1,11 +1,13 @@
 {
   "schema_version": "2.0",
-  "status": "default_needs_review",
+  "status": "routed",
   "profile_id": "quality_reinvestment",
   "label": "High-return compounder",
-  "score": 0.0,
+  "score": 10.0,
   "reasons": [
-    "No decisive classification was supplied; owner-earnings is the conservative operating default."
+    "archetype=compounder",
+    "component categories=operating_business",
+    "existing methods=dcf, owner_cash, reinvestment"
   ],
   "primary_methods": [
     "owner_earnings_reinvestment_dcf"
@@ -42,31 +44,62 @@
     "stock compensation or acquisitions omitted",
     "terminal value unsupported by a durable mechanism"
   ],
-  "secondary_profiles": [],
+  "secondary_profiles": [
+    {
+      "profile_id": "capital_cycle",
+      "score": 4.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=capacity, cycle, midcycle"
+      ]
+    },
+    {
+      "profile_id": "predictable_cash_flow",
+      "score": 3.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=dividend, owner_cash"
+      ]
+    }
+  ],
   "scorecard": {
     "scarce_asset_optionality": {
       "score": 0.0,
       "reasons": []
     },
     "quality_reinvestment": {
-      "score": 0.0,
-      "reasons": []
+      "score": 10.0,
+      "reasons": [
+        "archetype=compounder",
+        "component categories=operating_business",
+        "existing methods=dcf, owner_cash, reinvestment"
+      ]
     },
     "capital_cycle": {
-      "score": 0.0,
-      "reasons": []
+      "score": 4.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=capacity, cycle, midcycle"
+      ]
     },
     "credit_and_normalized_returns": {
-      "score": 0.0,
-      "reasons": []
+      "score": 2.0,
+      "reasons": [
+        "component categories=financial_asset, liability_or_reserve"
+      ]
     },
     "catalyst_asset_value": {
-      "score": 0.0,
-      "reasons": []
+      "score": 1.0,
+      "reasons": [
+        "component categories=financial_asset"
+      ]
     },
     "predictable_cash_flow": {
-      "score": 0.0,
-      "reasons": []
+      "score": 3.0,
+      "reasons": [
+        "component categories=operating_business",
+        "existing methods=dividend, owner_cash"
+      ]
     },
     "binary_milestone": {
       "score": 0.0,
@@ -75,23 +108,91 @@
   },
   "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
   "ticker": "ALLE",
-  "as_of": "2026-07-20",
+  "as_of": "2026-07-25",
   "route_source": "canonical_power_zone_router",
   "config_path": "_system/frameworks/power_zones.json",
   "config_updated": "2026-07-14",
   "classification": {
-    "archetype": "unknown",
-    "moat": "unproven",
-    "dhando": "pending",
+    "archetype": "compounder",
+    "moat": "stable",
+    "dhando": "partial",
     "stance": "watch",
-    "cycle": "-",
+    "cycle": "mid",
     "moi_bucket": "pending",
-    "payoff_lens": "pending",
-    "investment_sleeve": "sp500_liquidity"
+    "payoff_lens": "operating",
+    "investment_sleeve": "sp500_liquidity",
+    "lawrence_bucket": "pricing_power",
+    "predictive_attribute": "quality_at_fair_price"
   },
-  "specialist_power_zones": [],
+  "specialist_power_zones": [
+    {
+      "persona": "lawrence",
+      "label": "Bryan Lawrence",
+      "independence_group": "quality_reinvestment",
+      "in_power_zone": true,
+      "fit": 1.0,
+      "matched": 3,
+      "known_fields": 3,
+      "matched_fields": [
+        "archetype",
+        "moat",
+        "dhando"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 85
+    },
+    {
+      "persona": "buffett_weschler",
+      "label": "Buffett / Weschler",
+      "independence_group": "quality_reinvestment",
+      "in_power_zone": true,
+      "fit": 0.667,
+      "matched": 2,
+      "known_fields": 3,
+      "matched_fields": [
+        "archetype",
+        "moat"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 57
+    },
+    {
+      "persona": "hohn",
+      "label": "Chris Hohn",
+      "independence_group": "competitive_advantage",
+      "in_power_zone": true,
+      "fit": 0.667,
+      "matched": 2,
+      "known_fields": 3,
+      "matched_fields": [
+        "archetype",
+        "moat"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 57
+    },
+    {
+      "persona": "munger",
+      "label": "Charlie Munger",
+      "independence_group": "quality_reinvestment",
+      "in_power_zone": true,
+      "fit": 0.667,
+      "matched": 2,
+      "known_fields": 3,
+      "matched_fields": [
+        "archetype",
+        "moat"
+      ],
+      "excluded_by": null,
+      "match_rate": null,
+      "score": 57
+    }
+  ],
   "committee": {
-    "candidate_count": 4,
+    "candidate_count": 5,
     "independence_group_count": 3,
     "committee_seatable": true,
     "candidates": [
@@ -110,9 +211,13 @@
       {
         "persona": "marathon_capital_cycle",
         "independence_group": "capital_cycle"
+      },
+      {
+        "persona": "lawrence",
+        "independence_group": "quality_reinvestment"
       }
     ]
   },
-  "input_hash": "d2dd89c0f1910aea2cf595b901db67c378b112cd460bc8377a660bacf5238caa",
-  "generated_at": "2026-07-20T17:13:53.896162+00:00"
+  "input_hash": "9b62738989180c0d619b7f866a3b08630d236bd68a3fe6933476d65d886a0fc9",
+  "generated_at": "2026-07-25T18:37:50.885460+00:00"
 }
