@@ -34,19 +34,28 @@ class ValuationWorkbenchTests(unittest.TestCase):
             self.assertIn("primary-evidence blockers", result["next_action"])
 
     def test_live_names_build_truthful_waiting_schedules(self):
+        # These Power Zone names now have a priced baseline, but still carry
+        # unresolved primary-evidence blockers — so decision stays blocked while
+        # attribution can be baseline_established or complete.
         for ticker in ("TPL", "LB", "WBI", "AZLCZ"):
             with self.subTest(ticker=ticker):
                 row = workbench.build(ticker, "2026-07-15")
                 self.assertEqual(row["ticker"], ticker)
                 self.assertEqual(row["decision"]["status"], "evidence_blocked")
                 self.assertGreater(row["decision"]["unresolved_evidence_count"], 0)
-                self.assertIn(row["committee"]["status"], {"evidence_blocked", "independent_review_open", "owner_decision_pending"})
+                self.assertIn(
+                    row["committee"]["status"],
+                    {"evidence_blocked", "independent_review_open", "owner_decision_pending"},
+                )
                 self.assertGreater(row["evidence"]["open_count"], 0)
                 self.assertEqual(row["outcomes"]["status"], "waiting_for_owner_decision")
                 self.assertTrue(all(slot["target_date"] is None for slot in row["outcomes"]["schedule"]))
-                self.assertEqual(row["attribution"]["status"], "waiting_for_proof_complete_baseline")
-                self.assertIsNone(row["decision"]["value_per_share"].get("base"))
-                self.assertEqual(row["valuation"]["calculation_proof_summary"]["proof_complete_pct"], 0.0)
+                self.assertIn(
+                    row["attribution"]["status"],
+                    {"baseline_established", "complete"},
+                )
+                self.assertIsNotNone(row["decision"]["value_per_share"].get("base"))
+                self.assertGreater(row["valuation"]["calculation_proof_summary"]["proof_complete_pct"], 0.0)
 
     def test_cross_power_zone_cohort_values_every_component_but_stays_blocked(self):
         expected = {

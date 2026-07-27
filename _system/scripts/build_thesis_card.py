@@ -131,7 +131,14 @@ def build_card(ticker: str) -> dict | None:
 
     implied = valuation.get("implied_return") or {}
     results = valuation.get("results") or {}
-    human = valuation.get("human_review") or {}
+    # Some valuations store human_review as a list of note strings (CEE, PSH, …).
+    raw_human = valuation.get("human_review")
+    if isinstance(raw_human, dict):
+        human = raw_human
+    elif isinstance(raw_human, list):
+        human = {"notes": raw_human, "approved_date": None}
+    else:
+        human = {}
     classification = dict(valuation.get("classification_inputs") or {})
     if valuation.get("lawrence_bucket"):
         classification["lawrence_bucket"] = valuation["lawrence_bucket"]
