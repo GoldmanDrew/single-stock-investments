@@ -709,6 +709,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-27.
 | UPS | UPS/ | United Parcel Service | US | 2026-07-10 | 2026-07-27 | unknown | watch |
 | URB.A.TO | URB.A.TO/ | Urbana Corporation (Class A) | CA | — | 2026-07-27 | holding_co | watch |
 | URI | URI/ | United Rentals | US | 2026-07-10 | 2026-07-27 | unknown | watch |
+| UROY | UROY/ | Uranium Royalty Corp. | US | 2026-07-27 | 2026-07-27 | optionality | watch |
 | USB | USB/ | U.S. Bancorp | US | 2026-07-10 | 2026-07-27 | unknown | watch |
 | V | V/ | Visa Inc. | US | 2026-07-10 | 2026-07-27 | unknown | watch |
 | VEEV | VEEV/ | Veeva Systems | US | 2026-07-10 | 2026-07-27 | unknown | watch |
@@ -759,4 +760,4 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-27.
 | ZBRA | ZBRA/ | Zebra Technologies | US | 2026-07-10 | 2026-07-27 | unknown | watch |
 | ZTS | ZTS/ | Zoetis | US | 2026-07-10 | 2026-07-27 | unknown | watch |
 
-**752 holdings total.** Registry: `_system/portfolio/registry.json`
+**753 holdings total.** Registry: `_system/portfolio/registry.json`
