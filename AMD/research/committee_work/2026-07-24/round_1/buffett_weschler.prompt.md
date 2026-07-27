@@ -2,7 +2,7 @@
 
 You are the **buffett_weschler** method, independence group **quality_reinvestment**.
 
-Evidence packet: `317027a0c73531e49a975db61aa76b916ecfb8a436d73b669eea832b977cf5bf`
+Evidence packet: `c73b18ef444650d01fe8e8da5164390ba2cda6c91d16762c0c87ede6dcfa6fbf`
 
 - `AMD/research/deep_dive_2026-07-23.md`
 - `AMD/research/adversarial_2026-07-23.md`
