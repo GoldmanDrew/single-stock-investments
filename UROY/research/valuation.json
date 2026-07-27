@@ -1,0 +1,1741 @@
+{
+  "ticker": "UROY",
+  "as_of": "2026-07-27",
+  "method": "scenario",
+  "irr_method": "scenario",
+  "valuation_mode": "optionality",
+  "valuation_overlay": "segment_cashflow",
+  "payoff_lens": "asset",
+  "lawrence_bucket": "other",
+  "valuation_methodology": {
+    "version": "3.0",
+    "mode": "separated_views",
+    "profile": "scarce_strategic_asset",
+    "security_type": "resource_and_land_owner",
+    "horizon_years": 7,
+    "entry_hurdles_pct": [
+      10,
+      12,
+      15
+    ],
+    "owner_cash_definition": "Sweetwater attributable adjusted EBITDA less cash interest and maintenance-like owner costs; uranium royalties and inventory treated as options outside trough base cash",
+    "decision_rule": "Keep producing trona royalty cash, surface/easement cash, land/uranium options, and net debt separate. Do not average operating return with optionality NAV.",
+    "explicit_profile_override": "scarce_asset_optionality"
+  },
+  "classification_inputs": {
+    "archetype": "optionality",
+    "moat": "narrow",
+    "dhando": "partial",
+    "cycle": "trough",
+    "payoff_lens": "asset",
+    "predictive_attribute": "market_structure_discount",
+    "investment_sleeve": "real_assets_land",
+    "moi_bucket": "market_structure"
+  },
+  "inputs": {
+    "price": 2.96,
+    "price_source": "Yahoo UROY last 2026-07-27; 1:1 exchange into New URC \u2014 use as listing proxy until New URC tape prints",
+    "price_as_of": "2026-07-27",
+    "shares_outstanding": 361.037249,
+    "shares_outstanding_m": 361.037249,
+    "shares_source": "Circular selected pro forma weighted average shares after Arrangement (basic) 361,037,249",
+    "deemed_deal_price": 3.64,
+    "fcf_per_share": 0.05,
+    "fcf_source": "[Assumption] Near-trough owner cash after interest: ~US$18m attributable mid/trough blend / 361m shares. Interest coverage ~1.1x on 9mo annualized operating income \u2014 FCF thin until soda ash recovers.",
+    "net_debt_m": 613.0,
+    "net_debt_source": "Pro forma cash C$16.452m and LTD C$859.020m at Jan 31 2026; FX from US$625m Sweetwater debt / C$859.020m",
+    "normalization_note": "Soda ash at generational lows (NRP/Sisecam commentary). FY2025 Sweetwater royalty revenue US$59.3m vs prior US$82.5m. Base does not capitalize +60% operator capacity until volumes show up."
+  },
+  "optionality_gate": {
+    "trigger": "Land/royalty estate with GAAP that understates perpetual mineral rights; uranium portfolio is call-option stack; deal creates US domestic listing / PFIC exit for new buyers",
+    "floor_type": "producing_royalty_cash_minus_net_debt",
+    "catalyst": "NASDAQ listing of New URC ~2026-07-28; soda ash cycle rebalance multi-year; uranium royalty funding from trona cash",
+    "primary_metric": "lawrence_base",
+    "primary_label": "7yr IRR",
+    "primary_return_pct": -12.4
+  },
+  "scenarios": {
+    "bear": {
+      "growth_y1_5": -0.05,
+      "growth_y6_10": -0.02,
+      "exit_pfcf_y10": 8,
+      "payoff": 1.1,
+      "years": 7,
+      "notes": "Soda ash stays oversupplied 5+ years; attributable EBITDA ~US$46m; 15x exit still leaves thin equity stub after US$613m net debt; forced financing risk"
+    },
+    "base": {
+      "growth_y1_5": 0.04,
+      "growth_y6_10": 0.02,
+      "exit_pfcf_y10": 14,
+      "payoff": 2.5,
+      "years": 7,
+      "notes": "Midcycle attributable EBITDA recovers toward ~US$68m (92% of US$74m 2yr avg); market pays 18x EV/EBITDA; land/uranium options partially recognized but not fully TPL-ized"
+    },
+    "bull": {
+      "growth_y1_5": 0.08,
+      "growth_y6_10": 0.04,
+      "exit_pfcf_y10": 20,
+      "payoff": 4.5,
+      "years": 7,
+      "notes": "Operator +60% capacity lands in royalty volumes; soda ash normalizes; uranium royalties and Wyoming land options re-rate; leverage works for equity"
+    }
+  },
+  "component_valuation": {
+    "version": "2.0",
+    "all_material_components_identified": true,
+    "methodology_note": "Scarce-strategic-asset engines: capital-free trona royalties, surface/easement cash, residual land inventory, uranium royalty/physical options, minus net debt and 8% Sweetwater NCI.",
+    "components": [
+      {
+        "id": "trona_royalties_producing",
+        "label": "Producing Green River trona / soda ash royalties (92%)",
+        "category": "operating_business",
+        "overlap_key": "trona_royalties_producing",
+        "treatment": "additive",
+        "valuation": {
+          "method": "capital_free_ebitda_multiple",
+          "basis": "total_value_m",
+          "low": 690,
+          "base": 1226,
+          "high": 1960,
+          "evidence_tier": "primary_derived",
+          "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+          "cross_check": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+          "assumption_summary": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically."
+        }
+      },
+      {
+        "id": "surface_easement_cash",
+        "label": "Surface, lease bonus, easement, and access cash",
+        "category": "operating_business",
+        "overlap_key": "surface_easement_cash",
+        "treatment": "embedded",
+        "included_in_component_id": "trona_royalties_producing",
+        "valuation": {
+          "method": "revenue_capitalization",
+          "basis": "total_value_m",
+          "low": 40,
+          "base": 80,
+          "high": 150,
+          "evidence_tier": "filing",
+          "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+          "cross_check": "Embedded \u2014 do not add again when summing enterprise value.",
+          "assumption_summary": "Diagnostic range only; parent is trona_royalties_producing."
+        }
+      },
+      {
+        "id": "wyoming_land_inventory",
+        "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "category": "real_option",
+        "overlap_key": "wyoming_land_inventory",
+        "treatment": "additive",
+        "valuation": {
+          "method": "risked_unit_nav",
+          "basis": "total_value_m",
+          "low": 25,
+          "base": 100,
+          "high": 400,
+          "evidence_tier": "management_claim",
+          "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+          "cross_check": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+          "assumption_summary": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash.",
+          "probability": 0.25,
+          "timing_years": 10,
+          "remaining_capital_treatment": "operator_or_counterparty_funded",
+          "remaining_owner_capital_m": 0
+        }
+      },
+      {
+        "id": "uranium_royalty_and_inventory_option",
+        "label": "Legacy URC uranium royalties, streams, and residual physical U",
+        "category": "real_option",
+        "overlap_key": "uranium_optionality",
+        "treatment": "additive",
+        "valuation": {
+          "method": "risked_nav",
+          "basis": "total_value_m",
+          "low": 50,
+          "base": 150,
+          "high": 350,
+          "evidence_tier": "filing",
+          "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+          "cross_check": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+          "assumption_summary": "Treat as call options on uranium price and project sanctions, not as current owner cash."
+        }
+      },
+      {
+        "id": "net_debt_and_nci",
+        "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "category": "liability_or_reserve",
+        "overlap_key": "net_debt_and_nci",
+        "treatment": "additive",
+        "valuation": {
+          "method": "book_face",
+          "basis": "total_value_m",
+          "low": -750,
+          "base": -700,
+          "high": -650,
+          "evidence_tier": "filing",
+          "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+          "cross_check": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+          "assumption_summary": "Debt is non-negotiable in equity stub math."
+        }
+      }
+    ]
+  },
+  "estimates": {
+    "new_urc_midcycle_ev_ebitda_fair_band": "15x-20x (Lemon Cakes); Paradigm secondary 17x-23x CY",
+    "deal_print_ev_ebitda_approx": "26x-32x at deemed US$3.64 depending on EBITDA anchor",
+    "listing_proxy_price": 2.96,
+    "base_payoff_per_share": 2.5,
+    "blended_note": "At US$2.96 listing proxy, equity is still above midcycle 15-20x stub prices (~US$1.1-2.1) unless expansion EBITDA or land/uranium options are credited. Deemed US$3.64 is deal optics, not a floor."
+  },
+  "human_review": [
+    "Confirm New URC NASDAQ ticker and opening print after 2026-07-28 listing",
+    "Map Royalty Notes covenants, amortization, and refinance dates from Sweetwater debt docs",
+    "Decide whether surface/easement value is embedded in EBITDA multiple (avoid double count in SOTP sum)",
+    "PFIC / tax path for holders who owned UROY/URC through domestication \u2014 tax counsel",
+    "Orion/OTPP 180-day lockup overhang sizing"
+  ],
+  "lawrence_horizon_years": 7,
+  "results_lawrence_legacy": {
+    "bear": {
+      "return_pct": -23.9
+    },
+    "base": {
+      "return_pct": -12.4
+    },
+    "bull": {
+      "return_pct": -5.5
+    }
+  },
+  "results": {
+    "bear": {
+      "return_pct": -23.9
+    },
+    "base": {
+      "return_pct": -12.4
+    },
+    "bull": {
+      "return_pct": -5.5
+    }
+  },
+  "implied_return": {
+    "base_pct": -12.4,
+    "label": "7yr IRR",
+    "display": "-12.4% (base)"
+  },
+  "stance_proposal": {
+    "suggested": "watch",
+    "irr_band": "<15%",
+    "gates": {
+      "moat_ok": true,
+      "dhando_ok": true,
+      "floor_pass": false,
+      "valuation_mode": "optionality"
+    },
+    "override_reason": null
+  },
+  "overlay_results": [],
+  "component_valuation_results": {
+    "status": "complete",
+    "decision_rule": "Use the complete low/base/high component schedule. Embedded components are estimated but not added twice. Security equity value per share is floored at 0 (limited liability).",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "trona_royalties_producing",
+        "label": "Producing Green River trona / soda ash royalties (92%)",
+        "category": "operating_business",
+        "overlap_key": "trona_royalties_producing",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "capital_free_ebitda_multiple",
+        "valuation_status": null,
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+        "cross_check": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically.",
+        "falsifier": null,
+        "scenario_assumptions": null,
+        "low_per_share": 1911160.14,
+        "base_per_share": 3395771.5,
+        "high_per_share": 5428802.72
+      },
+      {
+        "id": "wyoming_land_inventory",
+        "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "category": "real_option",
+        "overlap_key": "wyoming_land_inventory",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "risked_unit_nav",
+        "valuation_status": null,
+        "calculation_proof": null,
+        "evidence_tier": "management_claim",
+        "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+        "cross_check": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash.",
+        "falsifier": null,
+        "scenario_assumptions": null,
+        "low_per_share": 69244.93,
+        "base_per_share": 276979.73,
+        "high_per_share": 1107918.92
+      },
+      {
+        "id": "uranium_royalty_and_inventory_option",
+        "label": "Legacy URC uranium royalties, streams, and residual physical U",
+        "category": "real_option",
+        "overlap_key": "uranium_optionality",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "risked_nav",
+        "valuation_status": null,
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+        "cross_check": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Treat as call options on uranium price and project sanctions, not as current owner cash.",
+        "falsifier": null,
+        "scenario_assumptions": null,
+        "low_per_share": 138489.87,
+        "base_per_share": 415469.6,
+        "high_per_share": 969429.06
+      },
+      {
+        "id": "net_debt_and_nci",
+        "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "category": "liability_or_reserve",
+        "overlap_key": "net_debt_and_nci",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "book_face",
+        "valuation_status": null,
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+        "cross_check": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Debt is non-negotiable in equity stub math.",
+        "falsifier": null,
+        "scenario_assumptions": null,
+        "low_per_share": -2077347.98,
+        "base_per_share": -1938858.11,
+        "high_per_share": -1800368.25
+      }
+    ],
+    "embedded_components": [
+      {
+        "id": "surface_easement_cash",
+        "label": "Surface, lease bonus, easement, and access cash",
+        "category": "operating_business",
+        "overlap_key": "surface_easement_cash",
+        "treatment": "embedded",
+        "included_in_component_id": "trona_royalties_producing",
+        "method": "revenue_capitalization",
+        "valuation_status": null,
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+        "cross_check": "Embedded \u2014 do not add again when summing enterprise value.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Diagnostic range only; parent is trona_royalties_producing.",
+        "falsifier": null,
+        "scenario_assumptions": null,
+        "low_per_share": 110791.89,
+        "base_per_share": 221583.78,
+        "high_per_share": 415469.6
+      }
+    ],
+    "total_equity_value_per_share": {
+      "low": 41546.96,
+      "base": 2149362.72,
+      "high": 5705782.45
+    },
+    "material_component_count": 5,
+    "additive_component_count": 4,
+    "embedded_component_count": 1,
+    "market_price_per_share": 2.96,
+    "upside_downside_pct": {
+      "low": 1403513.5,
+      "base": 72613505.4,
+      "high": 192762820.6
+    }
+  },
+  "economic_value_analysis": {
+    "schema_version": "1.0",
+    "status": "evidence_blocked",
+    "trigger": {
+      "required": true,
+      "reasons": [
+        "explicit_component_schedule",
+        "separated_valuation_views",
+        "optionality_or_nav_overlay"
+      ],
+      "policy": "A complete economic-value analysis is required when any trigger fires; otherwise it is recommended."
+    },
+    "method": "economic_claim_to_risked_present_value",
+    "economic_claim": {},
+    "gaap_role": null,
+    "accounting_reference": null,
+    "comparable_hierarchy": [
+      "issuer_arm_length_transaction",
+      "same_asset_transaction",
+      "public_peer",
+      "replacement_cost",
+      "approved_external_analysis"
+    ],
+    "gross_comparable_nav_per_share": null,
+    "risked_present_value_per_share": {
+      "low": 41546.96,
+      "base": 2149362.72,
+      "high": 5705782.45
+    },
+    "component_groups": [
+      {
+        "id": "trona_royalties_producing",
+        "label": "Producing Green River trona / soda ash royalties (92%)",
+        "component_ids": [
+          "trona_royalties_producing"
+        ],
+        "economic_claim": "Producing Green River trona / soda ash royalties (92%)",
+        "valuation_basis": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically.",
+        "adjustments": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "overlap_control": "Unique overlap key trona_royalties_producing.",
+        "risked_present_value_per_share": {
+          "low": 1911160.14,
+          "base": 3395771.5,
+          "high": 5428802.72
+        }
+      },
+      {
+        "id": "wyoming_land_inventory",
+        "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "component_ids": [
+          "wyoming_land_inventory"
+        ],
+        "economic_claim": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "valuation_basis": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash.",
+        "adjustments": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+        "overlap_control": "Unique overlap key wyoming_land_inventory.",
+        "risked_present_value_per_share": {
+          "low": 69244.93,
+          "base": 276979.73,
+          "high": 1107918.92
+        }
+      },
+      {
+        "id": "uranium_royalty_and_inventory_option",
+        "label": "Legacy URC uranium royalties, streams, and residual physical U",
+        "component_ids": [
+          "uranium_royalty_and_inventory_option"
+        ],
+        "economic_claim": "Legacy URC uranium royalties, streams, and residual physical U",
+        "valuation_basis": "Treat as call options on uranium price and project sanctions, not as current owner cash.",
+        "adjustments": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+        "overlap_control": "Unique overlap key uranium_optionality.",
+        "risked_present_value_per_share": {
+          "low": 138489.87,
+          "base": 415469.6,
+          "high": 969429.06
+        }
+      },
+      {
+        "id": "net_debt_and_nci",
+        "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "component_ids": [
+          "net_debt_and_nci"
+        ],
+        "economic_claim": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "valuation_basis": "Debt is non-negotiable in equity stub math.",
+        "adjustments": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+        "overlap_control": "Unique overlap key net_debt_and_nci.",
+        "risked_present_value_per_share": {
+          "low": -2077347.98,
+          "base": -1938858.11,
+          "high": -1800368.25
+        }
+      }
+    ],
+    "valuation_proof": [
+      {
+        "component_id": "trona_royalties_producing",
+        "economic_claim": "Producing Green River trona / soda ash royalties (92%)",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "capital_free_ebitda_multiple",
+        "evidence_tier": "primary_derived",
+        "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "range_per_share": {
+          "low": 1911160.14,
+          "base": 3395771.5,
+          "high": 5428802.72
+        },
+        "treatment": "additive",
+        "overlap_key": "trona_royalties_producing",
+        "overlap_control": "Unique overlap key trona_royalties_producing.",
+        "falsifier": "Utilization, incremental after-tax return on capital, or contract economics fall below the low-case assumptions.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "wyoming_land_inventory",
+        "economic_claim": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risked_unit_nav",
+        "evidence_tier": "management_claim",
+        "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+        "range_per_share": {
+          "low": 69244.93,
+          "base": 276979.73,
+          "high": 1107918.92
+        },
+        "treatment": "additive",
+        "overlap_key": "wyoming_land_inventory",
+        "overlap_control": "Unique overlap key wyoming_land_inventory.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "risk_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": null,
+          "probability_basis": null,
+          "remaining_capital_basis": null
+        }
+      },
+      {
+        "component_id": "uranium_royalty_and_inventory_option",
+        "economic_claim": "Legacy URC uranium royalties, streams, and residual physical U",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risked_nav",
+        "evidence_tier": "filing",
+        "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+        "range_per_share": {
+          "low": 138489.87,
+          "base": 415469.6,
+          "high": 969429.06
+        },
+        "treatment": "additive",
+        "overlap_key": "uranium_optionality",
+        "overlap_control": "Unique overlap key uranium_optionality.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "risk_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": null,
+          "probability_basis": null,
+          "remaining_capital_basis": null
+        }
+      },
+      {
+        "component_id": "net_debt_and_nci",
+        "economic_claim": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "book_face",
+        "evidence_tier": "filing",
+        "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+        "range_per_share": {
+          "low": -2077347.98,
+          "base": -1938858.11,
+          "high": -1800368.25
+        },
+        "treatment": "additive",
+        "overlap_key": "net_debt_and_nci",
+        "overlap_control": "Unique overlap key net_debt_and_nci.",
+        "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "surface_easement_cash",
+        "economic_claim": "Producing Green River trona / soda ash royalties (92%)",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "revenue_capitalization",
+        "evidence_tier": "filing",
+        "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "range_per_share": {
+          "low": 110791.89,
+          "base": 221583.78,
+          "high": 415469.6
+        },
+        "treatment": "embedded",
+        "overlap_key": "surface_easement_cash",
+        "overlap_control": "Unique overlap key trona_royalties_producing.",
+        "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+        "risk_and_timing": null
+      }
+    ],
+    "wisdom_applied": [],
+    "limitations": [],
+    "complete_component_coverage": true,
+    "validation_errors": [
+      "economic_claim.description required",
+      "economic_claim.enterprise_to_equity_reconciliation required",
+      "economic_claim.unit_count required",
+      "economic_claim.unit_label required",
+      "economic_claim.unit_source required",
+      "economic_value.schema_version 1.0 required",
+      "gaap_role required",
+      "option component uranium_royalty_and_inventory_option requires probability, timing, and remaining-capital treatment",
+      "option component wyoming_land_inventory requires probability, timing, and remaining-capital treatment"
+    ],
+    "registry_version": "1.0"
+  },
+  "component_review_queue": {
+    "status": "ready_for_committee_review",
+    "decision_rule": "Each assigned rater records accept, challenge, or reject with a proposed range and evidence. The aggregator may not silently average disputed ranges.",
+    "items": [
+      {
+        "component_id": "trona_royalties_producing",
+        "label": "Producing Green River trona / soda ash royalties (92%)",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 1911160.14,
+          "base": 3395771.5,
+          "high": 5428802.72
+        },
+        "range_width_pct_of_base": 103.6,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "hohn",
+          "marathon_capital_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "wyoming_land_inventory",
+        "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 69244.93,
+          "base": 276979.73,
+          "high": 1107918.92
+        },
+        "range_width_pct_of_base": 375.0,
+        "evidence_tier": "management_claim",
+        "recommended_raters": [
+          "klarman_asset_value",
+          "hk"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "uranium_royalty_and_inventory_option",
+        "label": "Legacy URC uranium royalties, streams, and residual physical U",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 138489.87,
+          "base": 415469.6,
+          "high": 969429.06
+        },
+        "range_width_pct_of_base": 200.0,
+        "evidence_tier": "filing",
+        "recommended_raters": [
+          "klarman_asset_value",
+          "hk"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "net_debt_and_nci",
+        "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": -2077347.98,
+          "base": -1938858.11,
+          "high": -1800368.25
+        },
+        "range_width_pct_of_base": 14.3,
+        "evidence_tier": "filing",
+        "recommended_raters": [
+          "marks_credit_cycle",
+          "pabrai"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "surface_easement_cash",
+        "label": "Surface, lease bonus, easement, and access cash",
+        "treatment": "embedded",
+        "range_per_share": {
+          "low": 110791.89,
+          "base": 221583.78,
+          "high": 415469.6
+        },
+        "range_width_pct_of_base": 137.5,
+        "evidence_tier": "filing",
+        "recommended_raters": [
+          "hohn",
+          "marathon_capital_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      }
+    ]
+  },
+  "valuation_method_route": {
+    "schema_version": "1.0",
+    "status": "routed",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
+    "score": 10.0,
+    "reasons": [
+      "archetype=optionality",
+      "component categories=real_option",
+      "existing methods=unit_nav",
+      "investment_sleeve=real_assets_land"
+    ],
+    "primary_methods": [
+      "component_owner_cash_and_unit_nav"
+    ],
+    "corroborating_methods": [
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
+    ],
+    "primary_personas": [
+      "hk",
+      "stahl"
+    ],
+    "cross_check_personas": [
+      "klarman_asset_value",
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hohn",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai"
+    ],
+    "required_evidence": [
+      "legal economic claim",
+      "non-overlapping physical inventory",
+      "unit economics",
+      "realization timing",
+      "remaining owner capital"
+    ],
+    "failure_modes": [
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      {
+        "profile_id": "capital_cycle",
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 10.0,
+        "reasons": [
+          "archetype=optionality",
+          "component categories=real_option",
+          "existing methods=unit_nav",
+          "investment_sleeve=real_assets_land"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "binary_milestone": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      }
+    },
+    "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+  },
+  "universal_valuation_contract": {
+    "schema_version": "2.0",
+    "status": "evidence_blocked",
+    "ticker": "UROY",
+    "as_of": "2026-07-27",
+    "economic_ownership_map": [
+      {
+        "component_id": "trona_royalties_producing",
+        "label": "Producing Green River trona / soda ash royalties (92%)",
+        "category": "operating_business",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Producing Green River trona / soda ash royalties (92%)",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "capital_free_ebitda_multiple",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 1911160.14,
+          "base": 3395771.5,
+          "high": 5428802.72
+        },
+        "valuation_status": "legacy_sensitivity",
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+        "scenario_assumptions": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "falsifier": "Utilization, incremental after-tax return on capital, or contract economics fall below the low-case assumptions.",
+        "overlap_key": "trona_royalties_producing",
+        "assumption_type": "fact"
+      },
+      {
+        "component_id": "wyoming_land_inventory",
+        "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Residual fee surface + mineral acres outside producing trona run-rate",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risked_unit_nav",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 69244.93,
+          "base": 276979.73,
+          "high": 1107918.92
+        },
+        "valuation_status": "legacy_sensitivity",
+        "calculation_proof": null,
+        "evidence_tier": "management_claim",
+        "evidence_level": "analyst_estimated",
+        "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+        "scenario_assumptions": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash.",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": null,
+          "probability_basis": null,
+          "remaining_capital_basis": null
+        },
+        "tax_and_realization_adjustments": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "overlap_key": "wyoming_land_inventory",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "uranium_royalty_and_inventory_option",
+        "label": "Legacy URC uranium royalties, streams, and residual physical U",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Legacy URC uranium royalties, streams, and residual physical U",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risked_nav",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 138489.87,
+          "base": 415469.6,
+          "high": 969429.06
+        },
+        "valuation_status": "legacy_sensitivity",
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+        "scenario_assumptions": "Treat as call options on uranium price and project sanctions, not as current owner cash.",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": null,
+          "probability_basis": null,
+          "remaining_capital_basis": null
+        },
+        "tax_and_realization_adjustments": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "overlap_key": "uranium_optionality",
+        "assumption_type": "fact"
+      },
+      {
+        "component_id": "net_debt_and_nci",
+        "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "category": "liability_or_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Pro forma net debt + Sweetwater 8% NCI claim",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "book_face",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": -2077347.98,
+          "base": -1938858.11,
+          "high": -1800368.25
+        },
+        "valuation_status": "legacy_sensitivity",
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+        "scenario_assumptions": "Debt is non-negotiable in equity stub math.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+        "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+        "overlap_key": "net_debt_and_nci",
+        "assumption_type": "fact"
+      },
+      {
+        "component_id": "surface_easement_cash",
+        "label": "Surface, lease bonus, easement, and access cash",
+        "category": "operating_business",
+        "treatment": "embedded",
+        "included_in_component_id": "trona_royalties_producing",
+        "ownership_claim": "Producing Green River trona / soda ash royalties (92%)",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "revenue_capitalization",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 110791.89,
+          "base": 221583.78,
+          "high": 415469.6
+        },
+        "valuation_status": "legacy_sensitivity",
+        "calculation_proof": null,
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+        "scenario_assumptions": "Diagnostic range only; parent is trona_royalties_producing.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+        "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+        "overlap_key": "surface_easement_cash",
+        "assumption_type": "fact"
+      }
+    ],
+    "component_coverage": {
+      "all_material_components_identified": true,
+      "material_component_count": 5,
+      "additive_component_count": 4,
+      "embedded_component_count": 1,
+      "unvalued_component_count": 4,
+      "double_counting_flags": []
+    },
+    "input_classification": {
+      "facts": [
+        {
+          "component_id": "trona_royalties_producing",
+          "label": "Producing Green River trona / soda ash royalties (92%)",
+          "kind": "fact",
+          "evidence_tier": "primary_derived",
+          "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+          "method": "capital_free_ebitda_multiple",
+          "valuation_status": "legacy_sensitivity"
+        },
+        {
+          "component_id": "uranium_royalty_and_inventory_option",
+          "label": "Legacy URC uranium royalties, streams, and residual physical U",
+          "kind": "fact",
+          "evidence_tier": "filing",
+          "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+          "method": "risked_nav",
+          "valuation_status": "legacy_sensitivity"
+        },
+        {
+          "component_id": "net_debt_and_nci",
+          "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+          "kind": "fact",
+          "evidence_tier": "filing",
+          "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+          "method": "book_face",
+          "valuation_status": "legacy_sensitivity"
+        },
+        {
+          "component_id": "surface_easement_cash",
+          "label": "Surface, lease bonus, easement, and access cash",
+          "kind": "fact",
+          "evidence_tier": "filing",
+          "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+          "method": "revenue_capitalization",
+          "valuation_status": "legacy_sensitivity"
+        }
+      ],
+      "estimates": [],
+      "judgments": [
+        {
+          "component_id": "wyoming_land_inventory",
+          "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+          "kind": "judgment",
+          "evidence_tier": "management_claim",
+          "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+          "method": "risked_unit_nav",
+          "valuation_status": "legacy_sensitivity"
+        }
+      ]
+    },
+    "method_route": {
+      "schema_version": "1.0",
+      "status": "routed",
+      "profile_id": "scarce_asset_optionality",
+      "label": "Scarce assets, royalties, and optionality",
+      "score": 10.0,
+      "reasons": [
+        "archetype=optionality",
+        "component categories=real_option",
+        "existing methods=unit_nav",
+        "investment_sleeve=real_assets_land"
+      ],
+      "primary_methods": [
+        "component_owner_cash_and_unit_nav"
+      ],
+      "corroborating_methods": [
+        "comparable_transactions",
+        "replacement_cost_or_reverse_nav"
+      ],
+      "primary_personas": [
+        "hk",
+        "stahl"
+      ],
+      "cross_check_personas": [
+        "klarman_asset_value",
+        "marks_credit_cycle"
+      ],
+      "silent_personas": [
+        "buffett_weschler",
+        "greenblatt",
+        "hohn",
+        "marathon_capital_cycle",
+        "munger",
+        "pabrai"
+      ],
+      "required_evidence": [
+        "legal economic claim",
+        "non-overlapping physical inventory",
+        "unit economics",
+        "realization timing",
+        "remaining owner capital"
+      ],
+      "failure_modes": [
+        "gross asset value mistaken for shareholder value",
+        "operating cash flow and NAV counted twice",
+        "remote options treated as contracted cash"
+      ],
+      "secondary_profiles": [
+        {
+          "profile_id": "quality_reinvestment",
+          "score": 1.0,
+          "reasons": [
+            "component categories=operating_business"
+          ]
+        },
+        {
+          "profile_id": "capital_cycle",
+          "score": 1.0,
+          "reasons": [
+            "component categories=operating_business"
+          ]
+        }
+      ],
+      "scorecard": {
+        "scarce_asset_optionality": {
+          "score": 10.0,
+          "reasons": [
+            "archetype=optionality",
+            "component categories=real_option",
+            "existing methods=unit_nav",
+            "investment_sleeve=real_assets_land"
+          ]
+        },
+        "quality_reinvestment": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=operating_business"
+          ]
+        },
+        "capital_cycle": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=operating_business"
+          ]
+        },
+        "credit_and_normalized_returns": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=liability_or_reserve"
+          ]
+        },
+        "catalyst_asset_value": {
+          "score": 0.0,
+          "reasons": []
+        },
+        "predictable_cash_flow": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=operating_business"
+          ]
+        },
+        "binary_milestone": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=real_option"
+          ]
+        }
+      },
+      "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+    },
+    "market": {
+      "price_per_share": 2.96,
+      "fully_diluted_shares": 361.037249,
+      "market_cap_m": 0.0,
+      "enterprise_value_m": null
+    },
+    "valuation": {
+      "value_per_share": {
+        "low": null,
+        "base": null,
+        "high": null
+      },
+      "priced_components_per_share": {
+        "low": 0,
+        "base": 0,
+        "high": 0
+      },
+      "legacy_value_per_share": {
+        "low": 41546.96,
+        "base": 2149362.72,
+        "high": 5705782.45
+      },
+      "probability_weighted_value_per_share": null,
+      "expected_distributions_per_share": 0.0,
+      "annualized_return_at_price_pct": {
+        "low": null,
+        "base": null,
+        "high": null
+      },
+      "downside_to_low_pct": null,
+      "horizon_years": 7,
+      "equity_liability_floor": 0.0,
+      "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    },
+    "scenario_contract": {
+      "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+      "top_value_drivers": [
+        {
+          "component_id": "trona_royalties_producing",
+          "label": "Producing Green River trona / soda ash royalties (92%)",
+          "valuation_status": "legacy_sensitivity",
+          "base_per_share": null,
+          "legacy_base_per_share": 3395771.5,
+          "range_width_per_share": null,
+          "scenario_assumptions": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically."
+        },
+        {
+          "component_id": "wyoming_land_inventory",
+          "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+          "valuation_status": "legacy_sensitivity",
+          "base_per_share": null,
+          "legacy_base_per_share": 276979.73,
+          "range_width_per_share": null,
+          "scenario_assumptions": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash."
+        },
+        {
+          "component_id": "uranium_royalty_and_inventory_option",
+          "label": "Legacy URC uranium royalties, streams, and residual physical U",
+          "valuation_status": "legacy_sensitivity",
+          "base_per_share": null,
+          "legacy_base_per_share": 415469.6,
+          "range_width_per_share": null,
+          "scenario_assumptions": "Treat as call options on uranium price and project sanctions, not as current owner cash."
+        },
+        {
+          "component_id": "net_debt_and_nci",
+          "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+          "valuation_status": "legacy_sensitivity",
+          "base_per_share": null,
+          "legacy_base_per_share": -1938858.11,
+          "range_width_per_share": null,
+          "scenario_assumptions": "Debt is non-negotiable in equity stub math."
+        }
+      ],
+      "reverse_expectations": {
+        "price": 2.96,
+        "exit_multiple": 14.0,
+        "constant_owner_cash_growth_required_pct": 18.1,
+        "warning": "Required growth is a diagnostic, not a forecast."
+      }
+    },
+    "calculation_proof_summary": {
+      "component_count": 5,
+      "priced_component_count": 0,
+      "proof_complete_pct": 0.0,
+      "status_counts": {
+        "bounded_estimate": 0,
+        "calculated": 0,
+        "legacy_sensitivity": 5,
+        "unpriced": 0
+      },
+      "all_material_components_priced": false,
+      "calculation_errors": [],
+      "aggregate_proof_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "source_lineage": [],
+    "model_checks": {
+      "calculation_graphs_valid": true,
+      "component_sum_reconciles": false,
+      "no_double_counting": true,
+      "all_material_components_priced": false,
+      "low_base_high_ordered": true
+    },
+    "evidence": {
+      "unresolved_count": 13,
+      "blockers": [
+        "economic_claim.description required",
+        "economic_claim.enterprise_to_equity_reconciliation required",
+        "economic_claim.unit_count required",
+        "economic_claim.unit_label required",
+        "economic_claim.unit_source required",
+        "economic_value.schema_version 1.0 required",
+        "gaap_role required",
+        "net_debt_and_nci: material component is legacy_sensitivity; a valid calculation proof is required",
+        "option component uranium_royalty_and_inventory_option requires probability, timing, and remaining-capital treatment",
+        "option component wyoming_land_inventory requires probability, timing, and remaining-capital treatment",
+        "trona_royalties_producing: material component is legacy_sensitivity; a valid calculation proof is required",
+        "uranium_royalty_and_inventory_option: material component is legacy_sensitivity; a valid calculation proof is required",
+        "wyoming_land_inventory: material component is legacy_sensitivity; a valid calculation proof is required"
+      ],
+      "validation_errors": [
+        "economic_claim.description required",
+        "economic_claim.enterprise_to_equity_reconciliation required",
+        "economic_claim.unit_count required",
+        "economic_claim.unit_label required",
+        "economic_claim.unit_source required",
+        "economic_value.schema_version 1.0 required",
+        "gaap_role required",
+        "option component uranium_royalty_and_inventory_option requires probability, timing, and remaining-capital treatment",
+        "option component wyoming_land_inventory requires probability, timing, and remaining-capital treatment"
+      ]
+    },
+    "monitoring": {
+      "falsifiers": [
+        "Utilization, incremental after-tax return on capital, or contract economics fall below the low-case assumptions.",
+        "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+        "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods."
+      ],
+      "required_refresh_triggers": [
+        "new filing or material operating update",
+        "capital-structure change",
+        "material price move",
+        "component milestone or falsifier"
+      ]
+    },
+    "change_control": {
+      "model_hash": "1e8af05df808dd64ef8c82224843572028322e7102dd4b9b3e1e48f8c49aa88e",
+      "method_versions": [],
+      "change_log": [],
+      "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+    },
+    "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved."
+  },
+  "valuation_views": {
+    "decision_rule": "Do not average operating returns, component value, and reverse expectations.",
+    "operating": {
+      "owner_cash_per_share": 0.05,
+      "scenario_returns_pct": {
+        "bear": -23.9,
+        "base": -12.4,
+        "bull": -5.5
+      },
+      "segment_cross_check": null
+    },
+    "assets": {
+      "legacy_supported_decision_value_per_share": 0.0,
+      "ledger": [],
+      "legacy_non_supported_count": 0
+    },
+    "components": {
+      "status": "complete",
+      "decision_rule": "Use the complete low/base/high component schedule. Embedded components are estimated but not added twice. Security equity value per share is floored at 0 (limited liability).",
+      "all_material_components_identified": true,
+      "additive_components": [
+        {
+          "id": "trona_royalties_producing",
+          "label": "Producing Green River trona / soda ash royalties (92%)",
+          "category": "operating_business",
+          "overlap_key": "trona_royalties_producing",
+          "treatment": "additive",
+          "included_in_component_id": null,
+          "method": "capital_free_ebitda_multiple",
+          "valuation_status": null,
+          "calculation_proof": null,
+          "evidence_tier": "primary_derived",
+          "evidence": "Sweetwater adj. EBITDA US$66.2m / US$80.8m (circular); PR avg ~US$74m last 2 FY on 100% basis. Attributable 92%. Multiples: low 15x trough US$46m; base 18x midcycle US$68.1m; high 18x expansion US$108.9m.",
+          "cross_check": "Paradigm fairness EV/CY EBITDA 17-23x and EV/CY+1 13-19x (circular). Lemon Cakes fair band 15-20x. Deal prints ~26-32x on those anchors at deemed US$3.64.",
+          "driver_model_type": null,
+          "driver_model": null,
+          "assumption_summary": "Natural trona cost advantage vs synthetic soda ash; soft price ceiling from synthetic supply; checkerboard KSLA means ~half basin production historically.",
+          "falsifier": null,
+          "scenario_assumptions": null,
+          "low_per_share": 1911160.14,
+          "base_per_share": 3395771.5,
+          "high_per_share": 5428802.72
+        },
+        {
+          "id": "wyoming_land_inventory",
+          "label": "Residual fee surface + mineral acres outside producing trona run-rate",
+          "category": "real_option",
+          "overlap_key": "wyoming_land_inventory",
+          "treatment": "additive",
+          "included_in_component_id": null,
+          "method": "risked_unit_nav",
+          "valuation_status": null,
+          "calculation_proof": null,
+          "evidence_tier": "management_claim",
+          "evidence": "~850k fee surface acres; ~4.5m mineral acres; ~300k acres under renewable leases (deal PR). No oil & gas rights emphasized. Data-center / ranching / renewables are aspirational.",
+          "cross_check": "TPL rhyme is structural (rail-grant checkerboard) not commodity. Synthetic soda ash caps mineral inelasticity vs TPL oil.",
+          "driver_model_type": null,
+          "driver_model": null,
+          "assumption_summary": "[Assumption] Wide range until acre-level comps and water-right facts are mapped. Keep out of trough base cash.",
+          "falsifier": null,
+          "scenario_assumptions": null,
+          "low_per_share": 69244.93,
+          "base_per_share": 276979.73,
+          "high_per_share": 1107918.92
+        },
+        {
+          "id": "uranium_royalty_and_inventory_option",
+          "label": "Legacy URC uranium royalties, streams, and residual physical U",
+          "category": "real_option",
+          "overlap_key": "uranium_optionality",
+          "treatment": "additive",
+          "included_in_component_id": null,
+          "method": "risked_nav",
+          "valuation_status": null,
+          "calculation_proof": null,
+          "evidence_tier": "filing",
+          "evidence": "Pre-deal URC was uranium royalty + physical accumulator; ~75% of stockpile sold to fund cash leg (Lemon Cakes / deal funding). Cameco Athabasca royalties + restart exposure remain. Pre-deal equity market ~US$375m at US$2.96 \u00d7 ~127m shares \u2014 not all option value survives dilution into New URC.",
+          "cross_check": "Old URC shareholders own ~41% of New URC; uranium expertise is the inorganic growth engine funded by trona cash.",
+          "driver_model_type": null,
+          "driver_model": null,
+          "assumption_summary": "Treat as call options on uranium price and project sanctions, not as current owner cash.",
+          "falsifier": null,
+          "scenario_assumptions": null,
+          "low_per_share": 138489.87,
+          "base_per_share": 415469.6,
+          "high_per_share": 969429.06
+        },
+        {
+          "id": "net_debt_and_nci",
+          "label": "Pro forma net debt + Sweetwater 8% NCI claim",
+          "category": "liability_or_reserve",
+          "overlap_key": "net_debt_and_nci",
+          "treatment": "additive",
+          "included_in_component_id": null,
+          "method": "book_face",
+          "valuation_status": null,
+          "calculation_proof": null,
+          "evidence_tier": "filing",
+          "evidence": "Net debt ~US$613m (cash US$12m, debt US$625m). NCI C$134.75m (~US$98m) for ~8% Sweetwater. Thin cash after US$330m seller cash + costs.",
+          "cross_check": "Interest coverage ~0.8-1.1x on pro forma operating income \u2014 leverage is the equity story.",
+          "driver_model_type": null,
+          "driver_model": null,
+          "assumption_summary": "Debt is non-negotiable in equity stub math.",
+          "falsifier": null,
+          "scenario_assumptions": null,
+          "low_per_share": -2077347.98,
+          "base_per_share": -1938858.11,
+          "high_per_share": -1800368.25
+        }
+      ],
+      "embedded_components": [
+        {
+          "id": "surface_easement_cash",
+          "label": "Surface, lease bonus, easement, and access cash",
+          "category": "operating_business",
+          "overlap_key": "surface_easement_cash",
+          "treatment": "embedded",
+          "included_in_component_id": "trona_royalties_producing",
+          "method": "revenue_capitalization",
+          "valuation_status": null,
+          "calculation_proof": null,
+          "evidence_tier": "filing",
+          "evidence": "Pro forma FY2025 lease bonus C$7.1m + surface C$2.7m (~US$7.2m combined at debt-implied FX). Already inside Sweetwater adjusted EBITDA used for the producing royalty multiple.",
+          "cross_check": "Embedded \u2014 do not add again when summing enterprise value.",
+          "driver_model_type": null,
+          "driver_model": null,
+          "assumption_summary": "Diagnostic range only; parent is trona_royalties_producing.",
+          "falsifier": null,
+          "scenario_assumptions": null,
+          "low_per_share": 110791.89,
+          "base_per_share": 221583.78,
+          "high_per_share": 415469.6
+        }
+      ],
+      "total_equity_value_per_share": {
+        "low": 41546.96,
+        "base": 2149362.72,
+        "high": 5705782.45
+      },
+      "material_component_count": 5,
+      "additive_component_count": 4,
+      "embedded_component_count": 1,
+      "market_price_per_share": 2.96,
+      "upside_downside_pct": {
+        "low": 1403513.5,
+        "base": 72613505.4,
+        "high": 192762820.6
+      }
+    },
+    "reverse_expectations": {
+      "price": 2.96,
+      "exit_multiple": 14.0,
+      "constant_owner_cash_growth_required_pct": 18.1,
+      "warning": "Required growth is a diagnostic, not a forecast."
+    },
+    "entry_prices": {
+      "10%": 0.73,
+      "12%": 0.66,
+      "15%": 0.57
+    }
+  },
+  "synthesis": {
+    "status": "disabled_separated_views",
+    "reason": "Correlated operating paths and unsupported asset options must not be averaged into a consensus return."
+  },
+  "legacy_output_policy": {
+    "results_lawrence_legacy": "compatibility alias of the current operating scenarios; not a separate valuation",
+    "growth_explanation": "qualitative scenario context only; legacy numerical paths do not enter the decision",
+    "nav_overlay": "audit history only when decision_use is false",
+    "option_scan": "inventory disclosure only; asset value enters only through valuation_views.assets"
+  },
+  "lens_consensus": {
+    "as_of": "2026-07-27",
+    "shared_inputs_ref": "valuation.json@2026-07-27",
+    "valuation_richness": 0.789,
+    "blended_return_pct": -14.03,
+    "band_pct": [
+      -23.9,
+      -10.54
+    ],
+    "weighted_median_pct": -12.4,
+    "median_mean_flag": false,
+    "stance": "pass",
+    "agreement_pct": 100,
+    "dissent_count": 0,
+    "lawrence_divergence": false,
+    "top_dissents": [],
+    "contributor_count": 10,
+    "in_base_irr": false,
+    "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "option_scan": [
+    {
+      "q": 0,
+      "question": "Material options after scan?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "Operating compounder / croupier \u2014 Lawrence full cash-flow path sufficient"
+    }
+  ],
+  "total_return_panel": {
+    "schema_version": "3.0",
+    "ticker": "UROY",
+    "as_of": "2026-07-27",
+    "status": "partial",
+    "error": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+    "price_source": "yahoo:UROY",
+    "currency": "USD",
+    "return_currency": "USD",
+    "fx_basis": "listing_currency_nominal",
+    "history_start": "2021-04-28",
+    "history_end": "2026-07-24",
+    "price_points": 1316,
+    "price_interval": "1d",
+    "history_basis": "earliest_available_vendor_trading_history",
+    "chart_scale": "logarithmic",
+    "chart_y_axis": "cumulative_return_pct",
+    "chart_series": [
+      "total_return",
+      "price_only"
+    ],
+    "return_contract": "split-adjusted close excluding dividends; event amounts normalized for later splits; cash reinvested at ex-date close; pre-tax nominal",
+    "coverage": {
+      "status": "vendor_only",
+      "start": null,
+      "end": null,
+      "note": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+      "ledger_path": null
+    },
+    "event_count": 0,
+    "event_counts": {},
+    "cash_distributions_on_initial_share_path": 0,
+    "distribution_contribution_by_type": {},
+    "cumulative_distributions_per_share": 0,
+    "start_price": 3.243,
+    "end_price": 2.96,
+    "price_index_end": 91.27,
+    "total_return_index_end": 91.27,
+    "cumulative_price_return_pct": -8.73,
+    "cumulative_total_return_pct": -8.73,
+    "price_only_annualized_pct": -1.73,
+    "total_return_annualized_pct": -1.73,
+    "market_cap_m": 0.0,
+    "shares_outstanding": 361.037249,
+    "price_for_market_cap": 2.96,
+    "chart": "UROY/research/charts/total_return_2026-07-27.svg",
+    "panel_json": "UROY/research/total_return_panel.json"
+  },
+  "context_overlay": {
+    "as_of": "2026-07-27",
+    "disclaimer": "Context only. Tailwinds inform stance and overlay sizing; they do not auto-inflate Lawrence base IRR. Promotion to base case requires [HUMAN REVIEW].",
+    "themes": [
+      {
+        "theme_id": "macro_regime",
+        "label": "Macro risk regime",
+        "indicators": [
+          {
+            "id": "hy_oas",
+            "label": "High-yield OAS credit spread (%)",
+            "latest": 2.13,
+            "as_of": "2026-07-24",
+            "yoy_pct": 261.0,
+            "direction": "up",
+            "good_for": "risk_regime",
+            "source": "spread:HYG-LQD:21d (HYG-LQD 1m spread proxy, not OAS)",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_10y",
+            "label": "US Treasury 10Y yield (%)",
+            "latest": 4.678999900817871,
+            "as_of": "2026-07-24",
+            "yoy_pct": 6.1,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^TNX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_2y",
+            "label": "US Treasury 2Y yield (%)",
+            "latest": 4.426000118255615,
+            "as_of": "2026-07-24",
+            "yoy_pct": 11.5,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^FVX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "dxy_broad",
+            "label": "Trade-weighted USD index (broad)",
+            "latest": 101.2750015258789,
+            "as_of": "2026-07-27",
+            "yoy_pct": 2.7,
+            "direction": "up",
+            "good_for": "dollar_regime",
+            "source": "yahoo:DX-Y.NYB",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "vix_level",
+            "label": "VIX index level",
+            "latest": 17.610000610351562,
+            "as_of": "2026-07-27",
+            "yoy_pct": 17.2,
+            "direction": "up",
+            "good_for": "vol_regime",
+            "source": "yahoo:^VIX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "credit_impulse_1m",
+            "label": "HYG vs TLT 1-month return spread (%)",
+            "latest": 3.95,
+            "as_of": "2026-07-24",
+            "yoy_pct": 91.7,
+            "direction": "up",
+            "good_for": "credit_impulse",
+            "source": "spread:HYG-TLT:21d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "spy_20d_realized_vol",
+            "label": "SPY 20-day realized vol (annualized %)",
+            "latest": 11.36,
+            "as_of": "2026-07-24",
+            "yoy_pct": 51.1,
+            "direction": "up",
+            "good_for": "equity_vol",
+            "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          }
+        ]
+      }
+    ]
+  }
+}
