@@ -1,13 +1,14 @@
 {
-  "description": "Thematic macro/industry indicator panels. Broadly ingested context, consumed narrowly by tagged holdings. Tailwinds inform stance and overlay sizing only; they never auto-inflate Lawrence base IRR (dual-agent promote to base case).",
+  "description": "Thematic macro / industry indicator panels. Broadly ingested context, consumed narrowly by tagged holdings. Tailwinds inform stance and overlay sizing only; they never auto-inflate Lawrence base IRR (dual-agent promote to base case).",
   "staleness_max_days": 10,
   "sources": {
     "fred": "https://fred.stlouisfed.org/graph/fredgraph.csv?id={id}",
     "stooq_daily": "https://stooq.com/q/d/l/?s={symbol}&i=d",
-    "eia": "https://api.eia.gov/v2 (requires EIA_API_KEY; degrades gracefully when absent)",
-    "etf_dashboard": "_external/etf-dashboard/data or _system/reference/market-data/external sync",
+    "eia": "https://api.eia.gov/v2 (requires EIA_API_KEY; degrades to FRED oil/gas IP proxy when absent)",
+    "etf_dashboard": "_external/etf-dashboard/data or sibling dashboards/etf-dashboard (freshest VRP)",
     "yahoo_daily": "query1.finance.yahoo.com daily chart (fallback when FRED/Stooq blocked)",
-    "filing_panel": "_system/reference/market-data/themes/filing_panels/*.csv"
+    "filing_panel": "_system/reference/market-data/themes/filing_panels/*.csv",
+    "expert_horizon": "_system/reference/world_model/expert_horizons/{domain}.csv"
   },
   "themes": {
     "ai_power_land": {
@@ -16,10 +17,10 @@
       "series": [
         {"id": "hyperscaler_capex_ttm_usd_bn", "label": "Hyperscaler capex guide (USD bn, latest)", "source": "repo_valuation", "good_for": "land_power_demand", "note": "Derived from ai_overlay in GOOGL/AMZN/META/MSFT valuation.json; filing-cited"},
         {"id": "henry_hub_gas", "label": "Henry Hub natural gas spot (USD/MMBtu)", "source": "fred", "fred_id": "DHHNGSP", "good_for": "power_cost", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "NG=F", "note": "NYMEX natural gas front-month when FRED DHHNGSP unavailable"}},
-        {"id": "electricity_price_us", "label": "US avg electricity price (cents/kWh)", "source": "fred", "fred_id": "APU000072610", "good_for": "power_cost"},
+        {"id": "electricity_price_us", "label": "US avg electricity price (cents/kWh)", "source": "fred", "fred_id": "APU000072610", "good_for": "power_cost", "staleness_max_days": 60},
         {"id": "wti_crude", "label": "WTI crude (USD/bbl)", "source": "fred", "fred_id": "DCOILWTICO", "good_for": "permian_cashflow", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "CL=F", "note": "WTI front-month futures when FRED unavailable"}},
-        {"id": "permian_crude_production_mbbl_d", "label": "Permian crude production (kbbl/d)", "source": "eia", "eia_route": "petroleum/crd/crpdn", "eia_facets": {"duoarea": "RTPP", "product": "EPC0", "process": "FPF"}, "good_for": "permian_volume", "optional": true, "note": "Requires EIA_API_KEY; null when absent"},
-        {"id": "tpl_water_revenue_m", "label": "TPL water segment revenue (USD m, FY)", "source": "filing_panel", "panel": "tpl_operating_panel.csv", "metric": "water_revenue_m", "good_for": "water_infra_proof", "optional": true},
+        {"id": "permian_crude_production_mbbl_d", "label": "Permian crude / oil-gas activity proxy", "source": "eia", "eia_route": "petroleum/crd/crpdn", "eia_facets": {"duoarea": "RTPP", "product": "EPC0", "process": "FPF"}, "good_for": "permian_volume", "optional": true, "staleness_max_days": 60, "note": "EIA Permian when EIA_API_KEY set; else FRED oil/gas extraction IP proxy", "fallback": {"source": "fred", "fred_id": "IPN213111S", "note": "US oil and gas extraction industrial production index (not kbbl/d)"}},
+        {"id": "tpl_water_revenue_m", "label": "TPL water segment revenue (USD m, FY)", "source": "filing_panel", "panel": "tpl_operating_panel.csv", "metric": "water_revenue_m", "good_for": "water_infra_proof", "optional": true, "staleness_max_days": 400},
         {"id": "ust_10y", "label": "US Treasury 10Y yield (%)", "source": "fred", "fred_id": "DGS10", "good_for": "discount_rate", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^TNX", "note": "CBOE 10Y index proxy when FRED unavailable"}},
         {"id": "ust_2y", "label": "US Treasury 2Y yield (%)", "source": "fred", "fred_id": "DGS2", "good_for": "discount_rate", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^FVX", "note": "5Y yield proxy when 2Y FRED unavailable"}},
         {"id": "hy_oas", "label": "High-yield OAS credit spread (%)", "source": "fred", "fred_id": "BAMLH0A0HYM2", "good_for": "risk_regime", "fallback": {"source": "computed_spread", "leg_a": "HYG", "leg_b": "LQD", "window_days": 21, "note": "HYG-LQD 1m spread proxy, not OAS"}}
@@ -35,7 +36,9 @@
         {"id": "dxy_broad", "label": "Trade-weighted USD index (broad)", "source": "fred", "fred_id": "DTWEXBGS", "good_for": "dollar_regime", "optional": true, "fallback": {"source": "yahoo_daily", "yahoo_symbol": "DX-Y.NYB", "note": "DXY futures proxy when FRED unavailable"}},
         {"id": "vix_level", "label": "VIX index level", "source": "fred", "fred_id": "VIXCLS", "good_for": "vol_regime", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^VIX"}},
         {"id": "credit_impulse_1m", "label": "HYG vs TLT 1-month return spread (%)", "source": "computed_spread", "leg_a": "HYG", "leg_b": "TLT", "window_days": 21, "good_for": "credit_impulse"},
-        {"id": "spy_20d_realized_vol", "label": "SPY 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "SPY", "window_days": 20, "good_for": "equity_vol"}
+        {"id": "spy_20d_realized_vol", "label": "SPY 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "SPY", "window_days": 20, "good_for": "equity_vol"},
+        {"id": "agi_years_ahead", "label": "AGI expert-horizon years ahead (public quotes)", "source": "expert_horizon", "domain": "agi", "good_for": "horizon_orientation", "staleness_max_days": 180, "optional": true},
+        {"id": "robotaxi_years_ahead", "label": "Robotaxi expert-horizon years ahead (public quotes)", "source": "expert_horizon", "domain": "robotaxi", "good_for": "horizon_orientation", "staleness_max_days": 180, "optional": true}
       ]
     },
     "gold_royalties": {
@@ -58,8 +61,74 @@
         {"id": "asx200_20d_realized_vol", "label": "ASX 200 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "^AXJO", "window_days": 20, "good_for": "equity_vol_au"},
         {"id": "ftse_20d_realized_vol", "label": "FTSE 100 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "^FTSE", "window_days": 20, "good_for": "equity_vol_uk"},
         {"id": "stoxx50_20d_realized_vol", "label": "Euro Stoxx 50 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "^STOXX50E", "window_days": 20, "good_for": "equity_vol_eu"},
-        {"id": "vrp_health_score", "label": "VRP health score (etf-dashboard)", "source": "etf_dashboard_snapshot", "snapshot_file": "vrp_health.json", "json_path": "health_score", "good_for": "options_market_health", "optional": true},
-        {"id": "vol_term_slope", "label": "Vol term-structure slope (etf-dashboard)", "source": "etf_dashboard_snapshot", "snapshot_file": "vol_shape_history.json", "json_path": "latest.slope", "good_for": "vol_term_structure", "optional": true}
+        {"id": "vrp_health_score", "label": "VRP health score (etf-dashboard derived 0-100)", "source": "etf_dashboard_snapshot", "snapshot_file": "vrp_health.json", "json_path": "health_score", "derive": "vrp_health_score", "good_for": "options_market_health", "optional": true},
+        {"id": "vol_term_slope", "label": "Vol term-structure slope (VIX3M - VIX)", "source": "computed_vix_term_slope", "good_for": "vol_term_structure", "optional": true, "note": "Positive = contango; negative = inversion stress. Replaces obsolete vol_shape latest.slope path."}
+      ]
+    },
+    "water_surface": {
+      "label": "Permian / Southwest water & surface rights",
+      "description": "Produced-water and surface royalties midstream of oil activity and land scarcity.",
+      "series": [
+        {"id": "tpl_water_revenue_m", "label": "TPL water segment revenue (USD m, FY)", "source": "filing_panel", "panel": "tpl_operating_panel.csv", "metric": "water_revenue_m", "good_for": "water_infra_proof", "staleness_max_days": 400},
+        {"id": "wti_crude", "label": "WTI crude (USD/bbl)", "source": "fred", "fred_id": "DCOILWTICO", "good_for": "permian_cashflow", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "CL=F"}},
+        {"id": "permian_crude_production_mbbl_d", "label": "Permian crude / oil-gas activity proxy", "source": "eia", "eia_route": "petroleum/crd/crpdn", "eia_facets": {"duoarea": "RTPP", "product": "EPC0", "process": "FPF"}, "good_for": "permian_volume", "optional": true, "staleness_max_days": 60, "fallback": {"source": "fred", "fred_id": "IPN213111S", "note": "US oil and gas extraction IP proxy"}},
+        {"id": "hyperscaler_capex_ttm_usd_bn", "label": "Hyperscaler capex guide (USD bn, latest)", "source": "repo_valuation", "good_for": "land_power_demand"}
+      ]
+    },
+    "timber_housing": {
+      "label": "Timberland and housing-linked wood fiber",
+      "description": "Housing starts / permits pulse for timber REITs and stumpage cycles.",
+      "series": [
+        {"id": "housing_starts", "label": "US housing starts (thousands, SAAR)", "source": "fred", "fred_id": "HOUST", "good_for": "housing_demand", "staleness_max_days": 60},
+        {"id": "building_permits", "label": "US building permits (thousands, SAAR)", "source": "fred", "fred_id": "PERMIT", "good_for": "housing_pipeline", "staleness_max_days": 60},
+        {"id": "ust_10y", "label": "US Treasury 10Y yield (%)", "source": "fred", "fred_id": "DGS10", "good_for": "mortgage_discount", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^TNX"}}
+      ]
+    },
+    "btc_hash_power": {
+      "label": "Bitcoin mining hashpower and power arbitrage",
+      "description": "BTC price and power cost for miner / hosting cash; overlaps AI when sites re-purpose power.",
+      "series": [
+        {"id": "btc_usd", "label": "Bitcoin spot (USD)", "source": "yahoo_daily", "yahoo_symbol": "BTC-USD", "good_for": "miner_revenue"},
+        {"id": "henry_hub_gas", "label": "Henry Hub natural gas spot (USD/MMBtu)", "source": "fred", "fred_id": "DHHNGSP", "good_for": "power_cost", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "NG=F"}},
+        {"id": "electricity_price_us", "label": "US avg electricity price (cents/kWh)", "source": "fred", "fred_id": "APU000072610", "good_for": "power_cost", "staleness_max_days": 60},
+        {"id": "hyperscaler_capex_ttm_usd_bn", "label": "Hyperscaler capex guide (USD bn, latest)", "source": "repo_valuation", "good_for": "site_repurpose_demand"}
+      ]
+    },
+    "energy_royalty": {
+      "label": "Oil & gas royalties and mineral streams",
+      "description": "Volume x commodity price for royalty trusts and mineral interests.",
+      "series": [
+        {"id": "wti_crude", "label": "WTI crude (USD/bbl)", "source": "fred", "fred_id": "DCOILWTICO", "good_for": "royalty_price", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "CL=F"}},
+        {"id": "henry_hub_gas", "label": "Henry Hub natural gas spot (USD/MMBtu)", "source": "fred", "fred_id": "DHHNGSP", "good_for": "gas_royalty_price", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "NG=F"}},
+        {"id": "permian_crude_production_mbbl_d", "label": "Permian crude / oil-gas activity proxy", "source": "eia", "eia_route": "petroleum/crd/crpdn", "eia_facets": {"duoarea": "RTPP", "product": "EPC0", "process": "FPF"}, "good_for": "royalty_volume", "optional": true, "staleness_max_days": 60, "fallback": {"source": "fred", "fred_id": "IPN213111S", "note": "US oil and gas extraction IP proxy"}}
+      ]
+    },
+    "pharma_royalty": {
+      "label": "Pharma royalty and durable drug cash",
+      "description": "Sector tape and rates context for royalty / franchise drug LOE clocks (not a LOE calendar).",
+      "series": [
+        {"id": "xlv_etf", "label": "XLV health-care ETF (USD)", "source": "yahoo_daily", "yahoo_symbol": "XLV", "good_for": "pharma_sentiment"},
+        {"id": "xbi_etf", "label": "XBI biotech ETF (USD)", "source": "yahoo_daily", "yahoo_symbol": "XBI", "good_for": "biotech_sentiment"},
+        {"id": "ust_10y", "label": "US Treasury 10Y yield (%)", "source": "fred", "fred_id": "DGS10", "good_for": "duration_discount", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^TNX"}}
+      ]
+    },
+    "nuclear_power": {
+      "label": "Nuclear / SMR firm power for AI grids",
+      "description": "Uranium / nuclear equity sentiment plus AI power demand pulse.",
+      "series": [
+        {"id": "ura_etf", "label": "URA uranium miners ETF (USD)", "source": "yahoo_daily", "yahoo_symbol": "URA", "good_for": "uranium_sentiment"},
+        {"id": "hyperscaler_capex_ttm_usd_bn", "label": "Hyperscaler capex guide (USD bn, latest)", "source": "repo_valuation", "good_for": "firm_power_demand"},
+        {"id": "electricity_price_us", "label": "US avg electricity price (cents/kWh)", "source": "fred", "fred_id": "APU000072610", "good_for": "power_price", "staleness_max_days": 60},
+        {"id": "agi_years_ahead", "label": "AGI expert-horizon years ahead (public quotes)", "source": "expert_horizon", "domain": "agi", "good_for": "horizon_orientation", "staleness_max_days": 180, "optional": true}
+      ]
+    },
+    "index_data_fees": {
+      "label": "Index, ratings, and market-data fee croupiers",
+      "description": "Sticky subscription / benchmark fee context; distinct from exchange transaction volume.",
+      "series": [
+        {"id": "vix_level", "label": "VIX index level", "source": "fred", "fred_id": "VIXCLS", "good_for": "vol_regime", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^VIX"}},
+        {"id": "spy_20d_realized_vol", "label": "SPY 20-day realized vol (annualized %)", "source": "computed_realized_vol", "ticker": "SPY", "window_days": 20, "good_for": "equity_vol"},
+        {"id": "ust_10y", "label": "US Treasury 10Y yield (%)", "source": "fred", "fred_id": "DGS10", "good_for": "discount_rate", "fallback": {"source": "yahoo_daily", "yahoo_symbol": "^TNX"}}
       ]
     }
   }

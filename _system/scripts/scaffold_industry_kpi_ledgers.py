@@ -218,72 +218,103 @@ PRICE = _kpi(
     horizon="listing",
     evidence_tier="market",
 )
-
-
-def _manual(kpi_id: str, label: str, role: str, note: str, op: str = "gte", value: float = 0) -> dict:
-    return _kpi(
-        kpi_id,
-        label,
-        unit="flag",
-        op=op,
-        value=value,
-        source="manual:human",
-        role=role,
-        note=note,
-        horizon="human",
-        evidence_tier="assumption",
-    )
+TPL_WATER = _kpi(
+    "tpl_water_revenue_m",
+    "TPL water segment revenue (USD m)",
+    unit="usd_m",
+    op="gte",
+    value=200,
+    source="theme:tpl_water_revenue_m",
+    role="reinforcement",
+    note="Cluster water-activity proof from TPL filing panel",
+    horizon="water_proof",
+    evidence_tier="derived_filing",
+)
+HOUSING = _kpi(
+    "housing_starts",
+    "US housing starts (thousands, SAAR)",
+    unit="thousands",
+    op="gte",
+    value=900,
+    source="theme:housing_starts",
+    role="orientation",
+    note="Housing-cycle pulse for timber / stumpage demand",
+    horizon="housing_floor",
+)
+XLV = _kpi(
+    "xlv_etf",
+    "XLV health-care ETF (USD)",
+    unit="usd",
+    op="gte",
+    value=50,
+    source="theme:xlv_etf",
+    role="interference",
+    note="Sector tape proxy for LOE / pharma royalty sentiment (not a patent calendar)",
+    horizon="sector_tape",
+)
+BTC = _kpi(
+    "btc_usd",
+    "Bitcoin spot (USD)",
+    unit="usd",
+    op="gte",
+    value=20000,
+    source="theme:btc_usd",
+    role="orientation",
+    note="Miner revenue pulse",
+    horizon="btc_floor",
+)
+URA = _kpi(
+    "ura_etf",
+    "URA uranium miners ETF (USD)",
+    unit="usd",
+    op="gte",
+    value=15,
+    source="theme:ura_etf",
+    role="orientation",
+    note="Uranium / nuclear sentiment for firm-power thesis",
+    horizon="uranium_floor",
+)
+ROBOTAXI_H = _kpi(
+    "robotaxi_years_ahead",
+    "Robotaxi expert-horizon years ahead",
+    unit="years",
+    op="lte",
+    value=15,
+    source="theme:robotaxi_years_ahead",
+    role="orientation",
+    note="Public arrival-date quotes; context only (P0 observation)",
+    horizon="expert_quote",
+    evidence_tier="public_quote",
+)
+AGI_H = _kpi(
+    "agi_years_ahead",
+    "AGI expert-horizon years ahead",
+    unit="years",
+    op="lte",
+    value=25,
+    source="theme:agi_years_ahead",
+    role="orientation",
+    note="Public arrival-date quotes; context only (P0 observation)",
+    horizon="expert_quote",
+    evidence_tier="public_quote",
+)
 
 
 INDUSTRY_TEMPLATES: dict[str, list[dict]] = {
     "ai_power": [HYPER, WTI, HH],
-    "water_surface": [HYPER, WTI, _manual(
-        "water_activity_watch",
-        "Water / surface activity watch (human)",
-        "reinforcement",
-        "Fill from filings: water revenue, produced-water volumes, or easements",
-    )],
+    "water_surface": [HYPER, WTI, TPL_WATER],
     "hyperscaler_cloud": [HYPER, HH],
     "gold_royalty": [GOLD, GDX],
     # exchange_markets resolved per-ticker via exchange_market_kpis()
     "exchange_markets": [],
     "market_data_indices": [VIX, SPYVOL],
-    "timber_land": [
-        _manual(
-            "timber_housing_watch",
-            "Housing / stumpage cycle watch (human)",
-            "orientation",
-            "Fill from housing starts / stumpage disclosures when available",
-        ),
-        PRICE,
-    ],
-    "btc_mining_power": [HYPER, HH],
+    "timber_land": [HOUSING, PRICE],
+    "btc_mining_power": [BTC, HYPER, HH],
     "energy_royalty": [WTI, HH],
-    "pharma_royalty": [
-        _manual(
-            "loe_patent_watch",
-            "LOE / patent cliff watch (human)",
-            "interference",
-            "Fail if material LOE without replacement royalty coverage",
-        ),
-        PRICE,
-    ],
-    "nuclear_firm_power": [HYPER, HH],
-    "agi": [HYPER, _manual(
-        "agi_horizon_watch",
-        "AGI expert-horizon convergence watch (human)",
-        "orientation",
-        "Cross-check expert_horizons/agi.csv; context only",
-    )],
-    "robotaxi": [
-        _manual(
-            "robotaxi_horizon_watch",
-            "Robotaxi expert-horizon / city permit watch (human)",
-            "orientation",
-            "Cross-check expert_horizons/robotaxi.csv and city AV permits",
-        ),
-        PRICE,
-    ],
+    "pharma_royalty": [XLV, PRICE],
+    "nuclear_firm_power": [URA, HYPER, HH],
+    "agi": [HYPER, AGI_H],
+    "robotaxi": [ROBOTAXI_H, PRICE],
 }
 
 

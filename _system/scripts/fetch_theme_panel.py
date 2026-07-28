@@ -39,6 +39,26 @@ STOOQ_DAILY_URL = "https://stooq.com/q/d/l/?s={symbol}&i=d"
 YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 
 HYPERSCALERS = ("GOOGL", "AMZN", "META", "MSFT")
+EXPERT_HORIZONS_DIR = ROOT / "_system" / "reference" / "world_model" / "expert_horizons"
+
+
+def _load_dotenv() -> None:
+    """Best-effort load of EIA/FRED keys from local .env files (no dependency)."""
+    for path in (ROOT / ".env", ROOT / "_system" / ".env", ROOT.parent / ".env"):
+        if not path.exists():
+            continue
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key and key not in os.environ and val:
+                    os.environ[key] = val
+        except OSError:
+            continue
 
 
 def load_config() -> dict:
@@ -332,7 +352,42 @@ def computed_realized_vol(ticker: str, window_days: int) -> tuple[list[tuple[str
     return out, (None if out else "empty"), label
 
 
-def etf_dashboard_snapshot(snapshot_file: str, json_path: str) -> tuple[list[tuple[str, float]], str | None, str]:
+def _resolve_json_path(data: dict, json_path: str):
+    cur = data
+    for part in str(json_path or "").split("."):
+        if not part:
+            continue
+        if isinstance(cur, dict):
+            cur = cur.get(part)
+        else:
+            return None
+    return cur
+
+
+def _derive_vrp_health_score(data: dict) -> float | None:
+    """Compose 0-100 health from current etf-dashboard vrp_health schema."""
+    cov = data.get("iv_coverage_front_pct")
+    if cov is None:
+        cov = ((data.get("front_leg_quote_coverage") or {}).get("leg_iv_pct"))
+    try:
+        cov_f = float(cov)
+    except (TypeError, ValueError):
+        return None
+    if cov_f <= 1.0:
+        cov_f *= 100.0
+    stale_n = len(data.get("stale_sleeves") or [])
+    missing_n = len(data.get("missing_chain_ybs") or [])
+    err_n = len(data.get("errors") or [])
+    penalty = min(40.0, 5.0 * stale_n + 4.0 * missing_n + 8.0 * err_n)
+    return round(max(0.0, min(100.0, cov_f - penalty)), 2)
+
+
+def etf_dashboard_snapshot(
+    snapshot_file: str,
+    json_path: str,
+    *,
+    derive: str | None = None,
+) -> tuple[list[tuple[str, float]], str | None, str]:
     path = _external_json(snapshot_file)
     if not path:
         return [], "no_snapshot", ""
@@ -340,21 +395,61 @@ def etf_dashboard_snapshot(snapshot_file: str, json_path: str) -> tuple[list[tup
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return [], "bad_json", ""
-    cur = data
-    for part in json_path.split("."):
-        if isinstance(cur, dict):
-            cur = cur.get(part)
-        else:
-            cur = None
-            break
+    cur = _resolve_json_path(data, json_path) if json_path else None
+    label = f"etf_dashboard:{snapshot_file}:{json_path or derive or 'derived'}"
+    if cur is None and derive == "vrp_health_score":
+        cur = _derive_vrp_health_score(data)
+        label = f"etf_dashboard:{snapshot_file}:derived_health_score"
     if cur is None:
         return [], "path_missing", ""
-    as_of = str(data.get("as_of") or data.get("generated_at") or TODAY)[:10]
+    as_of = str(
+        data.get("holdings_as_of")
+        or data.get("as_of")
+        or data.get("build_time")
+        or data.get("generated_at")
+        or TODAY
+    )[:10]
     try:
         val = float(cur)
     except (TypeError, ValueError):
         return [], "not_numeric", ""
-    return [(as_of, val)], None, f"etf_dashboard:{snapshot_file}:{json_path}"
+    return [(as_of, val)], None, label
+
+
+def computed_vix_term_slope() -> tuple[list[tuple[str, float]], str | None, str]:
+    """VIX3M - VIX: positive = contango (typical), negative = inversion stress."""
+    near, err_n = fetch_yahoo_daily("^VIX")
+    far, err_f = fetch_yahoo_daily("^VIX3M")
+    if not near or not far:
+        return [], err_n or err_f or "insufficient_data", ""
+    map_f = {d: v for d, v in far}
+    out: list[tuple[str, float]] = []
+    for d, vn in near:
+        vf = map_f.get(d)
+        if vf is None:
+            continue
+        out.append((d, round(vf - vn, 3)))
+    return out, (None if out else "empty"), "vix_term:VIX3M-VIX"
+
+
+def expert_horizon_years(domain: str) -> tuple[list[tuple[str, float]], str | None, str]:
+    """Append-only public arrival-date quotes → years_ahead time series."""
+    path = EXPERT_HORIZONS_DIR / f"{domain}.csv"
+    if not path.exists():
+        return [], "no_horizon_csv", ""
+    rows: list[tuple[str, float]] = []
+    with path.open(encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            d = (row.get("date") or "")[:10]
+            try:
+                years = float(row.get("years_ahead") or "")
+            except ValueError:
+                continue
+            if d:
+                rows.append((d, years))
+    rows.sort()
+    return rows, (None if rows else "empty"), f"expert_horizon:{domain}"
 
 
 def hyperscaler_capex_guide() -> tuple[list[tuple[str, float]], str | None, list[str]]:
@@ -478,6 +573,11 @@ def _apply_fallback(spec: dict, rows: list[tuple[str, float]], err: str | None) 
         )
         if fb.get("note"):
             extra_label = f"{extra_label} ({fb['note']})"
+    elif fb_src == "fred":
+        rows, err = fetch_fred(fb.get("fred_id", ""))
+        extra_label = f"fred:{fb.get('fred_id')}"
+        if fb.get("note"):
+            extra_label = f"{extra_label} ({fb['note']})"
     return rows, err, extra_label
 
 
@@ -516,6 +616,11 @@ def process_series(spec: dict, offline: bool) -> dict:
         source_label = f"yahoo:{spec.get('yahoo_symbol')}"
     elif src == "eia":
         rows, err = fetch_eia(spec.get("eia_route", ""), spec.get("eia_facets"))
+        rows, err, fb_label = _apply_fallback(spec, rows, err)
+        if fb_label:
+            source_label = fb_label
+        else:
+            source_label = f"eia:{spec.get('eia_route')}"
     elif src == "repo_valuation":
         rows, err, contributors = hyperscaler_capex_guide()
         if contributors:
@@ -549,7 +654,15 @@ def process_series(spec: dict, offline: bool) -> dict:
         rows, err, source_label = etf_dashboard_snapshot(
             spec.get("snapshot_file", ""),
             spec.get("json_path", ""),
+            derive=spec.get("derive"),
         )
+    elif src == "computed_vix_term_slope":
+        rows, err, source_label = computed_vix_term_slope()
+    elif src == "expert_horizon":
+        rows, err, source_label = expert_horizon_years(spec.get("domain", ""))
+        # Expert quotes are sparse; use a wide monthly-style gate by default.
+        if "staleness_max_days" not in spec:
+            spec = {**spec, "staleness_max_days": 120}
     else:
         err = f"unknown_source:{src}"
 
@@ -564,11 +677,14 @@ def process_series(spec: dict, offline: bool) -> dict:
 
     latest_val, prior_val, pct = yoy(rows)
     latest_date = rows[-1][0] if rows else None
+    # Monthly / sparse series need wider staleness than daily macro.
+    default_stale_days = 45 if src in ("fred", "eia", "filing_panel", "expert_horizon") else 10
+    stale_days = int(spec.get("staleness_max_days") or default_stale_days)
     stale = True
     if latest_date:
         try:
             ld = datetime.strptime(latest_date[:10], "%Y-%m-%d").date()
-            stale = (date.today() - ld).days > spec.get("staleness_max_days", 45)
+            stale = (date.today() - ld).days > stale_days
         except ValueError:
             stale = True
 
@@ -576,7 +692,7 @@ def process_series(spec: dict, offline: bool) -> dict:
         source_label = f"fred:{spec.get('fred_id')}"
     elif src == "stooq_daily":
         source_label = f"stooq:{spec.get('stooq')}"
-    elif src == "eia":
+    elif src == "eia" and not str(source_label).startswith("fred:"):
         source_label = f"eia:{spec.get('eia_route')}"
     elif src == "repo_valuation":
         source_label = "repo:valuation.json/ai_overlay"
@@ -600,6 +716,7 @@ def process_series(spec: dict, offline: bool) -> dict:
 
 
 def build(theme_filter: str | None, offline: bool) -> dict:
+    _load_dotenv()
     if not offline:
         _sync_external()
     cfg = load_config()
@@ -623,7 +740,14 @@ def build(theme_filter: str | None, offline: bool) -> dict:
             continue
         series_out: dict = {}
         for spec in theme.get("series") or []:
-            spec = {**spec, "staleness_max_days": spec.get("staleness_max_days", cfg.get("staleness_max_days", 45))}
+            # Keep explicit per-series gates; do not force daily gate onto monthly FRED.
+            if "staleness_max_days" not in spec and spec.get("source") in (
+                "fred",
+                "eia",
+                "filing_panel",
+                "expert_horizon",
+            ):
+                spec = {**spec, "staleness_max_days": 45}
             res = process_series(spec, offline)
             series_out[spec["id"]] = res
             flag = "STALE" if res["stale"] else "ok"
