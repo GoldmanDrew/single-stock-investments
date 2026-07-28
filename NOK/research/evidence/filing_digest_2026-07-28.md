@@ -1,0 +1,118 @@
+# Filing digest — NOK
+
+**Generated:** 2026-07-28  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `NOK/research/evidence/document_inventory.json`  
+
+Documents in folder: **3** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | 20-F | 2024-02-29 | `investor-documents/sec-edgar/20-F_20240229_rpt20231231_acc0000924613_24_000013.htm` | 30000 |
+| full | 20-F | 2025-03-13 | `investor-documents/sec-edgar/20-F_20250313_rpt20241231_acc0000924613_25_000008.htm` | 120000 |
+| full | 20-F | 2026-03-05 | `investor-documents/sec-edgar/20-F_20260305_rpt20251231_acc0001628280_26_015034.htm` | 120000 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/20-F_20260305_rpt20251231_acc0001628280_26_015034.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractsWithCustomers: 19&#160;889
+- RevenueFromContractsWithCustomers: 19&#160;220
+- RevenueFromContractsWithCustomers: 21&#160;138
+- NoncurrentLeaseLiabilities: 797
+- NoncurrentLeaseLiabilities: 664
+- CurrentLeaseLiabilities: 203
+- CurrentLeaseLiabilities: 199
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 221
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 233
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 239
+- RevenueFromContractsWithCustomers: 6&#160;985
+- RevenueFromContractsWithCustomers: 6&#160;276
+- RevenueFromContractsWithCustomers: 6&#160;779
+- RevenueFromContractsWithCustomers: 784
+- RevenueFromContractsWithCustomers: 895
+- RevenueFromContractsWithCustomers: 1&#160;046
+- RevenueFromContractsWithCustomers: 6&#160;201
+- RevenueFromContractsWithCustomers: 5&#160;381
+- RevenueFromContractsWithCustomers: 5&#160;733
+- RevenueFromContractsWithCustomers: 4&#160;639
+- RevenueFromContractsWithCustomers: 4&#160;549
+- RevenueFromContractsWithCustomers: 6&#160;436
+- RevenueFromContractsWithCustomers: 913
+- RevenueFromContractsWithCustomers: 1&#160;134
+- RevenueFromContractsWithCustomers: 1&#160;303
+- RevenueFromContractsWithCustomers: 1&#160;534
+- RevenueFromContractsWithCustomers: 1&#160;373
+- RevenueFromContractsWithCustomers: 2&#160;842
+- RevenueFromContractsWithCustomers: 2&#160;192
+- RevenueFromContractsWithCustomers: 2&#160;042
+- RevenueFromContractsWithCustomers: 2&#160;291
+- RevenueFromContractsWithCustomers: 8&#160;265
+- RevenueFromContractsWithCustomers: 8&#160;395
+- RevenueFromContractsWithCustomers: 7&#160;923
+- RevenueFromContractsWithCustomers: 6&#160;165
+
+### `investor-documents/sec-edgar/20-F_20250313_rpt20241231_acc0000924613_25_000008.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractsWithCustomers: 19&#160;220
+- RevenueFromContractsWithCustomers: 21&#160;138
+- RevenueFromContractsWithCustomers: 23&#160;761
+- CurrentAssetsOtherThanAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: 17&#160;987
+- NoncurrentAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: &#8212;
+- NoncurrentAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: 79
+- NoncurrentLeaseLiabilities: 664
+- NoncurrentLeaseLiabilities: 799
+- CurrentLeaseLiabilities: 199
+- CurrentLeaseLiabilities: 198
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 233
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 239
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 217
+- RevenueFromContractsWithCustomers: 6&#160;276
+- RevenueFromContractsWithCustomers: 6&#160;779
+- RevenueFromContractsWithCustomers: 9&#160;611
+- RevenueFromContractsWithCustomers: 895
+- RevenueFromContractsWithCustomers: 1&#160;046
+- RevenueFromContractsWithCustomers: 1&#160;223
+- RevenueFromContractsWithCustomers: 5&#160;381
+- RevenueFromContractsWithCustomers: 5&#160;733
+- RevenueFromContractsWithCustomers: 8&#160;388
+- RevenueFromContractsWithCustomers: 4&#160;549
+- RevenueFromContractsWithCustomers: 6&#160;436
+- RevenueFromContractsWithCustomers: 5&#160;519
+- RevenueFromContractsWithCustomers: 1&#160;134
+- RevenueFromContractsWithCustomers: 1&#160;303
+- RevenueFromContractsWithCustomers: 1&#160;581
+- RevenueFromContractsWithCustomers: 1&#160;373
+- RevenueFromContractsWithCustomers: 2&#160;842
+- RevenueFromContractsWithCustomers: 1&#160;290
+- RevenueFromContractsWithCustomers: 2&#160;042
+- RevenueFromContractsWithCustomers: 2&#160;291
+- RevenueFromContractsWithCustomers: 2&#160;648
+- RevenueFromContractsWithCustomers: 8&#160;395
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/20-F_20240229_rpt20231231_acc0000924613_24_000013.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractsWithCustomers: 22&#160;258
+- RevenueFromContractsWithCustomers: 24&#160;911
+- RevenueFromContractsWithCustomers: 22&#160;202
+- CurrentAssetsOtherThanAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: 18&#160;087
+- NoncurrentAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: 79
+- NoncurrentAssetsOrDisposalGroupsClassifiedAsHeldForSaleOrAsHeldForDistributionToOwners: &#8212;
+- NoncurrentLeaseLiabilities: 799
+- NoncurrentLeaseLiabilities: 858
+- CurrentLeaseLiabilities: 198
+- CurrentLeaseLiabilities: 184
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 239
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 217
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 226
+- RevenueFromContractsWithCustomers: 2&#160;291
+- RevenueFromContractsWithCustomers: 2&#160;648
+- RevenueFromContractsWithCustomers: 2&#160;472
+- RevenueFromContractsWithCustomers: 5&#160;873
+- RevenueFromContractsWithCustomers: 6&#160;662
+- RevenueFromContractsWithCustomers: 6&#160;313
+- RevenueFromContractsWithCustomers: 1&#160;303
