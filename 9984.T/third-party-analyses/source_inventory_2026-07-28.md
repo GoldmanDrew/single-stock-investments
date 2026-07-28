@@ -1,0 +1,10 @@
+# 9984.T — Third-party source inventory
+
+**Date:** 2026-07-28
+**Sources:** 0 total (0 approved, 0 pending, 0 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| (none) | — | — | — | Primary filings only |
+
+Cross-check required: `9984.T/research/cross_check_third_party_2026-07-28.md`
