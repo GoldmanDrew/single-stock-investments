@@ -10,9 +10,9 @@ Operative JSON for SSI’s append-only World Model. **Context only.**
 
 | Layer | Count | What it is |
 |-------|------:|------------|
-| **Industry nodes** | **13** | Capacity / pricing / regulatory checklists |
+| **Industry nodes** | **14** | Capacity / pricing / regulatory checklists |
 | · thesis industries | 11 | Hold / researched book clusters |
-| · horizon industries | 2 | AGI + robotaxi (expert quotes + checklist) |
+| · horizon industries | 3 | AGI + robotaxi + eVTOL |
 | Theme prediction cards | **12** | Includes `macro_regime` + thin `space_network` (**not** industries) |
 | Superorgs | **5** | ICE, hyperscaler demand, land-power sleeve, gold royalty cluster, SpaceX network |
 | Expert horizon CSVs | **3** | AGI, robotaxi, starship (public arrival-date quotes) |
@@ -37,7 +37,8 @@ Strip field `counts.industry_nodes` must match the industry table below.
 | `pharma_royalty` | thesis | `pharma_royalty` | — | RPRX, ABBV, LLY, VTRS |
 | `nuclear_firm_power` | thesis | `nuclear_power`, `ai_power_land` | AGI horizon | SMR, CEG, VST, DNN |
 | `agi` | horizon | `ai_power_land`, `macro_regime` | horizon `agi` | APLD, TPL, LB |
-| `robotaxi` | horizon | `macro_regime` | horizon `robotaxi` | TSLA, UBER, JOBY, ACHR |
+| `robotaxi` | horizon | `macro_regime` | horizon `robotaxi` | TSLA, UBER |
+| `evtol_air_taxi` | horizon | `macro_regime` | — (not ground robotaxi) | JOBY, ACHR |
 
 **Not industries:** `macro_regime` (cross-cutting regime card only); `space_network` (thin theme + Superorg/horizon — full `space_launch` industry still deferred).
 

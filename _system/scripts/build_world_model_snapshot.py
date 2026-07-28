@@ -77,6 +77,8 @@ def collect_kpi_state() -> dict:
                 "source": kpi.get("source"),
                 "prediction_role": kpi.get("prediction_role"),
                 "industry_node_ids": industry_ids,
+                "scaffold": bool((ledger.get("scaffold_meta") or {}).get("generated_by")),
+                "magis_display": kpi.get("magis_display"),
             }, kpi)
             st = kpi.get("status")
             if st == "fail":
