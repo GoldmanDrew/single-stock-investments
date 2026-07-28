@@ -1,0 +1,28 @@
+# PSA — Insider conviction (2026-07-28)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| Mitra Shankh | 2026-06-30 | 305 | $318.31 | $97084.55 | 2.644 |
+| WILLIAMS PAUL S | 2026-06-30 | 46 | $318.31 | $14642.26 | 1.996 |
+| SPOGLI RONALD P | 2026-06-30 | 5 | $318.31 | $1591.55 | 1.07 |
+| HAVNER RONALD L JR | 2026-06-30 | 3 | $318.31 | $954.93 | 1.048 |
+| REYES JOHN | 2025-09-30 | 115 | $288.85 | $33217.75 | 1.047 |
+
+**Routine / planned sales (context):**
+
+- HAVNER RONALD L JR: 734 @ $0.0 on 2026-04-14
+- POLADIAN AVEDICK BARUYR: 2000 @ $0.0 on 2026-04-10
+- POLADIAN AVEDICK BARUYR: 2000 @ $0.0 on 2026-04-10
+
+Source: `_system/reference/market-data/insider/PSA_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
