@@ -235,16 +235,120 @@ def select_relevant(
     return selected
 
 
-def discover(*, include_search: bool = True, max_search_terms: int = 40) -> dict:
+FEED_HOST_CAP_WARN = 1000  # many hosts truncate RSS at ~1000 items
+
+
+def podcast_index_auth_headers() -> dict[str, str] | None:
+    """Auth headers for Podcast Index API, or None if keys missing."""
+    import hashlib
+    import os
+    import time
+
+    key = (os.environ.get("PODCASTINDEX_API_KEY") or os.environ.get("PODCAST_INDEX_API_KEY") or "").strip()
+    secret = (
+        os.environ.get("PODCASTINDEX_API_SECRET") or os.environ.get("PODCAST_INDEX_API_SECRET") or ""
+    ).strip()
+    if not key or not secret:
+        return None
+    ts = str(int(time.time()))
+    token = hashlib.sha1(f"{key}{secret}{ts}".encode("utf-8")).hexdigest()
+    return {
+        "User-Agent": user_agent(),
+        "X-Auth-Key": key,
+        "X-Auth-Date": ts,
+        "Authorization": token,
+    }
+
+
+def podcast_index_episodes_by_feedurl(rss_url: str, *, max_items: int = 5000) -> list[dict]:
+    """Paginate episodes beyond RSS host caps via Podcast Index (requires API key)."""
+    headers = podcast_index_auth_headers()
+    if not headers or not rss_url:
+        return []
+    out: list[dict] = []
+    # byfeedurl returns newest first; max caps page size
+    q = urllib.parse.urlencode({"url": rss_url, "max": min(max_items, 1000), "fulltext": "false"})
+    url = f"https://api.podcastindex.org/api/1.0/episodes/byfeedurl?{q}"
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return []
+    for row in data.get("items") or []:
+        title = (row.get("title") or "").strip()
+        if not title:
+            continue
+        audio = row.get("enclosureUrl") or row.get("enclosure") or None
+        if isinstance(audio, dict):
+            audio = audio.get("url")
+        guid = str(row.get("guid") or row.get("id") or audio or title)
+        published = None
+        if row.get("datePublished"):
+            try:
+                published = datetime.fromtimestamp(int(row["datePublished"]), tz=timezone.utc).date().isoformat()
+            except (TypeError, ValueError, OSError):
+                published = None
+        elif row.get("datePublishedPretty"):
+            published = str(row.get("datePublishedPretty"))[:10]
+        eid = episode_id_from(guid, audio, title)
+        out.append(
+            {
+                "episode_id": eid,
+                "show_id": None,  # filled by caller
+                "show_title": None,
+                "title": title,
+                "description": (row.get("description") or "")[:4000],
+                "published": published,
+                "guid": guid,
+                "link": row.get("link") or row.get("episodeLink"),
+                "audio_url": audio,
+                "itunes_author": None,
+                "discovery": "podcast_index_feed",
+                "enclosure_hash": hashlib.sha1((audio or guid or title).encode()).hexdigest(),
+            }
+        )
+    return out
+
+
+def persist_show_rss_url(show_id: str, rss_url: str) -> None:
+    """Write resolved feedUrl back into show_registry.json when missing."""
+    if not show_id or not rss_url:
+        return
+    doc = load_json(SHOW_REG)
+    shows = doc.get("shows") or []
+    changed = False
+    for show in shows:
+        if show.get("show_id") != show_id:
+            continue
+        if (show.get("rss_url") or "").strip():
+            return
+        show["rss_url"] = rss_url
+        changed = True
+        break
+    if changed:
+        SHOW_REG.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+
+def discover(
+    *,
+    include_search: bool = True,
+    max_search_terms: int = 40,
+    all_watchlist: bool = True,
+    paginate_capped_feeds: bool = False,
+) -> dict:
     shows = load_json(SHOW_REG).get("shows") or []
     resolver = PodcastEntityResolver()
     all_eps: list[dict] = []
     errors: list[dict] = []
+    show_stats: list[dict] = []
+    pi_headers = podcast_index_auth_headers() if paginate_capped_feeds else None
 
     for show in shows:
         if not show.get("watchlist"):
             continue
         rss = (show.get("rss_url") or "").strip()
+        resolved_feed = False
         if not rss:
             # Resolve feed via iTunes podcast search on show name
             term = show.get("podcast_index_term") or show.get("title")
@@ -255,24 +359,78 @@ def discover(*, include_search: bool = True, max_search_terms: int = 40) -> dict
                     feed = row.get("feedUrl")
                     if feed:
                         rss = feed
+                        resolved_feed = True
                         break
             except Exception as exc:
                 errors.append({"show_id": show.get("show_id"), "error": f"feed_lookup:{exc}"})
         if not rss:
             errors.append({"show_id": show.get("show_id"), "error": "no_rss"})
             continue
+        if resolved_feed:
+            persist_show_rss_url(str(show.get("show_id") or ""), rss)
         try:
             xml_bytes = http_get(rss)
             eps = parse_rss(xml_bytes, show)
-            all_eps.extend(
-                select_relevant(
-                    eps,
-                    resolver,
-                    watchlist=True,
-                    host_guest_ids=list(show.get("host_guest_ids") or []),
-                    keep_all_watchlist=False,
+            rss_count = len(eps)
+            feed_cap = rss_count >= FEED_HOST_CAP_WARN
+            if feed_cap:
+                errors.append(
+                    {
+                        "show_id": show.get("show_id"),
+                        "error": f"feed_host_cap_warn:{rss_count}",
+                        "hint": "RSS likely truncated; use Podcast Index pagination",
+                    }
                 )
+            if feed_cap and paginate_capped_feeds:
+                if not pi_headers:
+                    errors.append(
+                        {
+                            "show_id": show.get("show_id"),
+                            "error": "podcast_index_keys_missing",
+                            "hint": "Set PODCASTINDEX_API_KEY and PODCASTINDEX_API_SECRET",
+                        }
+                    )
+                else:
+                    extra = podcast_index_episodes_by_feedurl(rss)
+                    for ep in extra:
+                        ep["show_id"] = show.get("show_id")
+                        ep["show_title"] = show.get("title") or ep.get("show_title")
+                    # Merge by enclosure_hash / episode_id
+                    seen_h = {(e.get("enclosure_hash") or e.get("episode_id")) for e in eps}
+                    added = 0
+                    for ep in extra:
+                        h = ep.get("enclosure_hash") or ep.get("episode_id")
+                        if h in seen_h:
+                            continue
+                        seen_h.add(h)
+                        eps.append(ep)
+                        added += 1
+                    if added:
+                        errors.append(
+                            {
+                                "show_id": show.get("show_id"),
+                                "error": f"podcast_index_added:{added}",
+                            }
+                        )
+            selected = select_relevant(
+                eps,
+                resolver,
+                watchlist=True,
+                host_guest_ids=list(show.get("host_guest_ids") or []),
+                keep_all_watchlist=all_watchlist,
+                host_recent_limit=0 if all_watchlist else 40,
             )
+            show_stats.append(
+                {
+                    "show_id": show.get("show_id"),
+                    "rss_count": rss_count,
+                    "merged_count": len(eps),
+                    "kept": len(selected),
+                    "all_watchlist": all_watchlist,
+                    "feed_cap_warn": feed_cap,
+                }
+            )
+            all_eps.extend(selected)
             time.sleep(float(show.get("rate_limit_seconds") or 1.0))
         except Exception as exc:
             errors.append({"show_id": show.get("show_id"), "error": str(exc)})
@@ -302,6 +460,9 @@ def discover(*, include_search: bool = True, max_search_terms: int = 40) -> dict
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "episode_count": len(deduped),
+        "all_watchlist": all_watchlist,
+        "paginate_capped_feeds": paginate_capped_feeds,
+        "show_stats": show_stats,
         "errors": errors,
         "episodes": deduped,
     }
@@ -315,9 +476,30 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--no-search", action="store_true", help="Skip Podcast Index / iTunes discovery (2B)")
     p.add_argument("--max-search-terms", type=int, default=40)
+    p.add_argument(
+        "--all-watchlist",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Keep every watchlist RSS episode (default: on). Use --no-all-watchlist for signal filter.",
+    )
+    p.add_argument(
+        "--paginate-capped-feeds",
+        action="store_true",
+        help="For RSS feeds at host caps (~1000), pull extra episodes via Podcast Index API",
+    )
     args = p.parse_args()
-    payload = discover(include_search=not args.no_search, max_search_terms=args.max_search_terms)
-    print(f"discovered {payload['episode_count']} episodes; errors={len(payload.get('errors') or [])}")
+    payload = discover(
+        include_search=not args.no_search,
+        max_search_terms=args.max_search_terms,
+        all_watchlist=args.all_watchlist,
+        paginate_capped_feeds=args.paginate_capped_feeds,
+    )
+    caps = sum(1 for s in (payload.get("show_stats") or []) if s.get("feed_cap_warn"))
+    print(
+        f"discovered {payload['episode_count']} episodes; "
+        f"all_watchlist={payload.get('all_watchlist')}; "
+        f"errors={len(payload.get('errors') or [])}; feed_cap_warns={caps}"
+    )
     return 0
 
 

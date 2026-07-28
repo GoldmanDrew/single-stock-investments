@@ -199,14 +199,21 @@ class PodcastInsightsMergeTests(unittest.TestCase):
                 "show_title": "Show",
                 "title": "T",
                 "guests": [{"display": "Guest"}],
-                "highlights": [{"text": "A claim about HD", "quote": "A claim about HD"}],
+                "highlights": [
+                    {
+                        "text": "A claim about HD and capital allocation over the cycle.",
+                        "quote": "A claim about HD and capital allocation over the cycle.",
+                    }
+                ],
                 "themes": [{"theme": "AI", "stance": "neutral"}],
                 "tickers": ["HD"],
+                "summary": "Guest discusses HD capital allocation.",
             }
         )
         self.assertEqual(row["highlight_count"], 1)
         self.assertEqual(len(row["highlight_previews"]), 1)
         self.assertEqual(row["themes"][0]["theme"], "AI")
+        self.assertTrue(row["has_summary"])
 
     def test_podcasts_ref_prefix(self):
         self.assertEqual(PODCASTS_REF_PREFIX, "_system/reference/podcasts")
@@ -221,6 +228,111 @@ class PodcastAudioGuardTests(unittest.TestCase):
         text = gi.read_text(encoding="utf-8")
         self.assertIn("audio-cache/", text)
         self.assertIn("*.mp3", text)
+
+
+class PodcastHarvestTests(unittest.TestCase):
+    def test_select_relevant_keep_all_watchlist(self):
+        from discover_podcasts import select_relevant
+        from resolve_podcast_entities import PodcastEntityResolver
+
+        resolver = PodcastEntityResolver()
+        eps = [
+            {
+                "episode_id": "filler-1",
+                "title": "Weekly mailbag with no tickers",
+                "description": "Listener questions about markets in general",
+                "show_title": "Acquired",
+                "published": "2026-01-01",
+            },
+            {
+                "episode_id": "signal-1",
+                "title": "Martin Carlesund, CEO of Evolution Gaming",
+                "description": "Live casino economics",
+                "show_title": "Business Breakdowns",
+                "published": "2026-02-01",
+            },
+        ]
+        kept_all = select_relevant(eps, resolver, watchlist=True, keep_all_watchlist=True)
+        self.assertEqual(len(kept_all), 2)
+        kept_filt = select_relevant(eps, resolver, watchlist=True, keep_all_watchlist=False)
+        self.assertGreaterEqual(len(kept_filt), 1)
+        self.assertLessEqual(len(kept_filt), 2)
+
+    def test_filter_garbled_and_summary(self):
+        from summarize_podcast_episode import (
+            extractive_summary,
+            filter_highlights,
+            is_garbled_highlight,
+        )
+
+        self.assertTrue(is_garbled_highlight("PK\x03\x04 binary junk here!!!!"))
+        self.assertTrue(is_garbled_highlight("http://a.com/x " * 20))
+        self.assertTrue(
+            is_garbled_highlight(
+                "Internet Service Terms Apple Podcasts web player & Privacy Cookie Warning Support"
+            )
+        )
+        clean = {
+            "text": "The company has a durable moat from network effects and high switching costs.",
+            "quote": "The company has a durable moat from network effects and high switching costs.",
+            "method": "extractive",
+        }
+        filtered = filter_highlights([clean, {"text": "\x00\x01\x02 garbage blob"}])
+        self.assertEqual(len(filtered), 1)
+        summary = extractive_summary("Unused.", [clean])
+        self.assertIn("moat", summary.lower())
+
+    def test_whisper_backlog_upsert(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        import fetch_podcast_transcript as ft
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with mock.patch.object(ft, "podcasts_root", return_value=root):
+                ft.upsert_whisper_backlog_item(
+                    {
+                        "episode_id": "ep-1",
+                        "show_id": "acquired",
+                        "title": "T",
+                        "published": "2026-01-01",
+                        "audio_url": "https://example.com/a.mp3",
+                    },
+                    status="pending",
+                )
+                doc = ft.load_whisper_backlog()
+                self.assertEqual(doc["pending_count"], 1)
+                self.assertEqual(doc["items"][0]["episode_id"], "ep-1")
+                self.assertEqual(ft.whisper_pending_count(), 1)
+
+    def test_episode_detail_payload(self):
+        from build_podcast_insights import episode_detail_payload
+
+        ep = {
+            "episode_id": "test-ep-abc",
+            "show_id": "acquired",
+            "show_title": "Acquired",
+            "title": "Episode",
+            "published": "2026-01-01",
+            "summary": "A short summary of the episode thesis.",
+            "highlights": [
+                {
+                    "text": "Capital allocation discipline drove returns over a decade.",
+                    "quote": "Capital allocation discipline drove returns over a decade.",
+                }
+            ],
+            "tickers": ["HD"],
+            "positions": [{"ticker": "HD", "commentary": "Discussed"}],
+            "guests": [{"guest_id": "pabrai", "display": "Mohnish Pabrai"}],
+            "themes": [{"theme": "Capital Allocation", "stance": "neutral"}],
+        }
+        detail = episode_detail_payload(ep)
+        self.assertEqual(detail["summary"], ep["summary"])
+        self.assertEqual(len(detail["highlights"]), 1)
+        self.assertEqual(detail["tickers"], ["HD"])
+        self.assertTrue(detail["guests"][0]["display"])
 
 
 if __name__ == "__main__":

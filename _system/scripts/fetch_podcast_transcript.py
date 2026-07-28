@@ -146,6 +146,79 @@ def whisper_transcribe(audio_path: Path) -> str | None:
     return None
 
 
+WHISPER_BACKLOG_NAME = "whisper_backlog.json"
+
+
+def whisper_backlog_path() -> Path:
+    return podcasts_root(create=True) / WHISPER_BACKLOG_NAME
+
+
+def load_whisper_backlog() -> dict:
+    doc = load_json(whisper_backlog_path()) or {}
+    if not isinstance(doc, dict):
+        doc = {}
+    doc.setdefault("items", [])
+    return doc
+
+
+def save_whisper_backlog(doc: dict) -> None:
+    doc["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
+    whisper_backlog_path().write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+
+def whisper_pending_count() -> int:
+    doc = load_whisper_backlog()
+    return int(
+        doc.get("pending_count")
+        or sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
+    )
+
+
+def upsert_whisper_backlog_item(episode: dict, *, status: str = "pending") -> None:
+    if not episode.get("audio_url") or not episode.get("episode_id"):
+        return
+    doc = load_whisper_backlog()
+    items = list(doc.get("items") or [])
+    eid = episode["episode_id"]
+    existing = next((i for i in items if i.get("episode_id") == eid), None)
+    row = {
+        "episode_id": eid,
+        "show_id": episode.get("show_id"),
+        "title": episode.get("title"),
+        "published": episode.get("published"),
+        "audio_url": episode.get("audio_url"),
+        "link": episode.get("link"),
+        "status": status,
+        "attempts": int((existing or {}).get("attempts") or 0),
+    }
+    if existing:
+        for i, it in enumerate(items):
+            if it.get("episode_id") == eid:
+                # Keep attempts; refresh metadata
+                row["attempts"] = int(it.get("attempts") or 0)
+                if it.get("status") == "done":
+                    row["status"] = "done"
+                items[i] = row
+                break
+    else:
+        items.append(row)
+    doc["items"] = items
+    doc["pending_count"] = sum(1 for i in items if i.get("status") == "pending")
+    save_whisper_backlog(doc)
+
+
+def delete_audio_cache(episode_id: str) -> None:
+    cache = podcasts_root(create=True) / "audio-cache"
+    if not cache.is_dir():
+        return
+    for p in cache.glob(f"{episode_id}.*"):
+        try:
+            p.unlink()
+        except OSError:
+            pass
+
+
 def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool = True) -> dict:
     eid = episode["episode_id"]
     txt_path, meta_path = episode_paths(eid, episode.get("published"))
@@ -185,8 +258,13 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
                 status = "whisper_unavailable"
         except Exception as exc:
             status = f"audio_error:{exc}"
+        finally:
+            if text:
+                delete_audio_cache(eid)
     else:
         status = "no_transcript_source"
+        if episode.get("audio_url") and not allow_whisper:
+            upsert_whisper_backlog_item(episode, status="pending")
 
     # Always write meta; write transcript when available
     meta = {
@@ -202,6 +280,16 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
     meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     if text:
         txt_path.write_text(text + "\n", encoding="utf-8")
+        # Mark backlog done if present
+        doc = load_whisper_backlog()
+        changed = False
+        for it in doc.get("items") or []:
+            if it.get("episode_id") == eid and it.get("status") != "done":
+                it["status"] = "done"
+                changed = True
+        if changed:
+            doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
+            save_whisper_backlog(doc)
     return {"episode_id": eid, "status": status, "path": str(txt_path) if text else None, "meta": meta}
 
 
@@ -231,6 +319,7 @@ def fetch_from_discovery(
     allow_whisper: bool = True,
     limit: int | None = None,
     host_whisper_per_show: int = 8,
+    backfill: bool = False,
 ) -> dict:
     root = podcasts_root(create=True)
     discovery_path = discovery_path or (root / "discovery_latest.json")
@@ -245,10 +334,13 @@ def fetch_from_discovery(
     for ep in episodes:
         show = shows.get(ep.get("show_id") or "", {})
         pri = episode_fetch_priority(ep, show)
-        if pri == "skip":
+        if pri == "skip" and not backfill:
             continue
         whisper_ok = allow_whisper
-        if pri == "host":
+        if backfill:
+            # Backfill: attempt published for all; Whisper only if allow_whisper (ignore host budget)
+            whisper_ok = allow_whisper
+        elif pri == "host":
             sid = ep.get("show_id") or ""
             used = host_whisper_used.get(sid, 0)
             # Always attempt published; Whisper only within per-show budget
@@ -263,16 +355,76 @@ def fetch_from_discovery(
     results = []
     for ep, whisper_ok in selected:
         results.append(fetch_one(ep, shows, allow_whisper=whisper_ok))
+        # Queue remaining audio for Whisper when published-only backfill
+        if backfill and not whisper_ok and ep.get("audio_url"):
+            txt_path, _meta = episode_paths(ep["episode_id"], ep.get("published"))
+            if not txt_path.exists():
+                upsert_whisper_backlog_item(ep, status="pending")
+
     summary = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "count": len(results),
         "selected_from_discovery": len(selected),
+        "backfill": backfill,
         "by_status": {},
+        "results": results,
+        "whisper_pending": (load_whisper_backlog().get("pending_count") or 0),
+    }
+    for r in results:
+        summary["by_status"][r["status"]] = summary["by_status"].get(r["status"], 0) + 1
+    summary["whisper_pending"] = whisper_pending_count()
+    (root / "fetch_latest.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def drain_whisper_backlog(*, batch: int = 20) -> dict:
+    """Whisper pending backlog items newest-first; delete audio after success."""
+    root = podcasts_root(create=True)
+    doc = load_whisper_backlog()
+    items = [i for i in (doc.get("items") or []) if i.get("status") == "pending" and i.get("audio_url")]
+    items.sort(key=lambda e: e.get("published") or "", reverse=True)
+    batch_items = items[: max(0, batch)]
+    shows = {s.get("show_id"): s for s in ((load_json(SHOW_REG) or {}).get("shows") or [])}
+    results = []
+    for it in batch_items:
+        # bump attempts
+        for row in doc.get("items") or []:
+            if row.get("episode_id") == it.get("episode_id"):
+                row["attempts"] = int(row.get("attempts") or 0) + 1
+                break
+        save_whisper_backlog(doc)
+        ep = {
+            "episode_id": it["episode_id"],
+            "show_id": it.get("show_id"),
+            "title": it.get("title"),
+            "published": it.get("published"),
+            "audio_url": it.get("audio_url"),
+            "link": it.get("link"),
+        }
+        result = fetch_one(ep, shows, allow_whisper=True)
+        results.append(result)
+        # refresh doc after fetch_one may have marked done
+        doc = load_whisper_backlog()
+        if result.get("status") not in ("transcribed", "fetched_published", "exists"):
+            for row in doc.get("items") or []:
+                if row.get("episode_id") == it.get("episode_id"):
+                    if int(row.get("attempts") or 0) >= 3:
+                        row["status"] = "failed"
+                    break
+            doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
+            save_whisper_backlog(doc)
+
+    summary = {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "batch": batch,
+        "attempted": len(results),
+        "by_status": {},
+        "whisper_pending": (load_whisper_backlog().get("pending_count") or 0),
         "results": results,
     }
     for r in results:
         summary["by_status"][r["status"]] = summary["by_status"].get(r["status"], 0) + 1
-    (root / "fetch_latest.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (root / "whisper_batch_latest.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
 
@@ -284,14 +436,33 @@ def main() -> int:
     p.add_argument("--no-whisper", action="store_true")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--host-whisper-per-show", type=int, default=8)
+    p.add_argument(
+        "--backfill",
+        action="store_true",
+        help="Fetch every discovered watchlist episode (ignore skip priority / host Whisper budget)",
+    )
+    p.add_argument(
+        "--whisper-batch",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Drain N pending items from whisper_backlog.json (newest first)",
+    )
     args = p.parse_args()
+    if args.whisper_batch is not None:
+        summary = drain_whisper_backlog(batch=args.whisper_batch)
+        print(json.dumps({k: summary.get(k) for k in ("attempted", "by_status", "whisper_pending")}, indent=2))
+        return 0
     summary = fetch_from_discovery(
         args.discovery,
         allow_whisper=not args.no_whisper,
         limit=args.limit,
         host_whisper_per_show=args.host_whisper_per_show,
+        backfill=args.backfill,
     )
     print(json.dumps(summary.get("by_status") or {}, indent=2))
+    if summary.get("whisper_pending"):
+        print(f"whisper_pending={summary['whisper_pending']}")
     return 0
 
 

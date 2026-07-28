@@ -3152,7 +3152,15 @@ def build_source_health(
                 ),
                 "records": counts.get("podcast_episode", 0),
                 "items": len(_pod.get("episodes") or []),
+                "episode_count": _pod.get("episode_count") or len(_pod.get("episodes") or []),
+                "transcript_count": _pod.get("transcript_count"),
+                "whisper_pending": _pod.get("whisper_pending"),
                 "as_of": newest_as_of([e.get("published") for e in (_pod.get("episodes") or [])]),
+                "notes": (
+                    f"episodes={_pod.get('episode_count') or len(_pod.get('episodes') or [])}"
+                    f" transcripts={_pod.get('transcript_count') or 0}"
+                    f" whisper_pending={_pod.get('whisper_pending') or 0}"
+                ),
                 "path": (
                     relative_path(PODCASTS_INSIGHTS)
                     if PODCASTS_INSIGHTS.exists()

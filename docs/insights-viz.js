@@ -1701,14 +1701,43 @@
     return n.toFixed(2);
   }
 
-  function wmKpiLabel(row) {
-    const label = (row && row.label) || '';
-    if (label) {
-      // Shorten long labels for table density
-      return label.length > 48 ? `${label.slice(0, 47)}…` : label;
-    }
+  function wmKpiLabel(row, strip) {
     const id = String((row && row.kpi_id) || '');
+    let label = (row && row.label) || '';
+    // Enrich P0 horizon quote rows with latest speaker from expert_horizons
+    if (/_years_ahead$/.test(id) && strip) {
+      const domain = id.replace(/_years_ahead$/, '');
+      const h = (strip.expert_horizons || []).find(x => x.domain === domain);
+      const latest = (h && h.latest) || {};
+      const bits = ['P0'];
+      if (latest.speaker) bits.push(String(latest.speaker));
+      if (latest.years_ahead != null) bits.push(`${wmFormatNumber(latest.years_ahead)}y`);
+      if (!label) label = id.replace(/_/g, ' ');
+      if (!/P0/.test(label)) label = `${label} (${bits.join(' · ')})`;
+    }
+    if (label) {
+      return label.length > 64 ? `${label.slice(0, 63)}…` : label;
+    }
     return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '—';
+  }
+
+  function wmIsSharedThemeKpi(row) {
+    if (!row) return false;
+    const mode = row.magis_display && row.magis_display.mode;
+    if (mode === 'shared_theme') return true;
+    const src = String(row.source || '');
+    return src.startsWith('theme:');
+  }
+
+  function wmSharedKey(row) {
+    return String((row && row.source) || (row && row.kpi_id) || '');
+  }
+
+  function wmHideZScore(row) {
+    const id = String((row && row.kpi_id) || '');
+    if (id === 'price_usd') return true;
+    if (/_years_ahead$/.test(id)) return true; // sparse quote series — z not meaningful
+    return false;
   }
 
   function wmIndustryKey(row) {
@@ -1717,10 +1746,27 @@
   }
 
   function wmIndustryTitle(key) {
-    return String(key || 'other').replace(/_/g, ' ');
+    const titles = {
+      robotaxi: 'robotaxi / AV ground',
+      evtol_air_taxi: 'eVTOL / air taxi',
+      pharma_royalty: 'pharma royalty',
+      btc_mining_power: 'BTC mining / power',
+      market_data_indices: 'index / market-data fees',
+      ai_power: 'AI power / land',
+      water_surface: 'water / surface',
+      hyperscaler_cloud: 'hyperscaler cloud',
+      nuclear_firm_power: 'nuclear / SMR',
+      gold_royalty: 'gold royalty',
+      timber_land: 'timber / housing',
+      energy_royalty: 'energy royalty',
+      exchange_markets: 'exchange markets',
+      agi: 'AGI horizon',
+    };
+    return titles[key] || String(key || 'other').replace(/_/g, ' ');
   }
 
   function wmZValue(row) {
+    if (wmHideZScore(row)) return null;
     const hist = (row && row.history) || {};
     const z = hist.z_score != null ? hist.z_score : (row && row.z_score);
     return z == null || Number.isNaN(Number(z)) ? null : Number(z);
@@ -1747,18 +1793,20 @@
     return kind || '—';
   }
 
+  // Prefer theme_panel_config evidence; keep a UI fallback map in sync with ingest themes.
   const WM_THEME_SERIES = {
     ai_power_land: ['theme:hyperscaler_capex_ttm_usd_bn', 'theme:henry_hub_gas', 'theme:wti_crude'],
     exchange_volatility: ['theme:vix_level', 'theme:spy_20d_realized_vol', 'theme:vol_term_slope'],
     gold_royalties: ['theme:gold_spot_usd', 'theme:gdx_gld_ratio'],
     macro_regime: ['theme:hy_oas', 'theme:ust_10y', 'theme:vix_level'],
-    water_surface: ['theme:tpl_water_revenue_m', 'theme:wti_crude'],
+    water_surface: ['theme:tpl_water_revenue_m', 'theme:wti_crude', 'theme:permian_crude_production_mbbl_d'],
     timber_housing: ['theme:housing_starts', 'theme:building_permits'],
     btc_hash_power: ['theme:btc_usd', 'theme:henry_hub_gas'],
     energy_royalty: ['theme:wti_crude', 'theme:henry_hub_gas'],
-    pharma_royalty: ['theme:xlv_etf', 'theme:xbi_etf'],
+    pharma_royalty: ['theme:xlv_etf', 'theme:xbi_etf', 'theme:ust_10y'],
     nuclear_power: ['theme:ura_etf', 'theme:hyperscaler_capex_ttm_usd_bn'],
     index_data_fees: ['theme:vix_level', 'theme:spy_20d_realized_vol'],
+    space_network: [],
   };
 
   function wmSeriesLatest(historySeries, seriesKey) {
@@ -1787,7 +1835,10 @@
     }).join('');
   }
 
-  function wmZBadge(z, escapeHtml) {
+  function wmZBadge(z, escapeHtml, opts) {
+    if (opts && opts.hidden) {
+      return `<span class="badge badge-us" title="Z not shown for this KPI type">—</span>`;
+    }
     if (z == null || Number.isNaN(Number(z))) {
       return `<span class="badge badge-us" title="Insufficient history for z-score">n/a</span>`;
     }
@@ -1795,7 +1846,7 @@
     const abs = Math.abs(n);
     const cls = abs >= 2 ? 'badge-bad' : (abs >= 1 ? 'badge-warn' : 'badge-ok');
     const sign = n > 0 ? '+' : '';
-    return `<span class="badge ${cls}" title="Z vs trailing history (descriptive; not a Magis gate)">${escapeHtml(sign + n.toFixed(2))}</span>`;
+    return `<span class="badge ${cls}" title="Vs trailing history only — descriptive; not a Magis gate">${escapeHtml(sign + n.toFixed(2))}</span>`;
   }
 
   function wmSparklineSvg(values, width, height) {
@@ -1908,14 +1959,17 @@
   function wmKpiHistCells(r, escapeHtml) {
     const hist = r.history || {};
     const spark = wmSparklineSvg(hist.sparkline || []);
-    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}`.replace(/[^\w.\-]+/g, '_');
-    const title = 'Click to view time series and z-score vs history';
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}__${String(r.source || '').replace(/:/g, '_')}`
+      .replace(/[^\w.\-]+/g, '_');
+    const title = 'Click to view time series and vs-history detail';
     const actualTxt = r.actual != null ? wmFormatNumber(r.actual, r.unit) : '—';
+    const hideZ = wmHideZScore(r);
+    const zVal = hideZ ? null : (hist.z_score != null ? hist.z_score : r.z_score);
     return {
       rowId,
       actualCell: `<td class="mono"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${escapeHtml(actualTxt)}</button></td>`,
       sparkCell: `<td class="wm-spark"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${spark}</button></td>`,
-      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(hist.z_score != null ? hist.z_score : r.z_score, escapeHtml)}</button></td>`,
+      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(zVal, escapeHtml, { hidden: hideZ })}</button></td>`,
     };
   }
 
@@ -1979,13 +2033,14 @@
       <div class="wm-attention">
         <h4 class="wm-section-title">Needs attention</h4>
         <table class="darwin-table wm-table">
-          <thead><tr><th>Ticker</th><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Why</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Why</th></tr></thead>
           <tbody>${attentionRows.map(r => {
             const cells = wmKpiHistCells(r, escapeHtml);
             const kindCls = r._kind === 'hard' ? 'badge-bad' : 'badge-warn';
+            const scaffoldBadge = r.scaffold ? ' <span class="badge badge-us" title="Industry scaffold — not curated filing KPIs">scaffold</span>' : '';
             return `<tr>
               <td class="mono">${escapeHtml(r.ticker || '')}</td>
-              <td>${escapeHtml(wmKpiLabel(r))}${r._kind === 'soft' ? ` <span class="badge badge-warn" title="Soft floor / Goodhart">soft</span>` : ''}</td>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}${scaffoldBadge}${r._kind === 'soft' ? ` <span class="badge badge-warn" title="Soft floor / Goodhart">soft</span>` : ''}</td>
               ${cells.actualCell}
               ${cells.sparkCell}
               ${cells.zCell}
@@ -2009,12 +2064,18 @@
         c.tam_magnetism ? `TAM ${c.tam_magnetism}` : null,
         c.regulatory || null,
       ].filter(Boolean).join(' · ');
+      let metricsBlock = seriesBits
+        ? `<div class="wm-theme-metrics">${seriesBits}</div>`
+        : '';
+      if (!seriesBits && (tid === 'space_network' || seriesKeys.length === 0)) {
+        metricsBlock = `<div class="tier-sub wm-theme-metrics">No market series yet — see Expert horizons · starship and Superorgs</div>`;
+      }
       return `<div class="wm-theme-card">
         <div class="wm-theme-card-head">
           <span class="wm-theme-name">${escapeHtml(c.label || tid)}</span>
           <span class="badge ${phaseCls}">${escapeHtml(phase)}</span>
         </div>
-        ${seriesBits ? `<div class="wm-theme-metrics">${seriesBits}</div>` : ''}
+        ${metricsBlock}
         <div class="tier-sub wm-theme-rein">${escapeHtml(rein)}</div>
       </div>`;
     }).join('');
@@ -2078,32 +2139,61 @@
     function renderKpiGroups(groups, colSpan) {
       if (!groups.size) return '<p class="tier-sub">No elevated-z rows. Use “Show all passing” for the full ledger.</p>';
       return [...groups.entries()].map(([key, rows]) => {
+        const sharedMap = new Map();
         const byTicker = new Map();
         rows.forEach(r => {
-          const t = r.ticker || '—';
-          if (!byTicker.has(t)) byTicker.set(t, []);
-          byTicker.get(t).push(r);
+          if (wmIsSharedThemeKpi(r)) {
+            const sk = wmSharedKey(r);
+            if (!sharedMap.has(sk)) sharedMap.set(sk, { exemplar: r, tickers: [] });
+            const entry = sharedMap.get(sk);
+            const t = r.ticker || '—';
+            if (!entry.tickers.includes(t)) entry.tickers.push(t);
+            // Prefer denser history exemplar
+            const nNew = ((r.history || {}).n) || 0;
+            const nOld = ((entry.exemplar.history || {}).n) || 0;
+            if (nNew > nOld) entry.exemplar = r;
+          } else {
+            const t = r.ticker || '—';
+            if (!byTicker.has(t)) byTicker.set(t, []);
+            byTicker.get(t).push(r);
+          }
         });
-        const body = [...byTicker.entries()].map(([ticker, tRows]) => {
-          const head = `<tr class="wm-ticker-band"><td colspan="5"><span class="mono">${escapeHtml(ticker)}</span></td></tr>`;
+        const sharedRows = [...sharedMap.values()].map(({ exemplar, tickers }) => {
+          const cells = wmKpiHistCells(exemplar, escapeHtml);
+          const gate = wmGateText(exemplar);
+          const applies = tickers.slice().sort().join(', ');
+          return `<tr>
+              <td><span class="badge badge-us" title="Same theme series for every listed ticker">shared</span> ${escapeHtml(wmKpiLabel(exemplar, strip))}
+                <div class="tier-sub">applies to ${escapeHtml(applies)}</div></td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
+            </tr>${wmHistoryDetailRow(exemplar, historySeries, escapeHtml, colSpan)}`;
+        }).join('');
+        const tickerBody = [...byTicker.entries()].map(([ticker, tRows]) => {
+          const isScaffold = tRows.some(r => r.scaffold);
+          const head = `<tr class="wm-ticker-band"><td colspan="5"><span class="mono">${escapeHtml(ticker)}</span>${isScaffold ? ' <span class="badge badge-us" title="Industry scaffold">scaffold</span>' : ' <span class="badge badge-ok" title="Curated / filing-backed ledger">curated</span>'}</td></tr>`;
           const kpiRows = tRows.map(r => {
             const cells = wmKpiHistCells(r, escapeHtml);
             const gate = wmGateText(r);
             return `<tr>
-              <td>${escapeHtml(wmKpiLabel(r))}</td>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}</td>
               ${cells.actualCell}
               ${cells.sparkCell}
               ${cells.zCell}
-              <td class="mono tier-sub">${escapeHtml(gate)}</td>
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
             </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, colSpan)}`;
           }).join('');
           return head + kpiRows;
         }).join('');
+        const uniqueCount = sharedMap.size + [...byTicker.values()].reduce((n, a) => n + a.length, 0);
+        const body = (sharedRows ? `<tr class="wm-ticker-band"><td colspan="5"><span class="tier-sub">Shared theme pulses (shown once)</span></td></tr>${sharedRows}` : '') + tickerBody;
         return `<details class="wm-group">
-          <summary>${escapeHtml(wmIndustryTitle(key))} <span class="tier-sub">(${rows.length})</span></summary>
+          <summary>${escapeHtml(wmIndustryTitle(key))} <span class="tier-sub">(${uniqueCount} signals · ${rows.length} raw)</span></summary>
           <table class="darwin-table wm-table">
-            <thead><tr><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Gate</th></tr></thead>
-            <tbody>${body}</tbody>
+            <thead><tr><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Thesis floor</th></tr></thead>
+            <tbody>${body || '<tr><td colspan="5" class="tier-sub">No KPIs in this industry.</td></tr>'}</tbody>
           </table>
         </details>`;
       }).join('');
@@ -2193,7 +2283,7 @@
           <div class="wm-kpi-toolbar">
             <button type="button" class="filter-btn wm-kpi-mode active" data-wm-kpi-mode="outliers">Outliers (|z|≥2)</button>
             <button type="button" class="filter-btn wm-kpi-mode" data-wm-kpi-mode="all">Show all passing</button>
-            <span class="tier-sub">Click Actual / Hist / Z for history. Z is descriptive only.</span>
+            <span class="tier-sub">Click Actual / Hist / vs hist for history. Vs hist is descriptive only — not a capital gate.</span>
           </div>
           <div class="wm-kpi-panels">
             <div class="wm-kpi-panel" data-wm-kpi-panel="outliers">${renderKpiGroups(groupsDefault, 5)}</div>

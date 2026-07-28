@@ -12,7 +12,7 @@ DATE ?= $(shell date +%Y-%m-%d)
 TICKER ?=
 DATE ?= $(shell date +%Y-%m-%d)
 
-.PHONY: research-check research-check-all depth-check depth-audit evidence milly-repass book-estimate book-estimate-all holdco-uplift short-scan activist-scan activist-scan-all activist-triage activist-triage-check activist-feed activist-feed-check activist-registry-audit filing-resolve event-triage event-triage-check hk-scan hk-cross-check-all hk-extract-refresh third-party-scan-all cross-check-all transcript-sync batch-refresh evidence-check darwin-pit-check darwin-build darwin-roth darwin-ira darwin-pit-audit darwin-sync-external darwin-explore darwin-sp500-refresh persona-lens persona-insights persona-check document-registry document-catalog-search document-sync-drive document-sync-drive-letters document-sync-drive-general document-drive-plan document-drive-migrate document-drive-cleanup document-drive-audit research-memory specialist-13f-ingest tracked-funds-13f-ingest reddit-ingest biotech-quant-lib biotech-spend biotech-insider biotech-insider-fetch biotech-issuer-mcap biotech-short biotech-clinical biotech-paper biotech-composite biotech-validate sumzero-index letter-import-drive letter-extract-text letter-backfill letter-rebuild letter-repair-dates letter-date-check vault-setup vault-check podcasts-refresh podcasts-check
+.PHONY: research-check research-check-all depth-check depth-audit evidence milly-repass book-estimate book-estimate-all holdco-uplift short-scan activist-scan activist-scan-all activist-triage activist-triage-check activist-feed activist-feed-check activist-registry-audit filing-resolve event-triage event-triage-check hk-scan hk-cross-check-all hk-extract-refresh third-party-scan-all cross-check-all transcript-sync batch-refresh evidence-check darwin-pit-check darwin-build darwin-roth darwin-ira darwin-pit-audit darwin-sync-external darwin-explore darwin-sp500-refresh persona-lens persona-insights persona-check document-registry document-catalog-search document-sync-drive document-sync-drive-letters document-sync-drive-general document-drive-plan document-drive-migrate document-drive-cleanup document-drive-audit research-memory specialist-13f-ingest tracked-funds-13f-ingest reddit-ingest biotech-quant-lib biotech-spend biotech-insider biotech-insider-fetch biotech-issuer-mcap biotech-short biotech-clinical biotech-paper biotech-composite biotech-validate sumzero-index letter-import-drive letter-extract-text letter-backfill letter-rebuild letter-repair-dates letter-date-check vault-setup vault-check podcasts-refresh podcasts-backfill podcasts-check
 
 persona-lens:
 	$(PYTHON) $(SCRIPTS)/fetch_superinvestor_letters.py --all --build
@@ -26,8 +26,14 @@ persona-fetch-letters:
 	@echo OK: persona-fetch-letters
 
 podcasts-refresh:
-	$(PYTHON) $(SCRIPTS)/podcast_cloud_refresh.py --date $(DATE)
+	$(PYTHON) $(SCRIPTS)/podcast_cloud_refresh.py --date $(DATE) --all-watchlist --whisper-batch 20
 	@echo OK: podcasts-refresh
+
+# Overnight / one-shot: every watchlist RSS item, published first, then Whisper batch.
+WHISPER_BATCH ?= 50
+podcasts-backfill:
+	$(PYTHON) $(SCRIPTS)/podcast_cloud_refresh.py --date $(DATE) --backfill --all-watchlist --whisper-batch $(WHISPER_BATCH)
+	@echo OK: podcasts-backfill
 
 podcasts-check:
 	$(PYTHON) -m unittest _system/scripts/test_podcast_pipeline.py
