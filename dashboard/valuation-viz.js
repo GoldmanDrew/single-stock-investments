@@ -51,13 +51,40 @@
 
   function renderPriceToBaseCell(t, fmtPct) {
     const d = decisionOf(t);
-    const pct = d.upside_downside_pct?.base ?? t.component_valuation?.upside_downside_pct?.base;
-    if (pct == null) return '<span class="mono" style="color:var(--text-muted)">—</span>';
-    const cls = pct >= 0 ? 'irr-pass' : 'irr-fail';
-    const title = (d.provisional || d.status === 'evidence_blocked')
-      ? 'Not decision-grade while evidence-blocked'
-      : 'Price vs base component value';
-    return `<span class="irr-cell ${cls}" title="${title}">${pct > 0 ? '+' : ''}${fmtPct(pct)}</span>`;
+    const rawPct = d.upside_downside_pct?.base ?? t.component_valuation?.upside_downside_pct?.base;
+    const absPct = rawPct == null ? null : Math.abs(Number(rawPct));
+    // Share-count unit bugs produce multi-million % gaps; hide rather than display.
+    const pct = (absPct != null && absPct > 50000) ? null : rawPct;
+    const years = d.horizon_years
+      ?? t.valuation_workbench?.valuation?.horizon_years
+      ?? t.valuation_workbench?.valuation?.valuation?.horizon_years
+      ?? t.valuation_workbench?.decision?.horizon_years;
+    const ann = d.annualized_return_at_price_pct?.base
+      ?? t.valuation_workbench?.decision?.annualized_return_at_price_pct?.base
+      ?? t.valuation_workbench?.valuation?.annualized_return_at_price_pct?.base
+      ?? t.valuation_workbench?.valuation?.valuation?.annualized_return_at_price_pct?.base;
+    if (pct == null && ann == null) {
+      return '<span class="mono" style="color:var(--text-muted)">—</span>';
+    }
+    const primary = pct != null ? Number(pct) : Number(ann);
+    const cls = primary >= 0 ? 'irr-pass' : 'irr-fail';
+    const titleParts = [
+      pct != null ? `Base value vs price: ${pct > 0 ? '+' : ''}${fmtPct(pct)}` : null,
+      ann != null ? `Annualized at price: ${Number(ann).toFixed(1)}%/yr` : null,
+      years != null ? `Horizon ${years}y (IRR = this annualized gap)` : null,
+      (d.provisional || d.status === 'evidence_blocked') ? 'Not decision-grade while evidence-blocked' : null,
+    ].filter(Boolean);
+    const head = pct != null
+      ? `${pct > 0 ? '+' : ''}${fmtPct(pct)}`
+      : `${Number(ann).toFixed(1)}%/yr`;
+    let sub = '';
+    if (pct != null && ann != null) {
+      const y = years != null ? ` · ${years}y` : '';
+      sub = `<span class="irr-sub">≈${Number(ann).toFixed(1)}%/yr${y}</span>`;
+    } else if (pct != null && years != null) {
+      sub = `<span class="irr-sub">${years}y horizon</span>`;
+    }
+    return `<span class="irr-cell ${cls}" title="${titleParts.join(' · ')}">${head}${sub}</span>`;
   }
 
   function claimList(items, escapeHtml, empty) {

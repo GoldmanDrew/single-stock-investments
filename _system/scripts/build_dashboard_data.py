@@ -145,6 +145,8 @@ def parse_holdings() -> dict[str, dict]:
             "company": h.get("company", ticker),
             "market": h.get("market", "—"),
             "exchange": h.get("exchange", "—"),
+            "display_ticker": h.get("display_ticker"),
+            "quote_ticker": h.get("quote_ticker"),
         }
     if meta:
         return meta
@@ -1102,7 +1104,7 @@ def valuation_component_summary(ticker_dir: Path) -> dict | None:
         "decision_rule": result.get("decision_rule"),
         "market_price_per_share": result.get("market_price_per_share"),
         "total_equity_value_per_share": total,
-        "upside_downside_pct": upside,
+        "upside_downside_pct": _sane_upside_pct(upside),
         "material_component_count": result.get("material_component_count", 0),
         "additive_component_count": result.get("additive_component_count", 0),
         "embedded_component_count": result.get("embedded_component_count", 0),
@@ -1177,6 +1179,19 @@ def valuation_workbench_summary(ticker_dir: Path) -> dict | None:
 
 
 CLOSED_GAP_STATUSES = frozenset({"resolved", "accepted", "not_applicable", "met"})
+ABSURD_UPSIDE_PCT = 50_000
+
+
+def _sane_upside_pct(upside: dict | None) -> dict | None:
+    """Drop multi-million % gaps caused by share-count unit bugs."""
+    if not isinstance(upside, dict):
+        return None
+    values = [upside.get(k) for k in ("low", "base", "high") if upside.get(k) is not None]
+    if not values:
+        return None
+    if any(abs(float(v)) > ABSURD_UPSIDE_PCT for v in values):
+        return None
+    return upside
 
 
 def valuation_decision_summary(
@@ -1235,7 +1250,19 @@ def valuation_decision_summary(
         "method_profile": ticker_cfg.get("method_profile") or method.get("profile_id"),
         "primary_power_zone": decision.get("primary_power_zone") or method.get("label"),
         "value_per_share": decision.get("value_per_share") or (cv or {}).get("total_equity_value_per_share"),
-        "upside_downside_pct": (cv or {}).get("upside_downside_pct"),
+        "upside_downside_pct": _sane_upside_pct(
+            (cv or {}).get("upside_downside_pct") or decision.get("upside_downside_pct")
+        ),
+        "annualized_return_at_price_pct": (
+            decision.get("annualized_return_at_price_pct")
+            or ((wb or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
+            or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
+        ),
+        "horizon_years": (
+            decision.get("horizon_years")
+            or ((wb or {}).get("valuation") or {}).get("horizon_years")
+            or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("horizon_years")
+        ),
         "price_per_share": decision.get("price_per_share") or (cv or {}).get("market_price_per_share"),
         "next_action": decision.get("next_action"),
         "next_gap_id": next_gap,
@@ -2464,8 +2491,12 @@ def build_ticker_row(
     classification = classification_for(ticker, ticker_dir, portfolio_class)
     pdf_count = count_pdfs(ticker_dir, registry_docs)
     deep_dive = latest_deep_dive(ticker_dir, classification)
+    display_ticker = meta.get("display_ticker") or ticker
+    quote_ticker = meta.get("quote_ticker") or ticker
     row = {
         "ticker": ticker,
+        "display_ticker": display_ticker,
+        "quote_ticker": quote_ticker,
         "company": meta.get("company", ticker),
         "market": meta.get("market", "—"),
         "exchange": meta.get("exchange", "—"),

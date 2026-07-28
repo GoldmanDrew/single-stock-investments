@@ -713,7 +713,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-07-28.
 | UPS | UPS/ | United Parcel Service | US | 2026-07-10 | 2026-07-28 | unknown | watch |
 | URB.A.TO | URB.A.TO/ | Urbana Corporation (Class A) | CA | — | 2026-07-28 | holding_co | watch |
 | URI | URI/ | United Rentals | US | 2026-07-10 | 2026-07-28 | unknown | watch |
-| UROY | UROY/ | Uranium Royalty Corp. | US | 2026-07-27 | 2026-07-28 | optionality | watch |
+| URC | UROY/ | Uranium Royalty Corp. | US | 2026-07-27 | 2026-07-28 | optionality | watch |
 | USB | USB/ | U.S. Bancorp | US | 2026-07-10 | 2026-07-28 | unknown | watch |
 | V | V/ | Visa Inc. | US | 2026-07-10 | 2026-07-28 | unknown | watch |
 | VEEV | VEEV/ | Veeva Systems | US | 2026-07-10 | 2026-07-28 | unknown | watch |

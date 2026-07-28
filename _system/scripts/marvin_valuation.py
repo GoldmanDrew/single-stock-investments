@@ -448,6 +448,28 @@ def _driver_component_range_per_share(valuation: dict, shares: float | None) -> 
     return {key: round(value, 2) for key, value in values.items()}
 
 
+def resolve_share_count(inputs: dict | None) -> float | None:
+    """Return absolute share count for $/share math.
+
+    `inputs.shares_outstanding` must be the absolute share count (e.g. 361037249).
+    If it was mistakenly stored in millions and matches `shares_outstanding_m`,
+    expand by 1e6 so total_value_m / shares does not produce multi-million $/share.
+    """
+    inputs = inputs or {}
+    shares = inputs.get("shares_outstanding")
+    shares_m = inputs.get("shares_outstanding_m")
+    if shares is None and shares_m is None:
+        return None
+    if shares is not None and shares_m is not None:
+        shares_f, shares_m_f = float(shares), float(shares_m)
+        if shares_m_f > 0 and abs(shares_f - shares_m_f) < 1e-6 and shares_f < 100_000:
+            return shares_m_f * 1_000_000
+        return shares_f
+    if shares_m is not None and shares is None:
+        return float(shares_m) * 1_000_000
+    return float(shares) if shares is not None else None
+
+
 def _component_range_per_share(component: dict, shares: float | None) -> dict[str, float]:
     """Return a component's low/base/high range per share.
 
@@ -493,7 +515,7 @@ def compute_component_valuation(data: dict) -> dict | None:
     if not schedule.get("all_material_components_identified"):
         raise ValueError("component_valuation requires all_material_components_identified: true")
 
-    shares = (data.get("inputs") or {}).get("shares_outstanding")
+    shares = resolve_share_count(data.get("inputs") or {})
     price = (data.get("inputs") or {}).get("price")
     seen_ids: set[str] = set()
     seen_keys: set[str] = set()
@@ -515,7 +537,7 @@ def compute_component_valuation(data: dict) -> dict | None:
         valuation = component.get("valuation") or {}
         if not valuation.get("method") or not valuation.get("evidence"):
             raise ValueError(f"component {component_id} requires valuation.method and valuation.evidence")
-        values = _component_range_per_share(component, float(shares) if shares else None)
+        values = _component_range_per_share(component, shares)
         treatment = component.get("treatment", "additive")
         if treatment not in ("additive", "embedded"):
             raise ValueError(f"component {component_id} treatment must be additive or embedded")
@@ -578,9 +600,18 @@ def compute_component_valuation(data: dict) -> dict | None:
         output["equity_liability_floor"] = 0.0
     if price is not None:
         output["market_price_per_share"] = float(price)
-        output["upside_downside_pct"] = {
+        upside = {
             key: round((total[key] / float(price) - 1) * 100, 1) for key in COMPONENT_RANGE_KEYS
         }
+        # Guardrail: multi-million % gaps almost always mean shares were in millions.
+        if any(abs(v) > 50_000 for v in upside.values()):
+            output["upside_downside_pct_invalid"] = upside
+            output["upside_downside_pct"] = None
+            output["upside_sanity_error"] = (
+                "Suppressed absurd upside/downside vs price; check inputs.shares_outstanding units"
+            )
+        else:
+            output["upside_downside_pct"] = upside
     data["component_valuation_results"] = output
     return output
 

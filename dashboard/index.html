@@ -869,8 +869,8 @@ const HOLDINGS_COLUMNS = [
   { id: 'stance', label: 'Stance', sort: 'classification.stance', group: 'core' },
   { id: 'valuation', label: 'Val', sort: 'component_valuation.status', group: 'core' },
   { id: 'value', label: 'Value', sort: 'component_valuation.total_equity_value_per_share.base', group: 'core' },
-  { id: 'vs_price', label: 'vs price', sort: 'component_valuation.upside_downside_pct.base', group: 'core' },
-  { id: 'irr', label: 'IRR', sort: 'classification.analysis_irr_pct', group: 'core' },
+  { id: 'vs_price', label: 'vs price', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
+  { id: 'irr', label: 'IRR', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
   { id: 'zone', label: 'Zone', sort: 'power_zones.primary', group: 'core' },
   { id: 'deep_dive', label: 'Dive', sort: 'deep_dive.date', group: 'core' },
   { id: 'pdfs', label: 'PDFs', sort: 'pdf_count', group: 'ops' },
@@ -1341,6 +1341,18 @@ function renderValuationStatusCell(t) {
 }
 
 function renderIrrCell(t) {
+  if (window.ValuationViz && ValuationViz.displayReturn) {
+    const ret = ValuationViz.displayReturn(t);
+    if (ret.pct != null && Number.isFinite(Number(ret.pct))) {
+      const pct = Number(ret.pct);
+      const years = t.valuation_decision?.horizon_years
+        ?? t.valuation_workbench?.valuation?.horizon_years;
+      const label = irrLabel(t.classification?.implied_irr) || (ret.source === 'workbench' ? 'contract base' : '');
+      const title = [ret.sub, years != null ? `${years}y horizon` : '', t.classification?.analysis_as_of ? `as of ${t.classification.analysis_as_of}` : '']
+        .filter(Boolean).join(' · ');
+      return `<span class="irr-cell ${irrClass(pct)}" title="${escapeHtml(title)}">${pct.toFixed(pct % 1 ? 1 : 0)}%${label ? `<span class="irr-sub">${escapeHtml(label)}</span>` : ''}</span>`;
+    }
+  }
   const implied = t.classification?.implied_irr;
   const pct = t.classification?.analysis_irr_pct ?? parseIrrPct(implied);
   if (pct == null && (!implied || implied === 'pending')) {
@@ -3121,9 +3133,18 @@ function filtered() {
       bv = b.valuation_decision?.value_per_share?.base ?? b.component_valuation?.total_equity_value_per_share?.base;
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
-    } else if (sortKey === 'component_valuation.upside_downside_pct.base') {
-      av = a.valuation_decision?.upside_downside_pct?.base ?? a.component_valuation?.upside_downside_pct?.base;
-      bv = b.valuation_decision?.upside_downside_pct?.base ?? b.component_valuation?.upside_downside_pct?.base;
+    } else if (sortKey === 'component_valuation.upside_downside_pct.base'
+      || sortKey === 'valuation_decision.annualized_return_at_price_pct.base') {
+      const annOf = (t) => t.valuation_decision?.annualized_return_at_price_pct?.base
+        ?? t.valuation_workbench?.decision?.annualized_return_at_price_pct?.base
+        ?? t.valuation_workbench?.valuation?.annualized_return_at_price_pct?.base
+        ?? t.classification?.analysis_irr_pct;
+      const upOf = (t) => t.valuation_decision?.upside_downside_pct?.base
+        ?? t.component_valuation?.upside_downside_pct?.base;
+      av = annOf(a);
+      bv = annOf(b);
+      if (av == null) av = upOf(a);
+      if (bv == null) bv = upOf(b);
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
     } else {
@@ -3139,7 +3160,7 @@ function filtered() {
 function renderHoldingsCell(colId, t) {
   switch (colId) {
     case 'ticker':
-      return `<td class="mono ticker-cell">${t.ticker}${t.equity_model?.ready ? ` <span class="badge badge-ok" title="Earnings model ${t.equity_model.production_spec || 'v5'} ready">M</span>` : ''}${t.onboard?.phase && t.onboard.phase !== 'complete' ? `<span class="onboard-badge">${t.onboard.phase}</span>` : ''}</td>`;
+      return `<td class="mono ticker-cell">${escapeHtml(t.display_ticker || t.ticker)}${t.quote_ticker && t.quote_ticker !== (t.display_ticker || t.ticker) ? `<span class="irr-sub" title="Quote symbol"> ${escapeHtml(t.quote_ticker)}</span>` : ''}${t.equity_model?.ready ? ` <span class="badge badge-ok" title="Earnings model ${t.equity_model.production_spec || 'v5'} ready">M</span>` : ''}${t.onboard?.phase && t.onboard.phase !== 'complete' ? `<span class="onboard-badge">${t.onboard.phase}</span>` : ''}</td>`;
     case 'company':
       return `<td class="company-cell" title="${escapeHtml(t.company)}">${escapeHtml(t.company)}</td>`;
     case 'market':
@@ -3495,7 +3516,7 @@ function selectTicker(ticker, opts = {}) {
   document.getElementById('detail').innerHTML = `
     <div class="detail-sticky-header">
       <button type="button" class="detail-close" data-detail-close title="Close detail (Esc)">Close</button>
-      <h2 style="margin:0">${t.ticker}${diveLink}</h2>
+      <h2 style="margin:0">${escapeHtml(t.display_ticker || t.ticker)}${t.quote_ticker && t.quote_ticker !== (t.display_ticker || t.ticker) ? `<span class="irr-sub"> (${escapeHtml(t.quote_ticker)})</span>` : ''}${diveLink}</h2>
       <div class="subhead">${escapeHtml(t.company)} · ${escapeHtml(t.exchange || t.market || '')} · ${linkHtml(t.links?.folder, t.folder || t.ticker)}</div>
       ${thesisLine}
     </div>
