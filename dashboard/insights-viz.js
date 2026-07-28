@@ -232,6 +232,7 @@
     if (!filter || filter === 'all') return insights;
     const map = {
       letters: 'superinvestor_letter',
+      podcasts: 'podcast_episode',
       filings: 'filing',
       earnings: 'earnings',
       macro: 'macro',
@@ -295,6 +296,7 @@
     const rows = filterInsights(insights, filter).slice(0, 6);
     const pills = [
       { id: 'letters', label: 'Letters' },
+      { id: 'podcasts', label: 'Podcasts' },
       { id: 'filings', label: 'Filings' },
       { id: 'company', label: 'Company' },
       { id: 'vic', label: 'VIC' },
@@ -599,24 +601,135 @@
     return stem.replace(/\.(txt|pdf|md)$/i, '').slice(0, 48);
   }
 
-  function renderPodcastIndex(rows, escapeHtml, linkHtml, ghRepo, { bookOnly = false, search = '' } = {}) {
+  function podcastTranscriptRef(ref) {
+    if (!ref) return '';
+    const s = String(ref);
+    if (s.endsWith('.meta.json')) return s.replace(/\.meta\.json$/, '.txt');
+    return s;
+  }
+
+  function renderPodcastEpisodeDetail(row, escapeHtml, linkHtml, ghRepo) {
+    if (!row) return '';
+    const flags = [
+      row.has_pz_guest ? 'PZ guest' : '',
+      row.has_officer_hit ? 'Officer' : '',
+      row.near_universe ? 'Near-universe' : '',
+      row.in_book ? 'In book' : '',
+    ].filter(Boolean);
+    const guests = (row.guests || []).filter(Boolean);
+    const personas = (row.persona_ids || []).filter(Boolean);
+    const themes = (row.themes || []).map(t => {
+      const label = typeof t === 'string' ? t : (t.theme || '');
+      const stance = typeof t === 'object' ? (t.stance || '') : '';
+      if (!label) return '';
+      return `<span class="badge badge-us">${escapeHtml(label)}</span>${stance ? ` ${escapeHtml(stance)}` : ''}`;
+    }).filter(Boolean).join(' · ');
+    const tickers = (row.tickers || []).filter(Boolean);
+    const previews = (row.highlight_previews || []).filter(Boolean);
+    const transcriptRef = podcastTranscriptRef(row.source_document);
+    const transcriptLink = transcriptRef
+      ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
+      : '';
+    const episodeLink = row.link ? linkHtml(row.link, 'Episode', 'source-open-link') : '';
+    return `
+      <div class="detail-section fund-detail" id="podcast-episode-detail">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <button type="button" class="filter-btn" data-podcast-back>← Back</button>
+          <h3 style="margin:0;font-size:15px;line-height:1.35">${escapeHtml(row.title || 'Episode')}</h3>
+        </div>
+        <p class="tier-sub">${escapeHtml(row.show_title || row.show_id || 'Podcast')} · ${escapeHtml(row.published || '—')}</p>
+        ${flags.length ? `<p style="margin:8px 0">${flags.map(f => `<span class="badge badge-us">${escapeHtml(f)}</span>`).join(' ')}</p>` : ''}
+        ${guests.length ? `<p class="tier-sub">Guests: ${escapeHtml(guests.join(', '))}</p>` : ''}
+        ${personas.length ? `<p class="tier-sub">Personas: ${escapeHtml(personas.join(', '))}</p>` : ''}
+        ${themes ? `<div style="margin:8px 0"><strong>Themes:</strong> ${themes}</div>` : ''}
+        ${tickers.length ? `
+        <div style="margin:10px 0">
+          <strong>Tickers</strong>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+            ${tickers.map(t => `<button type="button" class="filter-btn source-pill mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
+          </div>
+        </div>` : ''}
+        ${previews.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">HIGHLIGHTS</h4>
+        <ul class="dev-list">${previews.map(p => `<li style="font-size:13px;line-height:1.45">${escapeHtml(p)}</li>`).join('')}</ul>
+        ${row.highlight_count > previews.length ? `<p class="tier-sub">${row.highlight_count - previews.length} more highlight(s) in transcript meta</p>` : ''}
+        ` : (row.highlight_count ? `<p class="tier-sub">${row.highlight_count} highlight(s) — open transcript for detail</p>` : '')}
+        <p class="tier-sub" style="margin-top:12px">${[transcriptLink, episodeLink].filter(Boolean).join(' · ') || '—'}</p>
+      </div>`;
+  }
+
+  function renderPodcastIndex(rows, byShow, escapeHtml, linkHtml, ghRepo, opts = {}) {
+    const {
+      bookOnly = false,
+      search = '',
+      period = null,
+      showId = 'all',
+      flagFilter = 'all',
+      selectedEpisodeId = null,
+    } = opts;
     let list = Array.isArray(rows) ? rows.slice() : [];
+    if (period) list = list.filter(r => periodMatchesRecord(r, period, ['published']));
     if (bookOnly) list = list.filter(r => r.in_book || (r.tickers || []).length);
+    if (showId && showId !== 'all') list = list.filter(r => r.show_id === showId);
+    if (flagFilter === 'pz') list = list.filter(r => r.has_pz_guest);
+    else if (flagFilter === 'officer') list = list.filter(r => r.has_officer_hit);
+    else if (flagFilter === 'in_book') list = list.filter(r => r.in_book);
+    else if (flagFilter === 'highlights') list = list.filter(r => (r.highlight_count || 0) > 0);
     if (search) {
       const q = String(search).toLowerCase();
       list = list.filter(r => {
         const blob = [
           r.show_title, r.title, (r.guests || []).join(' '), (r.tickers || []).join(' '),
           (r.persona_ids || []).join(' '),
+          (r.themes || []).map(t => (typeof t === 'string' ? t : t.theme) || '').join(' '),
         ].join(' ').toLowerCase();
         return blob.includes(q);
       });
     }
-    if (!list.length) {
-      return '<p class="muted">No podcast episodes indexed yet. Run <code>make podcasts-refresh</code>.</p>';
+
+    if (selectedEpisodeId) {
+      const selected = list.find(r => r.episode_id === selectedEpisodeId)
+        || (rows || []).find(r => r.episode_id === selectedEpisodeId);
+      if (selected) return renderPodcastEpisodeDetail(selected, escapeHtml, linkHtml, ghRepo);
     }
+
+    const shows = Object.values(byShow || {}).sort((a, b) =>
+      String(a.show_title || a.show_id).localeCompare(String(b.show_title || b.show_id))
+    );
+    const showPills = [
+      { id: 'all', label: `All shows (${(rows || []).length})` },
+      ...shows.map(s => ({
+        id: s.show_id,
+        label: `${s.show_title || s.show_id} (${s.episode_count || (s.episode_ids || []).length || 0})`,
+      })),
+    ];
+    const flagPills = [
+      { id: 'all', label: 'All' },
+      { id: 'pz', label: 'PZ guest' },
+      { id: 'officer', label: 'Officer' },
+      { id: 'in_book', label: 'In book' },
+      { id: 'highlights', label: 'Has highlights' },
+    ];
+
+    if (!list.length) {
+      return `
+        <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+          ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+          ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <p class="muted">${(rows || []).length ? 'No episodes match these filters.' : 'No podcast episodes indexed yet. Run <code>make podcasts-refresh</code>.'}</p>`;
+    }
+
     return `
-      <p class="tier-sub" style="margin-bottom:8px">${list.length} episode(s)${bookOnly ? ' · in-book / ticker overlap' : ''}</p>
+      <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+        ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+        ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <p class="tier-sub" style="margin-bottom:8px">${list.length} episode(s)${bookOnly ? ' · in-book / ticker overlap' : ''}${period && !period.all ? ` · ${escapeHtml(period.label || '')}` : ''}</p>
       <table class="darwin-table" id="insights-podcast-table">
         <thead><tr><th>Date</th><th>Show</th><th>Episode</th><th>Guests / PZ</th><th>Tickers</th><th>Flags</th><th>Highlights</th><th>Source</th></tr></thead>
         <tbody>
@@ -630,15 +743,21 @@
             const guests = (r.guests || []).filter(Boolean).slice(0, 4).join(', ') || '—';
             const personas = (r.persona_ids || []).slice(0, 3).join(', ');
             const guestCell = personas ? `${escapeHtml(guests)}<div class="tier-sub" style="font-size:10px">${escapeHtml(personas)}</div>` : escapeHtml(guests);
-            const src = r.source_document
-              ? evidenceLink(r.source_document, linkHtml, ghRepo, 'Transcript')
+            const tickers = (r.tickers || []).slice(0, 6);
+            const tickerCell = tickers.length
+              ? tickers.map(t => `<button type="button" class="linkish mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join(' ')
+              : '—';
+            const transcriptRef = podcastTranscriptRef(r.source_document);
+            const src = transcriptRef
+              ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
               : (r.link ? linkHtml(r.link, 'Open', 'source-open-link') : '—');
-            return `<tr>
+            const eid = escapeHtml(r.episode_id || '');
+            return `<tr class="podcast-row" data-podcast-episode="${eid}" style="cursor:pointer">
               <td class="mono">${escapeHtml(r.published || '—')}</td>
               <td>${escapeHtml(r.show_title || r.show_id || '—')}</td>
-              <td style="font-size:11px;max-width:260px">${escapeHtml(r.title || '—')}</td>
+              <td style="font-size:11px;max-width:260px"><button type="button" class="linkish" data-podcast-episode="${eid}" style="text-align:left">${escapeHtml(r.title || '—')}</button></td>
               <td style="font-size:11px">${guestCell}</td>
-              <td class="mono" style="font-size:11px">${escapeHtml((r.tickers || []).slice(0, 6).join(', ') || '—')}</td>
+              <td class="mono" style="font-size:11px">${tickerCell}</td>
               <td style="font-size:11px">${escapeHtml(flags)}</td>
               <td class="mono">${escapeHtml(String(r.highlight_count ?? 0))}</td>
               <td>${src}</td>
@@ -1506,6 +1625,9 @@
         if (sourceFilter === 'letters') {
           return sources.has('superinvestor_letter') || e.owner?.source === 'superinvestor_letter';
         }
+        if (sourceFilter === 'podcast_episode' || sourceFilter === 'podcasts') {
+          return sources.has('podcast_episode');
+        }
         if (sourceFilter === 'macro') {
           return e.macro_only || sources.has('macro');
         }
@@ -1960,6 +2082,7 @@
     const filters = [
       { id: 'ownership', label: 'Letters + insider' },
       { id: 'letters', label: 'Letters' },
+      { id: 'podcast_episode', label: 'Podcasts' },
       { id: 'all', label: 'All sources' },
       { id: 'macro', label: 'Macro only' },
     ];
@@ -3904,6 +4027,9 @@
       portfolioMacroRegime = null,
       worldModel = null,
       tickerSourceFilter = 'ownership',
+      podcastShowId = 'all',
+      podcastFlagFilter = 'all',
+      selectedPodcastEpisodeId = null,
       kpiTrends = null,
       inflectionTier = 'displayed',
       eventTier = 'signal',
@@ -4040,10 +4166,21 @@
       body = `<p class="tier-sub" style="margin-bottom:8px">${escapeHtml(period.label)}${bookOnly ? ' · overlap with our book only' : ''}</p>`
         + renderLetterIndex(letters, escapeHtml, linkHtml, ghRepo, true, positionStats, period, timeModel, bookOnly);
         } else if (activeSection === 'podcasts') {
-      body = renderPodcastIndex(insights?.podcast_index || [], escapeHtml, linkHtml, ghRepo, {
-        bookOnly,
-        search: fundSearch,
-      });
+      body = renderPodcastIndex(
+        insights?.podcast_index || [],
+        insights?.podcast_by_show || {},
+        escapeHtml,
+        linkHtml,
+        ghRepo,
+        {
+          bookOnly,
+          search: fundSearch,
+          period,
+          showId: podcastShowId,
+          flagFilter: podcastFlagFilter,
+          selectedEpisodeId: selectedPodcastEpisodeId,
+        },
+      );
 } else if (activeSection === 'funds') {
       body = renderFundRegistry(funds, escapeHtml, linkHtml, ghRepo, bookOnly);
     } else if (activeSection === 'documents') {
@@ -4114,7 +4251,7 @@
     return `
       <h2 style="font-size:18px;margin-bottom:6px">Insights</h2>
       <p class="subhead" style="margin-bottom:14px">
-        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
+        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
       </p>
       <nav class="view-tabs" id="insights-section-tabs" style="margin-bottom:10px">
         ${sections.map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}
@@ -4142,10 +4279,12 @@
             <input type="checkbox" id="insights-book-only" ${bookOnly ? 'checked' : ''} />
             ${escapeHtml(bookLabel)}
           </label>` : ''}
-          <input class="search" id="fund-registry-search" placeholder="Search ticker, event, fund, theme, source..." value="${escapeHtml(fundSearch)}" style="max-width:320px" />
+          <input class="search" id="fund-registry-search" placeholder="${activeSection === 'podcasts' ? 'Search show, guest, ticker, theme...' : 'Search ticker, event, fund, theme, source...'}" value="${escapeHtml(fundSearch)}" style="max-width:320px" />
         </div>` : ''}
         ${showPeriodControls && activeSection !== 'consensus' ? `<div class="tier-sub">
-          Viewing ${escapeHtml(period.label)} &middot; ${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}
+          Viewing ${escapeHtml(period.label)} &middot; ${activeSection === 'podcasts'
+            ? `${(insights?.podcast_index || []).length} indexed episode(s) · ${Object.keys(insights?.podcast_by_show || {}).length} show(s)`
+            : `${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}`}
         </div>` : ''}
       </div>
       ${body}`;

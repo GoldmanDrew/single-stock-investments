@@ -989,6 +989,9 @@ const activistExpandedGroups = new Set();
 let insightsSearchDebounce = null;
 let insightsSearchFocused = false;
 let selectedFundId = null;
+let selectedPodcastEpisodeId = null;
+let podcastShowId = 'all';
+let podcastFlagFilter = 'all';
 let consensusQuarter = (() => {
   try {
     const saved = localStorage.getItem(CONSENSUS_QUARTER_KEY);
@@ -1707,6 +1710,7 @@ function loadLazyFile(key) {
 // Insights section -> shards it needs before first render.
 const INSIGHTS_SECTION_SHARDS = {
   letters: ['letters', 'registry'],
+  podcasts: ['podcasts'],
   events: ['events'],
   consensus: ['consensus', 'profiles', 'letters'],
   funds: ['registry', 'profiles'],
@@ -1773,7 +1777,7 @@ async function load() {
       const insightsRes = await fetch('data/insights.json?' + Date.now());
       if (insightsRes.ok) {
         data.insights = await insightsRes.json();
-        ['manifest', 'letters', 'events', 'consensus', 'registry', 'profiles', 'tickers']
+        ['manifest', 'letters', 'events', 'consensus', 'registry', 'profiles', 'tickers', 'podcasts']
           .forEach((s) => loadedShards.add(`insights:${s}`));
       }
     } catch {
@@ -1988,6 +1992,9 @@ function renderInsights(opts = {}) {
     bookOnly: insightsBookOnly,
     needsReviewOnly: insightsNeedsReviewOnly,
     selectedFundId,
+    podcastShowId,
+    podcastFlagFilter,
+    selectedPodcastEpisodeId,
     activeSection: insightsSection,
     tickers: data.tickers || [],
     memory: data.research_memory || null,
@@ -2060,6 +2067,11 @@ function renderInsights(opts = {}) {
       insightsSection = btn.dataset.insightsSection;
       try { localStorage.setItem(INSIGHTS_SECTION_KEY, insightsSection); } catch (_) { /* ignore */ }
       selectedFundId = null;
+      selectedPodcastEpisodeId = null;
+      if (insightsSection !== 'podcasts') {
+        podcastShowId = 'all';
+        podcastFlagFilter = 'all';
+      }
       if (insightsSection !== 'consensus') {
         consensusSelectedTicker = null;
         consensusFundId = null;
@@ -2333,9 +2345,41 @@ function renderInsights(opts = {}) {
       }
     });
   });
+  content.querySelectorAll('[data-podcast-show]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      podcastShowId = btn.dataset.podcastShow || 'all';
+      selectedPodcastEpisodeId = null;
+      renderInsights();
+    });
+  });
+  content.querySelectorAll('[data-podcast-flag]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      podcastFlagFilter = btn.dataset.podcastFlag || 'all';
+      selectedPodcastEpisodeId = null;
+      renderInsights();
+    });
+  });
+  content.querySelectorAll('[data-podcast-episode]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('a, [data-select-ticker]')) return;
+      e.stopPropagation();
+      const id = el.dataset.podcastEpisode;
+      if (id) {
+        selectedPodcastEpisodeId = id;
+        renderInsights();
+      }
+    });
+  });
+  const podcastBack = content.querySelector('[data-podcast-back]');
+  if (podcastBack) {
+    podcastBack.addEventListener('click', () => {
+      selectedPodcastEpisodeId = null;
+      renderInsights();
+    });
+  }
   content.querySelectorAll('[data-select-ticker]').forEach(el => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('a, button, input, select, textarea')) return;
+      e.stopPropagation();
       const ticker = el.dataset.selectTicker;
       if (!ticker) return;
       setView('holdings');

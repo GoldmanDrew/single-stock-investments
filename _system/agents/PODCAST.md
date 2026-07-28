@@ -12,8 +12,8 @@ records for the dashboard.
 2. **Fetch** — prefer published transcripts; else Whisper from local audio cache (never commit audio)
 3. **Resolve** — multi-signal guest / company / officer → ticker + persona (`resolve_podcast_entities.py`)
 4. **Match** — build episode insights (`build_podcast_insights.py`)
-5. **Highlight** — gated LLM summaries for universe / PZ / officer hits only
-6. **Publish** — merge via `build_insights.py` → Insights tab Podcasts panel
+5. **Highlight** — gated LLM summaries for universe / PZ / officer hits only (writes `*.meta.json` only)
+6. **Publish** — rebuild vault catalog from meta → merge via `build_insights.py` → Insights tab Podcasts panel
 
 ## One-shot refresh
 
@@ -22,15 +22,20 @@ python _system/scripts/podcast_cloud_refresh.py --date YYYY-MM-DD
 # or: make podcasts-refresh
 ```
 
-## Writes
+Pipeline order: discover → fetch → officer directory → **build insights** → summarize (meta) → **build insights again** (pull highlights) → `build_insights.py`.
 
-| Output | Path |
-|--------|------|
+## Source of truth (no payload clones)
+
+| Role | Path |
+|------|------|
+| Config registries | `_system/reference/podcasts/{show,guest,alias,officer}_*.json` |
 | Transcripts + meta | `research-vault/podcasts/episodes/` (logical ref `_system/reference/podcasts/...`) |
-| Episode insights | `research-vault/podcasts/insights.json` |
-| Config registries | `_system/reference/podcasts/*.json` |
-| Dashboard merge | `dashboard/data/insights.json` via `build_insights.py` |
+| Derived episode catalog | `research-vault/podcasts/insights.json` |
+| CI slim index (fallback) | `_system/reference/podcasts/insights_index_mirror.json` (`podcast_index` rows only) |
+| Dashboard shard | `dashboard/data/insights/podcasts.json` (`podcast_index` + thin `podcast_by_show`) |
 | Session notes | `_system/memory/daily/{date}.md` as `[PROPOSED]` only |
+
+Do **not** reintroduce `insights_mirror.json` as a full clone of vault insights. Highlights live in `*.meta.json` (and the vault catalog after rebuild); ticker fan-out records keep `episode_id` + claim only (no highlight arrays).
 
 ## Rules
 

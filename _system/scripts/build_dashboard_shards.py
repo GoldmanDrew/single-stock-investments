@@ -65,6 +65,7 @@ INSIGHTS_SHARDS = {
     "registry": ("fund_registry",),
     "profiles": ("fund_profiles",),
     "tickers": ("by_ticker", "ticker_discussants"),
+    "podcasts": ("podcast_index", "podcast_by_show"),
 }
 
 _SAFE_TICKER_RE = re.compile(r"[^A-Za-z0-9._-]")

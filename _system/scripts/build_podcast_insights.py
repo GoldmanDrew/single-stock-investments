@@ -152,6 +152,80 @@ def build_episode_record(
     }
 
 
+def index_row_from_episode(ep: dict) -> dict:
+    """Thin projection for CI mirror and dashboard podcast_index."""
+    highlights = ep.get("highlights") or []
+    guests = ep.get("guests") or []
+    guest_labels = []
+    for g in guests:
+        if isinstance(g, dict):
+            guest_labels.append(g.get("display") or g.get("guest_id") or "")
+        else:
+            guest_labels.append(str(g))
+    themes = []
+    for th in (ep.get("themes") or [])[:6]:
+        if isinstance(th, dict) and th.get("theme"):
+            themes.append({"theme": th.get("theme"), "stance": th.get("stance") or "neutral"})
+        elif th:
+            themes.append({"theme": str(th), "stance": "neutral"})
+    previews = []
+    for h in highlights[:2]:
+        if isinstance(h, dict):
+            text = (h.get("quote") or h.get("text") or "")[:220]
+        else:
+            text = str(h)[:220]
+        if text:
+            previews.append(text)
+    return {
+        "episode_id": ep.get("episode_id"),
+        "show_id": ep.get("show_id"),
+        "show_title": ep.get("show_title"),
+        "title": ep.get("title"),
+        "published": ep.get("published"),
+        "tickers": ep.get("tickers") or [],
+        "guests": [g for g in guest_labels if g],
+        "persona_ids": ep.get("persona_ids") or [],
+        "has_pz_guest": bool(ep.get("has_pz_guest")),
+        "has_officer_hit": bool(ep.get("has_officer_hit")),
+        "near_universe": bool(ep.get("near_universe")),
+        "in_book": bool(ep.get("in_book")),
+        "highlight_count": len(highlights),
+        "highlight_previews": previews,
+        "themes": themes,
+        "source_document": ep.get("source_document"),
+        "link": ep.get("link"),
+    }
+
+
+INDEX_MIRROR_PATH = ROOT / "_system" / "reference" / "podcasts" / "insights_index_mirror.json"
+LEGACY_FULL_MIRROR_PATH = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"
+
+
+def write_podcast_index_mirror(payload: dict) -> Path:
+    """CI fallback: slim index only (not a full insights clone)."""
+    episodes = payload.get("episodes") or []
+    if payload.get("schema_kind") == "index_mirror" and payload.get("podcast_index"):
+        rows = list(payload["podcast_index"])
+    else:
+        rows = [index_row_from_episode(ep) for ep in episodes]
+    index_payload = {
+        "generated_at": payload.get("generated_at")
+        or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "schema_version": 1,
+        "schema_kind": "index_mirror",
+        "episode_count": len(rows),
+        "podcast_index": rows,
+    }
+    INDEX_MIRROR_PATH.parent.mkdir(parents=True, exist_ok=True)
+    INDEX_MIRROR_PATH.write_text(json.dumps(index_payload, indent=2) + "\n", encoding="utf-8")
+    if LEGACY_FULL_MIRROR_PATH.exists():
+        try:
+            LEGACY_FULL_MIRROR_PATH.unlink()
+        except OSError:
+            pass
+    return INDEX_MIRROR_PATH
+
+
 def build() -> dict:
     root = podcasts_root(create=True)
     master = load_security_master()
@@ -184,14 +258,16 @@ def build() -> dict:
         "episodes": episodes,
     }
     (root / "insights.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    mirror = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"
-    mirror.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    write_podcast_index_mirror(payload)
     return payload
 
 
 def main() -> int:
     payload = build()
-    print(f"podcast episodes={payload['episode_count']} -> {podcasts_root() / 'insights.json'}")
+    print(
+        f"podcast episodes={payload['episode_count']} -> {podcasts_root() / 'insights.json'} "
+        f"+ {INDEX_MIRROR_PATH.name}"
+    )
     return 0
 
 

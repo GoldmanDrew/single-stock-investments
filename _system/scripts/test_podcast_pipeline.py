@@ -140,6 +140,73 @@ class PodcastInsightsMergeTests(unittest.TestCase):
         self.assertTrue(any(r.get("source") == "podcast_episode" for r in recs) or doc.get("episodes"))
         for r in recs:
             self.assertFalse(r.get("in_base_irr"))
+            self.assertNotIn("highlights", r)
+
+    def test_index_mirror_skips_fanout(self):
+        from build_insights import from_podcast_episodes as fanout
+
+        slim = {
+            "schema_kind": "index_mirror",
+            "episode_count": 1,
+            "episodes": [
+                {
+                    "episode_id": "ep1",
+                    "show_id": "s1",
+                    "title": "t",
+                    "tickers": ["HD"],
+                    "positions": [{"ticker": "HD"}],
+                    "themes": [{"theme": "AI", "stance": "neutral"}],
+                }
+            ],
+        }
+        self.assertEqual(fanout(slim), [])
+
+    def test_podcast_by_show_is_thin(self):
+        from build_insights import podcast_by_show
+
+        doc = {
+            "episodes": [
+                {
+                    "episode_id": "a",
+                    "show_id": "s1",
+                    "show_title": "Show One",
+                    "title": "Ep A",
+                    "published": "2026-01-01",
+                    "tickers": ["HD"],
+                },
+                {
+                    "episode_id": "b",
+                    "show_id": "s1",
+                    "show_title": "Show One",
+                    "title": "Ep B",
+                    "published": "2026-02-01",
+                },
+            ]
+        }
+        by = podcast_by_show(doc)
+        self.assertEqual(by["s1"]["episode_count"], 2)
+        self.assertEqual(by["s1"]["episode_ids"], ["a", "b"])
+        self.assertNotIn("episodes", by["s1"])
+
+    def test_slim_index_mirror_path(self):
+        from build_podcast_insights import INDEX_MIRROR_PATH, index_row_from_episode
+
+        self.assertTrue(str(INDEX_MIRROR_PATH).endswith("insights_index_mirror.json"))
+        row = index_row_from_episode(
+            {
+                "episode_id": "x",
+                "show_id": "s",
+                "show_title": "Show",
+                "title": "T",
+                "guests": [{"display": "Guest"}],
+                "highlights": [{"text": "A claim about HD", "quote": "A claim about HD"}],
+                "themes": [{"theme": "AI", "stance": "neutral"}],
+                "tickers": ["HD"],
+            }
+        )
+        self.assertEqual(row["highlight_count"], 1)
+        self.assertEqual(len(row["highlight_previews"]), 1)
+        self.assertEqual(row["themes"][0]["theme"], "AI")
 
     def test_podcasts_ref_prefix(self):
         self.assertEqual(PODCASTS_REF_PREFIX, "_system/reference/podcasts")

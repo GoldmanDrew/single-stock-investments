@@ -95,11 +95,12 @@ def summarize_episode(episode: dict, text: str, *, use_llm: bool = False) -> lis
 
 
 def run(*, use_llm: bool = False, limit: int | None = None) -> dict:
+    """Write highlights to episode meta only. Vault catalog is rebuilt from meta."""
     root = podcasts_root(create=True)
     insights = load_json(root / "insights.json") or {"episodes": []}
     episodes = list(insights.get("episodes") or [])
     updated = 0
-    for i, ep in enumerate(episodes):
+    for ep in episodes:
         if limit is not None and updated >= limit:
             break
         if not should_summarize(ep):
@@ -109,7 +110,6 @@ def run(*, use_llm: bool = False, limit: int | None = None) -> dict:
         year = published[:4] if published[:4].isdigit() else datetime.now(timezone.utc).strftime("%Y")
         txt_path = root / "episodes" / year / f"{eid}.txt"
         if not txt_path.exists():
-            # search
             matches = list((root / "episodes").rglob(f"{eid}.txt"))
             txt_path = matches[0] if matches else txt_path
         if not txt_path.exists():
@@ -118,21 +118,14 @@ def run(*, use_llm: bool = False, limit: int | None = None) -> dict:
         highlights = summarize_episode(ep, text, use_llm=use_llm)
         if not highlights:
             continue
-        ep["highlights"] = highlights
         meta_path = txt_path.with_name(f"{eid}.meta.json")
         meta = load_json(meta_path) or {}
         meta["highlights"] = highlights
         meta["highlighted_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-        episodes[i] = ep
         updated += 1
 
-    insights["episodes"] = episodes
-    insights["highlighted_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    (root / "insights.json").write_text(json.dumps(insights, indent=2) + "\n", encoding="utf-8")
-    mirror = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"
-    mirror.write_text(json.dumps(insights, indent=2) + "\n", encoding="utf-8")
-    return {"updated": updated, "episode_count": len(episodes)}
+    return {"updated": updated, "episode_count": len(episodes), "meta_only": True}
 
 
 def main() -> int:

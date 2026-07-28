@@ -46,7 +46,8 @@ def main() -> int:
     for script in (
         "build_officer_directory.py",
         "build_podcast_insights.py",
-        "summarize_podcast_episode.py",
+        "summarize_podcast_episode.py",  # writes highlights to *.meta.json only
+        "build_podcast_insights.py",  # rebuild vault catalog + slim CI index from meta
     ):
         rc = run([py, str(SCRIPTS / script)])
         if rc != 0:

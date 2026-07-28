@@ -56,7 +56,8 @@ OUTPUT = ROOT / "dashboard" / "data" / "insights.json"
 ARCHIVE_OUTPUT = ROOT / "_system" / "reference" / "data-sources" / "insights_record_archive.json"
 LETTERS_INSIGHTS = letters_root() / "insights.json"
 PODCASTS_INSIGHTS = podcasts_root() / "insights.json"
-PODCASTS_INSIGHTS_MIRROR = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"
+PODCASTS_INSIGHTS_INDEX_MIRROR = ROOT / "_system" / "reference" / "podcasts" / "insights_index_mirror.json"
+PODCASTS_INSIGHTS_MIRROR = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"  # legacy full clone
 # Full letter corpus is built offline (letter-backfill) and committed in dashboard/data/.
 # CI vault clones often lag; never regress below this floor on deploy rebuilds.
 MIN_LETTER_CORPUS = 15000
@@ -768,14 +769,62 @@ def from_superinvestor_letters(doc: dict) -> list[dict]:
 
 
 def load_podcast_insights_doc() -> dict:
-    for path in (PODCASTS_INSIGHTS, PODCASTS_INSIGHTS_MIRROR):
-        doc = load_json(path)
-        if isinstance(doc, dict) and (doc.get("episodes") or doc.get("episode_count")):
-            return doc
+    """Prefer vault catalog; fall back to slim CI index (no highlight/theme fan-out)."""
+    doc = load_json(PODCASTS_INSIGHTS)
+    if isinstance(doc, dict) and (doc.get("episodes") or doc.get("episode_count")):
+        return doc
+    # Legacy full mirror (pre-de-dupe) still readable if present
+    legacy = load_json(PODCASTS_INSIGHTS_MIRROR)
+    if isinstance(legacy, dict) and (legacy.get("episodes") or legacy.get("episode_count")):
+        return legacy
+    slim = load_json(PODCASTS_INSIGHTS_INDEX_MIRROR)
+    if isinstance(slim, dict) and (slim.get("podcast_index") or slim.get("episode_count")):
+        rows = list(slim.get("podcast_index") or [])
+        episodes = []
+        for row in rows:
+            guests = row.get("guests") or []
+            guest_objs = [
+                {"display": g} if not isinstance(g, dict) else g for g in guests
+            ]
+            tickers = list(row.get("tickers") or [])
+            hc = int(row.get("highlight_count") or 0)
+            episodes.append(
+                {
+                    "episode_id": row.get("episode_id"),
+                    "show_id": row.get("show_id"),
+                    "show_title": row.get("show_title"),
+                    "title": row.get("title"),
+                    "published": row.get("published"),
+                    "tickers": tickers,
+                    "guests": guest_objs,
+                    "persona_ids": row.get("persona_ids") or [],
+                    "has_pz_guest": bool(row.get("has_pz_guest")),
+                    "has_officer_hit": bool(row.get("has_officer_hit")),
+                    "near_universe": bool(row.get("near_universe")),
+                    "in_book": bool(row.get("in_book")),
+                    "highlights": [{"text": t} for t in (row.get("highlight_previews") or [])]
+                    + ([{}] * max(0, hc - len(row.get("highlight_previews") or []))),
+                    "themes": row.get("themes") or [],
+                    "positions": [{"ticker": t, "action": "discussed"} for t in tickers],
+                    "source_document": row.get("source_document"),
+                    "link": row.get("link"),
+                }
+            )
+        return {
+            "generated_at": slim.get("generated_at"),
+            "schema_version": slim.get("schema_version", 1),
+            "schema_kind": "index_mirror",
+            "episode_count": slim.get("episode_count") or len(episodes),
+            "episodes": episodes,
+            "podcast_index": rows,
+        }
     return {"episodes": []}
 
 
 def from_podcast_episodes(doc: dict) -> list[dict]:
+    # Slim CI index has tickers but not full theme/position commentary — skip fan-out.
+    if doc.get("schema_kind") == "index_mirror":
+        return []
     out: list[dict] = []
     for ep in doc.get("episodes") or []:
         show = ep.get("show_title") or ep.get("show_id") or "Podcast"
@@ -845,7 +894,6 @@ def from_podcast_episodes(doc: dict) -> list[dict]:
                     near_universe=bool(ep.get("near_universe")),
                     action=pos.get("action") or "discussed",
                     commentary=commentary,
-                    highlights=ep.get("highlights") or [],
                     in_base_irr=False,
                 )
             )
@@ -886,8 +934,17 @@ def from_podcast_episodes(doc: dict) -> list[dict]:
 
 
 def podcast_index_rows(doc: dict) -> list[dict]:
+    if doc.get("schema_kind") == "index_mirror" and doc.get("podcast_index"):
+        return list(doc["podcast_index"])
+    try:
+        from build_podcast_insights import index_row_from_episode  # noqa: WPS433
+    except Exception:
+        index_row_from_episode = None  # type: ignore
     rows = []
     for ep in doc.get("episodes") or []:
+        if index_row_from_episode is not None:
+            rows.append(index_row_from_episode(ep))
+            continue
         rows.append(
             {
                 "episode_id": ep.get("episode_id"),
@@ -903,6 +960,16 @@ def podcast_index_rows(doc: dict) -> list[dict]:
                 "near_universe": bool(ep.get("near_universe")),
                 "in_book": bool(ep.get("in_book")),
                 "highlight_count": len(ep.get("highlights") or []),
+                "highlight_previews": [
+                    (h.get("quote") or h.get("text") or "")[:220]
+                    for h in (ep.get("highlights") or [])[:2]
+                    if isinstance(h, dict) and (h.get("quote") or h.get("text"))
+                ],
+                "themes": [
+                    {"theme": th.get("theme"), "stance": th.get("stance") or "neutral"}
+                    for th in (ep.get("themes") or [])[:6]
+                    if isinstance(th, dict) and th.get("theme")
+                ],
                 "source_document": ep.get("source_document"),
                 "link": ep.get("link"),
             }
@@ -911,6 +978,7 @@ def podcast_index_rows(doc: dict) -> list[dict]:
 
 
 def podcast_by_show(doc: dict) -> dict:
+    """Show browser index: episode_ids only (group client-side from podcast_index)."""
     by: dict[str, dict] = {}
     for ep in doc.get("episodes") or []:
         sid = ep.get("show_id") or "unknown"
@@ -920,20 +988,13 @@ def podcast_by_show(doc: dict) -> dict:
                 "show_id": sid,
                 "show_title": ep.get("show_title") or sid,
                 "episode_count": 0,
-                "episodes": [],
+                "episode_ids": [],
             },
         )
-        profile["episode_count"] += 1
-        profile["episodes"].append(
-            {
-                "episode_id": ep.get("episode_id"),
-                "title": ep.get("title"),
-                "published": ep.get("published"),
-                "tickers": ep.get("tickers") or [],
-                "has_pz_guest": bool(ep.get("has_pz_guest")),
-                "has_officer_hit": bool(ep.get("has_officer_hit")),
-            }
-        )
+        eid = ep.get("episode_id")
+        if eid:
+            profile["episode_ids"].append(eid)
+        profile["episode_count"] = len(profile["episode_ids"])
     return by
 
 
@@ -3083,7 +3144,9 @@ def build_source_health(
                     if (_pod.get("episodes") or [])
                     else (
                         "missing"
-                        if not PODCASTS_INSIGHTS.exists() and not PODCASTS_INSIGHTS_MIRROR.exists()
+                        if not PODCASTS_INSIGHTS.exists()
+                        and not PODCASTS_INSIGHTS_INDEX_MIRROR.exists()
+                        and not PODCASTS_INSIGHTS_MIRROR.exists()
                         else "empty"
                     )
                 ),
@@ -3093,7 +3156,11 @@ def build_source_health(
                 "path": (
                     relative_path(PODCASTS_INSIGHTS)
                     if PODCASTS_INSIGHTS.exists()
-                    else relative_path(PODCASTS_INSIGHTS_MIRROR)
+                    else (
+                        relative_path(PODCASTS_INSIGHTS_INDEX_MIRROR)
+                        if PODCASTS_INSIGHTS_INDEX_MIRROR.exists()
+                        else relative_path(PODCASTS_INSIGHTS_MIRROR)
+                    )
                 ),
             }
         )(load_podcast_insights_doc()),
