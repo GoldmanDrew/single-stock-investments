@@ -38,28 +38,56 @@ runs:
         set -euo pipefail
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
 
-        PROJECTS="$("$WRANGLER" pages project list --json)"
-        if ! jq -e --arg name "$PROJECT_NAME" \
-          '(if type == "array" then . else (.result // []) end) | any(.name == $name)' \
-          <<<"$PROJECTS" >/dev/null; then
-          "$WRANGLER" pages project create "$PROJECT_NAME" \
+        project_exists() {
+          local projects
+          projects="$("$WRANGLER" pages project list --json 2>/dev/null || true)"
+          jq -e --arg name "$PROJECT_NAME" '
+            (if type == "array" then .
+             elif type == "object" then (.result // .projects // [])
+             else [] end)
+            | any((.name // .project_name) == $name)
+          ' <<<"$projects" >/dev/null 2>&1
+        }
+
+        if ! project_exists; then
+          CREATE_LOG="$RUNNER_TEMP/cf-pages-create.log"
+          if ! "$WRANGLER" pages project create "$PROJECT_NAME" \
             --production-branch=main \
             --compatibility-date=2026-07-29 \
-            --compatibility-flag=nodejs_compat
+            --compatibility-flag=nodejs_compat \
+            >"$CREATE_LOG" 2>&1; then
+            if ! grep -Eqi 'already exists|8000002' "$CREATE_LOG"; then
+              cat "$CREATE_LOG" >&2
+              exit 1
+            fi
+            echo "Pages project $PROJECT_NAME already exists; continuing."
+          fi
         fi
 
-        DATABASES="$("$WRANGLER" d1 list --json)"
-        DATABASE_ID="$(jq -r --arg name "$DATABASE_NAME" \
-          '(if type == "array" then . else (.result // []) end)
-          | .[] | select(.name == $name) | (.uuid // .database_id) // empty' \
-          <<<"$DATABASES" | head -n1)"
+        resolve_database_id() {
+          local databases
+          databases="$("$WRANGLER" d1 list --json 2>/dev/null || true)"
+          jq -r --arg name "$DATABASE_NAME" '
+            (if type == "array" then .
+             elif type == "object" then (.result // [])
+             else [] end)
+            | .[] | select((.name // .database_name) == $name)
+            | (.uuid // .database_id) // empty
+          ' <<<"$databases" | head -n1
+        }
+
+        DATABASE_ID="$(resolve_database_id)"
         if [ -z "$DATABASE_ID" ]; then
-          "$WRANGLER" d1 create "$DATABASE_NAME" --location=enam
-          DATABASES="$("$WRANGLER" d1 list --json)"
-          DATABASE_ID="$(jq -r --arg name "$DATABASE_NAME" \
-            '(if type == "array" then . else (.result // []) end)
-            | .[] | select(.name == $name) | (.uuid // .database_id) // empty' \
-            <<<"$DATABASES" | head -n1)"
+          CREATE_LOG="$RUNNER_TEMP/cf-d1-create.log"
+          if ! "$WRANGLER" d1 create "$DATABASE_NAME" --location=enam \
+            >"$CREATE_LOG" 2>&1; then
+            if ! grep -Eqi 'already exists|300002' "$CREATE_LOG"; then
+              cat "$CREATE_LOG" >&2
+              exit 1
+            fi
+            echo "D1 database $DATABASE_NAME already exists; continuing."
+          fi
+          DATABASE_ID="$(resolve_database_id)"
         fi
         if [ -z "$DATABASE_ID" ]; then
           echo "Cloudflare did not return a database ID for $DATABASE_NAME" >&2
