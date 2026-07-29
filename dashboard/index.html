@@ -154,6 +154,25 @@
   .col-group-toggles { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 8px; align-items: center; }
   .col-group-toggles .filter-btn { font-size: 11px; padding: 5px 10px; }
   .company-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .price-value-cell { min-width: 126px; }
+  .price-value-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .price-value-arrow { color: var(--text-muted); font-size: 10px; }
+  .decision-action-cell { min-width: 190px; max-width: 260px; }
+  .decision-action {
+    color: var(--text-secondary); font-size: 11px; line-height: 1.35;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  }
+  .route-method-cell { min-width: 175px; max-width: 230px; }
+  .route-method-cell .route-label { color: var(--accent-amber); font-size: 11px; font-weight: 650; line-height: 1.3; }
+  .route-method-cell .method-label { color: var(--text-muted); font-size: 10px; margin-top: 3px; }
+  .special-situation-cell { min-width: 118px; }
+  .special-situation-line { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .context-cell { min-width: 155px; max-width: 210px; }
+  .context-cell .context-sleeve {
+    color: var(--text-secondary); font-size: 10px; line-height: 1.3; margin-top: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .freshness-cell { white-space: nowrap; }
   .zone-chip {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
     color: var(--accent-amber); white-space: nowrap;
@@ -995,17 +1014,23 @@ const HOLDINGS_COL_GROUPS_KEY = 'ssp_holdings_col_groups_v1';
 const HOLDINGS_COLUMNS = [
   { id: 'ticker', label: 'Ticker', sort: 'ticker', group: 'core' },
   { id: 'company', label: 'Company', sort: 'company', group: 'core' },
-  { id: 'market', label: 'Mkt', sort: 'market', group: 'core' },
-  { id: 'sleeve', label: 'Sleeve', sort: 'classification.investment_sleeve_label', group: 'core' },
-  { id: 'cvr_stage', label: 'CVR', sort: 'cvr.stage', group: 'core' },
-  { id: 'nav_disc', label: 'NAV disc.', sort: 'fund_nav.display_discount_pct', group: 'core' },
   { id: 'stance', label: 'Stance', sort: 'classification.stance', group: 'core' },
-  { id: 'valuation', label: 'Val', sort: 'component_valuation.status', group: 'core' },
-  { id: 'value', label: 'Value', sort: 'component_valuation.total_equity_value_per_share.base', group: 'core' },
-  { id: 'vs_price', label: 'vs price', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
-  { id: 'irr', label: 'IRR', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
-  { id: 'zone', label: 'Zone', sort: 'power_zones.primary', group: 'core' },
-  { id: 'deep_dive', label: 'Dive', sort: 'deep_dive.date', group: 'core' },
+  { id: 'valuation', label: 'Decision', sort: 'valuation_decision.status', group: 'core' },
+  { id: 'price_value', label: 'Price → base', sort: 'valuation_decision.value_per_share.base', group: 'core' },
+  { id: 'vs_price', label: 'Value gap', sort: 'component_valuation.upside_downside_pct.base', group: 'core' },
+  { id: 'irr', label: 'Ann. return', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
+  { id: 'next_action', label: 'Next action', sort: 'valuation_decision.critical_gap_count', group: 'core' },
+  { id: 'route_method', label: 'Power Zone / method', sort: 'power_zones.primary', group: 'core' },
+  { id: 'special_situation', label: 'CVR / NAV', sort: 'special_situation', group: 'core' },
+  { id: 'research_freshness', label: 'Freshness', sort: 'last_research', group: 'core' },
+  { id: 'context', label: 'Context', sort: 'classification.investment_sleeve_label', group: 'core' },
+  { id: 'cvr_stage', label: 'CVR detail', sort: 'cvr.stage', group: 'special' },
+  { id: 'nav_disc', label: 'NAV detail', sort: 'fund_nav.display_discount_pct', group: 'special' },
+  { id: 'market', label: 'Market', sort: 'market', group: 'ops' },
+  { id: 'sleeve', label: 'Sleeve', sort: 'classification.investment_sleeve_label', group: 'ops' },
+  { id: 'value', label: 'Value range', sort: 'component_valuation.total_equity_value_per_share.base', group: 'ops' },
+  { id: 'zone', label: 'Zone detail', sort: 'power_zones.primary', group: 'ops' },
+  { id: 'deep_dive', label: 'Dive', sort: 'deep_dive.date', group: 'insights' },
   { id: 'pdfs', label: 'PDFs', sort: 'pdf_count', group: 'ops' },
   { id: 'completeness', label: 'Complete', sort: 'completeness', group: 'ops' },
   { id: 'download', label: 'Download', sort: 'last_download', group: 'ops' },
@@ -1018,6 +1043,7 @@ const HOLDINGS_COLUMNS = [
   { id: 'activist', label: 'Activist', sort: 'activist.long_count', group: 'index' },
 ];
 const COL_GROUP_META = [
+  { id: 'special', label: 'CVR / NAV detail' },
   { id: 'ops', label: 'Ops' },
   { id: 'insights', label: 'Insights' },
   { id: 'index', label: 'Index' },
@@ -1039,7 +1065,7 @@ let sortAsc = (() => {
   return true;
 })();
 let columnGroups = (() => {
-  const defaults = { ops: false, insights: false, index: false };
+  const defaults = { special: false, ops: false, insights: false, index: false };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(HOLDINGS_COL_GROUPS_KEY) || '{}') };
   } catch (_) {
@@ -1525,6 +1551,97 @@ function renderIrrCell(t) {
   const title = [implied, asOf ? `as of ${asOf}` : ''].filter(Boolean).join(' · ');
   const head = pct != null ? `${pct.toFixed(pct % 1 ? 1 : 0)}%` : escapeHtml(implied);
   return `<span class="irr-cell ${irrClass(pct)}" title="${escapeHtml(title)}">${head}${label ? `<span class="irr-sub">${escapeHtml(label)}</span>` : ''}</span>`;
+}
+
+const METHOD_BY_PROFILE = {
+  quality_reinvestment: 'owner earnings DCF',
+  scarce_asset_optionality: 'owner cash + unit NAV',
+  predictable_cash_flow: 'owner cash discount',
+  capital_cycle: 'midcycle capacity',
+  catalyst_asset_value: 'catalyst NAV',
+  binary_milestone: 'milestone value',
+  credit_normalized_returns: 'capital structure / excess return',
+};
+
+function decisionForRow(t) {
+  return window.ValuationViz ? ValuationViz.decisionOf(t) : (t.valuation_decision || {});
+}
+
+function renderPriceValueCell(t) {
+  const d = decisionForRow(t);
+  const values = d.value_per_share || t.component_valuation?.total_equity_value_per_share || {};
+  const price = d.price_per_share ?? t.component_valuation?.market_price_per_share;
+  const priceText = price == null ? '—' : `$${fmtNum(price, 0)}`;
+  const baseText = values.base == null ? '—' : `$${fmtNum(values.base, 0)}`;
+  const range = values.low == null || values.high == null
+    ? 'range incomplete'
+    : `L $${fmtNum(values.low, 0)} · H $${fmtNum(values.high, 0)}`;
+  return `<div class="price-value-line mono"><span>${priceText}</span><span class="price-value-arrow">→</span><strong>${baseText}</strong></div>
+    <div class="irr-sub">${range}</div>`;
+}
+
+function renderNextActionCell(t) {
+  const d = decisionForRow(t);
+  const critical = Number(d.critical_gap_count || 0);
+  const open = Number(d.open_gap_count || 0);
+  const action = d.next_gap_question || d.next_action
+    || (d.status === 'decision_grade' ? 'Monitor evidence freshness.' : 'Build the next source-backed proof.');
+  const gaps = critical || open
+    ? `<div class="irr-sub">${critical} critical · ${open} open</div>`
+    : '';
+  return `<div class="decision-action" title="${escapeHtml(action)}">${escapeHtml(action)}</div>${gaps}`;
+}
+
+function renderRouteMethodCell(t) {
+  const d = decisionForRow(t);
+  const route = t.power_zones?.valuation_route || {};
+  const zone = window.ValuationViz
+    ? ValuationViz.primaryPowerZone(t, data.power_zones?.personas || {})
+    : { label: d.primary_power_zone };
+  const profile = d.method_profile || route.profile_id;
+  const methods = route.primary_methods || [];
+  const method = methods[0]
+    ? String(methods[0]).replace(/_/g, ' ')
+    : (METHOD_BY_PROFILE[profile] || (profile ? String(profile).replace(/_/g, ' ') : 'route review'));
+  const routeState = route.status === 'default_needs_review' ? ' · review' : '';
+  return `<div class="route-label">${escapeHtml(zone.label || route.label || 'Unclassified')}${escapeHtml(routeState)}</div>
+    <div class="method-label">${escapeHtml(method)}</div>`;
+}
+
+function renderSpecialSituationCell(t) {
+  const lines = [];
+  const isFundNavSleeve = t.classification?.investment_sleeve === 'fund_nav_discounts';
+  if (t.cvr) {
+    const stage = t.cvr.stage === 'pre_close' ? 'Pre-close'
+      : (t.cvr.stage === 'post_close' ? 'Post-close' : (t.cvr.stage_label || t.cvr.stage || 'CVR'));
+    const max = t.cvr.max_payout_usd == null ? '' : ` · max $${Number(t.cvr.max_payout_usd).toFixed(2)}`;
+    lines.push(`<div class="special-situation-line"><span class="badge badge-cvr">CVR</span><span class="mono" style="font-size:10px">${escapeHtml(stage)}${escapeHtml(max)}</span></div>`);
+  }
+  if (t.fund_nav) {
+    const discount = fundNavDisplayDiscount(t);
+    const discountText = formatNavDiscPct(discount) || 'pending';
+    lines.push(`<div class="special-situation-line"><span class="badge badge-fund">NAV</span><span class="mono ${navDiscClass(discount)}" style="font-size:10px">${escapeHtml(discountText)}</span></div>`);
+  } else if (isFundNavSleeve) {
+    lines.push('<div class="special-situation-line"><span class="badge badge-fund">NAV</span><span class="mono" style="font-size:10px;color:var(--text-muted)">pending</span></div>');
+  }
+  return lines.join('') || '<span class="mono" style="color:var(--text-muted)">—</span>';
+}
+
+function renderResearchFreshnessCell(t) {
+  const asOf = t.last_research || t.classification?.analysis_as_of;
+  if (!asOf) return '<span class="mono" style="color:var(--text-muted)">—</span>';
+  const timestamp = Date.parse(asOf);
+  if (!Number.isFinite(timestamp)) return `<span class="mono">${escapeHtml(asOf)}</span>`;
+  const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+  const cls = days > 90 ? 'badge-bad' : (days > 30 ? 'badge-warn' : 'badge-ok');
+  const label = days === 0 ? 'today' : `${days}d`;
+  return `<span class="badge ${cls}" title="Research as of ${escapeHtml(asOf)}">${label}</span>`;
+}
+
+function renderContextCell(t) {
+  const sleeve = t.classification?.investment_sleeve_label;
+  return `<span class="badge ${MARKET_BADGE[t.market] || 'badge-us'}">${escapeHtml(t.market || '—')}</span>
+    <div class="context-sleeve" title="${escapeHtml(sleeve || 'No sleeve')}">${escapeHtml(sleeve || 'No sleeve')}</div>`;
 }
 
 function lensDelta(t) {
@@ -3439,8 +3556,14 @@ function filtered() {
       bv = b.valuation_decision?.value_per_share?.base ?? b.component_valuation?.total_equity_value_per_share?.base;
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
-    } else if (sortKey === 'component_valuation.upside_downside_pct.base'
-      || sortKey === 'valuation_decision.annualized_return_at_price_pct.base') {
+    } else if (sortKey === 'component_valuation.upside_downside_pct.base') {
+      const upOf = (t) => t.valuation_decision?.upside_downside_pct?.base
+        ?? t.component_valuation?.upside_downside_pct?.base;
+      av = upOf(a);
+      bv = upOf(b);
+      av = av == null ? -Infinity : av;
+      bv = bv == null ? -Infinity : bv;
+    } else if (sortKey === 'valuation_decision.annualized_return_at_price_pct.base') {
       const annOf = (t) => t.valuation_decision?.annualized_return_at_price_pct?.base
         ?? t.valuation_workbench?.decision?.annualized_return_at_price_pct?.base
         ?? t.valuation_workbench?.valuation?.annualized_return_at_price_pct?.base
@@ -3453,6 +3576,14 @@ function filtered() {
       if (bv == null) bv = upOf(b);
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
+    } else if (sortKey === 'special_situation') {
+      const specialRank = (t) => {
+        if (t.cvr) return 0;
+        if (t.fund_nav || t.classification?.investment_sleeve === 'fund_nav_discounts') return 1;
+        return 2;
+      };
+      av = specialRank(a);
+      bv = specialRank(b);
     } else {
       if (typeof av === 'string') av = av.toLowerCase();
       if (typeof bv === 'string') bv = bv.toLowerCase();
@@ -3505,12 +3636,24 @@ function renderHoldingsCell(colId, t) {
       return `<td><span class="badge ${STANCE_BADGE[t.classification?.stance] || 'badge-warn'}">${t.classification?.stance || '—'}</span></td>`;
     case 'valuation':
       return `<td>${renderValuationStatusCell(t)}</td>`;
+    case 'price_value':
+      return `<td class="price-value-cell">${renderPriceValueCell(t)}</td>`;
     case 'value':
       return `<td>${renderValueRangeCell(t)}</td>`;
     case 'vs_price':
       return `<td>${renderPriceToBaseCell(t)}</td>`;
     case 'irr':
       return `<td>${renderIrrCell(t)}</td>`;
+    case 'next_action':
+      return `<td class="decision-action-cell">${renderNextActionCell(t)}</td>`;
+    case 'route_method':
+      return `<td class="route-method-cell">${renderRouteMethodCell(t)}</td>`;
+    case 'special_situation':
+      return `<td class="special-situation-cell">${renderSpecialSituationCell(t)}</td>`;
+    case 'research_freshness':
+      return `<td class="freshness-cell">${renderResearchFreshnessCell(t)}</td>`;
+    case 'context':
+      return `<td class="context-cell">${renderContextCell(t)}</td>`;
     case 'zone':
       return `<td>${renderZoneCell(t)}</td>`;
     case 'deep_dive':
