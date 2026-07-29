@@ -5,6 +5,7 @@ name: Data Pipeline
 on:
   schedule:
     - cron: "0 3 * * *"     # nightly intake-full
+    - cron: "15 2 * * 1-5"  # weekday technical z-score refresh
     - cron: "0 6 * * *"     # activist scan
     - cron: "0 12 * * 1,2,4,5,6" # light portfolio refresh
     - cron: "0 10 * * 0,3"  # full document harvest twice weekly
@@ -33,6 +34,7 @@ jobs:
       news: ${{ steps.pick.outputs.news }}
       cvr_discover: ${{ steps.pick.outputs.cvr_discover }}
       world_model: ${{ steps.pick.outputs.world_model }}
+      technicals: ${{ steps.pick.outputs.technicals }}
     steps:
       - id: pick
         env:
@@ -40,9 +42,10 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -euo pipefail
-          intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; world_model=false; download_mode=light
+          intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; world_model=false; technicals=false; download_mode=light
           case "$SCHEDULE" in
             "0 3 * * *") intake_full=true ;;
+            "15 2 * * 1-5") technicals=true ;;
             "0 6 * * *") activist=true ;;
             "0 12 * * 1,2,4,5,6") downloads=true; download_mode=light ;;
             "0 10 * * 0,3") downloads=true; download_mode=full ;;
@@ -61,8 +64,9 @@ jobs:
             echo "news=$news"
             echo "cvr_discover=$cvr_discover"
             echo "world_model=$world_model"
+            echo "technicals=$technicals"
           } >> "$GITHUB_OUTPUT"
-          echo "Selected: intake_full=$intake_full activist=$activist downloads=$downloads($download_mode) drive=$drive news=$news cvr_discover=$cvr_discover world_model=$world_model"
+          echo "Selected: intake_full=$intake_full technicals=$technicals activist=$activist downloads=$downloads($download_mode) drive=$drive news=$news cvr_discover=$cvr_discover world_model=$world_model"
 
   intake-full:
     needs: decide
@@ -111,6 +115,37 @@ jobs:
         uses: ./.github/actions/commit-main
         with:
           message: "chore: nightly intake-full $(date -u +%Y-%m-%d)"
+
+  technicals:
+    needs: decide
+    if: needs.decide.outputs.technicals == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    concurrency:
+      group: data-commit-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout dashboard data workspace
+        run: bash _system/scripts/ci_checkout_workspace.sh dashboard
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Refresh free technical price signals
+        run: |
+          python _system/scripts/build_technical_signals.py --workers 12
+          python _system/scripts/validate_dashboard_data.py
+      - name: Commit technical snapshots
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore: refresh technical z-scores $(date -u +%Y-%m-%d)"
 
   activist:
     needs: decide
@@ -470,7 +505,7 @@ jobs:
           message: "chore: world-model weekly $(date -u +%Y-%m-%d)"
 
   pipeline-summary:
-    needs: [decide, intake-full, activist, downloads, drive, news, cvr-discover, world-model]
+    needs: [decide, intake-full, technicals, activist, downloads, drive, news, cvr-discover, world-model]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -479,6 +514,7 @@ jobs:
         run: |
           echo "Data Pipeline complete."
           echo "intake_full=${{ needs.decide.outputs.intake_full }} result=${{ needs.intake-full.result }}"
+          echo "technicals=${{ needs.decide.outputs.technicals }} result=${{ needs.technicals.result }}"
           echo "activist=${{ needs.decide.outputs.activist }} result=${{ needs.activist.result }}"
           echo "downloads=${{ needs.decide.outputs.downloads }} result=${{ needs.downloads.result }}"
           echo "drive=${{ needs.decide.outputs.drive }} result=${{ needs.drive.result }}"

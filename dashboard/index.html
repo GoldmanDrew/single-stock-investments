@@ -173,6 +173,42 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .freshness-cell { white-space: nowrap; }
+  .technical-cell { min-width: 86px; line-height: 1.15; }
+  .technical-cell-score, .technical-score {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 750;
+  }
+  .technical-cell-state { margin-top: 3px; color: var(--text-muted); font-size: 9px; text-transform: uppercase; letter-spacing: .35px; }
+  .technical-positive { color: var(--accent-green); }
+  .technical-negative { color: var(--accent-red); }
+  .technical-warning { color: var(--accent-amber); }
+  .technical-cyan { color: var(--accent-cyan); }
+  .technical-neutral, .technical-empty { color: var(--text-muted); }
+  .technical-panel { border-color: rgba(6,182,212,.32); background: linear-gradient(135deg, rgba(6,182,212,.055), transparent 48%); }
+  .technical-panel-body { margin-top: 12px; }
+  .technical-scoreboard { display: grid; grid-template-columns: 120px 120px minmax(240px, 1fr); gap: 8px; }
+  .technical-primary-score, .technical-combined-read {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 11px; background: rgba(10,14,23,.7);
+  }
+  .technical-primary-score span, .technical-combined-read span {
+    color: var(--text-muted); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .55px;
+  }
+  .technical-primary-score strong { display: block; margin-top: 3px; font: 750 22px 'JetBrains Mono', monospace; }
+  .technical-primary-score small { color: var(--text-secondary); font-size: 9px; }
+  .technical-combined-read { border-left: 3px solid var(--accent-cyan); }
+  .technical-combined-read p { margin-top: 6px; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
+  .technical-chart { margin: 12px 0 8px; }
+  .technical-chart svg { display: block; width: 100%; height: 118px; overflow: visible; }
+  .technical-chart-line { fill: none; stroke: var(--accent-cyan); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .technical-chart-baseline { fill: none; stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .technical-chart figcaption { display: flex; justify-content: space-between; gap: 8px; color: var(--text-muted); font: 9px 'JetBrains Mono', monospace; }
+  .technical-chart figcaption strong { color: var(--text-secondary); }
+  .technical-chart-empty { padding: 22px 10px; color: var(--text-muted); font-size: 11px; text-align: center; }
+  .technical-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .technical-metric { padding: 8px 9px; border-top: 1px solid var(--border); }
+  .technical-metric-label { color: var(--text-muted); font-size: 9px; }
+  .technical-metric-value { margin-top: 2px; font: 700 12px 'JetBrains Mono', monospace; }
+  .technical-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: var(--text-secondary); font-size: 10px; }
+  .technical-policy { margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--text-muted); font-size: 9px; }
   .zone-chip {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
     color: var(--accent-amber); white-space: nowrap;
@@ -790,6 +826,11 @@
     .table-wrap { padding-left: 12px; padding-right: 12px; }
     .valuation-panel { padding: 12px; }
     .operational-task-grid { grid-template-columns: 1fr; }
+    .technical-scoreboard { grid-template-columns: 1fr 1fr; }
+    .technical-combined-read { grid-column: 1 / -1; }
+    .technical-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .technical-foot { display: block; }
+    .technical-foot span { display: block; margin-top: 4px; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -939,6 +980,7 @@
 <script src="search-match.js"></script>
 <script src="insights-viz.js"></script>
 <script src="valuation-viz.js"></script>
+<script src="technical-viz.js"></script>
 <script src="index-viz.js"></script>
 <script src="activist-viz.js"></script>
 <script src="oauth.js"></script>
@@ -1019,6 +1061,7 @@ const HOLDINGS_COLUMNS = [
   { id: 'price_value', label: 'Price → base', sort: 'valuation_decision.value_per_share.base', group: 'core' },
   { id: 'vs_price', label: 'Value gap', sort: 'component_valuation.upside_downside_pct.base', group: 'core' },
   { id: 'irr', label: 'Ann. return', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
+  { id: 'technical_setup', label: 'Technical setup', sort: 'technicals.scores.trend_z', group: 'core' },
   { id: 'next_action', label: 'Next action', sort: 'valuation_decision.critical_gap_count', group: 'core' },
   { id: 'route_method', label: 'Power Zone / method', sort: 'power_zones.primary', group: 'core' },
   { id: 'special_situation', label: 'CVR / NAV', sort: 'special_situation', group: 'core' },
@@ -1026,6 +1069,9 @@ const HOLDINGS_COLUMNS = [
   { id: 'context', label: 'Context', sort: 'classification.investment_sleeve_label', group: 'core' },
   { id: 'cvr_stage', label: 'CVR detail', sort: 'cvr.stage', group: 'special' },
   { id: 'nav_disc', label: 'NAV detail', sort: 'fund_nav.display_discount_pct', group: 'special' },
+  { id: 'technical_trend', label: 'Trend z', sort: 'technicals.scores.trend_z', group: 'technical' },
+  { id: 'technical_stretch', label: 'Stretch z', sort: 'technicals.scores.stretch_z', group: 'technical' },
+  { id: 'technical_relative', label: 'Relative z', sort: 'technicals.scores.relative_strength_60d_z', group: 'technical' },
   { id: 'market', label: 'Market', sort: 'market', group: 'ops' },
   { id: 'sleeve', label: 'Sleeve', sort: 'classification.investment_sleeve_label', group: 'ops' },
   { id: 'value', label: 'Value range', sort: 'component_valuation.total_equity_value_per_share.base', group: 'ops' },
@@ -1044,6 +1090,7 @@ const HOLDINGS_COLUMNS = [
 ];
 const COL_GROUP_META = [
   { id: 'special', label: 'CVR / NAV detail' },
+  { id: 'technical', label: 'Technicals detail' },
   { id: 'ops', label: 'Ops' },
   { id: 'insights', label: 'Insights' },
   { id: 'index', label: 'Index' },
@@ -1065,7 +1112,7 @@ let sortAsc = (() => {
   return true;
 })();
 let columnGroups = (() => {
-  const defaults = { special: false, ops: false, insights: false, index: false };
+  const defaults = { special: false, technical: false, ops: false, insights: false, index: false };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(HOLDINGS_COL_GROUPS_KEY) || '{}') };
   } catch (_) {
@@ -1405,6 +1452,7 @@ function valuationHelpers() {
     stanceBadgeClass: STANCE_BADGE,
     personaMeta: (data && data.power_zones && data.power_zones.personas) || {},
     ghRepo: (data && data.summary && data.summary.github_repo) || '',
+    tickerLookup: (ticker) => (data?.tickers || []).find((row) => row.ticker === ticker),
   };
 }
 
@@ -1986,6 +2034,7 @@ function loadLazyFile(key) {
     research_memory: () => loadShardOnce('file:research_memory', 'data/research_memory.json', (doc) => { data.research_memory = doc; }),
     index_membership: () => loadShardOnce('file:index_membership', 'data/index_membership.json', (doc) => { data.index_membership = doc; }),
     kpi_trends: () => loadShardOnce('file:kpi_trends', 'data/kpi_trends.json', (doc) => { data.kpi_trends = doc; }),
+    technical_signals: () => loadShardOnce('file:technical_signals', 'data/technical_signals.json', (doc) => { data.technical_signals = doc; }),
     world_model: () => loadShardOnce('file:world_model', 'data/world_model.json', (doc) => { data.world_model = doc; }),
     document_catalog: () => loadShardOnce('file:document_catalog', 'data/document_catalog.json', (doc) => { data.document_catalog = doc; }),
     activist_feed: () => loadShardOnce('file:activist_feed', 'data/activist_feed.json', (doc) => { data.activist_feed = doc; }),
@@ -2038,12 +2087,22 @@ function loadTickerDetail(ticker) {
   if (!row || row.__detail) return Promise.resolve(row);
   const shardPath = row.detail_shard
     || `data/tickers/${ticker.replace(/[^A-Za-z0-9._-]/g, '_')}.json`;
-  return loadShardOnce(`ticker:${ticker}`, shardPath, (full) => {
+  return Promise.all([
+    loadShardOnce(`ticker:${ticker}`, shardPath, (full) => {
+      const idx = data.tickers.findIndex((x) => x.ticker === ticker);
+      if (idx >= 0) {
+        data.tickers[idx] = Object.assign({}, data.tickers[idx], full, { __detail: true });
+      }
+    }),
+    loadLazyFile('technical_signals'),
+  ]).then(() => {
     const idx = data.tickers.findIndex((x) => x.ticker === ticker);
     if (idx >= 0) {
-      data.tickers[idx] = Object.assign({}, data.tickers[idx], full, { __detail: true });
+      const fullTechnical = data.technical_signals?.by_ticker?.[ticker];
+      if (fullTechnical) data.tickers[idx].technicals = fullTechnical;
     }
-  }).then(() => data.tickers.find((x) => x.ticker === ticker));
+    return data.tickers.find((x) => x.ticker === ticker);
+  });
 }
 
 async function loadOperationalData() {
@@ -2078,6 +2137,20 @@ async function load() {
   if (authButton) MarvinOAuth.refreshAuthUi(authButton);
   try {
     data = await fetchShardJson('data/core.json');
+    try {
+      const technicalSummary = await fetchShardJson('data/technical_summary.json');
+      const technicalRows = technicalSummary.by_ticker || {};
+      data.tickers.forEach((ticker) => {
+        if (technicalRows[ticker.ticker]) ticker.technicals = technicalRows[ticker.ticker];
+      });
+      data.technical_signals_ref = {
+        generated_at: technicalSummary.generated_at,
+        model_version: technicalSummary.model_version,
+        summary: technicalSummary.summary || {},
+      };
+    } catch (_) {
+      // Technicals are a supplemental overlay; the fundamental dashboard remains usable.
+    }
   } catch {
     // Older build without shards: fall back to the monolithic payload.
     const res = await fetch('data/dashboard_data.json?' + Date.now());
@@ -2215,6 +2288,11 @@ function renderValuationQueue() {
     });
   });
   content.querySelectorAll('[data-valuation-queue-ticker]').forEach((row) => {
+    const tickerRow = data.tickers.find((item) => item.ticker === row.dataset.valuationQueueTicker);
+    const technicalCell = row.querySelector('td:last-child');
+    if (tickerRow && technicalCell && window.TechnicalViz) {
+      technicalCell.innerHTML = TechnicalViz.renderSetupCell(tickerRow, escapeHtml);
+    }
     const open = () => {
       const ticker = row.dataset.valuationQueueTicker;
       valuationOpenEvidenceTab = true;
@@ -3644,6 +3722,14 @@ function renderHoldingsCell(colId, t) {
       return `<td>${renderPriceToBaseCell(t)}</td>`;
     case 'irr':
       return `<td>${renderIrrCell(t)}</td>`;
+    case 'technical_setup':
+      return `<td>${window.TechnicalViz ? TechnicalViz.renderSetupCell(t, escapeHtml) : '—'}</td>`;
+    case 'technical_trend':
+      return `<td>${window.TechnicalViz ? TechnicalViz.renderScoreCell(t, 'trend_z') : '—'}</td>`;
+    case 'technical_stretch':
+      return `<td>${window.TechnicalViz ? TechnicalViz.renderScoreCell(t, 'stretch_z') : '—'}</td>`;
+    case 'technical_relative':
+      return `<td>${window.TechnicalViz ? TechnicalViz.renderScoreCell(t, 'relative_strength_60d_z') : '—'}</td>`;
     case 'next_action':
       return `<td class="decision-action-cell">${renderNextActionCell(t)}</td>`;
     case 'route_method':
@@ -3999,6 +4085,7 @@ function selectTicker(ticker, opts = {}) {
     ${window.ValuationViz ? ValuationViz.renderDecisionStrip(t, valuationHelpers()) : ''}
 
     ${renderHumanReviewBanner(t)}
+    ${window.TechnicalViz ? TechnicalViz.renderPanel(t, { escapeHtml }) : ''}
 
     ${identityLine}
     ${lensChips || ''}

@@ -554,7 +554,7 @@
   }
 
   function renderPropertiesPanel(t, helpers) {
-    const { escapeHtml, fmtNum } = helpers;
+    const { escapeHtml, fmtNum, tickerLookup } = helpers;
     const reg = t.properties;
     if (!reg || !(reg.properties || []).length) return '';
     const reconOk = reg.reconciliation_ok;
@@ -620,6 +620,10 @@
       const progress = row.next_gap_progress_note
         ? `<div class="tier-sub">${tierBadge ? `${tierBadge} ` : ''}${escapeHtml(String(row.next_gap_progress_note).slice(0, 140))}</div>`
         : (tierBadge ? `<div class="tier-sub">${tierBadge}</div>` : '');
+      const tickerRow = typeof tickerLookup === 'function' ? tickerLookup(row.ticker) : null;
+      const technical = global.TechnicalViz && tickerRow
+        ? global.TechnicalViz.renderSetupCell(tickerRow, escapeHtml)
+        : '<span class="technical-empty">—</span>';
       return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(row.ticker)} evidence">
         <td><strong>${escapeHtml(row.ticker)}</strong><div class="tier-sub">${escapeHtml(row.company || '')}</div></td>
         <td>${escapeHtml(String(row.method_profile || '—').replace(/_/g, ' '))}</td>
@@ -627,6 +631,7 @@
         <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}</td>
         <td>${escapeHtml(row.next_gap_id || '—')}${row.next_gap_question ? `<div class="tier-sub">${escapeHtml(String(row.next_gap_question).slice(0, 120))}</div>` : ''}${progress}</td>
         <td class="mono">${values.base == null ? '—' : '$' + fmtNum(values.base, 0)}</td>
+        <td>${technical}</td>
       </tr>`;
     }).join('');
     const waveCards = Object.entries(waves).map(([id, w]) => `
@@ -645,7 +650,7 @@
       <p class="subhead">One ticker + one acceptance test at a time. Click a row to open the holdings detail Evidence tab.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Ticker</th><th>Method</th><th>Status</th><th>Crit / open</th><th>Next gap</th><th>Base / sh</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Method</th><th>Status</th><th>Crit / open</th><th>Next gap</th><th>Base / sh</th><th>Technical setup</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
