@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0a0e17" />
 <title>Single Stock Portfolio Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='85'>📊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="insights-events.css" rel="stylesheet">
 <style>
@@ -30,6 +33,7 @@
     --warning: #f59e0b;
     --stale: #6b7280;
   }
+  html { color-scheme: dark; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'DM Sans', -apple-system, sans-serif;
@@ -42,8 +46,22 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-primary); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  :where(button, input, select, textarea, summary, a, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent-cyan); outline-offset: 2px;
+  }
+  .skip-link {
+    position: fixed; left: 12px; top: 8px; z-index: 1000;
+    transform: translateY(-160%); padding: 8px 12px; border-radius: 6px;
+    background: var(--accent-cyan); color: #041017; font-weight: 700;
+  }
+  .skip-link:focus { transform: translateY(0); }
+  .sr-only {
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
 
   .app { display: flex; flex-direction: column; min-height: 100vh; }
+  #main-content { display: flex; flex: 1; min-height: 0; flex-direction: column; }
 
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -66,8 +84,8 @@
   .dot-green { background: var(--accent-green); }
 
   .summary-strip {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px; padding: 14px 24px;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px; padding: 14px 24px;
     background: var(--bg-secondary); border-bottom: 1px solid var(--border);
   }
   .summary-card {
@@ -85,6 +103,22 @@
     font-size: 11px; color: var(--text-muted); margin-top: 3px;
     font-family: 'JetBrains Mono', monospace;
   }
+  .summary-card.decision-stage { position: relative; min-width: 0; }
+  .summary-card.decision-stage:not(:last-of-type)::after {
+    content: ''; position: absolute; right: -9px; top: 50%; z-index: 2;
+    width: 9px; height: 1px; background: var(--border-active);
+  }
+  .summary-card .stage-index {
+    float: right; color: var(--text-muted); font: 600 9px 'JetBrains Mono', monospace;
+  }
+  .summary-card.stage-alert { border-color: rgba(239,68,68,.48); }
+  .summary-card.stage-ready { border-color: rgba(16,185,129,.42); }
+  .system-health { grid-column: 1 / -1; padding: 0 2px; color: var(--text-muted); font-size: 11px; }
+  .system-health summary { cursor: pointer; width: fit-content; }
+  .system-health-grid {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px; margin-top: 9px;
+  }
 
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
@@ -96,7 +130,13 @@
     background: var(--bg-input); color: var(--text-primary);
     font-family: 'JetBrains Mono', monospace; font-size: 13px;
   }
-  .search:focus { outline: none; border-color: var(--accent-blue); }
+  .search:focus-visible { border-color: var(--accent-cyan); }
+  .filter-drawer { flex: 1 1 100%; }
+  .filter-drawer > summary {
+    width: fit-content; cursor: pointer; padding: 5px 9px; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-secondary); font-size: 11px; font-weight: 700;
+  }
+  .filter-drawer-body { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 9px; }
   .market-filter-group { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .filter-btn {
     padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
@@ -152,8 +192,12 @@
     border-bottom: 1px solid var(--border); position: sticky; top: 0;
     background: var(--bg-primary); cursor: pointer; user-select: none;
   }
-  tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+  tbody tr {
+    border-bottom: 1px solid var(--border); cursor: pointer;
+    transition: background-color 0.12s; content-visibility: auto; contain-intrinsic-size: 48px;
+  }
   tbody tr:hover { background: var(--bg-card-hover); }
+  tbody tr:focus-visible { outline-offset: -2px; background: var(--bg-card-hover); }
   tbody tr.selected { background: var(--bg-card); border-left: 3px solid var(--accent-blue); }
   td { padding: 12px; vertical-align: middle; }
   .mono { font-family: 'JetBrains Mono', monospace; }
@@ -363,6 +407,7 @@
   .view-tabs {
     display: flex; gap: 6px; padding: 10px 24px 0;
     background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    overflow-x: auto; overscroll-behavior-inline: contain;
   }
   .view-tab {
     padding: 8px 16px; border-radius: 6px 6px 0 0; font-size: 12px; font-weight: 700;
@@ -450,10 +495,10 @@
   .darwin-charts { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
   @media (min-width: 900px) { .darwin-charts.split { grid-template-columns: 1fr 1fr; } }
 
-  .main.model-expanded { grid-template-columns: 1fr !important; }
+  .main.model-expanded { grid-template-columns: 1fr minmax(440px, 44vw); }
   .main.model-expanded .detail {
-    border-left: none; border-top: 1px solid var(--border);
-    max-height: none; padding: 20px 24px 32px; display: block;
+    border-left: 1px solid var(--border); border-top: none;
+    max-height: calc(100vh - 180px); padding: 20px 24px 32px; display: block;
   }
   .main.model-expanded .detail-sticky-header { margin: -20px -24px 14px; padding: 14px 24px 12px; }
   .liquidity-banner {
@@ -690,13 +735,57 @@
   .valuation-status-cell { display: flex; flex-direction: column; gap: 2px; }
   .valuation-decision-strip .workbench-callout { margin-top: 10px; }
   .valuation-filter-group { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 6px; }
+  .operational-queue {
+    margin-bottom: 18px; padding: 14px; border: 1px solid rgba(6,182,212,.38);
+    border-radius: 9px; background: linear-gradient(120deg, rgba(6,182,212,.07), transparent 55%);
+  }
+  .operational-queue-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .operational-queue h2 { font-size: 18px; text-wrap: balance; }
+  .operational-task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
+  .operational-task {
+    padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px;
+    background: rgba(10,14,23,.7); min-width: 0; width: 100%;
+    color: inherit; cursor: pointer; font: inherit; text-align: left;
+  }
+  .operational-task strong, .operational-task p { overflow-wrap: anywhere; }
+  @media (max-width: 1100px) {
+    .main:not(.detail-closed) .detail {
+      position: fixed; inset: 58px 0 0 auto; z-index: 90; width: min(680px, 100vw);
+      max-height: calc(100vh - 58px); border: 1px solid var(--border);
+      box-shadow: -24px 0 60px rgba(0,0,0,.48);
+    }
+    .main.model-expanded { grid-template-columns: 1fr; }
+    .main.model-expanded .detail { border-top: 1px solid var(--border); max-height: calc(100vh - 58px); }
+  }
+  @media (max-width: 760px) {
+    .topbar { padding: 10px 14px; }
+    .topbar-actions { display: none; }
+    .view-tabs { padding-left: 12px; padding-right: 12px; }
+    .view-tab { flex: 0 0 auto; padding: 8px 12px; }
+    .summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px 12px; }
+    .summary-card.decision-stage:not(:last-of-type)::after { display: none; }
+    .summary-card.decision-stage:last-of-type { grid-column: 1 / -1; }
+    .system-health-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .toolbar { padding: 10px 12px; }
+    .search { max-width: none; min-width: 0; width: 100%; }
+    .table-wrap { padding-left: 12px; padding-right: 12px; }
+    .valuation-panel { padding: 12px; }
+    .operational-task-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important; transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to dashboard</a>
 <div class="app">
   <header class="topbar">
     <div class="topbar-left">
-      <div class="topbar-logo">SINGLE STOCK PORTFOLIO</div>
+      <h1 class="topbar-logo">SINGLE STOCK PORTFOLIO</h1>
       <div class="topbar-meta"><span class="dot dot-green"></span><span id="meta-updated">Loading…</span></div>
     </div>
     <div class="topbar-actions">
@@ -709,25 +798,32 @@
     <div class="watchlist-chips" id="watchlist-chips"></div>
   </section>
 
-  <nav class="view-tabs" id="view-tabs">
-    <button type="button" class="view-tab active" data-view="holdings">Holdings</button>
-    <button type="button" class="view-tab" data-view="valuation">Valuation</button>
-    <button type="button" class="view-tab" data-view="watchlist">Watchlist</button>
-    <button type="button" class="view-tab" data-view="insights">Insights</button>
-    <button type="button" class="view-tab" data-view="activist">Activist</button>
-    <button type="button" class="view-tab" data-view="darwin">Darwin</button>
+  <nav class="view-tabs" id="view-tabs" aria-label="Primary" role="tablist">
+    <button type="button" class="view-tab active" data-view="holdings" role="tab" aria-selected="true">Holdings</button>
+    <button type="button" class="view-tab" data-view="valuation" role="tab" aria-selected="false">Valuation</button>
+    <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
+    <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
+    <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
+    <button type="button" class="view-tab" data-view="darwin" role="tab" aria-selected="false">Darwin</button>
   </nav>
 
+  <main id="main-content">
   <section class="summary-strip" id="summary"></section>
 
   <div class="holdings-view" id="holdings-view">
   <div class="toolbar">
-    <input class="search" id="search" placeholder="Search ticker or company…" />
-    <span id="market-filter-group" class="market-filter-group"></span>
-    <span id="sleeve-filter-group" class="sleeve-filter-group"></span>
-    <span id="valuation-filter-group" class="valuation-filter-group"></span>
-    <button class="filter-btn" data-filter="needs-work">Needs work</button>
-    <span id="col-group-toggles" class="col-group-toggles" title="Optional column groups"></span>
+    <label class="sr-only" for="search">Search ticker or company</label>
+    <input class="search" id="search" name="portfolio_search" autocomplete="off" spellcheck="false" placeholder="Search ticker or company…" aria-label="Search ticker or company" />
+    <details class="filter-drawer">
+      <summary>Filters &amp; columns</summary>
+      <div class="filter-drawer-body">
+        <span id="market-filter-group" class="market-filter-group"></span>
+        <span id="sleeve-filter-group" class="sleeve-filter-group"></span>
+        <span id="valuation-filter-group" class="valuation-filter-group"></span>
+        <button class="filter-btn" data-filter="needs-work">Needs work</button>
+        <span id="col-group-toggles" class="col-group-toggles" title="Optional column groups"></span>
+      </div>
+    </details>
   </div>
 
   <div class="main detail-closed" id="main-grid">
@@ -773,22 +869,23 @@
     <div class="loading" id="watchlist-loading">Loading watchlist…</div>
     <div id="watchlist-content" style="display:none"></div>
   </section>
+  </main>
 </div>
 
 <div class="modal-backdrop" id="modal-backdrop">
-  <div class="modal" role="dialog" aria-labelledby="modal-title">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <h3 id="modal-title">Add holding</h3>
-    <div class="form-row"><label>Ticker</label><input id="ob-ticker" placeholder="SJT" /></div>
-    <div class="form-row"><label>Company</label><input id="ob-company" placeholder="San Juan Basin Royalty Trust" /></div>
-    <div class="form-row"><label>Market</label>
+    <div class="form-row"><label for="ob-ticker">Ticker</label><input id="ob-ticker" name="ticker" autocomplete="off" spellcheck="false" placeholder="SJT" /></div>
+    <div class="form-row"><label for="ob-company">Company</label><input id="ob-company" name="company" autocomplete="organization" placeholder="San Juan Basin Royalty Trust" /></div>
+    <div class="form-row"><label for="ob-market">Market</label>
       <select id="ob-market">
         <option value="SE">SE</option><option value="AU">AU</option><option value="UK">UK</option>
         <option value="US">US</option><option value="JP">JP</option><option value="CA">CA</option>
         <option value="EU">EU</option><option value="IN">IN</option><option value="OTC">OTC</option>
       </select>
     </div>
-    <div class="form-row"><label>CIK (US, optional)</label><input id="ob-cik" placeholder="Auto-lookup if blank" /></div>
-    <div class="form-row"><label>IR URL(s)</label><input id="ob-ir" placeholder="https://ir.example.com" /></div>
+    <div class="form-row"><label for="ob-cik">CIK (US, optional)</label><input id="ob-cik" name="cik" autocomplete="off" inputmode="numeric" spellcheck="false" placeholder="Auto-lookup if blank" /></div>
+    <div class="form-row"><label for="ob-ir">IR URL(s)</label><input id="ob-ir" name="ir_url" type="url" autocomplete="url" spellcheck="false" placeholder="https://ir.example.com" /></div>
     <div class="form-row"><label><input type="checkbox" id="ob-8k" /> Download 8-K exhibits (US trusts)</label></div>
     <div class="form-row"><label><input type="checkbox" id="ob-watchlist-only" /> Watchlist only (no download yet)</label></div>
     <div class="form-actions">
@@ -802,8 +899,8 @@
 </div>
 
 <div class="modal-backdrop" id="device-backdrop">
-  <div class="modal" role="dialog">
-    <h3>Sign in with GitHub</h3>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="device-title">
+    <h3 id="device-title">Sign in with GitHub</h3>
     <p class="form-hint">GitHub blocks token exchange from Pages directly — one-time Cloudflare proxy required (<code>OAUTH_PROXY_URL</code>).</p>
     <div class="device-code-box" id="device-code-box" style="display:none">
       <p>1. Open <a id="device-link" href="https://github.com/login/device" target="_blank" rel="noopener">github.com/login/device</a></p>
@@ -888,6 +985,8 @@ function readLocalJson(key, fallback) {
 }
 
 let data = null;
+let operationalSummary = null;
+let operationalTasks = [];
 let oauthConfig = null;
 let devicePollTimer = null;
 let devicePollCancelled = false;
@@ -951,6 +1050,32 @@ let marketFilter = 'ALL';
 let sleeveFilter = 'ALL';
 let valuationFilter = 'ALL';
 let needsWork = false;
+
+function restoreHoldingsQuery() {
+  const params = new URLSearchParams(window.location.search);
+  marketFilter = params.get('market') || 'ALL';
+  sleeveFilter = params.get('sleeve') || 'ALL';
+  valuationFilter = params.get('valuation') || 'ALL';
+  needsWork = params.get('needs') === '1';
+  const search = document.getElementById('search');
+  if (search) search.value = params.get('q') || '';
+}
+
+function syncHoldingsQuery() {
+  const url = new URL(window.location.href);
+  const values = {
+    q: document.getElementById('search')?.value.trim() || '',
+    market: marketFilter === 'ALL' ? '' : marketFilter,
+    sleeve: sleeveFilter === 'ALL' ? '' : sleeveFilter,
+    valuation: valuationFilter === 'ALL' ? '' : valuationFilter,
+    needs: needsWork ? '1' : '',
+  };
+  Object.entries(values).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  });
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
 let activeView = 'holdings';
 let valuationOpenEvidenceTab = false;
 let activeDarwinAccount = 'roth';
@@ -1125,7 +1250,7 @@ function parseRouteFromHashString(hash) {
       watchlistSub: watchlistMatch[1] ? watchlistMatch[1].toLowerCase() : null,
     };
   }
-  const viewMatch = /^#\/(insights|activist|darwin)$/i.exec(hash || '');
+  const viewMatch = /^#\/(valuation|insights|activist|darwin)$/i.exec(hash || '');
   if (viewMatch) return { view: viewMatch[1].toLowerCase(), ticker: null, watchlistSub: null };
   return null;
 }
@@ -1803,6 +1928,27 @@ function loadTickerDetail(ticker) {
     }
   }).then(() => data.tickers.find((x) => x.ticker === ticker));
 }
+
+async function loadOperationalData() {
+  try {
+    const [summaryResponse, tasksResponse] = await Promise.all([
+      fetch('/api/v1/summary', { headers: { accept: 'application/json' } }),
+      fetch('/api/v1/valuation-tasks?due=true&limit=100', { headers: { accept: 'application/json' } }),
+    ]);
+    if (summaryResponse.ok) operationalSummary = await summaryResponse.json();
+    if (tasksResponse.ok) {
+      const payload = await tasksResponse.json();
+      operationalTasks = payload.items || [];
+    }
+  } catch (_) {
+    operationalSummary = null;
+    operationalTasks = [];
+  }
+  if (data) {
+    renderSummary();
+    if (activeView === 'valuation') renderValuationQueue();
+  }
+}
 // ---------------------------------------------------------------------------
 
 async function load() {
@@ -1833,8 +1979,10 @@ async function load() {
       data.insights = null;
     }
   }
+  void loadOperationalData();
   document.getElementById('meta-updated').textContent =
     `Updated ${data.generated_at.replace('T', ' ').replace('Z', ' UTC')} · ${data.summary.ticker_count} tickers`;
+  restoreHoldingsQuery();
   renderMarketFilters();
   renderSleeveFilters();
   renderValuationFilters();
@@ -1859,7 +2007,9 @@ function setDarwinAccount(_aid) {
 function setView(view, opts = {}) {
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.view === view);
+    const active = b.dataset.view === view;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
   });
   document.getElementById('holdings-view').classList.toggle('hidden', view !== 'holdings');
   document.getElementById('darwin-panel').classList.toggle('active', view === 'darwin');
@@ -1880,6 +2030,49 @@ function setView(view, opts = {}) {
   if (opts.syncHash !== false) syncRouteHash();
 }
 
+function renderOperationalEvidenceQueue() {
+  const taskSummary = operationalSummary?.evidence_tasks || {};
+  const pipeline = operationalSummary?.latest_pipeline || {};
+  const items = operationalTasks.slice(0, 12);
+  const dueCount = Number(taskSummary.due_count ?? data.summary.valuation_critical_gaps ?? 0);
+  const actionableCount = Number(taskSummary.actionable_count ?? data.summary.valuation_critical_gaps ?? 0);
+  const databaseAvailable = Boolean(operationalSummary);
+  const cards = items.map((task) => `
+    <button type="button" class="operational-task" data-operational-ticker="${escapeHtml(task.ticker)}" style="text-align:left;color:inherit">
+      <div class="workbench-item-head">
+        <strong class="mono">${escapeHtml(task.ticker)}</strong>
+        <span class="badge ${task.priority === 'critical' ? 'badge-bad' : 'badge-warn'}">${escapeHtml(task.status || 'pending')}</span>
+      </div>
+      <p style="margin-top:6px;font-size:11px">${escapeHtml(task.question || task.task_id || 'Collect required evidence')}</p>
+      <div class="tier-sub" style="margin-top:6px">
+        ${escapeHtml(String(task.method_id || 'route review').replace(/_/g, ' '))}
+        · ${escapeHtml(String(task.collector || 'collector pending').replace(/_/g, ' '))}
+        · attempt ${Number(task.attempts || 0)}/${Number(task.max_attempts || 5)}
+      </div>
+      ${task.last_error ? `<div class="tier-sub" style="margin-top:4px;color:var(--accent-amber)">Last error: ${escapeHtml(String(task.last_error).slice(0, 150))}</div>` : ''}
+      <div class="tier-sub" style="margin-top:4px">Retry: ${escapeHtml(task.next_attempt_at || 'due now')}</div>
+    </button>`).join('');
+  return `<section class="operational-queue" aria-labelledby="evidence-operations-title">
+    <div class="operational-queue-head">
+      <div>
+        <h2 id="evidence-operations-title">Automated Evidence Operations</h2>
+        <p class="tier-sub">The next machine actions across the full universe. These are separate from the curated investment-decision queue.</p>
+      </div>
+      <span class="badge ${dueCount ? 'badge-bad' : 'badge-ok'}">${dueCount} due now</span>
+    </div>
+    <div class="metric-grid metric-grid-3" style="margin-top:11px">
+      <div class="metric"><div class="k">Actionable tasks</div><div class="v mono">${actionableCount}</div></div>
+      <div class="metric"><div class="k">Terminal unavailable</div><div class="v mono">${Number(taskSummary.unavailable_count || 0)}</div></div>
+      <div class="metric"><div class="k">Database snapshot</div><div class="v mono" style="font-size:11px">${escapeHtml(pipeline.generated_at || 'static fallback')}</div></div>
+    </div>
+    ${cards
+      ? `<div class="operational-task-grid">${cards}</div>`
+      : `<div class="summary" style="margin-top:10px">${databaseAvailable
+        ? 'No due tasks returned by D1.'
+        : 'Live D1 tasks are unavailable in this preview.'} The static decision queue remains available below.</div>`}
+  </section>`;
+}
+
 function renderValuationQueue() {
   const loading = document.getElementById('valuation-loading');
   const content = document.getElementById('valuation-content');
@@ -1891,13 +2084,32 @@ function renderValuationQueue() {
   }
   loading.style.display = 'none';
   content.style.display = 'block';
-  content.innerHTML = ValuationViz.renderQueuePanel(data.valuation_queue, valuationHelpers());
+  content.innerHTML = `${renderOperationalEvidenceQueue()}
+    <section aria-labelledby="decision-queue-title">
+      <h2 id="decision-queue-title" style="font-size:16px;margin:0 0 8px">Decision Queue</h2>
+      <p class="subhead">Curated names awaiting the next investable decision.</p>
+      ${ValuationViz.renderQueuePanel(data.valuation_queue, valuationHelpers())}
+    </section>`;
+  content.querySelectorAll('[data-operational-ticker]').forEach((button) => {
+    button.addEventListener('click', () => {
+      valuationOpenEvidenceTab = true;
+      setView('holdings', { syncHash: false });
+      selectTicker(button.dataset.operationalTicker);
+    });
+  });
   content.querySelectorAll('[data-valuation-queue-ticker]').forEach((row) => {
-    row.addEventListener('click', () => {
+    const open = () => {
       const ticker = row.dataset.valuationQueueTicker;
       valuationOpenEvidenceTab = true;
       setView('holdings', { syncHash: false });
       selectTicker(ticker);
+    };
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open();
+      }
     });
   });
 }
@@ -3053,37 +3265,64 @@ async function submitCloudOnboard() {
 
 function renderSummary() {
   const s = data.summary;
+  const opValuation = operationalSummary?.valuation || {};
+  const opTasks = operationalSummary?.evidence_tasks || {};
+  const routeReview = data.tickers.filter((t) => {
+    const route = t.power_zones?.valuation_route || {};
+    const routeKnown = Boolean(route.status || route.profile_id || route.method_id)
+      || Number.isFinite(Number(route.score));
+    const hasScore = route.score !== null && route.score !== undefined && route.score !== '';
+    return routeKnown
+      && (route.status === 'default_needs_review' || (hasScore && Number(route.score) <= 0));
+  }).length;
+  const compilerReady = data.tickers.filter((t) =>
+    t.valuation_decision?.status === 'decision_grade'
+    || (
+      Number(t.valuation_decision?.proof_complete_pct || 0) >= 100
+      && Number(t.valuation_decision?.unvalued_component_count || 0) === 0
+    )
+  ).length;
+  const decisionGrade = Number(
+    opValuation.decision_grade_count
+    ?? data.tickers.filter((t) => t.valuation_decision?.status === 'decision_grade').length
+  );
+  const dueNow = Number(opTasks.due_count ?? s.valuation_critical_gaps ?? 0);
+  const staleCutoff = Date.now() - 90 * 86400000;
+  const stale = data.tickers.filter((t) => {
+    const parsed = Date.parse(t.last_research || '');
+    return !Number.isFinite(parsed) || parsed < staleCutoff;
+  }).length;
   const cards = [
-    { label: 'Holdings', value: s.ticker_count, sub: (s.watchlist_count ? s.watchlist_count + ' watchlist · ' : '') + s.markets.join(' · ') },
-    { label: 'Total PDFs', value: s.total_pdfs.toLocaleString(), sub: 'across universe' },
-    { label: 'Avg completeness', value: s.avg_completeness + '%', sub: 'infra score' },
-    { label: 'With README', value: s.with_readme + '/' + s.ticker_count, sub: 'documented' },
-    { label: 'Research dirs', value: s.with_research + '/' + s.ticker_count, sub: 'Marvin output' },
+    { label: 'Route review', value: routeReview, sub: 'Power Zone classification', cls: routeReview ? 'stage-alert' : 'stage-ready' },
+    { label: 'Evidence due now', value: dueNow, sub: `${Number(opTasks.actionable_count ?? s.valuation_critical_gaps ?? 0)} actionable tasks`, cls: dueNow ? 'stage-alert' : 'stage-ready' },
+    { label: 'Compiler ready', value: compilerReady, sub: 'complete deterministic proof', cls: compilerReady ? 'stage-ready' : '' },
+    { label: 'Decision-grade', value: decisionGrade, sub: `${Number(opValuation.evidence_blocked_count ?? s.valuation_evidence_blocked ?? 0)} evidence blocked`, cls: 'stage-ready' },
+    { label: 'Stale research', value: stale, sub: 'older than 90 days', cls: stale ? 'stage-alert' : 'stage-ready' },
   ];
-  if (s.equity_models_ready > 0) {
-    cards.push({ label: 'Equity models', value: s.equity_models_ready, sub: 'click ticker to view' });
-  }
-  if (s.valuation_queue_tickers != null) {
-    cards.push({
-      label: 'Valuation queue',
-      value: s.valuation_queue_tickers,
-      sub: `${s.valuation_evidence_blocked || 0} blocked · ${s.valuation_critical_gaps || 0} critical gaps`,
-    });
-  }
   const catalog = data.document_catalog?.summary;
-  if (catalog) {
-    cards.push({
-      label: 'PDF store',
-      value: Number(catalog.uploaded_count || 0).toLocaleString(),
-      sub: `${Number(catalog.pending_upload_count || 0).toLocaleString()} pending`,
-    });
-  }
-  document.getElementById('summary').innerHTML = cards.map(c => `
-    <div class="summary-card">
-      <div class="label">${c.label}</div>
-      <div class="value">${c.value}</div>
-      <div class="sub">${c.sub}</div>
-    </div>`).join('');
+  const health = [
+    { label: 'Universe', value: Number(s.ticker_count || 0).toLocaleString(), sub: (s.markets || []).join(' · ') },
+    { label: 'PDFs', value: Number(s.total_pdfs || 0).toLocaleString(), sub: 'source library' },
+    { label: 'Completeness', value: `${Number(s.avg_completeness || 0)}%`, sub: 'infrastructure score' },
+    { label: 'Research dirs', value: `${Number(s.with_research || 0)}/${Number(s.ticker_count || 0)}`, sub: 'pipeline output' },
+    { label: 'PDF store', value: Number(catalog?.uploaded_count || 0).toLocaleString(), sub: `${Number(catalog?.pending_upload_count || 0).toLocaleString()} pending` },
+  ];
+  document.getElementById('summary').innerHTML = `
+    ${cards.map((c, index) => `
+      <div class="summary-card decision-stage ${c.cls || ''}">
+        <div class="label">${escapeHtml(c.label)}<span class="stage-index">0${index + 1}</span></div>
+        <div class="value">${escapeHtml(String(c.value))}</div>
+        <div class="sub">${escapeHtml(c.sub)}</div>
+      </div>`).join('')}
+    <details class="system-health">
+      <summary>System health &amp; coverage</summary>
+      <div class="system-health-grid">${health.map((c) => `
+        <div class="summary-card">
+          <div class="label">${escapeHtml(c.label)}</div>
+          <div class="value">${escapeHtml(String(c.value))}</div>
+          <div class="sub">${escapeHtml(c.sub)}</div>
+        </div>`).join('')}</div>
+    </details>`;
 }
 
 function filtered() {
@@ -3424,11 +3663,17 @@ function renderTable() {
   const tbody = document.getElementById('tbody');
   document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
   tbody.innerHTML = rows.map((t) => `
-    <tr class="${selected === t.ticker ? 'selected' : ''}" data-ticker="${t.ticker}">
+    <tr class="${selected === t.ticker ? 'selected' : ''}" data-ticker="${t.ticker}" tabindex="0" role="button" aria-label="Open ${escapeHtml(t.ticker)} ${escapeHtml(t.company || '')}">
       ${cols.map((col) => renderHoldingsCell(col.id, t)).join('')}
     </tr>`).join('');
   tbody.querySelectorAll('tr').forEach((tr) => {
     tr.addEventListener('click', () => selectTicker(tr.dataset.ticker));
+    tr.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectTicker(tr.dataset.ticker);
+      }
+    });
   });
 }
 
@@ -3454,10 +3699,30 @@ function wireDetailEvents(ticker) {
     });
   });
   detail.querySelectorAll('[data-workbench-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    const activate = () => {
       const page = btn.dataset.workbenchTab;
-      detail.querySelectorAll('[data-workbench-tab]').forEach(x => x.classList.toggle('active', x === btn));
+      detail.querySelectorAll('[data-workbench-tab]').forEach(x => {
+        const active = x === btn;
+        x.classList.toggle('active', active);
+        x.setAttribute('aria-selected', String(active));
+        x.tabIndex = active ? 0 : -1;
+      });
       detail.querySelectorAll('[data-workbench-page]').forEach(x => x.classList.toggle('active', x.dataset.workbenchPage === page));
+    };
+    btn.addEventListener('click', activate);
+    btn.addEventListener('keydown', (event) => {
+      const tabs = [...detail.querySelectorAll('[data-workbench-tab]')];
+      const index = tabs.indexOf(btn);
+      let next = null;
+      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+      if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
+      if (event.key === 'Home') next = tabs[0];
+      if (event.key === 'End') next = tabs[tabs.length - 1];
+      if (next) {
+        event.preventDefault();
+        next.focus();
+        next.click();
+      }
     });
   });
   if (valuationOpenEvidenceTab) {
@@ -3753,9 +4018,13 @@ function onFilterClick(btn) {
   renderSleeveFilters();
   renderValuationFilters();
   renderTable();
+  syncHoldingsQuery();
 }
 
-document.getElementById('search').addEventListener('input', renderTable);
+document.getElementById('search').addEventListener('input', () => {
+  renderTable();
+  syncHoldingsQuery();
+});
 document.querySelector('#holdings-view .toolbar').addEventListener('click', (e) => {
   const colBtn = e.target.closest('[data-col-group]');
   if (colBtn) {

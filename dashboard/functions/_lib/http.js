@@ -12,7 +12,11 @@ export function json(payload, status = 200, extraHeaders = {}) {
 }
 
 export function failure(error, requestId) {
-  console.error("dashboard API request failed", { requestId, error });
+  console.error(JSON.stringify({
+    message: "dashboard API request failed",
+    request_id: requestId,
+    error: error instanceof Error ? error.message : String(error),
+  }));
   return json(
     {
       error: "The dashboard database could not complete this request.",

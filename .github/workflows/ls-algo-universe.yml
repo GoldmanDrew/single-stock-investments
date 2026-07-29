@@ -76,14 +76,14 @@ jobs:
           python _system/scripts/darwin/build_ls_algo_underlying_gap.py
           python _system/scripts/sync_portfolio_from_registry.py
           python _system/scripts/build_index_membership.py
-          python _system/scripts/build_evidence_recovery_queue.py
-          python _system/scripts/validate_evidence_recovery.py
+          python _system/scripts/build_evidence_recovery_queue.py --scope all-blocked
+          python _system/scripts/validate_evidence_recovery.py --scope all-blocked
       - name: Gather primary evidence and rebuild valuation authority
         run: |
           python _system/scripts/collect_evidence_recovery.py --limit 4
           python _system/scripts/darwin/run_ls_algo_valuation_pipeline.py --no-onboard --skip-dashboard
-          python _system/scripts/build_evidence_recovery_queue.py
-          python _system/scripts/validate_evidence_recovery.py
+          python _system/scripts/build_evidence_recovery_queue.py --scope all-blocked
+          python _system/scripts/validate_evidence_recovery.py --scope all-blocked
           python _system/scripts/build_index_membership.py
           python _system/scripts/refresh_cvr_universe.py
           DASHBOARD_PRESERVE_DOCUMENT_REGISTRY=1 python _system/scripts/build_dashboard_data.py

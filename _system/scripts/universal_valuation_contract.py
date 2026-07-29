@@ -76,8 +76,9 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
     components = [*additive, *embedded]
     price = inputs.get("price")
     shares = inputs.get("shares_outstanding")
-    years = int((data.get("valuation_methodology") or {}).get("horizon_years") or data.get("lawrence_horizon_years") or 7)
-    distributions = float((data.get("valuation_methodology") or {}).get("expected_distributions_per_share") or 0)
+    methodology = data.get("valuation_methodology") or {}
+    years = int(methodology.get("horizon_years") or data.get("lawrence_horizon_years") or 7)
+    distributions = float(methodology.get("expected_distributions_per_share") or 0)
     validation_errors = list(economic.get("validation_errors") or [])
     evidence_blockers: list[str] = []
     try:
@@ -179,6 +180,31 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
     # Keep priced_components_per_share as the raw additive sum for audit.
     # Security value_per_share floors at 0 (limited liability of equity).
     total = floor_equity_value_range(priced, ndigits=4) if unvalued_count == 0 else {case: None for case in CASES}
+    zero_value_policy = methodology.get("zero_value_policy") or {}
+    zero_value_evidence_refs = (
+        [str(ref).strip() for ref in (zero_value_policy.get("evidence_refs") or []) if str(ref).strip()]
+        if isinstance(zero_value_policy, dict)
+        else []
+    )
+    explicit_zero_value = (
+        isinstance(zero_value_policy, dict)
+        and zero_value_policy.get("allowed") is True
+        and bool(str(zero_value_policy.get("rationale") or "").strip())
+        and bool(zero_value_evidence_refs)
+        and str(zero_value_policy.get("outcome") or "").lower()
+        in {"wipeout", "liquidation_shortfall", "insolvent_equity", "no_recovery"}
+    )
+    base_value = total.get("base")
+    if (
+        unvalued_count == 0
+        and base_value is not None
+        and float(base_value) <= 0
+        and not explicit_zero_value
+    ):
+        evidence_blockers.append(
+            "Base equity value is zero or negative. Supply an explicit zero_value_policy "
+            "with a supported terminal outcome, rationale, and evidence_refs before decision_grade."
+        )
     legacy_total = (
         (data.get("legacy_component_valuation_snapshot") or {}).get("value_per_share")
         or ((result.get("total_equity_value_per_share") or {}) if result else {})
@@ -253,6 +279,9 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
             "component_sum_reconciles": unvalued_count == 0,
             "no_double_counting": not double_counting_flags,
             "all_material_components_priced": unvalued_count == 0,
+            "positive_base_or_explicit_zero_value": (
+                base_value is not None and (float(base_value) > 0 or explicit_zero_value)
+            ),
             "low_base_high_ordered": all(
                 row.get("range_per_share", {}).get("low") is None
                 or row["range_per_share"]["low"] <= row["range_per_share"]["base"] <= row["range_per_share"]["high"]
@@ -291,4 +320,9 @@ def strict_contract_errors(data: dict) -> list[str]:
         errors.append("double-counting flags remain open")
     if not (contract.get("model_checks") or {}).get("component_sum_reconciles"):
         errors.append("component sum does not reconcile to a complete security value")
+    if not (contract.get("model_checks") or {}).get("positive_base_or_explicit_zero_value"):
+        errors.append(
+            "base equity value must be positive unless an explicit source-backed "
+            "zero-value policy is present"
+        )
     return sorted(set(errors))

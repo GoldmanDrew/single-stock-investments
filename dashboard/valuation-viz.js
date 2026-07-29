@@ -503,14 +503,9 @@
 
     const tabs = [
       ['decision', 'Decision'],
-      ['business', 'Business'],
-      ['valuation', 'Valuation'],
-      ['optionality', 'Optionality'],
       ['evidence', 'Evidence'],
-      ['method', 'Method fit'],
-      ['committee', 'Committee'],
-      ['outcomes', 'Outcomes'],
-      ['attribution', 'Value changes'],
+      ['model', 'Model & proof'],
+      ['history', 'History'],
     ];
 
     return `<div class="detail-section valuation-workbench">
@@ -522,16 +517,11 @@
         ${wb.github_url ? `<a class="research-link" href="${wb.github_url}" target="_blank" rel="noopener">Audit file →</a>` : ''}
       </div>
       <div class="workbench-tabs" role="tablist">${tabs.map(([id, label], index) =>
-        `<button type="button" class="workbench-tab ${index === 0 ? 'active' : ''}" data-workbench-tab="${id}">${label}</button>`).join('')}</div>
-      <div class="workbench-page active" data-workbench-page="decision">${decisionPage}</div>
-      <div class="workbench-page" data-workbench-page="business">${businessPage}</div>
-      <div class="workbench-page" data-workbench-page="valuation">${valuationPage}</div>
-      <div class="workbench-page" data-workbench-page="optionality">${optionalityPage}</div>
-      <div class="workbench-page" data-workbench-page="evidence">${evidencePage}</div>
-      <div class="workbench-page" data-workbench-page="method">${methodPage}</div>
-      <div class="workbench-page" data-workbench-page="committee">${committeePage}</div>
-      <div class="workbench-page" data-workbench-page="outcomes">${outcomesPage}</div>
-      <div class="workbench-page" data-workbench-page="attribution">${attributionPage}</div>
+        `<button type="button" role="tab" id="workbench-tab-${id}" aria-controls="workbench-page-${id}" aria-selected="${index === 0 ? 'true' : 'false'}" tabindex="${index === 0 ? '0' : '-1'}" class="workbench-tab ${index === 0 ? 'active' : ''}" data-workbench-tab="${id}">${label}</button>`).join('')}</div>
+      <div class="workbench-page active" role="tabpanel" id="workbench-page-decision" aria-labelledby="workbench-tab-decision" data-workbench-page="decision">${decisionPage}${committeePage}</div>
+      <div class="workbench-page" role="tabpanel" id="workbench-page-evidence" aria-labelledby="workbench-tab-evidence" data-workbench-page="evidence">${evidencePage}${businessPage}</div>
+      <div class="workbench-page" role="tabpanel" id="workbench-page-model" aria-labelledby="workbench-tab-model" data-workbench-page="model">${valuationPage}${optionalityPage}${methodPage}</div>
+      <div class="workbench-page" role="tabpanel" id="workbench-page-history" aria-labelledby="workbench-tab-history" data-workbench-page="history">${outcomesPage}${attributionPage}</div>
     </div>`;
   }
 
@@ -630,7 +620,7 @@
       const progress = row.next_gap_progress_note
         ? `<div class="tier-sub">${tierBadge ? `${tierBadge} ` : ''}${escapeHtml(String(row.next_gap_progress_note).slice(0, 140))}</div>`
         : (tierBadge ? `<div class="tier-sub">${tierBadge}</div>` : '');
-      return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}">
+      return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(row.ticker)} evidence">
         <td><strong>${escapeHtml(row.ticker)}</strong><div class="tier-sub">${escapeHtml(row.company || '')}</div></td>
         <td>${escapeHtml(String(row.method_profile || '—').replace(/_/g, ' '))}</td>
         <td><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>${row.in_validation_cohort ? '<div class="tier-sub">cohort</div>' : ''}</td>

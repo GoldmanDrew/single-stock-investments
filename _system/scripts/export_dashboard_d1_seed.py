@@ -25,6 +25,11 @@ PROFILE_DEFAULT_METHOD = {
 }
 
 
+def stable_id(*parts: Any) -> str:
+    payload = "\x1f".join(str(part or "") for part in parts)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def read_json(path: Path) -> dict:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -143,6 +148,10 @@ def export(
     ]
     task_count = 0
     blocked_without_source_task = 0
+    document_ids: set[str] = set()
+    fact_count = 0
+    valuation_run_count = 0
+    component_count = 0
     for row in rows:
         ticker = str(row.get("ticker") or "").upper()
         if not ticker:
@@ -268,7 +277,161 @@ def export(
                 ["ticker", "task_id"],
             ))
 
+        shard_ref = str(row.get("detail_shard") or "")
+        shard_path = ROOT / "dashboard" / shard_ref
+        if not shard_path.is_file():
+            shard_path = ROOT / "dashboard" / "data" / "tickers" / f"{ticker}.json"
+        detail = read_json(shard_path)
+        workbench = detail.get("valuation_workbench") or {}
+        wb_valuation = workbench.get("valuation") or {}
+        valuation_body = wb_valuation.get("valuation") or {}
+        wb_decision = workbench.get("decision") or decision
+        wb_method = workbench.get("method_fit") or {}
+        proof_summary = wb_valuation.get("calculation_proof_summary") or {}
+        wb_components = wb_valuation.get("components") or []
+
+        if workbench and wb_components:
+            model_hash = str(
+                wb_decision.get("model_hash")
+                or (wb_valuation.get("change_control") or {}).get("model_hash")
+                or source_hash
+            )
+            valuation_run_id = stable_id(ticker, model_hash, generated_at)
+            primary_methods = wb_method.get("primary_methods") or []
+            primary_method = str(primary_methods[0] if primary_methods else route.get("primary_methods", ["unknown"])[0])
+            values = valuation_body.get("value_per_share") or wb_decision.get("value_per_share") or {}
+            output_unit = next(
+                (
+                    (component.get("calculation_proof") or {}).get("output_unit")
+                    for component in wb_components
+                    if isinstance(component.get("calculation_proof"), dict)
+                    and (component.get("calculation_proof") or {}).get("output_unit")
+                ),
+                "USD per share",
+            )
+            sql.append(upsert(
+                "valuation_runs",
+                [
+                    "valuation_run_id", "ticker", "method_id", "method_version",
+                    "power_zone_profile", "as_of_date", "status", "input_hash", "proof_hash",
+                    "value_low", "value_base", "value_high", "output_unit", "run_id", "payload_json",
+                ],
+                [
+                    valuation_run_id, ticker, primary_method, "1.0",
+                    wb_method.get("profile_id") or route.get("profile_id"),
+                    workbench.get("as_of") or generated_at[:10],
+                    wb_decision.get("status") or "evidence_blocked",
+                    model_hash,
+                    proof_summary.get("aggregate_proof_hash"),
+                    number(values.get("low")), number(values.get("base")), number(values.get("high")),
+                    output_unit, run_id,
+                    compact_json({
+                        "decision": wb_decision,
+                        "method_fit": {
+                            "profile_id": wb_method.get("profile_id"),
+                            "primary_methods": primary_methods,
+                            "routing_reasons": wb_method.get("routing_reasons") or [],
+                        },
+                        "calculation_proof_summary": proof_summary,
+                    }),
+                ],
+                ["valuation_run_id"],
+            ))
+            valuation_run_count += 1
+            for component in wb_components:
+                component_id = str(component.get("component_id") or component.get("id") or "")
+                if not component_id:
+                    continue
+                component_values = component.get("range_per_share") or {}
+                proof = component.get("calculation_proof") or {}
+                sql.append(upsert(
+                    "valuation_components",
+                    [
+                        "valuation_run_id", "component_id", "label", "category", "treatment",
+                        "method_id", "method_version", "value_low", "value_base", "value_high",
+                        "overlap_key", "proof_hash", "payload_json",
+                    ],
+                    [
+                        valuation_run_id, component_id, component.get("label"), component.get("category"),
+                        component.get("treatment") or "additive", component.get("method"),
+                        component.get("method_version") or proof.get("method_version"),
+                        number(component_values.get("low")), number(component_values.get("base")),
+                        number(component_values.get("high")), component.get("overlap_key"),
+                        proof.get("proof_hash"),
+                        compact_json({
+                            key: component.get(key)
+                            for key in (
+                                "evidence_tier", "evidence", "falsifier", "valuation_status",
+                                "ownership_claim", "ownership_percentage", "assumption_type",
+                            )
+                            if component.get(key) is not None
+                        }),
+                    ],
+                    ["valuation_run_id", "component_id"],
+                ))
+                component_count += 1
+
+                traces = proof.get("traces") or {}
+                base_trace = {
+                    str(trace.get("id") or ""): trace
+                    for trace in (traces.get("base") or [])
+                    if isinstance(trace, dict)
+                }
+                for lineage in proof.get("source_lineage") or []:
+                    if not isinstance(lineage, dict) or not lineage.get("ref"):
+                        continue
+                    node_id = str(lineage.get("node_id") or "")
+                    source_id = str(lineage.get("source_id") or stable_id(
+                        ticker, lineage.get("ref"), lineage.get("locator"), lineage.get("as_of")
+                    ))
+                    document_id = stable_id(ticker, source_id)
+                    if document_id not in document_ids:
+                        sql.append(upsert(
+                            "source_documents",
+                            [
+                                "document_id", "ticker", "source_type", "source_ref", "source_locator",
+                                "as_of_date", "content_sha256", "metadata_json",
+                            ],
+                            [
+                                document_id, ticker, "valuation_primary_evidence", lineage.get("ref"),
+                                lineage.get("locator"), lineage.get("as_of"), source_id,
+                                compact_json({"component_id": component_id, "source_id": source_id}),
+                            ],
+                            ["document_id"],
+                        ))
+                        document_ids.add(document_id)
+                    trace = base_trace.get(node_id) or {}
+                    fact_id = stable_id(ticker, component_id, node_id, source_id, generated_at)
+                    sql.append(upsert(
+                        "facts",
+                        [
+                            "fact_id", "ticker", "field_id", "value_number", "value_text", "unit",
+                            "currency", "as_of_date", "confidence", "locked", "source_document_id",
+                            "source_locator", "derivation_json", "method_version", "run_id",
+                        ],
+                        [
+                            fact_id, ticker, node_id or "source_lineage",
+                            number(trace.get("value")),
+                            None if number(trace.get("value")) is not None else trace.get("value"),
+                            trace.get("unit"), None, lineage.get("as_of"), "source_locked", True,
+                            document_id, lineage.get("locator"),
+                            compact_json({
+                                "component_id": component_id,
+                                "kind": trace.get("kind"),
+                                "operation": trace.get("operation"),
+                                "dependencies": trace.get("dependencies") or [],
+                            }),
+                            component.get("method_version") or proof.get("method_version") or "1.0",
+                            run_id,
+                        ],
+                        ["fact_id"],
+                    ))
+                    fact_count += 1
+
     sql.extend([
+        f"DELETE FROM facts WHERE run_id <> {quote(run_id)};",
+        f"DELETE FROM valuation_runs WHERE run_id <> {quote(run_id)};",
+        "DELETE FROM source_documents WHERE document_id NOT IN (SELECT DISTINCT source_document_id FROM facts WHERE source_document_id IS NOT NULL);",
         f"DELETE FROM evidence_tasks WHERE latest_run_id <> {quote(run_id)};",
         f"DELETE FROM securities WHERE latest_run_id <> {quote(run_id)};",
         "DELETE FROM pipeline_runs WHERE generated_at < datetime('now', '-365 days');",
@@ -283,6 +446,10 @@ def export(
         "ticker_count": len(rows),
         "task_count": task_count,
         "blocked_without_source_task_count": blocked_without_source_task,
+        "source_document_count": len(document_ids),
+        "fact_count": fact_count,
+        "valuation_run_count": valuation_run_count,
+        "valuation_component_count": component_count,
         "output": output.as_posix(),
         "bytes": output.stat().st_size,
     }
