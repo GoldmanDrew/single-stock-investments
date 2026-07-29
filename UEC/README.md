@@ -1,7 +1,7 @@
-# UEC (UEC)
+# Uranium Energy Corp. (UEC)
 
 **Ticker:** UEC | **Market:** US
-**Last updated:** 2026-07-28
+**Last updated:** 2026-07-29
 
 ## Download
 

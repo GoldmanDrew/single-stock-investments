@@ -162,6 +162,7 @@ GENERIC_COMPANY_TOKENS = frozenset(
         "minerals",
         "mining",
         "metals",
+        "uranium",
         "networks",
         "systems",
         "sciences",
@@ -197,6 +198,41 @@ GENERIC_COMPANY_TOKENS = frozenset(
         "platforms",
     }
 )
+
+LEGAL_ENTITY_SUFFIX_TOKENS = frozenset(
+    {
+        "co",
+        "company",
+        "corp",
+        "corporation",
+        "inc",
+        "incorporated",
+        "limited",
+        "llc",
+        "lp",
+        "ltd",
+        "plc",
+    }
+)
+
+
+def _normalized_words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", (text or "").lower())
+
+
+def _matches_company_phrase(text: str, company: str) -> bool:
+    """Match a normalized full/core issuer name across URL punctuation and legal suffixes."""
+    company_words = _normalized_words(company)
+    if not company_words:
+        return False
+    hay = f" {' '.join(_normalized_words(text))} "
+    phrases = [" ".join(company_words)]
+    core_words = list(company_words)
+    while core_words and core_words[-1] in LEGAL_ENTITY_SUFFIX_TOKENS:
+        core_words.pop()
+    if len(core_words) >= 2:
+        phrases.append(" ".join(core_words))
+    return any(f" {phrase} " in hay for phrase in phrases)
 
 
 def _distinctive_aliases(company: str, ticker: str) -> set[str]:
@@ -444,7 +480,7 @@ def match_report_to_ticker(text: str, meta: dict, *, min_confidence: float = 0.0
     # Resolve the issuer name before ticker symbols.  Short symbols such as A,
     # T, ON, IT, ED, and MAR are ordinary prose/month tokens and are never
     # sufficient without explicit market notation.
-    if company and len(company) >= 6 and company in hay:
+    if company and len(company) >= 6 and _matches_company_phrase(hay, company):
         return True, 0.98, "company_name"
 
     # Lead brand token from the company name (e.g. "costar" from "CoStar Group").
@@ -498,7 +534,7 @@ def url_target_mismatch(url: str, title: str, meta: dict) -> bool:
     company = (meta.get("company") or "").lower()
     if len(ticker) >= 4 and re.search(rf"\b{re.escape(ticker)}\b", blob, re.I):
         return False
-    if company and len(company) >= 6 and company in blob:
+    if company and len(company) >= 6 and _matches_company_phrase(blob, company):
         return False
 
     slug = urlparse(url or "").path.strip("/").split("/")[-1].lower()

@@ -174,6 +174,38 @@ class ActivistFeedTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn(reason, ("url_mismatch", "no_match", "alias:corporation", "alias:nvidia"))
 
+    def test_spruce_uranium_energy_matches_uec_not_uroy(self) -> None:
+        url = "https://sprucepointcap.com/research/uranium-energy-corporation"
+        title = "Sep 18, 2025"
+        blob = f"{title} {url}"
+        body = (
+            "After conducting a forensic evaluation of Uranium Energy Corp. "
+            "(NYSE American: UEC), we believe investors should exercise caution."
+        )
+
+        uroy_meta = ticker_meta("UROY")
+        self.assertTrue(url_target_mismatch(url, title, uroy_meta))
+        uroy_ok, _confidence, uroy_reason = publisher_match_allowed(
+            url, title, blob, uroy_meta
+        )
+        self.assertFalse(uroy_ok, msg=uroy_reason)
+        uroy_body_match, _confidence, uroy_body_reason = match_report_to_ticker(
+            body, uroy_meta
+        )
+        self.assertFalse(uroy_body_match, msg=uroy_body_reason)
+
+        uec_meta = ticker_meta("UEC")
+        self.assertEqual(uec_meta["company"], "Uranium Energy Corp.")
+        self.assertFalse(url_target_mismatch(url, title, uec_meta))
+        uec_ok, _confidence, uec_reason = publisher_match_allowed(
+            url, title, blob, uec_meta
+        )
+        self.assertTrue(uec_ok, msg=uec_reason)
+        uec_body_match, _confidence, uec_body_reason = match_report_to_ticker(
+            body, uec_meta
+        )
+        self.assertTrue(uec_body_match, msg=uec_body_reason)
+
     def test_grizzly_generic_companies_post_does_not_match_mrsh(self) -> None:
         meta = ticker_meta("MRSH")
         url = (
