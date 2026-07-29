@@ -1,10 +1,11 @@
 # SOFI — Third-party source inventory
 
 **Date:** 2026-07-29
-**Sources:** 10 total (0 approved, 0 pending, 10 context)
+**Sources:** 11 total (0 approved, 1 pending, 10 context)
 
 | ID | Title | Path | Status | Use |
 |----|-------|------|--------|-----|
+| vic | SOFI | `SOFI/third-party-analyses/vic/SOFI.pdf` | pending | VIC local single-page intake; human approval required |
 | activist_long | SoftBank Group Corp. — SC 13D/A | `SOFI/third-party-analyses/activist_reports/long/SC-13D/A_20220817_acc0001140361_22_030137.htm` | context | activist/long — sec_edgar |
 | activist_long | SoftBank Group Corp. — SC 13D/A | `SOFI/third-party-analyses/activist_reports/long/SC-13D/A_20220811_acc0001140361_22_029305.htm` | context | activist/long — sec_edgar |
 | activist_long | SoftBank Group Corp. — SC 13D/A | `SOFI/third-party-analyses/activist_reports/long/SC-13D/A_20220808_acc0001140361_22_028766.htm` | context | activist/long — sec_edgar |
