@@ -2852,10 +2852,20 @@ def write_oauth_config() -> None:
             existing = {}
     client_id = os.environ.get("OAUTH_CLIENT_ID", "").strip() or existing.get("client_id", "")
     exchange_url = os.environ.get("OAUTH_PROXY_URL", "").strip() or existing.get("exchange_url", "")
+    allowed_logins = existing.get("allowed_logins") or [
+        "GoldmanDrew",
+        "dgoldman",
+        "mcricenti",
+        "dylansapienza",
+        "Dsap5131",
+    ]
+    # Normalize once so allowlist checks stay case-insensitive.
+    allowed_logins = sorted({str(x).strip() for x in allowed_logins if str(x).strip()})
     payload = {
         "client_id": client_id,
         "exchange_url": exchange_url,
         "scopes": existing.get("scopes", "repo"),
+        "allowed_logins": allowed_logins,
         "setup": existing.get(
             "setup",
             "Create a GitHub OAuth App; callback URL must match .../oauth/callback.html on Pages.",
