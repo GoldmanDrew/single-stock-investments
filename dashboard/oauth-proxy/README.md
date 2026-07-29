@@ -22,7 +22,7 @@ npx wrangler deploy
 
 ## CORS note
 
-The worker must echo the browser `Origin` header when it is allowlisted. If sign-in shows **Failed to fetch**, the deployed worker is likely stale — redeploy with the latest `worker.js`.
+The worker must echo the browser `Origin` header when it is allowlisted, including `https://single-stock-investments.pages.dev` and preview `*.pages.dev` hosts. If sign-in shows **Failed to fetch**, the deployed worker is likely stale — redeploy with the latest `worker.js`.
 
 ## Troubleshooting "OAuth proxy unreachable"
 
