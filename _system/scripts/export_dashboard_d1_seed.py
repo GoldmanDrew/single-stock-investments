@@ -156,6 +156,7 @@ def export(
     valuation_run_count = 0
     component_count = 0
     technical_snapshot_count = 0
+    market_structure_snapshot_count = 0
     price_observation_count = 0
     for row in rows:
         ticker = str(row.get("ticker") or "").upper()
@@ -336,6 +337,33 @@ def export(
                     ],
                     ["ticker", "as_of_date", "model_version"],
                 ))
+            market_structure = technicals.get("market_structure") or {}
+            market_structure_as_of = market_structure.get("as_of")
+            if market_structure_as_of:
+                sql.append(upsert(
+                    "market_structure_snapshots",
+                    [
+                        "ticker", "as_of_date", "float_shares", "shares_outstanding",
+                        "float_percent_outstanding", "short_interest_shares",
+                        "short_percent_float", "short_change_pct", "days_to_cover",
+                        "source", "payload_json",
+                    ],
+                    [
+                        ticker,
+                        market_structure_as_of,
+                        number(market_structure.get("float_shares")),
+                        number(market_structure.get("shares_outstanding")),
+                        number(market_structure.get("float_percent_outstanding")),
+                        number(market_structure.get("short_interest_shares")),
+                        number(market_structure.get("short_percent_float")),
+                        number(market_structure.get("short_change_pct")),
+                        number(market_structure.get("days_to_cover")),
+                        market_structure.get("source"),
+                        compact_json(market_structure),
+                    ],
+                    ["ticker", "as_of_date"],
+                ))
+                market_structure_snapshot_count += 1
 
         task_doc = (
             read_json(ROOT / ticker / "research" / "evidence_task_queue.json")
@@ -581,6 +609,7 @@ def export(
         "valuation_run_count": valuation_run_count,
         "valuation_component_count": component_count,
         "technical_snapshot_count": technical_snapshot_count,
+        "market_structure_snapshot_count": market_structure_snapshot_count,
         "price_observation_count": price_observation_count,
         "output": output.as_posix(),
         "bytes": output.stat().st_size,

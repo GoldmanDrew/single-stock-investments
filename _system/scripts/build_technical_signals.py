@@ -31,6 +31,22 @@ from portfolio_registry import load_registry  # noqa: E402
 
 OUTPUT = ROOT / "dashboard" / "data" / "technical_signals.json"
 SUMMARY_OUTPUT = ROOT / "dashboard" / "data" / "technical_summary.json"
+FLOAT_ADV_INPUT = (
+    ROOT
+    / "_system"
+    / "reference"
+    / "market-data"
+    / "fundamentals"
+    / "index_float_adv.json"
+)
+MARKET_STRUCTURE_HISTORY_INPUT = (
+    ROOT
+    / "_system"
+    / "reference"
+    / "market-data"
+    / "fundamentals"
+    / "market_structure_history.json"
+)
 USER_AGENT = "Mozilla/5.0 (compatible; MagisTechnicalResearch/1.0)"
 MODEL_VERSION = "technical-fear-v2"
 TRADING_DAYS = 252
@@ -297,6 +313,171 @@ def _weighted_z(parts: list[tuple[float | None, float]]) -> float | None:
         return None
     total = sum(weight for _, weight in usable)
     return sum(value * weight for value, weight in usable) / total if total else None
+
+
+def _simple_average(values: list[float], window: int) -> float | None:
+    if len(values) < window:
+        return None
+    return sum(values[-window:]) / window
+
+
+def _rsi_14(closes: list[float]) -> float | None:
+    if len(closes) < 15:
+        return None
+    changes = [after - before for before, after in zip(closes[-15:-1], closes[-14:])]
+    gains = [max(change, 0.0) for change in changes]
+    losses = [max(-change, 0.0) for change in changes]
+    average_gain = sum(gains) / 14.0
+    average_loss = sum(losses) / 14.0
+    if average_loss == 0:
+        return 100.0
+    relative_strength = average_gain / average_loss
+    return 100.0 - 100.0 / (1.0 + relative_strength)
+
+
+def _chaikin_money_flow_20(rows: list[dict]) -> float | None:
+    if len(rows) < 20:
+        return None
+    money_flow_volume = 0.0
+    total_volume = 0.0
+    for row in rows[-20:]:
+        high = _finite(row.get("high"))
+        low = _finite(row.get("low"))
+        close = _finite(row.get("close"))
+        volume = _finite(row.get("volume"))
+        if high is None or low is None or close is None or volume is None or high <= low:
+            continue
+        multiplier = ((close - low) - (high - close)) / (high - low)
+        money_flow_volume += multiplier * volume
+        total_volume += volume
+    return money_flow_volume / total_volume if total_volume > 0 else None
+
+
+def _atr_percent_20(rows: list[dict]) -> float | None:
+    if len(rows) < 21:
+        return None
+    true_ranges: list[float] = []
+    for prior, row in zip(rows[-21:-1], rows[-20:]):
+        prior_close = _finite(prior.get("close"))
+        high = _finite(row.get("high"))
+        low = _finite(row.get("low"))
+        if prior_close is None or high is None or low is None:
+            continue
+        true_ranges.append(max(high - low, abs(high - prior_close), abs(low - prior_close)))
+    close = _finite(rows[-1].get("close"))
+    if not true_ranges or not close or close <= 0:
+        return None
+    return sum(true_ranges) / len(true_ranges) / close
+
+
+def _technical_setup(
+    rows: list[dict],
+    *,
+    relative_return_60d_pct: float | None,
+    capitulation: dict,
+) -> dict:
+    closes = [float(row["close"]) for row in rows]
+    volumes = [_finite(row.get("volume")) for row in rows]
+    close = closes[-1]
+    sma50 = _simple_average(closes, 50)
+    sma200 = _simple_average(closes, 200)
+    rsi14 = _rsi_14(closes)
+    cmf20 = _chaikin_money_flow_20(rows)
+    atr20_pct = _atr_percent_20(rows)
+    latest_volume = volumes[-1]
+    prior_volumes = [value for value in volumes[-21:-1] if value is not None and value > 0]
+    average_volume = _mean(prior_volumes)
+    relative_volume = (
+        latest_volume / average_volume
+        if latest_volume is not None and average_volume and average_volume > 0
+        else None
+    )
+    above50 = bool(sma50 and close > sma50)
+    above200 = bool(sma200 and close > sma200)
+    relative = _finite(relative_return_60d_pct)
+    if above50 and above200 and (relative is None or relative >= 0):
+        direction = "leading_uptrend"
+        direction_label = "Leading uptrend"
+    elif not above50 and not above200 and (relative is None or relative < 0):
+        direction = "lagging_downtrend"
+        direction_label = "Lagging downtrend"
+    elif above200:
+        direction = "pullback_in_uptrend"
+        direction_label = "Pullback in longer uptrend"
+    else:
+        direction = "mixed_repair"
+        direction_label = "Mixed / repairing"
+
+    if rsi14 is None:
+        pressure = "unavailable"
+        pressure_label = "Momentum unavailable"
+    elif rsi14 < 25:
+        pressure = "deeply_oversold"
+        pressure_label = "Deeply oversold"
+    elif rsi14 < 35:
+        pressure = "oversold"
+        pressure_label = "Oversold"
+    elif rsi14 > 70:
+        pressure = "overbought"
+        pressure_label = "Overbought"
+    else:
+        pressure = "balanced"
+        pressure_label = "Momentum balanced"
+
+    if cmf20 is None:
+        participation = "unavailable"
+        participation_label = "Volume signal unavailable"
+    elif cmf20 <= -0.10:
+        participation = "distribution"
+        participation_label = "Distribution"
+    elif cmf20 >= 0.10:
+        participation = "accumulation"
+        participation_label = "Accumulation"
+    else:
+        participation = "mixed"
+        participation_label = "Mixed participation"
+
+    fear_state = str(capitulation.get("state") or "unavailable")
+    exhaustion = _finite((capitulation.get("scores") or {}).get("exhaustion")) or 0.0
+    if fear_state in {"panic", "capitulation_candidate"} and exhaustion < 40:
+        phase = "falling_knife"
+        phase_label = "Falling knife"
+    elif fear_state in {"exhaustion_emerging", "confirmed_exhaustion"} or exhaustion >= 40:
+        phase = "stabilizing"
+        phase_label = "Stabilizing after stress"
+    elif direction == "leading_uptrend":
+        phase = "trend_intact"
+        phase_label = "Trend intact"
+    elif pressure in {"deeply_oversold", "oversold"}:
+        phase = "oversold_watch"
+        phase_label = "Oversold watch"
+    else:
+        phase = "indeterminate"
+        phase_label = "No decisive setup"
+
+    return {
+        "phase": phase,
+        "phase_label": phase_label,
+        "direction": direction,
+        "direction_label": direction_label,
+        "pressure": pressure,
+        "pressure_label": pressure_label,
+        "participation": participation,
+        "participation_label": participation_label,
+        "indicators": {
+            "price_vs_50d_pct": _round((close / sma50 - 1.0) * 100 if sma50 else None, 2),
+            "price_vs_200d_pct": _round((close / sma200 - 1.0) * 100 if sma200 else None, 2),
+            "rsi_14": _round(rsi14, 1),
+            "chaikin_money_flow_20d": _round(cmf20, 3),
+            "relative_volume_20d": _round(relative_volume, 2),
+            "atr_20d_pct": _round(atr20_pct * 100 if atr20_pct is not None else None, 2),
+        },
+        "explainers": {
+            "direction": "Price versus its 50- and 200-day averages, checked against 60-day SPY-relative performance.",
+            "pressure": "RSI identifies momentum pressure; the capitulation model still requires stabilization before calling a bottom.",
+            "participation": "Chaikin Money Flow and relative volume show whether volume confirms accumulation or distribution.",
+        },
+    }
 
 
 def _percentile_latest(series: list[float | None], *, minimum: int = 40) -> float | None:
@@ -625,6 +806,11 @@ def calculate_snapshot(
     )
     stretch_z = _weighted_z([(distance50_z, 0.55), (distance200_z, 0.45)])
     capitulation = _capitulation_snapshot(rows, relative60_z)
+    technical_setup = _technical_setup(
+        rows,
+        relative_return_60d_pct=relative60 * 100 if relative60 is not None else None,
+        capitulation=capitulation,
+    )
     trend_regime, stretch_regime, interpretation = _regimes(trend_z, stretch_z)
     quality = "ready" if len(rows) >= 260 else "limited" if len(rows) >= 120 else "unavailable"
     has_ohlc = all(_finite(rows[-1].get(key)) is not None for key in ("open", "high", "low", "close"))
@@ -696,6 +882,7 @@ def calculate_snapshot(
             ),
             "interpretation": interpretation,
         },
+        "setup": technical_setup,
         "capitulation": capitulation,
         "history": [[row["date"], _round(row["close"], 4)] for row in rows[-260:]],
     }
@@ -732,6 +919,68 @@ def write_summary(payload: dict) -> None:
     _write_json_atomic(SUMMARY_OUTPUT, summary_payload)
 
 
+def _load_market_structure() -> tuple[dict[str, dict], dict[str, list[dict]]]:
+    current: dict[str, dict] = {}
+    history: dict[str, list[dict]] = {}
+    if FLOAT_ADV_INPUT.exists():
+        try:
+            current = json.loads(FLOAT_ADV_INPUT.read_text(encoding="utf-8")).get("by_ticker") or {}
+        except (json.JSONDecodeError, OSError):
+            current = {}
+    if MARKET_STRUCTURE_HISTORY_INPUT.exists():
+        try:
+            history = (
+                json.loads(MARKET_STRUCTURE_HISTORY_INPUT.read_text(encoding="utf-8"))
+                .get("by_ticker")
+                or {}
+            )
+        except (json.JSONDecodeError, OSError):
+            history = {}
+    return current, history
+
+
+def _market_structure_snapshot(
+    ticker: str,
+    current: dict[str, dict],
+    history: dict[str, list[dict]],
+) -> dict | None:
+    row = current.get(ticker) or {}
+    points = history.get(ticker) or []
+    if not row and not points:
+        return None
+    short_now = _finite(row.get("short_interest_shares"))
+    short_prior = _finite(row.get("short_interest_prior_shares"))
+    short_change = (
+        (short_now / short_prior - 1.0) * 100
+        if short_now is not None and short_prior and short_prior > 0
+        else None
+    )
+    return {
+        "as_of": row.get("short_interest_date") or row.get("as_of"),
+        "float_shares": row.get("float_shares"),
+        "shares_outstanding": row.get("shares_outstanding"),
+        "float_percent_outstanding": (
+            _round(_finite(row.get("float_pct")) * 100, 2)
+            if _finite(row.get("float_pct")) is not None
+            else None
+        ),
+        "short_interest_shares": row.get("short_interest_shares"),
+        "short_percent_float": (
+            _round(_finite(row.get("short_percent_float")) * 100, 2)
+            if _finite(row.get("short_percent_float")) is not None
+            else None
+        ),
+        "short_change_pct": _round(short_change, 2),
+        "days_to_cover": row.get("days_to_cover"),
+        "history": points[-36:],
+        "source": row.get("source") or "yahoo_defaultKeyStatistics",
+        "source_note": (
+            "Yahoo-reported exchange/FINRA short-interest snapshot. "
+            "Short interest is not daily short-sale volume."
+        ),
+    }
+
+
 def build(*, limit: int = 0, workers: int = 12, tickers: set[str] | None = None) -> dict:
     prior = {}
     if OUTPUT.exists():
@@ -744,6 +993,7 @@ def build(*, limit: int = 0, workers: int = 12, tickers: set[str] | None = None)
         registry = [row for row in registry if row["ticker"] in tickers]
     if limit:
         registry = registry[:limit]
+    market_structure_current, market_structure_history = _load_market_structure()
 
     markets = sorted({row["market"] for row in registry})
     benchmark_history: dict[str, list[dict]] = {}
@@ -765,13 +1015,21 @@ def build(*, limit: int = 0, workers: int = 12, tickers: set[str] | None = None)
             meta["ticker"], meta["market"], meta["exchange"], meta.get("quote_ticker")
         )
         benchmark = BENCHMARKS.get(meta["market"], "SPY")
-        return calculate_snapshot(
+        snapshot = calculate_snapshot(
             meta["ticker"],
             history,
             benchmark_rows=benchmark_history.get(meta["market"]),
             benchmark=benchmark,
             source=source,
         )
+        market_structure = _market_structure_snapshot(
+            meta["ticker"],
+            market_structure_current,
+            market_structure_history,
+        )
+        if market_structure:
+            snapshot["market_structure"] = market_structure
+        return snapshot
 
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = {pool.submit(fetch_one, meta): meta for meta in registry}

@@ -71,6 +71,21 @@ class TechnicalFearTests(unittest.TestCase):
         self.assertIsNotNone(shape["downside_variance_share_20d"])
         self.assertEqual(snapshot["data_grade"], "A")
 
+    def test_plain_english_setup_replaces_sigma_as_primary_read(self):
+        snapshot = technicals.calculate_snapshot(
+            "TEST",
+            synthetic_rows(panic=True),
+            benchmark_rows=None,
+            benchmark="SPY",
+            source="synthetic",
+        )
+        setup = snapshot["setup"]
+        self.assertIn(setup["phase"], {"falling_knife", "oversold_watch"})
+        self.assertIn(setup["direction"], {"lagging_downtrend", "mixed_repair"})
+        self.assertIsNotNone(setup["indicators"]["rsi_14"])
+        self.assertIsNotNone(setup["indicators"]["chaikin_money_flow_20d"])
+        self.assertIsNotNone(setup["indicators"]["atr_20d_pct"])
+
 
 if __name__ == "__main__":
     unittest.main()

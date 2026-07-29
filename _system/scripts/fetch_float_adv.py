@@ -17,11 +17,20 @@ import time
 import urllib.error
 import urllib.request
 from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "_system" / "reference" / "market-data" / "fundamentals" / "index_float_adv.json"
+HISTORY_OUT = (
+    ROOT
+    / "_system"
+    / "reference"
+    / "market-data"
+    / "fundamentals"
+    / "market_structure_history.json"
+)
 REGISTRY = ROOT / "_system" / "portfolio" / "registry.json"
 MEMBERSHIP = ROOT / "dashboard" / "data" / "index_membership.json"
 SEC_TICKERS = ROOT / "_system" / "reference" / "securities" / "sec_company_tickers.json"
@@ -101,6 +110,13 @@ def yahoo_symbol(ticker: str) -> str:
     return t
 
 
+def _epoch_date(value: Any) -> str | None:
+    try:
+        return datetime.fromtimestamp(float(value), tz=timezone.utc).date().isoformat()
+    except (TypeError, ValueError, OSError, OverflowError):
+        return None
+
+
 def fetch_yahoo_float_adv(ticker: str) -> dict[str, Any]:
     sym = yahoo_symbol(ticker)
     out: dict[str, Any] = {"ticker": ticker, "yahoo_symbol": sym, "error": None}
@@ -144,6 +160,12 @@ def fetch_yahoo_float_adv(ticker: str) -> dict[str, Any]:
     float_shares = None
     shares_out = None
     insider_pct = None
+    shares_short = None
+    shares_short_prior = None
+    short_percent_float = None
+    short_ratio = None
+    short_interest_date = None
+    short_interest_prior_date = None
     if qs:
         try:
             res = qs["quoteSummary"]["result"][0]
@@ -160,6 +182,12 @@ def fetch_yahoo_float_adv(ticker: str) -> dict[str, Any]:
             float_shares = _raw(dks, "floatShares")
             shares_out = _raw(dks, "sharesOutstanding") or _raw(sd, "sharesOutstanding")
             insider_pct = _raw(dks, "heldPercentInsiders")
+            shares_short = _raw(dks, "sharesShort")
+            shares_short_prior = _raw(dks, "sharesShortPriorMonth")
+            short_percent_float = _raw(dks, "shortPercentOfFloat")
+            short_ratio = _raw(dks, "shortRatio")
+            short_interest_date = _epoch_date(_raw(dks, "dateShortInterest"))
+            short_interest_prior_date = _epoch_date(_raw(dks, "sharesShortPreviousMonthDate"))
             if mcap is None:
                 mc = _raw(pr, "marketCap")
                 if mc:
@@ -198,6 +226,16 @@ def fetch_yahoo_float_adv(ticker: str) -> dict[str, Any]:
             "float_pct": round(float_pct, 4) if float_pct is not None else None,
             "shares_outstanding": int(shares_out) if shares_out else None,
             "float_shares": int(float_shares) if float_shares else None,
+            "short_interest_shares": int(shares_short) if shares_short else None,
+            "short_interest_prior_shares": int(shares_short_prior) if shares_short_prior else None,
+            "short_percent_float": (
+                round(float(short_percent_float), 6)
+                if short_percent_float is not None
+                else None
+            ),
+            "days_to_cover": round(float(short_ratio), 2) if short_ratio is not None else None,
+            "short_interest_date": short_interest_date,
+            "short_interest_prior_date": short_interest_prior_date,
             "adv_shares": round(float(adv_shares), 2) if adv_shares else None,
             "price": round(float(price), 4) if price else None,
             "adv_dollar": round(float(adv_dollar), 2) if adv_dollar else None,
@@ -328,6 +366,13 @@ def main() -> int:
         except json.JSONDecodeError:
             existing = {}
     by = dict(existing.get("by_ticker") or {})
+    history_doc: dict[str, Any] = {}
+    if HISTORY_OUT.exists():
+        try:
+            history_doc = json.loads(HISTORY_OUT.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            history_doc = {}
+    history_by = dict(history_doc.get("by_ticker") or {})
 
     tickers = priority_tickers(
         args.only_events,
@@ -365,8 +410,12 @@ def main() -> int:
                             pass
                 time.sleep(args.sleep)  # SEC rate limit courtesy
 
-        # Persist only useful rows (have float or ADV)
-        if row.get("float_pct") is not None or row.get("adv_dollar") is not None:
+        # Persist only useful rows (have float, ADV, or reported short interest).
+        if (
+            row.get("float_pct") is not None
+            or row.get("adv_dollar") is not None
+            or row.get("short_interest_shares") is not None
+        ):
             clean = {
                 k: v
                 for k, v in row.items()
@@ -377,8 +426,48 @@ def main() -> int:
             if row.get("error"):
                 clean["fetch_error"] = row["error"]
             by[t] = clean
+            ticker_history = list(history_by.get(t) or [])
+            history_dates = {str(item.get("date")) for item in ticker_history}
+            float_shares = row.get("float_shares")
+            prior_shares = row.get("short_interest_prior_shares")
+            prior_date = row.get("short_interest_prior_date")
+            if prior_date and prior_shares and prior_date not in history_dates:
+                ticker_history.append(
+                    {
+                        "date": prior_date,
+                        "shares_short": int(prior_shares),
+                        "short_percent_float": (
+                            round(float(prior_shares) / float(float_shares), 6)
+                            if float_shares
+                            else None
+                        ),
+                        "source": "yahoo_defaultKeyStatistics",
+                    }
+                )
+            current_shares = row.get("short_interest_shares")
+            current_date = row.get("short_interest_date")
+            if current_date and current_shares:
+                ticker_history = [
+                    item for item in ticker_history if str(item.get("date")) != current_date
+                ]
+                ticker_history.append(
+                    {
+                        "date": current_date,
+                        "shares_short": int(current_shares),
+                        "short_percent_float": row.get("short_percent_float"),
+                        "days_to_cover": row.get("days_to_cover"),
+                        "float_shares": row.get("float_shares"),
+                        "source": "yahoo_defaultKeyStatistics",
+                    }
+                )
+            history_by[t] = sorted(
+                ticker_history,
+                key=lambda item: str(item.get("date") or ""),
+            )[-36:]
             print(
-                f"  {t}: float_pct={clean.get('float_pct')} adv_dollar={clean.get('adv_dollar')}"
+                f"  {t}: float_pct={clean.get('float_pct')} "
+                f"short_float={clean.get('short_percent_float')} "
+                f"adv_dollar={clean.get('adv_dollar')}"
             )
         else:
             print(f"  {t}: skip (no float/ADV) err={row.get('error')}")
@@ -399,7 +488,21 @@ def main() -> int:
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    history_payload = {
+        "as_of": date.today().isoformat(),
+        "notes": (
+            "Reported short-interest snapshots. Short interest is a position snapshot, "
+            "not daily short-sale volume. Historical short-percent-of-float uses the "
+            "float available at collection time."
+        ),
+        "by_ticker": dict(sorted(history_by.items())),
+    }
+    HISTORY_OUT.write_text(
+        json.dumps(history_payload, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     print(f"Wrote {OUT} ({len(by)} tickers)")
+    print(f"Wrote {HISTORY_OUT} ({len(history_by)} ticker histories)")
     return 0
 
 
