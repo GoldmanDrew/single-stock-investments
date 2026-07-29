@@ -6,8 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from build_evidence_recovery_queue import collector_for
-from collect_evidence_recovery import retry_delay_hours
+from build_evidence_recovery_queue import _ensure_terminal_error, collector_for
+from collect_evidence_recovery import retry_delay_hours, terminal_error
 
 
 class EvidenceRecoveryTests(unittest.TestCase):
@@ -30,6 +30,24 @@ class EvidenceRecoveryTests(unittest.TestCase):
         self.assertEqual(retry_delay_hours(1), 1)
         self.assertEqual(retry_delay_hours(4), 8)
         self.assertEqual(retry_delay_hours(20), 24 * 7)
+
+    def test_terminal_task_always_records_an_error(self):
+        self.assertEqual(
+            terminal_error({}, None),
+            "Automated collection exhausted retry budget without satisfying acceptance test.",
+        )
+        self.assertEqual(
+            terminal_error({"last_error": "missing primary source"}, None),
+            "missing primary source",
+        )
+        self.assertEqual(
+            terminal_error({}, "SEC returned HTTP 403"),
+            "SEC returned HTTP 403",
+        )
+        self.assertEqual(
+            _ensure_terminal_error({"status": "unavailable", "last_error": None})["last_error"],
+            "Automated collection exhausted retry budget without satisfying acceptance test.",
+        )
 
 
 if __name__ == "__main__":

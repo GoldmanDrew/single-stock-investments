@@ -37,6 +37,15 @@ def retry_delay_hours(attempts: int) -> int:
     return min(24 * 7, 2 ** max(0, attempts - 1))
 
 
+def terminal_error(task: dict, collection_error: str | None) -> str:
+    """Return durable context when a task exhausts its automated retries."""
+    return (
+        str(collection_error or "").strip()
+        or str(task.get("last_error") or "").strip()
+        or "Automated collection exhausted retry budget without satisfying acceptance test."
+    )
+
+
 def _parse_time(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -109,6 +118,7 @@ def main() -> int:
             if attempts >= max_attempts:
                 task["status"] = "unavailable"
                 task["next_attempt_at"] = None
+                task["last_error"] = terminal_error(task, error_message)
             else:
                 task["status"] = "retry_scheduled"
                 task["next_attempt_at"] = (
@@ -136,7 +146,15 @@ def main() -> int:
                 else "retry_scheduled"
             ),
             "new_artifact_count": len(set(after) - set(before)), "evidence_refs": after,
-            "last_error": error_message,
+            "last_error": error_message or next(
+                (
+                    str(task.get("last_error") or "").strip()
+                    for task in packet.get("tasks") or []
+                    if str(task.get("status") or "").lower() in TERMINAL_STATUSES
+                    and str(task.get("last_error") or "").strip()
+                ),
+                None,
+            ),
         }
         refresh_path = ROOT / ticker / "research" / "evidence_refresh.json"
         refresh_path.write_text(json.dumps(refresh, indent=2) + "\n", encoding="utf-8")

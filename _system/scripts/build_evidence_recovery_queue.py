@@ -14,6 +14,7 @@ OUT = ROOT / "_system" / "data" / "evidence_recovery_queue.json"
 DONE_STATUSES = {"evidence_ready", "closed", "complete", "resolved"}
 TERMINAL_STATUSES = {"unavailable", "manual_only"}
 DEFAULT_MAX_ATTEMPTS = 5
+DEFAULT_TERMINAL_ERROR = "Automated collection exhausted retry budget without satisfying acceptance test."
 
 
 def read(path: Path) -> dict:
@@ -61,6 +62,16 @@ def _task_from_gap(gap: dict, previous: dict | None = None) -> dict:
         "last_error": previous.get("last_error"),
         "evidence_refs": previous.get("evidence_refs") or [],
     }
+
+
+def _ensure_terminal_error(task: dict) -> dict:
+    """Keep persisted terminal tasks explainable to the recovery validator."""
+    if (
+        str(task.get("status") or "").lower() in TERMINAL_STATUSES
+        and not str(task.get("last_error") or "").strip()
+    ):
+        task["last_error"] = DEFAULT_TERMINAL_ERROR
+    return task
 
 
 def _contract_gaps(contract: dict) -> list[dict]:
@@ -178,6 +189,7 @@ def build(scope: str = "all-blocked", *, write: bool = True) -> dict:
             tasks_by_id[task_id] = _task_from_gap(gap, prior_by_id.get(task_id))
 
         tasks = list(tasks_by_id.values())
+        tasks = [_ensure_terminal_error(task) for task in tasks]
         for task in tasks:
             task.setdefault("max_attempts", DEFAULT_MAX_ATTEMPTS)
             task.setdefault("next_attempt_at", None)
