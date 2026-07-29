@@ -1,0 +1,127 @@
+name: Deploy dashboard to Cloudflare Pages and D1
+description: Build the safe static artifact, synchronize D1, and deploy Pages.
+inputs:
+  project-name:
+    description: Cloudflare Pages project name
+    required: false
+    default: single-stock-investments
+  database-name:
+    description: Cloudflare D1 database name
+    required: false
+    default: single-stock-investments
+outputs:
+  page_url:
+    description: URL reported by the Cloudflare Pages deployment
+    value: ${{ steps.deploy.outputs.page_url }}
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Cloudflare tooling
+      shell: bash
+      run: npm ci --prefix dashboard/cloudflare
+
+    - name: Build Cloudflare-safe dashboard artifact
+      shell: bash
+      run: |
+        set -euo pipefail
+        python _system/scripts/build_cloudflare_pages_site.py
+        mkdir -p _cf_project/functions
+        cp -R dashboard/functions/. _cf_project/functions/
+
+    - name: Ensure Pages project and D1 database exist
+      id: resources
+      shell: bash
+      env:
+        PROJECT_NAME: ${{ inputs.project-name }}
+        DATABASE_NAME: ${{ inputs.database-name }}
+      run: |
+        set -euo pipefail
+        WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
+
+        PROJECTS="$("$WRANGLER" pages project list --json)"
+        if ! jq -e --arg name "$PROJECT_NAME" \
+          '(if type == "array" then . else (.result // []) end) | any(.name == $name)' \
+          <<<"$PROJECTS" >/dev/null; then
+          "$WRANGLER" pages project create "$PROJECT_NAME" \
+            --production-branch=main \
+            --compatibility-date=2026-07-29 \
+            --compatibility-flag=nodejs_compat
+        fi
+
+        DATABASES="$("$WRANGLER" d1 list --json)"
+        DATABASE_ID="$(jq -r --arg name "$DATABASE_NAME" \
+          '(if type == "array" then . else (.result // []) end)
+          | .[] | select(.name == $name) | (.uuid // .database_id) // empty' \
+          <<<"$DATABASES" | head -n1)"
+        if [ -z "$DATABASE_ID" ]; then
+          "$WRANGLER" d1 create "$DATABASE_NAME" --location=enam
+          DATABASES="$("$WRANGLER" d1 list --json)"
+          DATABASE_ID="$(jq -r --arg name "$DATABASE_NAME" \
+            '(if type == "array" then . else (.result // []) end)
+            | .[] | select(.name == $name) | (.uuid // .database_id) // empty' \
+            <<<"$DATABASES" | head -n1)"
+        fi
+        if [ -z "$DATABASE_ID" ]; then
+          echo "Cloudflare did not return a database ID for $DATABASE_NAME" >&2
+          exit 1
+        fi
+
+        jq -n \
+          --arg name "$PROJECT_NAME" \
+          --arg database_name "$DATABASE_NAME" \
+          --arg database_id "$DATABASE_ID" \
+          '{
+            name: $name,
+            compatibility_date: "2026-07-29",
+            compatibility_flags: ["nodejs_compat"],
+            pages_build_output_dir: "./site",
+            d1_databases: [{
+              binding: "DB",
+              database_name: $database_name,
+              database_id: $database_id,
+              migrations_dir: "../dashboard/cloudflare/migrations"
+            }]
+          }' > _cf_project/wrangler.jsonc
+        echo "database_id=$DATABASE_ID" >> "$GITHUB_OUTPUT"
+
+    - name: Apply D1 schema and synchronize current dashboard state
+      shell: bash
+      env:
+        DATABASE_NAME: ${{ inputs.database-name }}
+      run: |
+        set -euo pipefail
+        WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
+        "$WRANGLER" d1 migrations apply DB --remote \
+          --config _cf_project/wrangler.jsonc
+        python _system/scripts/export_dashboard_d1_seed.py
+        "$WRANGLER" d1 execute DB --remote --yes \
+          --file dashboard/cloudflare/generated/dashboard_seed.sql \
+          --config _cf_project/wrangler.jsonc
+
+    - name: Deploy Cloudflare Pages
+      id: deploy
+      shell: bash
+      env:
+        PROJECT_NAME: ${{ inputs.project-name }}
+      run: |
+        set -euo pipefail
+        WRANGLER="../dashboard/cloudflare/node_modules/.bin/wrangler"
+        DEPLOY_LOG="$RUNNER_TEMP/single-stock-cloudflare-deploy.log"
+        (
+          cd _cf_project
+          "$WRANGLER" pages deploy site \
+            --project-name="$PROJECT_NAME" \
+            --branch=main \
+            --commit-dirty=true
+        ) 2>&1 | tee "$DEPLOY_LOG"
+        PAGE_URL="$(grep -Eo 'https://[^ ]+\.pages\.dev' "$DEPLOY_LOG" | tail -n1 || true)"
+        echo "page_url=$PAGE_URL" >> "$GITHUB_OUTPUT"
+        {
+          echo "### Cloudflare dashboard"
+          echo
+          echo "- Pages project: \`$PROJECT_NAME\`"
+          echo "- D1 binding: \`DB\`"
+          if [ -n "$PAGE_URL" ]; then
+            echo "- Deployment: $PAGE_URL"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"

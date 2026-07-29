@@ -8,6 +8,8 @@ on:
       # Heavy research/data rebuilds happen in Data Pipeline before workflow_run deploy.
       - "dashboard/**"
       - "_system/scripts/build_dashboard_data.py"
+      - "_system/scripts/build_cloudflare_pages_site.py"
+      - "_system/scripts/export_dashboard_d1_seed.py"
       - "_system/scripts/validate_dashboard_data.py"
       - "_system/scripts/ci_dashboard_deploy_mode.sh"
       - "_system/scripts/ci_rebuild_profile.py"
@@ -15,6 +17,7 @@ on:
       - ".github/actions/publish-dashboard/**"
       - ".github/actions/rebuild-data/**"
       - ".github/actions/deploy-pages-retry/**"
+      - ".github/actions/deploy-cloudflare-dashboard/**"
   workflow_dispatch:
     inputs:
       reason:
@@ -49,8 +52,9 @@ jobs:
       - id: check
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -n "$CF_TOKEN" ]; then
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
@@ -180,3 +184,12 @@ jobs:
         env:
           OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
           OAUTH_PROXY_URL: ${{ vars.OAUTH_PROXY_URL }}
+      - name: Mirror dashboard to Cloudflare Pages and D1
+        if: needs.oauth-secrets.outputs.configured == 'true'
+        uses: ./.github/actions/deploy-cloudflare-dashboard
+        with:
+          project-name: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'single-stock-investments' }}
+          database-name: ${{ vars.CLOUDFLARE_D1_DATABASE || 'single-stock-investments' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
