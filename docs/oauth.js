@@ -138,11 +138,34 @@
     return { login: u.login, name: u.name || u.login, avatar: u.avatar_url };
   }
 
-  async function saveToken(token) {
+  function allowedLogins(cfg) {
+    const raw = (cfg && cfg.allowed_logins) || [];
+    return new Set(raw.map(x => String(x || '').trim().toLowerCase()).filter(Boolean));
+  }
+
+  function assertAllowedUser(user, cfg) {
+    const allow = allowedLogins(cfg);
+    if (!allow.size) return user;
+    const login = String(user?.login || '').trim().toLowerCase();
+    if (login && allow.has(login)) return user;
+    clearAuth();
+    throw new Error(
+      `GitHub user @${user?.login || 'unknown'} is not authorized for this dashboard. `
+      + 'Allowed: dgoldman / GoldmanDrew, mcricenti, dsapienza / dylansapienza.'
+    );
+  }
+
+  async function saveToken(token, cfg) {
     global.localStorage.setItem(TOKEN_KEY, token);
     global.localStorage.removeItem(LEGACY_TOKEN_KEY);
     const user = await fetchUser(token);
-    if (user) global.localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (!user) {
+      clearAuth();
+      throw new Error('Could not load GitHub profile after sign-in');
+    }
+    const config = cfg || await loadConfig().catch(() => ({}));
+    assertAllowedUser(user, config);
+    global.localStorage.setItem(USER_KEY, JSON.stringify(user));
     return user;
   }
 
@@ -199,11 +222,15 @@
     global.sessionStorage.removeItem(DEVICE_KEY);
     global.localStorage.setItem(TOKEN_KEY, data.access_token);
     global.localStorage.removeItem(LEGACY_TOKEN_KEY);
-    // Fetch user profile after returning so the poll loop can close the modal immediately.
-    fetchUser(data.access_token).then(user => {
-      if (user) global.localStorage.setItem(USER_KEY, JSON.stringify(user));
-    }).catch(() => {});
-    return { pending: false, token: data.access_token };
+    // Enforce allowlist before treating the session as signed in.
+    const user = await fetchUser(data.access_token);
+    if (!user) {
+      clearAuth();
+      throw new Error('Could not load GitHub profile after sign-in');
+    }
+    assertAllowedUser(user, cfg);
+    global.localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return { pending: false, token: data.access_token, user };
   }
 
   function cancelDeviceAuth() {
@@ -232,18 +259,36 @@
     global.sessionStorage.removeItem(PKCE_KEY);
     const ret = global.sessionStorage.getItem(RETURN_KEY) || dashboardUrl();
     global.sessionStorage.removeItem(RETURN_KEY);
-    await saveToken(data.access_token);
+    await saveToken(data.access_token, cfg);
     global.location.replace(ret);
   }
 
   async function refreshAuthUi(btn) {
     if (!btn) return;
     const token = getToken();
-    const user = getUser();
+    let user = getUser();
+    const cfg = await loadConfig().catch(() => ({}));
     if (token && !user) {
       const u = await fetchUser(token);
-      if (u) global.localStorage.setItem(USER_KEY, JSON.stringify(u));
-      else clearAuth();
+      if (u) {
+        try {
+          assertAllowedUser(u, cfg);
+          global.localStorage.setItem(USER_KEY, JSON.stringify(u));
+          user = u;
+        } catch (_e) {
+          clearAuth();
+          user = null;
+        }
+      } else {
+        clearAuth();
+      }
+    } else if (token && user) {
+      try {
+        assertAllowedUser(user, cfg);
+      } catch (_e) {
+        clearAuth();
+        user = null;
+      }
     }
     const u2 = getUser();
     if (getToken() && u2) {
