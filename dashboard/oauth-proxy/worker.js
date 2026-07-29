@@ -5,10 +5,12 @@
  */
 const PROXY_VERSION = '2026-07-29';
 
-const DEFAULT_ORIGIN = 'https://single-stock-investments.pages.dev';
+// Magis Cloudflare Pages project currently serves on the assigned *.pages.dev host.
+const DEFAULT_ORIGIN = 'https://single-stock-investments-2wt.pages.dev';
 
 const ALLOW_ORIGINS = new Set([
   DEFAULT_ORIGIN,
+  'https://single-stock-investments.pages.dev',
   'https://magis-capital-partners.github.io',
   'https://goldmandrew.github.io',
   'http://localhost:8080',
@@ -24,7 +26,9 @@ function isAllowedOrigin(origin) {
     const host = new URL(origin).hostname;
     return (
       host === 'single-stock-investments.pages.dev' ||
-      host.endsWith('.single-stock-investments.pages.dev')
+      host === 'single-stock-investments-2wt.pages.dev' ||
+      host.endsWith('.single-stock-investments.pages.dev') ||
+      host.endsWith('.single-stock-investments-2wt.pages.dev')
     );
   } catch (_e) {
     return false;
