@@ -1,6 +1,6 @@
 {
   "ticker": "TSLA",
-  "as_of": "2026-07-23",
+  "as_of": "2026-07-28",
   "theme_ids": [
     "macro_regime"
   ],
@@ -10,64 +10,44 @@
   "schema_version": "1.0",
   "scaffold_meta": {
     "generated_by": "scaffold_industry_kpi_ledgers.py",
-    "generated_at": "2026-07-23",
+    "generated_at": "2026-07-28",
     "note": "Industry-template scaffold. Context only; refine gates from filings."
   },
   "kpis": [
     {
-      "kpi_id": "robotaxi_horizon_watch",
-      "label": "Robotaxi expert-horizon / city permit watch (human)",
-      "unit": "flag",
+      "kpi_id": "robotaxi_years_ahead",
+      "label": "Robotaxi public-quote years ahead (P0 · shared)",
+      "unit": "years",
       "expected": {
-        "op": "gte",
-        "value": 0,
-        "horizon": "human"
+        "op": "lte",
+        "value": 15,
+        "horizon": "expert_quote"
       },
       "actual": {
-        "value": null,
-        "as_of": null
-      },
-      "status": "unchecked",
-      "source": "manual:human",
-      "evidence_tier": "assumption",
-      "last_checked": "2026-07-23",
-      "binds_to": {
-        "on_fail": "human_review",
-        "note": "Cross-check expert_horizons/robotaxi.csv and city AV permits"
-      },
-      "in_base_irr": false,
-      "prediction_role": "orientation"
-    },
-    {
-      "kpi_id": "price_usd",
-      "label": "Share price (USD)",
-      "unit": "usd",
-      "expected": {
-        "op": "gte",
-        "value": 1,
-        "horizon": "listing"
-      },
-      "actual": {
-        "value": 391.0,
-        "as_of": "2026-06-08"
+        "value": 2.0,
+        "as_of": "2026-06-01"
       },
       "status": "pass",
-      "source": "valuation:inputs.price",
-      "evidence_tier": "market",
-      "last_checked": "2026-07-23",
+      "source": "theme:robotaxi_years_ahead",
+      "evidence_tier": "public_quote",
+      "last_checked": "2026-07-28",
       "binds_to": {
-        "on_fail": "human_review",
-        "note": "Price tape; fails if valuation inputs.price missing"
+        "on_fail": "stance_only",
+        "note": "Public arrival-date quotes (Waymo/Tesla/etc.) — Magis observation only, not a forecast"
       },
       "in_base_irr": false,
-      "prediction_role": "interference"
+      "prediction_role": "orientation",
+      "magis_display": {
+        "mode": "shared_theme",
+        "note": "Same series for every name in this industry — not issuer cash."
+      }
     }
   ],
   "summary": {
     "pass": 1,
     "fail": 0,
     "stale": 0,
-    "unchecked": 1
+    "unchecked": 0
   },
   "disclaimer": "Context only. Industry-scaffold KPIs do not auto-rewrite Lawrence base IRR."
 }

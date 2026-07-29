@@ -1,13 +1,14 @@
-# Uranium Royalty Corp. / New URC (UROY)
+# Uranium Royalty Corp. (URC)
 
-**Ticker:** UROY (NASDAQ) | historical TSX **URC** | **New URC** Delaware parent listing ~2026-07-28 (ticker TBD)  
+**Ticker (display):** URC · **Quote symbol:** UROY (NASDAQ) until exchange confirms a change  
+**Historical:** TSX **URC** (delisted 2026-07-28)  
 **Market:** US  
 **CIK:** 0001711570  
-**Last updated:** 2026-07-27
+**Last updated:** 2026-07-28
 
 ## Company
 
-Uranium royalty and physical uranium platform combining with **Sweetwater Royalties** (Wyoming Green River trona/soda ash royalties and large fee land estate). Post-close entity is a U.S.-domiciled royalty platform with trona cash flow plus uranium optionality.
+Uranium royalty and physical uranium platform combined with **Sweetwater Royalties** (Wyoming Green River trona/soda ash royalties and large fee land estate). Arrangement closed **2026-07-27**; New URC (Delaware parent) listed on NASDAQ **2026-07-28**. Research folder remains `UROY/` for path stability; dashboard displays **URC**.
 
 IR: https://www.uraniumroyalty.com/investors/
 

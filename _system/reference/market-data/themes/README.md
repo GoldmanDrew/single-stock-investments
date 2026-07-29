@@ -42,8 +42,15 @@ Live data: `_external/etf-dashboard` (see `.gitmodules`). Override path with `DA
 | Theme | Chain | Tagged holdings |
 |-------|-------|-----------------|
 | `ai_power_land` | AI compute -> power -> grid/water -> land/hosting | TPL, LB, WBI, APLD, BWEL, **AZLCZ** |
-| `macro_regime` | HY OAS, rates, dollar, VIX, credit impulse | All registry holdings (`*`) |
+| `macro_regime` | HY OAS, rates, dollar, VIX, credit impulse, expert horizons | All registry holdings (`*`) |
 | `gold_royalties` | Gold spot, GDX, GDX/GLD ratio | RGLD, FNV, WPM, OR, MSB |
-| `exchange_volatility` | Home-market vol (US VIX/SPY + regional realized); VRP optional | CME, ICE, CBOE, MIAX, 8697.T, 0388.HK, ASX.AX |
+| `exchange_volatility` | Home-market vol (US VIX/SPY + regional realized); VRP + VIX term slope | CME, ICE, CBOE, MIAX, 8697.T, 0388.HK, ASX.AX |
+| `water_surface` | TPL water panel + WTI + oil/gas activity | TPL, LB, WBI, BWEL, AZLCZ, GYRO, TRC, CDZI |
+| `timber_housing` | Housing starts / permits + 10Y | ADN.TO, RYN, PCH, WY |
+| `btc_hash_power` | BTC spot + power cost + hyperscaler pulse | CMSG, CLSK, BMNR, MSTR, IREN, HUT, APLD |
+| `energy_royalty` | WTI / HH + oil-gas activity | SJT, DMLP, PBT, SBR, KRP, … |
+| `pharma_royalty` | XLV / XBI sector tape + 10Y | RPRX, ABBV, LLY, VTRS |
+| `nuclear_power` | URA + electricity + hyperscaler + AGI horizon | SMR, CEG, VST, DNN, AES, XEL |
+| `index_data_fees` | VIX / realized vol + 10Y | SPGI, MCO, MSCI, FDS, OTCM |
 
 See `_system/frameworks/optionality_valuation.md` § **Thematic context layer**.

@@ -1,6 +1,6 @@
 {
   "ticker": "PCH",
-  "as_of": "2026-07-23",
+  "as_of": "2026-07-28",
   "theme_ids": [
     "timber_housing",
     "macro_regime"
@@ -11,64 +11,72 @@
   "schema_version": "1.0",
   "scaffold_meta": {
     "generated_by": "scaffold_industry_kpi_ledgers.py",
-    "generated_at": "2026-07-23",
+    "generated_at": "2026-07-28",
     "note": "Industry-template scaffold. Context only; refine gates from filings."
   },
   "kpis": [
     {
-      "kpi_id": "timber_housing_watch",
-      "label": "Housing / stumpage cycle watch (human)",
-      "unit": "flag",
+      "kpi_id": "housing_starts",
+      "label": "US housing starts (thousands SAAR · shared)",
+      "unit": "thousands",
       "expected": {
         "op": "gte",
-        "value": 0,
-        "horizon": "human"
+        "value": 900,
+        "horizon": "housing_floor"
       },
       "actual": {
-        "value": null,
-        "as_of": null
-      },
-      "status": "unchecked",
-      "source": "manual:human",
-      "evidence_tier": "assumption",
-      "last_checked": "2026-07-23",
-      "binds_to": {
-        "on_fail": "human_review",
-        "note": "Fill from housing starts / stumpage disclosures when available"
-      },
-      "in_base_irr": false,
-      "prediction_role": "orientation"
-    },
-    {
-      "kpi_id": "price_usd",
-      "label": "Share price (USD)",
-      "unit": "usd",
-      "expected": {
-        "op": "gte",
-        "value": 1,
-        "horizon": "listing"
-      },
-      "actual": {
-        "value": 39.25,
-        "as_of": "2026-06-10"
+        "value": 1427.0,
+        "as_of": "2026-06-01"
       },
       "status": "pass",
-      "source": "valuation:inputs.price",
+      "source": "theme:housing_starts",
       "evidence_tier": "market",
-      "last_checked": "2026-07-23",
+      "last_checked": "2026-07-28",
       "binds_to": {
-        "on_fail": "human_review",
-        "note": "Price tape; fails if valuation inputs.price missing"
+        "on_fail": "open_diligence",
+        "note": "Housing-cycle pulse for timber / stumpage demand (shared theme)"
       },
       "in_base_irr": false,
-      "prediction_role": "interference"
+      "prediction_role": "orientation",
+      "magis_display": {
+        "mode": "shared_theme",
+        "note": "Same series for every name in this industry — not issuer cash."
+      }
+    },
+    {
+      "kpi_id": "building_permits",
+      "label": "US building permits (thousands SAAR · shared)",
+      "unit": "thousands",
+      "expected": {
+        "op": "gte",
+        "value": 900,
+        "horizon": "housing_pipeline"
+      },
+      "actual": {
+        "value": 1374.0,
+        "as_of": "2026-06-01"
+      },
+      "status": "pass",
+      "source": "theme:building_permits",
+      "evidence_tier": "market",
+      "last_checked": "2026-07-28",
+      "binds_to": {
+        "on_fail": "open_diligence",
+        "note": "Housing pipeline pulse for timber names (shared theme)"
+      },
+      "in_base_irr": false,
+      "prediction_role": "orientation",
+      "magis_display": {
+        "mode": "shared_theme",
+        "note": "Same series for every name in this industry — not issuer cash."
+      }
     }
   ],
   "summary": {
-    "pass": 1,
+    "pass": 2,
     "fail": 0,
     "stale": 0,
-    "unchecked": 1
+    "unchecked": 0
   },
   "disclaimer": "Context only. Industry-scaffold KPIs do not auto-rewrite Lawrence base IRR."
 }

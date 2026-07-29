@@ -1,18 +1,394 @@
 {
   "ticker": "INV",
-  "as_of": "2026-07-20",
-  "method": "price_stub",
+  "as_of": "2026-07-28",
+  "method": "yield_curve",
+  "irr_method": "yield_curve",
+  "valuation_mode": "economic_value",
+  "lawrence_bucket": "other",
+  "payoff_lens": "asset",
+  "classification_inputs": {
+    "archetype": "holding_co",
+    "moat": "unproven",
+    "dhando": "none",
+    "stance_proposal": "watch",
+    "cycle": "-",
+    "payoff_lens": "asset",
+    "lawrence_bucket": "other",
+    "moi_bucket": "pending",
+    "predictive_attribute": "accelsius_adoption"
+  },
   "inputs": {
-    "price": 3.13,
-    "price_as_of": "2026-07-20",
-    "price_source": "Yahoo INV close 2026-07-20"
+    "price": 2.96,
+    "price_as_of": "2026-07-28",
+    "price_source": "Yahoo INV close 2026-07-28",
+    "shares_millions": 77.829,
+    "shares_outstanding": 77829187,
+    "shares_source": "10-Q Q1 2026 WASO 77,829,187 (INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm)",
+    "cash_m": 55.367,
+    "cash_source": "10-Q Mar 31 2026 unrestricted cash $55.367M",
+    "accelsius_ownership_pct": 0.432,
+    "accelsius_ownership_source": "10-K Corporate Structure as of March 23, 2026: Innventure LLC owns 43.2% of Accelsius",
+    "aeroflexx_ownership_pct": 0.371,
+    "refinity_ownership_pct": 0.685,
+    "normalization_note": "Look-through Accelsius optionality. Magis Accelsius onsite 2026-04-17 used as Magis diligence for commercial/exit path; ownership from 10-K."
   },
-  "notes": "Price stub created by fetch_equity_prices.py --create-stub; replace with a real model before decision-grade.",
-  "human_review": {
-    "live_price_confirmed": false
+  "assumption_ledger": {
+    "base": [
+      {
+        "id": 1,
+        "name": "price_today",
+        "value": 2.96,
+        "source": "Yahoo INV 2026-07-28"
+      },
+      {
+        "id": 2,
+        "name": "accelsius_ownership_pct",
+        "value": 0.432,
+        "source": "10-K as of 2026-03-23 Innventure LLC 43.2%"
+      },
+      {
+        "id": 3,
+        "name": "year5_ownership_pct",
+        "value": 0.4,
+        "source": "[Assumption] mild dilution from 43.2%; Magis notes Series C not planned"
+      },
+      {
+        "id": 4,
+        "name": "year5_accelsius_ev_m",
+        "value": 1200.0,
+        "source": "Magis Accelsius onsite 2026-04-17 commercialization path; below $1-3B exit midpoint"
+      },
+      {
+        "id": 5,
+        "name": "year5_diluted_shares_m",
+        "value": 100.0,
+        "source": "[Assumption] from 77.8M WASO"
+      },
+      {
+        "id": 6,
+        "name": "other_ops_residual_m",
+        "value": 45.0,
+        "source": "[Assumption] AeroFlexx 37.1% + Refinity 68.5% small residual"
+      },
+      {
+        "id": 7,
+        "name": "year5_net_cash_m",
+        "value": 15.0,
+        "source": "[Assumption]"
+      },
+      {
+        "id": 8,
+        "name": "holdco_drag_m",
+        "value": -20.0,
+        "source": "[Assumption]"
+      },
+      {
+        "id": 9,
+        "name": "year5_payoff_per_share",
+        "value": 5.2,
+        "source": "build"
+      },
+      {
+        "id": 10,
+        "name": "horizon_years",
+        "value": 5,
+        "source": "commercialization / Magis exit window 2027-28 stretched to 5y"
+      }
+    ]
   },
-  "context_overlay": {
+  "scenarios": {
+    "bear": {
+      "price": 2.96,
+      "payoff": 0.92,
+      "years": 5.0,
+      "implied_irr_pct": -20.84,
+      "label": "Adoption stalls; Accelsius EV near post-Series-B mark; heavy dilution"
+    },
+    "base": {
+      "price": 2.96,
+      "payoff": 5.2,
+      "years": 5.0,
+      "implied_irr_pct": 11.93,
+      "label": "Accelsius commercializes; INV keeps ~40%; Magis path without full $1-3B exit",
+      "sotp_build": {
+        "lines": [
+          {
+            "id": "accelsius",
+            "label": "Accelsius INV claim (40% of $1.2B)",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 4.8,
+            "math": "0.4 x $1200.0M / 100.0M sh; filing own 43.2%"
+          },
+          {
+            "id": "other_ops",
+            "label": "AeroFlexx + Refinity residual",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 0.45,
+            "math": "45.0M / 100.0M"
+          },
+          {
+            "id": "cash",
+            "label": "Net cash year 5",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 0.15,
+            "math": "15.0M / 100.0M"
+          },
+          {
+            "id": "drag",
+            "label": "Holdco drag",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": -0.2,
+            "math": "-20.0M / 100.0M"
+          },
+          {
+            "id": "tie_out",
+            "label": "Tie-out to payoff",
+            "gaap_per_share": 0.0,
+            "uplift_per_share": 0.0,
+            "math": "running 5.20 -> 5.2"
+          }
+        ],
+        "year5_economic_nav_per_share": 5.2,
+        "years": 5,
+        "notes": "Ownership from 10-K 43.2%; Magis diligence sets Accelsius EV path"
+      }
+    },
+    "bull": {
+      "price": 2.96,
+      "payoff": 10.95,
+      "years": 5.0,
+      "implied_irr_pct": 29.9,
+      "label": "Magis high exit band (~$2.5B Accelsius EV)"
+    }
+  },
+  "results": {
+    "bear": {
+      "return_pct": -20.8
+    },
+    "base": {
+      "return_pct": 11.9
+    },
+    "bull": {
+      "return_pct": 29.9
+    }
+  },
+  "option_treatment": {
     "as_of": "2026-07-28",
+    "items": [
+      {
+        "name": "Accelsius franchise/exit",
+        "treatment": "scenario_payoff",
+        "in_base": true
+      },
+      {
+        "name": "AeroFlexx",
+        "treatment": "watch_option",
+        "in_base": true
+      },
+      {
+        "name": "Refinity",
+        "treatment": "watch_option",
+        "in_base": true
+      },
+      {
+        "name": "Net cash runway",
+        "treatment": "balance_sheet",
+        "in_base": true
+      },
+      {
+        "name": "Dilution/burn",
+        "treatment": "dilution_drag",
+        "in_base": true
+      }
+    ]
+  },
+  "optionality_gate": {
+    "primary_metric": "lawrence_base",
+    "primary_return_pct": 11.9,
+    "floor_metric": "net_cash_per_share",
+    "floor_value": 0.71,
+    "notes": "Cash floor is thin vs burn; Accelsius adoption is the edge",
+    "primary_label": "annualized return"
+  },
+  "component_valuation": {
+    "schema_version": "1.0",
+    "all_material_components_identified": true,
+    "coverage_statement": "Four additive components: net cash, Accelsius look-through claim, other operating-company residual, dilution/burn reserve.",
+    "components": [
+      {
+        "id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "category": "financial_asset",
+        "overlap_key": "net_cash_claims",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": 0.6,
+          "base": 0.71,
+          "high": 0.75,
+          "evidence_tier": "primary_derived",
+          "evidence": "INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm cash $55.367M; WASO 77,829,187",
+          "valuation_status": "bounded_estimate",
+          "falsifier": "Cash falls below $30M while quarterly burn stays above $15M"
+        }
+      },
+      {
+        "id": "accelsius_claim",
+        "label": "Accelsius look-through claim (Innventure LLC ownership)",
+        "category": "real_option",
+        "overlap_key": "accelsius_claim",
+        "treatment": "additive",
+        "valuation": {
+          "method": "probability_weighted_outcome",
+          "basis": "per_share",
+          "low": 0.67,
+          "base": 4.63,
+          "high": 11.05,
+          "evidence_tier": "primary_plus_fieldwork",
+          "evidence": "10-K: Innventure LLC owns 43.2% of Accelsius as of 2026-03-23. Magis Accelsius onsite 2026-04-17: Series A ~$28M@$135M post; Series B strategics ~$65M (JCI/Legrand); Dark NX $55M contract; exit talk $1-3B. INV/investor-documents/research-notes/2026-04-17_Accelsius.pdf",
+          "assumption_summary": "Risked Accelsius EV today low/base/high with ownership ~35-43%; year-5 base EV $1200.0M at 40% for yield-curve payoff",
+          "valuation_status": "bounded_estimate",
+          "falsifier": "Accelsius fails to book meaningful revenue by YE2027 or INV ownership falls below 25% without offsetting cash proceeds",
+          "risk_and_timing": {
+            "probability_basis": "Risked Accelsius EV today low/base/high with ownership ~35-43%; year-5 base EV $1200.0M at 40% for yield-curve payoff",
+            "timing_basis": "5-year horizon",
+            "remaining_capital_basis": "Parent burn + subsidiary self-funding path per Magis/10-K"
+          }
+        }
+      },
+      {
+        "id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "category": "real_option",
+        "overlap_key": "other_ops_residual",
+        "treatment": "additive",
+        "valuation": {
+          "method": "probability_weighted_outcome",
+          "basis": "per_share",
+          "low": 0.05,
+          "base": 0.4,
+          "high": 0.9,
+          "evidence_tier": "primary_derived",
+          "evidence": "10-K: Innventure LLC owns 37.1% AeroFlexx and 68.5% Refinity Holdings as of 2026-03-23",
+          "valuation_status": "bounded_estimate",
+          "falsifier": "Either subsidiary requires parent capital beyond Magis-described self-funding path for two consecutive years",
+          "risk_and_timing": {
+            "probability_basis": "See economic_value group",
+            "timing_basis": "5-year horizon",
+            "remaining_capital_basis": "Parent burn + subsidiary self-funding path per Magis/10-K"
+          }
+        }
+      },
+      {
+        "id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "category": "liability_reserve",
+        "overlap_key": "dilution_burn_reserve",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": -1.4,
+          "base": -0.75,
+          "high": -0.25,
+          "evidence_tier": "model_input",
+          "evidence": "10-Q Q1 2026 net loss to stockholders ~$20.8M; S-3 shelf capacity; preferred designations",
+          "valuation_status": "bounded_estimate",
+          "falsifier": "Parent raises large primary equity that cuts Accelsius claim without strategic co-investment"
+        }
+      }
+    ]
+  },
+  "economic_value": {
+    "schema_version": "1.0",
+    "method": "component_economic_value",
+    "gaap_role": "cross_check",
+    "accounting_reference": "FY2025 10-K and Q1 2026 10-Q; GAAP consolidates Accelsius with large NCI and intangibles; economic claim is look-through ownership plus cash.",
+    "economic_claim": {
+      "description": "One diluted INV common share: net cash, look-through Accelsius claim (Innventure LLC 43.2% filing ownership), AeroFlexx/Refinity residual, less dilution/burn reserve.",
+      "unit_label": "diluted share",
+      "unit_count": 77829187,
+      "unit_source": "Q1 2026 WASO 77,829,187 (INV/.../10-Q_20260514_...htm)",
+      "enterprise_to_equity_reconciliation": "Parent consolidates subsidiaries with NCI; equity claim uses disclosed Innventure LLC ownership percentages, not 100% of consolidated Accelsius EV. Cash is parent-level. Intangibles/goodwill are GAAP cross-check only."
+    },
+    "component_groups": [
+      {
+        "id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "component_ids": [
+          "net_cash_claims"
+        ],
+        "economic_claim": "Unrestricted cash claims",
+        "valuation_basis": "10-Q cash divided by WASO",
+        "adjustments": "Low/high stress cash burn",
+        "overlap_control": "Unique overlap key net_cash_claims"
+      },
+      {
+        "id": "accelsius_claim",
+        "label": "Accelsius look-through claim",
+        "component_ids": [
+          "accelsius_claim"
+        ],
+        "economic_claim": "Accelsius look-through claim (Innventure LLC ownership)",
+        "valuation_basis": "Filing ownership 43.2% times risked Accelsius EV; Magis diligence for commercial/exit path",
+        "adjustments": "Probability, timing, further dilution inside range",
+        "overlap_control": "Unique overlap key accelsius_claim",
+        "risk_and_timing": {
+          "probability_basis": "Base assumes commercialization without requiring Magis $1-3B exit; bear near Series B mark",
+          "timing_basis": "Five-year horizon; Magis notes 2027-28 exit window",
+          "remaining_capital_basis": "Magis: Series C not planned unless working capital from growth; parent still burns"
+        }
+      },
+      {
+        "id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "component_ids": [
+          "other_ops_residual"
+        ],
+        "economic_claim": "AeroFlexx + Refinity residual",
+        "valuation_basis": "Small option on filing ownership stakes",
+        "adjustments": "No Magis revenue path in base",
+        "overlap_control": "Unique overlap key other_ops_residual",
+        "risk_and_timing": {
+          "probability_basis": "Base assigns small residual probability of material scale; bear near zero",
+          "timing_basis": "Five-year horizon; no Magis exit path modeled",
+          "remaining_capital_basis": "10-K describes operating companies; Magis notes say AeroFlexx/Refinity to raise on own balance sheets"
+        }
+      },
+      {
+        "id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "component_ids": [
+          "dilution_burn_reserve"
+        ],
+        "economic_claim": "Dilution and holdco burn reserve",
+        "valuation_basis": "Negative reserve for continued losses and potential primary issuance",
+        "adjustments": "Separate from cash already marked",
+        "overlap_control": "Unique overlap key dilution_burn_reserve"
+      }
+    ]
+  },
+  "stance_proposal": {
+    "suggested": "watch",
+    "irr_band": "<15%",
+    "gates": {
+      "moat_ok": false,
+      "dhando_ok": false
+    },
+    "override_reason": "Accelsius optionality is real (filing ownership + Magis commercial signals) but burn, dilution, and unproven moat keep stance at watch."
+  },
+  "notes": "Gates closed by agent 2026-07-28: Accelsius ownership from 10-K 43.2%; Magis Accelsius notes treated as Magis diligence (not pending third-party). Capital stance remains watch proposal.",
+  "human_review": {
+    "live_price_confirmed": true,
+    "accelsius_ownership_pct": true,
+    "magis_notes_approval": true,
+    "notes": "Resolved by agent 2026-07-28 from 10-K ownership + Magis diligence. No open research gates.",
+    "open_items": []
+  },
+  "lawrence_horizon_years": 5,
+  "context_overlay": {
+    "as_of": "2026-07-29",
     "disclaimer": "Context only. Tailwinds inform stance and overlay sizing; they do not auto-inflate Lawrence base IRR. Promotion to base case requires [HUMAN REVIEW].",
     "themes": [
       {
@@ -22,9 +398,9 @@
           {
             "id": "hy_oas",
             "label": "High-yield OAS credit spread (%)",
-            "latest": 1.89,
+            "latest": 1.92,
             "as_of": "2026-07-28",
-            "yoy_pct": 302.1,
+            "yoy_pct": 308.5,
             "direction": "up",
             "good_for": "risk_regime",
             "source": "spread:HYG-LQD:21d (HYG-LQD 1m spread proxy, not OAS)",
@@ -34,9 +410,9 @@
           {
             "id": "ust_10y",
             "label": "US Treasury 10Y yield (%)",
-            "latest": 4.613999843597412,
+            "latest": 4.604000091552734,
             "as_of": "2026-07-28",
-            "yoy_pct": 4.4,
+            "yoy_pct": 4.2,
             "direction": "up",
             "good_for": "rates_regime",
             "source": "yahoo:^TNX",
@@ -46,9 +422,9 @@
           {
             "id": "ust_2y",
             "label": "US Treasury 2Y yield (%)",
-            "latest": 4.368000030517578,
+            "latest": 4.361000061035156,
             "as_of": "2026-07-28",
-            "yoy_pct": 9.8,
+            "yoy_pct": 9.7,
             "direction": "up",
             "good_for": "rates_regime",
             "source": "yahoo:^FVX",
@@ -58,9 +434,9 @@
           {
             "id": "dxy_broad",
             "label": "Trade-weighted USD index (broad)",
-            "latest": 101.48699951171875,
-            "as_of": "2026-07-28",
-            "yoy_pct": 2.9,
+            "latest": 101.43399810791016,
+            "as_of": "2026-07-29",
+            "yoy_pct": 2.6,
             "direction": "up",
             "good_for": "dollar_regime",
             "source": "yahoo:DX-Y.NYB",
@@ -70,9 +446,9 @@
           {
             "id": "vix_level",
             "label": "VIX index level",
-            "latest": 19.030000686645508,
-            "as_of": "2026-07-28",
-            "yoy_pct": 26.6,
+            "latest": 18.34000015258789,
+            "as_of": "2026-07-29",
+            "yoy_pct": 14.8,
             "direction": "up",
             "good_for": "vol_regime",
             "source": "yahoo:^VIX",
@@ -82,9 +458,9 @@
           {
             "id": "credit_impulse_1m",
             "label": "HYG vs TLT 1-month return spread (%)",
-            "latest": 3.21,
+            "latest": 3.06,
             "as_of": "2026-07-28",
-            "yoy_pct": 31.0,
+            "yoy_pct": 24.9,
             "direction": "up",
             "good_for": "credit_impulse",
             "source": "spread:HYG-TLT:21d",
@@ -94,12 +470,36 @@
           {
             "id": "spy_20d_realized_vol",
             "label": "SPY 20-day realized vol (annualized %)",
-            "latest": 9.47,
+            "latest": 9.46,
             "as_of": "2026-07-28",
-            "yoy_pct": 36.7,
+            "yoy_pct": 36.5,
             "direction": "up",
             "good_for": "equity_vol",
             "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "agi_years_ahead",
+            "label": "AGI expert-horizon years ahead (public quotes)",
+            "latest": 5.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:agi",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "robotaxi_years_ahead",
+            "label": "Robotaxi expert-horizon years ahead (public quotes)",
+            "latest": 2.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:robotaxi",
             "stale": false,
             "in_base_irr": false
           }
@@ -108,7 +508,7 @@
     ]
   },
   "insider_signal": {
-    "as_of": "2026-07-28",
+    "as_of": "2026-07-29",
     "disclaimer": "Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].",
     "in_base_irr": false,
     "window_days": 365,
@@ -136,7 +536,7 @@
       "cluster_bonus": 0.0,
       "net_buy_usd": 458161.13,
       "net_sell_usd": 20972770.53,
-      "price_today": 3.13
+      "price_today": 2.96
     },
     "top_buys": [
       {
@@ -193,7 +593,7 @@
         "price": 0.0,
         "value_usd": 0.0,
         "is_10b5_1": false,
-        "contrib": -0.198
+        "contrib": -0.196
       },
       {
         "insider": "Donnally James O",
@@ -202,7 +602,7 @@
         "price": 0.0,
         "value_usd": 0.0,
         "is_10b5_1": false,
-        "contrib": -0.178
+        "contrib": -0.176
       },
       {
         "insider": "Niemeyer Suzanne",
@@ -211,7 +611,7 @@
         "price": 6.01,
         "value_usd": 163928.76,
         "is_10b5_1": false,
-        "contrib": -0.176
+        "contrib": -0.175
       },
       {
         "insider": "Otworth Michael",
@@ -234,5 +634,1034 @@
     ],
     "narrative_hooks": [],
     "transaction_count": 66
-  }
+  },
+  "results_lawrence_legacy": {
+    "bear": {
+      "return_pct": -20.8
+    },
+    "base": {
+      "return_pct": 11.9
+    },
+    "bull": {
+      "return_pct": 29.9
+    }
+  },
+  "implied_return": {
+    "base_pct": 11.9,
+    "label": "annualized return",
+    "display": "11.9% (base)"
+  },
+  "overlay_results": [],
+  "component_valuation_results": {
+    "status": "complete",
+    "decision_rule": "Use the complete low/base/high component schedule. Embedded components are estimated but not added twice. Security equity value per share is floored at 0 (limited liability).",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "category": "financial_asset",
+        "overlap_key": "net_cash_claims",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence": "INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm cash $55.367M; WASO 77,829,187",
+        "cross_check": null,
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": null,
+        "falsifier": "Cash falls below $30M while quarterly burn stays above $15M",
+        "scenario_assumptions": null,
+        "low_per_share": 0.6,
+        "base_per_share": 0.71,
+        "high_per_share": 0.75
+      },
+      {
+        "id": "accelsius_claim",
+        "label": "Accelsius look-through claim (Innventure LLC ownership)",
+        "category": "real_option",
+        "overlap_key": "accelsius_claim",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "probability_weighted_outcome",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_plus_fieldwork",
+        "evidence": "10-K: Innventure LLC owns 43.2% of Accelsius as of 2026-03-23. Magis Accelsius onsite 2026-04-17: Series A ~$28M@$135M post; Series B strategics ~$65M (JCI/Legrand); Dark NX $55M contract; exit talk $1-3B. INV/investor-documents/research-notes/2026-04-17_Accelsius.pdf",
+        "cross_check": null,
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Risked Accelsius EV today low/base/high with ownership ~35-43%; year-5 base EV $1200.0M at 40% for yield-curve payoff",
+        "falsifier": "Accelsius fails to book meaningful revenue by YE2027 or INV ownership falls below 25% without offsetting cash proceeds",
+        "scenario_assumptions": null,
+        "low_per_share": 0.67,
+        "base_per_share": 4.63,
+        "high_per_share": 11.05
+      },
+      {
+        "id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "category": "real_option",
+        "overlap_key": "other_ops_residual",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "probability_weighted_outcome",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence": "10-K: Innventure LLC owns 37.1% AeroFlexx and 68.5% Refinity Holdings as of 2026-03-23",
+        "cross_check": null,
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": null,
+        "falsifier": "Either subsidiary requires parent capital beyond Magis-described self-funding path for two consecutive years",
+        "scenario_assumptions": null,
+        "low_per_share": 0.05,
+        "base_per_share": 0.4,
+        "high_per_share": 0.9
+      },
+      {
+        "id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "category": "liability_reserve",
+        "overlap_key": "dilution_burn_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "model_input",
+        "evidence": "10-Q Q1 2026 net loss to stockholders ~$20.8M; S-3 shelf capacity; preferred designations",
+        "cross_check": null,
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": null,
+        "falsifier": "Parent raises large primary equity that cuts Accelsius claim without strategic co-investment",
+        "scenario_assumptions": null,
+        "low_per_share": -1.4,
+        "base_per_share": -0.75,
+        "high_per_share": -0.25
+      }
+    ],
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 0.0,
+      "base": 4.99,
+      "high": 12.45
+    },
+    "material_component_count": 4,
+    "additive_component_count": 4,
+    "embedded_component_count": 0,
+    "total_equity_value_per_share_pre_floor": {
+      "low": -0.08,
+      "base": 4.99,
+      "high": 12.45
+    },
+    "equity_liability_floor": 0.0,
+    "market_price_per_share": 2.96,
+    "upside_downside_pct": {
+      "low": -100.0,
+      "base": 68.6,
+      "high": 320.6
+    }
+  },
+  "economic_value_analysis": {
+    "schema_version": "1.0",
+    "status": "complete",
+    "trigger": {
+      "required": true,
+      "reasons": [
+        "explicit_component_schedule"
+      ],
+      "policy": "A complete economic-value analysis is required when any trigger fires; otherwise it is recommended."
+    },
+    "method": "component_economic_value",
+    "economic_claim": {
+      "description": "One diluted INV common share: net cash, look-through Accelsius claim (Innventure LLC 43.2% filing ownership), AeroFlexx/Refinity residual, less dilution/burn reserve.",
+      "unit_label": "diluted share",
+      "unit_count": 77829187,
+      "unit_source": "Q1 2026 WASO 77,829,187 (INV/.../10-Q_20260514_...htm)",
+      "enterprise_to_equity_reconciliation": "Parent consolidates subsidiaries with NCI; equity claim uses disclosed Innventure LLC ownership percentages, not 100% of consolidated Accelsius EV. Cash is parent-level. Intangibles/goodwill are GAAP cross-check only."
+    },
+    "gaap_role": "cross_check",
+    "accounting_reference": "FY2025 10-K and Q1 2026 10-Q; GAAP consolidates Accelsius with large NCI and intangibles; economic claim is look-through ownership plus cash.",
+    "comparable_hierarchy": [
+      "issuer_arm_length_transaction",
+      "same_asset_transaction",
+      "public_peer",
+      "replacement_cost",
+      "approved_external_analysis"
+    ],
+    "gross_comparable_nav_per_share": null,
+    "risked_present_value_per_share": {
+      "low": 0.0,
+      "base": 4.99,
+      "high": 12.45
+    },
+    "component_groups": [
+      {
+        "id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "component_ids": [
+          "net_cash_claims"
+        ],
+        "economic_claim": "Unrestricted cash claims",
+        "valuation_basis": "10-Q cash divided by WASO",
+        "adjustments": "Low/high stress cash burn",
+        "overlap_control": "Unique overlap key net_cash_claims",
+        "risked_present_value_per_share": {
+          "low": 0.6,
+          "base": 0.71,
+          "high": 0.75
+        }
+      },
+      {
+        "id": "accelsius_claim",
+        "label": "Accelsius look-through claim",
+        "component_ids": [
+          "accelsius_claim"
+        ],
+        "economic_claim": "Accelsius look-through claim (Innventure LLC ownership)",
+        "valuation_basis": "Filing ownership 43.2% times risked Accelsius EV; Magis diligence for commercial/exit path",
+        "adjustments": "Probability, timing, further dilution inside range",
+        "overlap_control": "Unique overlap key accelsius_claim",
+        "risk_and_timing": {
+          "probability_basis": "Base assumes commercialization without requiring Magis $1-3B exit; bear near Series B mark",
+          "timing_basis": "Five-year horizon; Magis notes 2027-28 exit window",
+          "remaining_capital_basis": "Magis: Series C not planned unless working capital from growth; parent still burns"
+        },
+        "risked_present_value_per_share": {
+          "low": 0.67,
+          "base": 4.63,
+          "high": 11.05
+        }
+      },
+      {
+        "id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "component_ids": [
+          "other_ops_residual"
+        ],
+        "economic_claim": "AeroFlexx + Refinity residual",
+        "valuation_basis": "Small option on filing ownership stakes",
+        "adjustments": "No Magis revenue path in base",
+        "overlap_control": "Unique overlap key other_ops_residual",
+        "risk_and_timing": {
+          "probability_basis": "Base assigns small residual probability of material scale; bear near zero",
+          "timing_basis": "Five-year horizon; no Magis exit path modeled",
+          "remaining_capital_basis": "10-K describes operating companies; Magis notes say AeroFlexx/Refinity to raise on own balance sheets"
+        },
+        "risked_present_value_per_share": {
+          "low": 0.05,
+          "base": 0.4,
+          "high": 0.9
+        }
+      },
+      {
+        "id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "component_ids": [
+          "dilution_burn_reserve"
+        ],
+        "economic_claim": "Dilution and holdco burn reserve",
+        "valuation_basis": "Negative reserve for continued losses and potential primary issuance",
+        "adjustments": "Separate from cash already marked",
+        "overlap_control": "Unique overlap key dilution_burn_reserve",
+        "risked_present_value_per_share": {
+          "low": -1.4,
+          "base": -0.75,
+          "high": -0.25
+        }
+      }
+    ],
+    "valuation_proof": [
+      {
+        "component_id": "net_cash_claims",
+        "economic_claim": "Unrestricted cash claims",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "evidence_tier": "primary_derived",
+        "evidence": "INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm cash $55.367M; WASO 77,829,187",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Low/high stress cash burn",
+        "range_per_share": {
+          "low": 0.6,
+          "base": 0.71,
+          "high": 0.75
+        },
+        "treatment": "additive",
+        "overlap_key": "net_cash_claims",
+        "overlap_control": "Unique overlap key net_cash_claims",
+        "falsifier": "Cash falls below $30M while quarterly burn stays above $15M",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "accelsius_claim",
+        "economic_claim": "Accelsius look-through claim (Innventure LLC ownership)",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "probability_weighted_outcome",
+        "evidence_tier": "primary_plus_fieldwork",
+        "evidence": "10-K: Innventure LLC owns 43.2% of Accelsius as of 2026-03-23. Magis Accelsius onsite 2026-04-17: Series A ~$28M@$135M post; Series B strategics ~$65M (JCI/Legrand); Dark NX $55M contract; exit talk $1-3B. INV/investor-documents/research-notes/2026-04-17_Accelsius.pdf",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Probability, timing, further dilution inside range",
+        "range_per_share": {
+          "low": 0.67,
+          "base": 4.63,
+          "high": 11.05
+        },
+        "treatment": "additive",
+        "overlap_key": "accelsius_claim",
+        "overlap_control": "Unique overlap key accelsius_claim",
+        "falsifier": "Accelsius fails to book meaningful revenue by YE2027 or INV ownership falls below 25% without offsetting cash proceeds",
+        "risk_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Five-year horizon; Magis notes 2027-28 exit window",
+          "probability_basis": "Base assumes commercialization without requiring Magis $1-3B exit; bear near Series B mark",
+          "remaining_capital_basis": "Magis: Series C not planned unless working capital from growth; parent still burns"
+        }
+      },
+      {
+        "component_id": "other_ops_residual",
+        "economic_claim": "AeroFlexx + Refinity residual",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "probability_weighted_outcome",
+        "evidence_tier": "primary_derived",
+        "evidence": "10-K: Innventure LLC owns 37.1% AeroFlexx and 68.5% Refinity Holdings as of 2026-03-23",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "No Magis revenue path in base",
+        "range_per_share": {
+          "low": 0.05,
+          "base": 0.4,
+          "high": 0.9
+        },
+        "treatment": "additive",
+        "overlap_key": "other_ops_residual",
+        "overlap_control": "Unique overlap key other_ops_residual",
+        "falsifier": "Either subsidiary requires parent capital beyond Magis-described self-funding path for two consecutive years",
+        "risk_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Five-year horizon; no Magis exit path modeled",
+          "probability_basis": "Base assigns small residual probability of material scale; bear near zero",
+          "remaining_capital_basis": "10-K describes operating companies; Magis notes say AeroFlexx/Refinity to raise on own balance sheets"
+        }
+      },
+      {
+        "component_id": "dilution_burn_reserve",
+        "economic_claim": "Dilution and holdco burn reserve",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "evidence_tier": "model_input",
+        "evidence": "10-Q Q1 2026 net loss to stockholders ~$20.8M; S-3 shelf capacity; preferred designations",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Separate from cash already marked",
+        "range_per_share": {
+          "low": -1.4,
+          "base": -0.75,
+          "high": -0.25
+        },
+        "treatment": "additive",
+        "overlap_key": "dilution_burn_reserve",
+        "overlap_control": "Unique overlap key dilution_burn_reserve",
+        "falsifier": "Parent raises large primary equity that cuts Accelsius claim without strategic co-investment",
+        "risk_and_timing": null
+      }
+    ],
+    "wisdom_applied": [],
+    "limitations": [],
+    "complete_component_coverage": true,
+    "validation_errors": [],
+    "registry_version": "1.0"
+  },
+  "component_review_queue": {
+    "status": "ready_for_committee_review",
+    "decision_rule": "Each assigned rater records accept, challenge, or reject with a proposed range and evidence. The aggregator may not silently average disputed ranges.",
+    "items": [
+      {
+        "component_id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 0.6,
+          "base": 0.71,
+          "high": 0.75
+        },
+        "range_width_pct_of_base": 21.1,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "greenblatt",
+          "marks_credit_cycle"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "accelsius_claim",
+        "label": "Accelsius look-through claim (Innventure LLC ownership)",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 0.67,
+          "base": 4.63,
+          "high": 11.05
+        },
+        "range_width_pct_of_base": 224.2,
+        "evidence_tier": "primary_plus_fieldwork",
+        "recommended_raters": [
+          "klarman_asset_value",
+          "hk"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": 0.05,
+          "base": 0.4,
+          "high": 0.9
+        },
+        "range_width_pct_of_base": 212.5,
+        "evidence_tier": "primary_derived",
+        "recommended_raters": [
+          "klarman_asset_value",
+          "hk"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      },
+      {
+        "component_id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "treatment": "additive",
+        "range_per_share": {
+          "low": -1.4,
+          "base": -0.75,
+          "high": -0.25
+        },
+        "range_width_pct_of_base": 153.3,
+        "evidence_tier": "model_input",
+        "recommended_raters": [
+          "pabrai",
+          "greenblatt"
+        ],
+        "mandatory_checks": [
+          "Is the valuation method appropriate for this economic claim?",
+          "Is the security's ownership claim and economic-unit denominator reconciled correctly?",
+          "Does the evidence support the low/base/high range and its timing?",
+          "Are comparable assets truly like-for-like after production, contract, location, capital, ownership, and realization adjustments?",
+          "For an option, are success probability, time to realization, and remaining owner-funded capital explicit?",
+          "Is the component additive, or already embedded in another component?",
+          "What observation would move the base estimate materially?"
+        ],
+        "status": "open"
+      }
+    ]
+  },
+  "valuation_method_route": {
+    "schema_version": "1.0",
+    "status": "routed",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
+    "score": 7.0,
+    "reasons": [
+      "archetype=holding_co",
+      "component categories=real_option"
+    ],
+    "primary_methods": [
+      "component_owner_cash_and_unit_nav"
+    ],
+    "corroborating_methods": [
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
+    ],
+    "primary_personas": [
+      "hk",
+      "stahl"
+    ],
+    "cross_check_personas": [
+      "klarman_asset_value",
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hohn",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai"
+    ],
+    "required_evidence": [
+      "legal economic claim",
+      "non-overlapping physical inventory",
+      "unit economics",
+      "realization timing",
+      "remaining owner capital"
+    ],
+    "failure_modes": [
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "catalyst_asset_value",
+        "score": 7.0,
+        "reasons": [
+          "archetype=holding_co",
+          "component categories=financial_asset"
+        ]
+      },
+      {
+        "profile_id": "binary_milestone",
+        "score": 2.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=probability"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 7.0,
+        "reasons": [
+          "archetype=holding_co",
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "capital_cycle": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=financial_asset"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 7.0,
+        "reasons": [
+          "archetype=holding_co",
+          "component categories=financial_asset"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "binary_milestone": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=probability"
+        ]
+      }
+    },
+    "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+  },
+  "universal_valuation_contract": {
+    "schema_version": "2.0",
+    "status": "decision_grade",
+    "ticker": "INV",
+    "as_of": "2026-07-28",
+    "economic_ownership_map": [
+      {
+        "component_id": "net_cash_claims",
+        "label": "Unrestricted cash claims",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Unrestricted cash claims",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 0.6,
+          "base": 0.71,
+          "high": 0.75
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm cash $55.367M; WASO 77,829,187",
+        "scenario_assumptions": null,
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low/high stress cash burn",
+        "falsifier": "Cash falls below $30M while quarterly burn stays above $15M",
+        "overlap_key": "net_cash_claims",
+        "assumption_type": "fact"
+      },
+      {
+        "component_id": "accelsius_claim",
+        "label": "Accelsius look-through claim (Innventure LLC ownership)",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Accelsius look-through claim (Innventure LLC ownership)",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "probability_weighted_outcome",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 0.67,
+          "base": 4.63,
+          "high": 11.05
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_plus_fieldwork",
+        "evidence_level": "analyst_estimated",
+        "evidence": "10-K: Innventure LLC owns 43.2% of Accelsius as of 2026-03-23. Magis Accelsius onsite 2026-04-17: Series A ~$28M@$135M post; Series B strategics ~$65M (JCI/Legrand); Dark NX $55M contract; exit talk $1-3B. INV/investor-documents/research-notes/2026-04-17_Accelsius.pdf",
+        "scenario_assumptions": "Risked Accelsius EV today low/base/high with ownership ~35-43%; year-5 base EV $1200.0M at 40% for yield-curve payoff",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Five-year horizon; Magis notes 2027-28 exit window",
+          "probability_basis": "Base assumes commercialization without requiring Magis $1-3B exit; bear near Series B mark",
+          "remaining_capital_basis": "Magis: Series C not planned unless working capital from growth; parent still burns"
+        },
+        "tax_and_realization_adjustments": "Probability, timing, further dilution inside range",
+        "falsifier": "Accelsius fails to book meaningful revenue by YE2027 or INV ownership falls below 25% without offsetting cash proceeds",
+        "overlap_key": "accelsius_claim",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "other_ops_residual",
+        "label": "AeroFlexx + Refinity residual",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "AeroFlexx + Refinity residual",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "probability_weighted_outcome",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": 0.05,
+          "base": 0.4,
+          "high": 0.9
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "10-K: Innventure LLC owns 37.1% AeroFlexx and 68.5% Refinity Holdings as of 2026-03-23",
+        "scenario_assumptions": null,
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Five-year horizon; no Magis exit path modeled",
+          "probability_basis": "Base assigns small residual probability of material scale; bear near zero",
+          "remaining_capital_basis": "10-K describes operating companies; Magis notes say AeroFlexx/Refinity to raise on own balance sheets"
+        },
+        "tax_and_realization_adjustments": "No Magis revenue path in base",
+        "falsifier": "Either subsidiary requires parent capital beyond Magis-described self-funding path for two consecutive years",
+        "overlap_key": "other_ops_residual",
+        "assumption_type": "fact"
+      },
+      {
+        "component_id": "dilution_burn_reserve",
+        "label": "Dilution and holdco burn reserve",
+        "category": "liability_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Dilution and holdco burn reserve",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "method_version": null,
+        "method_provenance": null,
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": null,
+          "base": null,
+          "high": null
+        },
+        "legacy_range_per_share": {
+          "low": -1.4,
+          "base": -0.75,
+          "high": -0.25
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": null,
+        "evidence_tier": "model_input",
+        "evidence_level": "analyst_estimated",
+        "evidence": "10-Q Q1 2026 net loss to stockholders ~$20.8M; S-3 shelf capacity; preferred designations",
+        "scenario_assumptions": null,
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Separate from cash already marked",
+        "falsifier": "Parent raises large primary equity that cuts Accelsius claim without strategic co-investment",
+        "overlap_key": "dilution_burn_reserve",
+        "assumption_type": "estimate"
+      }
+    ],
+    "component_coverage": {
+      "all_material_components_identified": true,
+      "material_component_count": 4,
+      "additive_component_count": 4,
+      "embedded_component_count": 0,
+      "unvalued_component_count": 0,
+      "double_counting_flags": []
+    },
+    "input_classification": {
+      "facts": [
+        {
+          "component_id": "net_cash_claims",
+          "label": "Unrestricted cash claims",
+          "kind": "fact",
+          "evidence_tier": "primary_derived",
+          "evidence": "INV/investor-documents/sec-edgar/10-Q_20260514_rpt20260331_acc0002001557_26_000115.htm cash $55.367M; WASO 77,829,187",
+          "method": "net_asset_value",
+          "valuation_status": "bounded_estimate"
+        },
+        {
+          "component_id": "other_ops_residual",
+          "label": "AeroFlexx + Refinity residual",
+          "kind": "fact",
+          "evidence_tier": "primary_derived",
+          "evidence": "10-K: Innventure LLC owns 37.1% AeroFlexx and 68.5% Refinity Holdings as of 2026-03-23",
+          "method": "probability_weighted_outcome",
+          "valuation_status": "bounded_estimate"
+        }
+      ],
+      "estimates": [
+        {
+          "component_id": "dilution_burn_reserve",
+          "label": "Dilution and holdco burn reserve",
+          "kind": "estimate",
+          "evidence_tier": "model_input",
+          "evidence": "10-Q Q1 2026 net loss to stockholders ~$20.8M; S-3 shelf capacity; preferred designations",
+          "method": "net_asset_value",
+          "valuation_status": "bounded_estimate"
+        }
+      ],
+      "judgments": [
+        {
+          "component_id": "accelsius_claim",
+          "label": "Accelsius look-through claim (Innventure LLC ownership)",
+          "kind": "judgment",
+          "evidence_tier": "primary_plus_fieldwork",
+          "evidence": "10-K: Innventure LLC owns 43.2% of Accelsius as of 2026-03-23. Magis Accelsius onsite 2026-04-17: Series A ~$28M@$135M post; Series B strategics ~$65M (JCI/Legrand); Dark NX $55M contract; exit talk $1-3B. INV/investor-documents/research-notes/2026-04-17_Accelsius.pdf",
+          "method": "probability_weighted_outcome",
+          "valuation_status": "bounded_estimate"
+        }
+      ]
+    },
+    "method_route": {
+      "schema_version": "1.0",
+      "status": "routed",
+      "profile_id": "scarce_asset_optionality",
+      "label": "Scarce assets, royalties, and optionality",
+      "score": 7.0,
+      "reasons": [
+        "archetype=holding_co",
+        "component categories=real_option"
+      ],
+      "primary_methods": [
+        "component_owner_cash_and_unit_nav"
+      ],
+      "corroborating_methods": [
+        "comparable_transactions",
+        "replacement_cost_or_reverse_nav"
+      ],
+      "primary_personas": [
+        "hk",
+        "stahl"
+      ],
+      "cross_check_personas": [
+        "klarman_asset_value",
+        "marks_credit_cycle"
+      ],
+      "silent_personas": [
+        "buffett_weschler",
+        "greenblatt",
+        "hohn",
+        "marathon_capital_cycle",
+        "munger",
+        "pabrai"
+      ],
+      "required_evidence": [
+        "legal economic claim",
+        "non-overlapping physical inventory",
+        "unit economics",
+        "realization timing",
+        "remaining owner capital"
+      ],
+      "failure_modes": [
+        "gross asset value mistaken for shareholder value",
+        "operating cash flow and NAV counted twice",
+        "remote options treated as contracted cash"
+      ],
+      "secondary_profiles": [
+        {
+          "profile_id": "catalyst_asset_value",
+          "score": 7.0,
+          "reasons": [
+            "archetype=holding_co",
+            "component categories=financial_asset"
+          ]
+        },
+        {
+          "profile_id": "binary_milestone",
+          "score": 2.0,
+          "reasons": [
+            "component categories=real_option",
+            "existing methods=probability"
+          ]
+        }
+      ],
+      "scorecard": {
+        "scarce_asset_optionality": {
+          "score": 7.0,
+          "reasons": [
+            "archetype=holding_co",
+            "component categories=real_option"
+          ]
+        },
+        "quality_reinvestment": {
+          "score": 0.0,
+          "reasons": []
+        },
+        "capital_cycle": {
+          "score": 0.0,
+          "reasons": []
+        },
+        "credit_and_normalized_returns": {
+          "score": 1.0,
+          "reasons": [
+            "component categories=financial_asset"
+          ]
+        },
+        "catalyst_asset_value": {
+          "score": 7.0,
+          "reasons": [
+            "archetype=holding_co",
+            "component categories=financial_asset"
+          ]
+        },
+        "predictable_cash_flow": {
+          "score": 0.0,
+          "reasons": []
+        },
+        "binary_milestone": {
+          "score": 2.0,
+          "reasons": [
+            "component categories=real_option",
+            "existing methods=probability"
+          ]
+        }
+      },
+      "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
+    },
+    "market": {
+      "price_per_share": 2.96,
+      "fully_diluted_shares": 77829187,
+      "market_cap_m": 230.37,
+      "enterprise_value_m": 175.01
+    },
+    "valuation": {
+      "value_per_share": {
+        "low": 0.0,
+        "base": 0.0,
+        "high": 0.0
+      },
+      "priced_components_per_share": {
+        "low": 0,
+        "base": 0,
+        "high": 0
+      },
+      "legacy_value_per_share": {
+        "low": 0.0,
+        "base": 4.99,
+        "high": 12.45
+      },
+      "probability_weighted_value_per_share": 0.0,
+      "expected_distributions_per_share": 0.0,
+      "annualized_return_at_price_pct": {
+        "low": null,
+        "base": null,
+        "high": null
+      },
+      "downside_to_low_pct": -100.0,
+      "horizon_years": 5,
+      "equity_liability_floor": 0.0,
+      "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    },
+    "scenario_contract": {
+      "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+      "top_value_drivers": [
+        {
+          "component_id": "net_cash_claims",
+          "label": "Unrestricted cash claims",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": null,
+          "legacy_base_per_share": 0.71,
+          "range_width_per_share": null,
+          "scenario_assumptions": null
+        },
+        {
+          "component_id": "accelsius_claim",
+          "label": "Accelsius look-through claim (Innventure LLC ownership)",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": null,
+          "legacy_base_per_share": 4.63,
+          "range_width_per_share": null,
+          "scenario_assumptions": "Risked Accelsius EV today low/base/high with ownership ~35-43%; year-5 base EV $1200.0M at 40% for yield-curve payoff"
+        },
+        {
+          "component_id": "other_ops_residual",
+          "label": "AeroFlexx + Refinity residual",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": null,
+          "legacy_base_per_share": 0.4,
+          "range_width_per_share": null,
+          "scenario_assumptions": null
+        },
+        {
+          "component_id": "dilution_burn_reserve",
+          "label": "Dilution and holdco burn reserve",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": null,
+          "legacy_base_per_share": -0.75,
+          "range_width_per_share": null,
+          "scenario_assumptions": null
+        }
+      ],
+      "reverse_expectations": null
+    },
+    "calculation_proof_summary": {
+      "component_count": 4,
+      "priced_component_count": 4,
+      "proof_complete_pct": 100.0,
+      "status_counts": {
+        "bounded_estimate": 4,
+        "calculated": 0,
+        "legacy_sensitivity": 0,
+        "unpriced": 0
+      },
+      "all_material_components_priced": true,
+      "calculation_errors": [],
+      "aggregate_proof_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "source_lineage": [],
+    "model_checks": {
+      "calculation_graphs_valid": true,
+      "component_sum_reconciles": true,
+      "no_double_counting": true,
+      "all_material_components_priced": true,
+      "low_base_high_ordered": true
+    },
+    "evidence": {
+      "unresolved_count": 0,
+      "blockers": [],
+      "validation_errors": []
+    },
+    "monitoring": {
+      "falsifiers": [
+        "Cash falls below $30M while quarterly burn stays above $15M",
+        "Accelsius fails to book meaningful revenue by YE2027 or INV ownership falls below 25% without offsetting cash proceeds",
+        "Either subsidiary requires parent capital beyond Magis-described self-funding path for two consecutive years",
+        "Parent raises large primary equity that cuts Accelsius claim without strategic co-investment"
+      ],
+      "required_refresh_triggers": [
+        "new filing or material operating update",
+        "capital-structure change",
+        "material price move",
+        "component milestone or falsifier"
+      ]
+    },
+    "change_control": {
+      "model_hash": "f766f210b623d9860fe250ed9df1b6814b7ce078a624e34e24e0764ea9e15fb1",
+      "method_versions": [],
+      "change_log": [],
+      "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+    },
+    "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved."
+  },
+  "method_profile": "scarce_asset_optionality"
 }

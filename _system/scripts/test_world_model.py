@@ -68,27 +68,45 @@ def test_foresight_artifacts_exist():
     assert (wm.PREDICTION_CARDS_DIR / "water_surface.json").exists()
     assert (wm.SUPERORG_DIR / "ice.json").exists()
     assert (wm.SUPERORG_DIR / "hyperscaler_ai_builders.json").exists()
+    assert (wm.SUPERORG_DIR / "land_power_stack.json").exists()
+    assert (wm.SUPERORG_DIR / "gold_royalty_cluster.json").exists()
+    assert (wm.SUPERORG_DIR / "spacex_network.json").exists()
     assert (wm.EXPERT_HORIZONS_DIR / "agi.csv").exists()
+    assert (wm.EXPERT_HORIZONS_DIR / "starship.csv").exists()
+    assert (wm.PREDICTION_CARDS_DIR / "space_network.json").exists()
     assert (wm.INDUSTRY_DIR / "ai_power.json").exists()
     assert (wm.INDUSTRY_DIR / "agi.json").exists()
     assert (wm.INDUSTRY_DIR / "robotaxi.json").exists()
+    assert (wm.INDUSTRY_DIR / "evtol_air_taxi.json").exists()
     assert (wm.INDUSTRY_DIR / "hyperscaler_cloud.json").exists()
     assert (wm.INDUSTRY_DIR / "water_surface.json").exists()
     ice = wm.load_json(wm.SUPERORG_DIR / "ice.json")
     assert ice.get("ticker") == "ICE"
     assert ice.get("role") == "portfolio_superorg"
+    spacex = wm.load_json(wm.SUPERORG_DIR / "spacex_network.json")
+    assert spacex.get("role") == "external_builder_superorg"
+    assert "ECHO" in (spacex.get("tickers") or [])
     industry_files = list(wm.INDUSTRY_DIR.glob("*.json"))
-    assert len(industry_files) == 13
+    assert len(industry_files) == 14
     thesis = sum(
         1
         for p in industry_files
         if (wm.load_json(p) or {}).get("kind", "thesis") != "horizon_industry"
     )
     assert thesis == 11
+    robotaxi = wm.load_json(wm.INDUSTRY_DIR / "robotaxi.json")
+    assert "JOBY" not in (robotaxi.get("linked_tickers") or [])
+    assert "UBER" in (robotaxi.get("linked_tickers") or [])
+    evtol = wm.load_json(wm.INDUSTRY_DIR / "evtol_air_taxi.json")
+    assert "JOBY" in (evtol.get("linked_tickers") or [])
     agi = wm.load_json(wm.INDUSTRY_DIR / "agi.json")
     assert agi.get("kind") == "horizon_industry"
     theme_cards = list(wm.PREDICTION_CARDS_DIR.glob("*.json"))
-    assert len(theme_cards) == 11
+    assert len(theme_cards) == 12
+    superorgs = list(wm.SUPERORG_DIR.glob("*.json"))
+    assert len(superorgs) >= 5
+    horizons = list(wm.EXPERT_HORIZONS_DIR.glob("*.csv"))
+    assert len(horizons) >= 3
 
 
 def test_apply_world_model_context_ice():

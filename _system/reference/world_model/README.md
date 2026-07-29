@@ -10,12 +10,13 @@ Operative JSON for SSI’s append-only World Model. **Context only.**
 
 | Layer | Count | What it is |
 |-------|------:|------------|
-| **Industry nodes** | **13** | Capacity / pricing / regulatory checklists |
+| **Industry nodes** | **14** | Capacity / pricing / regulatory checklists |
 | · thesis industries | 11 | Hold / researched book clusters |
-| · horizon industries | 2 | AGI + robotaxi (expert quotes + checklist) |
-| Theme prediction cards | 11 | Includes `macro_regime` (**not** an industry) |
-| Superorgs | 2 | ICE (portfolio) + hyperscaler demand proxy |
-| Expert horizon CSVs | 2 | Public arrival-date quotes |
+| · horizon industries | 3 | AGI + robotaxi + eVTOL |
+| Theme prediction cards | **12** | Includes `macro_regime` + thin `space_network` (**not** industries) |
+| Superorgs | **5** | ICE, hyperscaler demand, land-power sleeve, gold royalty cluster, SpaceX network |
+| Expert horizon CSVs | **3** | AGI, robotaxi, starship (public arrival-date quotes) |
+| Theme ingest panels | **11** | Market series themes in `theme_panel_config` (space_network is card-only for now) |
 | KPI ledgers | **62** | Every industry-linked ticker (6 curated + 56 industry scaffolds) |
 
 Strip field `counts.industry_nodes` must match the industry table below.
@@ -24,10 +25,10 @@ Strip field `counts.industry_nodes` must match the industry table below.
 
 | Industry node | Kind | Theme card(s) | Horizon / Superorg | Example tickers |
 |---------------|------|---------------|--------------------|-----------------|
-| `ai_power` | thesis | `ai_power_land` | Superorg hyperscaler | APLD, TPL, LB, WBI, AZLCZ, BWEL |
-| `water_surface` | thesis | `water_surface`, `ai_power_land` | — | TPL, LB, WBI, GYRO, TRC, CDZI |
+| `ai_power` | thesis | `ai_power_land` | Superorg hyperscaler + land_power_stack | APLD, TPL, LB, WBI, AZLCZ, BWEL |
+| `water_surface` | thesis | `water_surface`, `ai_power_land` | Superorg land_power_stack | TPL, LB, WBI, GYRO, TRC, CDZI |
 | `hyperscaler_cloud` | thesis | `ai_power_land` | Superorg + AGI horizon | AMZN, GOOGL, META, MSFT |
-| `gold_royalty` | thesis | `gold_royalties` | — | RGLD, MSB, WPM, OR, FNV, TFPM |
+| `gold_royalty` | thesis | `gold_royalties` | Superorg gold_royalty_cluster | RGLD, MSB, WPM, OR, FNV, TFPM |
 | `exchange_markets` | thesis | `exchange_volatility` | Superorg ICE; regional vol via `exchange_vol_map.json` | ICE, 8697.T, CME, CBOE, 0388.HK, ASX.AX |
 | `market_data_indices` | thesis | `index_data_fees`, `exchange_volatility` | — | SPGI, MCO, MSCI, FDS, OTCM |
 | `timber_land` | thesis | `timber_housing` | — | ADN.TO, RYN, PCH, WY |
@@ -36,9 +37,10 @@ Strip field `counts.industry_nodes` must match the industry table below.
 | `pharma_royalty` | thesis | `pharma_royalty` | — | RPRX, ABBV, LLY, VTRS |
 | `nuclear_firm_power` | thesis | `nuclear_power`, `ai_power_land` | AGI horizon | SMR, CEG, VST, DNN |
 | `agi` | horizon | `ai_power_land`, `macro_regime` | horizon `agi` | APLD, TPL, LB |
-| `robotaxi` | horizon | `macro_regime` | horizon `robotaxi` | TSLA, UBER, JOBY, ACHR |
+| `robotaxi` | horizon | `macro_regime` | horizon `robotaxi` | TSLA, UBER |
+| `evtol_air_taxi` | horizon | `macro_regime` | — (not ground robotaxi) | JOBY, ACHR |
 
-**Not industries:** `macro_regime` (cross-cutting regime card only).
+**Not industries:** `macro_regime` (cross-cutting regime card only); `space_network` (thin theme + Superorg/horizon — full `space_launch` industry still deferred).
 
 ## Universe → industry logic
 
@@ -68,7 +70,7 @@ Add a new `_system/reference/industry/{id}.json` only when **all** of:
 2. A theme prediction card **or** expert-horizon domain already exists.
 3. At least one bind: linked tickers, Superorg, or horizon domain.
 
-**Still deferred:** insurance/float (thin), rare earths, space launch / Starship, proptech-only (CSGP) until a second name joins.
+**Still deferred as full industry nodes:** insurance/float (thin), rare earths, **space launch industry checklist** (SpaceX Superorg + `space_network` theme + `starship` horizon are live without a 14th industry), proptech-only (CSGP) until a second name joins.
 
 ## Auto-link → valuation & deep dives (implemented)
 
@@ -106,4 +108,7 @@ CI: Data Pipeline cron `0 16 * * 0` (Sunday UTC) → profile `world-model-weekly
 **History / z-scores (schema 2.2):** `build_world_model_snapshot.py` annotates strip rows with `history` (z, mean, σ, sparkline) and shared `strip.history_series` for Magis UI drilldown. Theme KPIs use theme CSVs; valuation/manual KPIs append to `kpi/series/`. Z is descriptive only — never a Magis gate or capital stance. Plan: `_system/proposals/kpi_history_zscore_magis_2026-07-24.md`.
 
 **First portfolio Superorg:** `superorg/ice.json`.  
-**Demand proxy Superorg:** `superorg/hyperscaler_ai_builders.json`.
+**Demand proxy Superorg:** `superorg/hyperscaler_ai_builders.json`.  
+**Land/power sleeve:** `superorg/land_power_stack.json`.  
+**Gold royalty cluster:** `superorg/gold_royalty_cluster.json`.  
+**External SpaceX network:** `superorg/spacex_network.json` (Green Ash digest under `superorg/_sources/`).

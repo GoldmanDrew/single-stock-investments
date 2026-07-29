@@ -1,0 +1,118 @@
+# Filing digest — POET
+
+**Generated:** 2026-07-28  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `POET/research/evidence/document_inventory.json`  
+
+Documents in folder: **7** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | 20-F | 2024-03-28 | `investor-documents/sec-edgar/20-F_20240328_rpt20231231_acc0001493152_24_011806.htm` | 30000 |
+| full | 20-F | 2025-04-01 | `investor-documents/sec-edgar/20-F_20250401_rpt20241231_acc0001641172_25_002143.htm` | 120000 |
+| full | 20-F | 2026-03-31 | `investor-documents/sec-edgar/20-F_20260331_rpt20251231_acc0001493152_26_014253.htm` | 120000 |
+| inventory | other | 2024-04-02 | `investor-documents/sec-edgar/424B5_20240402_rpt_acc0001493152_24_012839.htm` | 0 |
+| inventory | other | 2024-07-19 | `investor-documents/sec-edgar/424B5_20240719_rpt_acc0001493152_24_028521.htm` | 0 |
+| inventory | other | 2026-01-23 | `investor-documents/sec-edgar/424B5_20260123_rpt_acc0001493152_26_003330.htm` | 0 |
+| inventory | other | 2026-05-18 | `investor-documents/sec-edgar/424B5_20260518_rpt_acc0001493152_26_024090.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/20-F_20260331_rpt20251231_acc0001493152_26_014253.htm`
+**Keyword snippets (related party, financials, segments):**
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities:
+- IncreaseDecreaseRevenuesRecognizedLiabilities:
+- CurrentLeaseLiabilities: 236,304
+- CurrentLeaseLiabilities: 115,793
+- CurrentLeaseLiabilities: 204,939
+- NoncurrentLeaseLiabilities: 1,029,894
+- NoncurrentLeaseLiabilities: 626,625
+- NoncurrentLeaseLiabilities: 307,141
+- Revenue: 1,074,865
+- Revenue: 41,427
+- Revenue: 465,777
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 223,403
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 255,953
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 252,103
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 62,842
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 271,069
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 7,257
+- IncreaseDecreaseRevenuesRecognizedReceivables: 725,000
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 732,257
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 725,000
+- WeightedAverageLesseesIncrementalBorrowingRateAppliedToLeaseLiabilitiesRecognisedAtDateOfInitialApplicationOfIFRS16: 12
+- LeaseLiabilities: 279,263
+- InterestExpenseOnLeaseLiabilities: 53,614
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 7,285
+- LeaseLiabilities: 512,080
+- InterestExpenseOnLeaseLiabilities: 90,041
+- AdditionsToLeaseLiabilities: 589,063
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 9,562
+- LeaseLiabilities: 742,418
+- InterestExpenseOnLeaseLiabilities: 144,046
+- AdditionsToLeaseLiabilities: 690,151
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 22,524
+- LeaseLiabilities: 1,266,198
+
+### `investor-documents/sec-edgar/20-F_20250401_rpt20241231_acc0001641172_25_002143.htm`
+**Keyword snippets (related party, financials, segments):**
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities:
+- CurrentLeaseLiabilities: 115,793
+- CurrentLeaseLiabilities: 204,939
+- CurrentLeaseLiabilities: 150,951
+- NoncurrentLeaseLiabilities: 626,625
+- NoncurrentLeaseLiabilities: 307,141
+- NoncurrentLeaseLiabilities: 128,312
+- Revenue: 41,427
+- Revenue: 465,777
+- Revenue: 552,748
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 255,953
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 252,103
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 204,518
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 62,842
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 489,906
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 271,069
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 7,257
+- WeightedAverageLesseesIncrementalBorrowingRateAppliedToLeaseLiabilitiesRecognisedAtDateOfInitialApplicationOfIFRS16: 12
+- LeaseLiabilities: 359,348
+- InterestExpenseOnLeaseLiabilities: 49,738
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 6,847
+- LeaseLiabilities: 279,263
+- InterestExpenseOnLeaseLiabilities: 53,614
+- AdditionsToLeaseLiabilities: 424,021
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 7,285
+- LeaseLiabilities: 512,080
+- InterestExpenseOnLeaseLiabilities: 90,041
+- AdditionsToLeaseLiabilities: 589,063
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 9,562
+- LeaseLiabilities: 742,418
+- UndiscountedOperatingLeasePaymentsToBeReceived: 256,434
+- UndiscountedOperatingLeasePaymentsToBeReceived: 834,207
+- UndiscountedOperatingLeasePaymentsToBeReceived: 1,090,641
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/20-F_20240328_rpt20231231_acc0001493152_24_011806.htm`
+**Keyword snippets (related party, financials, segments):**
+- CurrentLeaseLiabilities: 204,939
+- CurrentLeaseLiabilities: 150,951
+- CurrentLeaseLiabilities: 101,074
+- NoncurrentLeaseLiabilities: 307,141
+- NoncurrentLeaseLiabilities: 128,312
+- NoncurrentLeaseLiabilities: 258,274
+- Revenue: 465,777
+- Revenue: 552,748
+- Revenue: 209,100
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 252,103
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 204,518
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 237,634
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedReceivables: 62,842
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 489,906
+- IncreaseDecreaseThroughPerformanceObligationOrRevenueRecognizedLiabilities: 271,069
+- WeightedAverageLesseesIncrementalBorrowingRateAppliedToLeaseLiabilitiesRecognisedAtDateOfInitialApplicationOfIFRS16: 12
+- LeaseLiabilities: 531,997
+- InterestExpenseOnLeaseLiabilities: 67,675
+- IncreaseDecreaseThroughNetExchangeDifferencesLeaseLiabilities: 2,690
+- LeaseLiabilities: 359,348

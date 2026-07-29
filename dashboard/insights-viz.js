@@ -232,6 +232,7 @@
     if (!filter || filter === 'all') return insights;
     const map = {
       letters: 'superinvestor_letter',
+      podcasts: 'podcast_episode',
       filings: 'filing',
       earnings: 'earnings',
       macro: 'macro',
@@ -295,6 +296,7 @@
     const rows = filterInsights(insights, filter).slice(0, 6);
     const pills = [
       { id: 'letters', label: 'Letters' },
+      { id: 'podcasts', label: 'Podcasts' },
       { id: 'filings', label: 'Filings' },
       { id: 'company', label: 'Company' },
       { id: 'vic', label: 'VIC' },
@@ -599,24 +601,167 @@
     return stem.replace(/\.(txt|pdf|md)$/i, '').slice(0, 48);
   }
 
-  function renderPodcastIndex(rows, escapeHtml, linkHtml, ghRepo, { bookOnly = false, search = '' } = {}) {
+  function podcastTranscriptRef(ref) {
+    if (!ref) return '';
+    const s = String(ref);
+    if (s.endsWith('.meta.json')) return s.replace(/\.meta\.json$/, '.txt');
+    return s;
+  }
+
+  function podcastEpisodeShardPath(episodeId) {
+    const safe = String(episodeId || '').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 180);
+    return `data/insights/podcast_episodes/${safe}.json`;
+  }
+
+  function normalizePodcastGuests(guests) {
+    if (!Array.isArray(guests)) return [];
+    return guests.map(g => {
+      if (typeof g === 'string') return g;
+      return g?.display || g?.guest_id || '';
+    }).filter(Boolean);
+  }
+
+  function renderPodcastEpisodeDetail(row, escapeHtml, linkHtml, ghRepo, opts = {}) {
+    if (!row) return '';
+    const detail = opts.detail || null;
+    const loading = Boolean(opts.loading);
+    const merged = detail ? { ...row, ...detail } : row;
+    const flags = [
+      merged.has_pz_guest ? 'PZ guest' : '',
+      merged.has_officer_hit ? 'Officer' : '',
+      merged.near_universe ? 'Near-universe' : '',
+      merged.in_book ? 'In book' : '',
+    ].filter(Boolean);
+    const guests = normalizePodcastGuests(merged.guests);
+    const personas = (merged.persona_ids || []).filter(Boolean);
+    const themes = (merged.themes || []).map(t => {
+      const label = typeof t === 'string' ? t : (t.theme || '');
+      const stance = typeof t === 'object' ? (t.stance || '') : '';
+      if (!label) return '';
+      return `<span class="badge badge-us">${escapeHtml(label)}</span>${stance ? ` ${escapeHtml(stance)}` : ''}`;
+    }).filter(Boolean).join(' · ');
+    const tickers = (merged.tickers || []).filter(Boolean);
+    const highlights = Array.isArray(merged.highlights)
+      ? merged.highlights.map(h => (typeof h === 'string' ? h : (h.quote || h.text || ''))).filter(Boolean)
+      : (merged.highlight_previews || []).filter(Boolean);
+    const summary = (merged.summary || '').trim();
+    const transcriptRef = podcastTranscriptRef(merged.source_document);
+    const transcriptLink = transcriptRef
+      ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
+      : '';
+    const episodeLink = merged.link ? linkHtml(merged.link, 'Episode', 'source-open-link') : '';
+    const positions = (merged.positions || []).filter(p => p && p.ticker).slice(0, 12);
+    return `
+      <div class="detail-section fund-detail" id="podcast-episode-detail">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <button type="button" class="filter-btn" data-podcast-back>← Back</button>
+          <h3 style="margin:0;font-size:15px;line-height:1.35">${escapeHtml(merged.title || 'Episode')}</h3>
+        </div>
+        <p class="tier-sub">${escapeHtml(merged.show_title || merged.show_id || 'Podcast')} · ${escapeHtml(merged.published || '—')}</p>
+        ${flags.length ? `<p style="margin:8px 0">${flags.map(f => `<span class="badge badge-us">${escapeHtml(f)}</span>`).join(' ')}</p>` : ''}
+        ${guests.length ? `<p class="tier-sub">Guests: ${escapeHtml(guests.join(', '))}</p>` : ''}
+        ${personas.length ? `<p class="tier-sub">Personas: ${escapeHtml(personas.join(', '))}</p>` : ''}
+        ${themes ? `<div style="margin:8px 0"><strong>Themes:</strong> ${themes}</div>` : ''}
+        ${loading ? '<p class="tier-sub">Loading summary and highlights…</p>' : ''}
+        ${summary ? `<p style="font-size:13px;line-height:1.5;margin:10px 0">${escapeHtml(summary)}</p>` : ''}
+        ${tickers.length ? `
+        <div style="margin:10px 0">
+          <strong>Tickers</strong>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+            ${tickers.map(t => `<button type="button" class="filter-btn source-pill mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
+          </div>
+        </div>` : ''}
+        ${positions.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">TICKER COMMENTARY</h4>
+        <ul class="dev-list">${positions.map(p => `<li style="font-size:12px"><span class="mono">${escapeHtml(p.ticker)}</span>${p.commentary ? ` — ${escapeHtml(String(p.commentary).slice(0, 200))}` : ''}</li>`).join('')}</ul>
+        ` : ''}
+        ${highlights.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">HIGHLIGHTS</h4>
+        <ul class="dev-list">${highlights.map(p => `<li style="font-size:13px;line-height:1.45">${escapeHtml(p)}</li>`).join('')}</ul>
+        ` : (!loading && merged.highlight_count ? `<p class="tier-sub">${merged.highlight_count} highlight(s) — open transcript for detail</p>` : '')}
+        <p class="tier-sub" style="margin-top:12px">${[transcriptLink, episodeLink].filter(Boolean).join(' · ') || '—'}</p>
+      </div>`;
+  }
+
+  function renderPodcastIndex(rows, byShow, escapeHtml, linkHtml, ghRepo, opts = {}) {
+    const {
+      bookOnly = false,
+      search = '',
+      period = null,
+      showId = 'all',
+      flagFilter = 'all',
+      selectedEpisodeId = null,
+      episodeDetail = null,
+      episodeDetailLoading = false,
+    } = opts;
     let list = Array.isArray(rows) ? rows.slice() : [];
+    if (period) list = list.filter(r => periodMatchesRecord(r, period, ['published']));
     if (bookOnly) list = list.filter(r => r.in_book || (r.tickers || []).length);
+    if (showId && showId !== 'all') list = list.filter(r => r.show_id === showId);
+    if (flagFilter === 'pz') list = list.filter(r => r.has_pz_guest);
+    else if (flagFilter === 'officer') list = list.filter(r => r.has_officer_hit);
+    else if (flagFilter === 'in_book') list = list.filter(r => r.in_book);
+    else if (flagFilter === 'highlights') list = list.filter(r => (r.highlight_count || 0) > 0);
     if (search) {
       const q = String(search).toLowerCase();
       list = list.filter(r => {
         const blob = [
           r.show_title, r.title, (r.guests || []).join(' '), (r.tickers || []).join(' '),
           (r.persona_ids || []).join(' '),
+          (r.themes || []).map(t => (typeof t === 'string' ? t : t.theme) || '').join(' '),
         ].join(' ').toLowerCase();
         return blob.includes(q);
       });
     }
-    if (!list.length) {
-      return '<p class="muted">No podcast episodes indexed yet. Run <code>make podcasts-refresh</code>.</p>';
+
+    if (selectedEpisodeId) {
+      const selected = list.find(r => r.episode_id === selectedEpisodeId)
+        || (rows || []).find(r => r.episode_id === selectedEpisodeId);
+      if (selected) {
+        return renderPodcastEpisodeDetail(selected, escapeHtml, linkHtml, ghRepo, {
+          detail: episodeDetail && episodeDetail.episode_id === selectedEpisodeId ? episodeDetail : null,
+          loading: episodeDetailLoading && !(episodeDetail && episodeDetail.episode_id === selectedEpisodeId),
+        });
+      }
     }
+
+    const shows = Object.values(byShow || {}).sort((a, b) =>
+      String(a.show_title || a.show_id).localeCompare(String(b.show_title || b.show_id))
+    );
+    const showPills = [
+      { id: 'all', label: `All shows (${(rows || []).length})` },
+      ...shows.map(s => ({
+        id: s.show_id,
+        label: `${s.show_title || s.show_id} (${s.episode_count || (s.episode_ids || []).length || 0})`,
+      })),
+    ];
+    const flagPills = [
+      { id: 'all', label: 'All' },
+      { id: 'pz', label: 'PZ guest' },
+      { id: 'officer', label: 'Officer' },
+      { id: 'in_book', label: 'In book' },
+      { id: 'highlights', label: 'Has highlights' },
+    ];
+
+    if (!list.length) {
+      return `
+        <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+          ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+          ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <p class="muted">${(rows || []).length ? 'No episodes match these filters.' : 'No podcast episodes indexed yet. Run <code>make podcasts-refresh</code>.'}</p>`;
+    }
+
     return `
-      <p class="tier-sub" style="margin-bottom:8px">${list.length} episode(s)${bookOnly ? ' · in-book / ticker overlap' : ''}</p>
+      <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+        ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+        ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <p class="tier-sub" style="margin-bottom:8px">${list.length} episode(s)${bookOnly ? ' · in-book / ticker overlap' : ''}${period && !period.all ? ` · ${escapeHtml(period.label || '')}` : ''}</p>
       <table class="darwin-table" id="insights-podcast-table">
         <thead><tr><th>Date</th><th>Show</th><th>Episode</th><th>Guests / PZ</th><th>Tickers</th><th>Flags</th><th>Highlights</th><th>Source</th></tr></thead>
         <tbody>
@@ -630,15 +775,21 @@
             const guests = (r.guests || []).filter(Boolean).slice(0, 4).join(', ') || '—';
             const personas = (r.persona_ids || []).slice(0, 3).join(', ');
             const guestCell = personas ? `${escapeHtml(guests)}<div class="tier-sub" style="font-size:10px">${escapeHtml(personas)}</div>` : escapeHtml(guests);
-            const src = r.source_document
-              ? evidenceLink(r.source_document, linkHtml, ghRepo, 'Transcript')
+            const tickers = (r.tickers || []).slice(0, 6);
+            const tickerCell = tickers.length
+              ? tickers.map(t => `<button type="button" class="linkish mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join(' ')
+              : '—';
+            const transcriptRef = podcastTranscriptRef(r.source_document);
+            const src = transcriptRef
+              ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
               : (r.link ? linkHtml(r.link, 'Open', 'source-open-link') : '—');
-            return `<tr>
+            const eid = escapeHtml(r.episode_id || '');
+            return `<tr class="podcast-row" data-podcast-episode="${eid}" style="cursor:pointer">
               <td class="mono">${escapeHtml(r.published || '—')}</td>
               <td>${escapeHtml(r.show_title || r.show_id || '—')}</td>
-              <td style="font-size:11px;max-width:260px">${escapeHtml(r.title || '—')}</td>
+              <td style="font-size:11px;max-width:260px"><button type="button" class="linkish" data-podcast-episode="${eid}" style="text-align:left">${escapeHtml(r.title || '—')}</button></td>
               <td style="font-size:11px">${guestCell}</td>
-              <td class="mono" style="font-size:11px">${escapeHtml((r.tickers || []).slice(0, 6).join(', ') || '—')}</td>
+              <td class="mono" style="font-size:11px">${tickerCell}</td>
               <td style="font-size:11px">${escapeHtml(flags)}</td>
               <td class="mono">${escapeHtml(String(r.highlight_count ?? 0))}</td>
               <td>${src}</td>
@@ -1506,6 +1657,9 @@
         if (sourceFilter === 'letters') {
           return sources.has('superinvestor_letter') || e.owner?.source === 'superinvestor_letter';
         }
+        if (sourceFilter === 'podcast_episode' || sourceFilter === 'podcasts') {
+          return sources.has('podcast_episode');
+        }
         if (sourceFilter === 'macro') {
           return e.macro_only || sources.has('macro');
         }
@@ -1525,7 +1679,166 @@
     return m ? `P${m[1]}` : String(cls);
   }
 
-  function wmZBadge(z, escapeHtml) {
+  function wmTrimStance(text, maxLen) {
+    let s = String(text || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+    const max = maxLen || 120;
+    if (s.length <= max) return s;
+    return `${s.slice(0, max - 1).trim()}…`;
+  }
+
+  function wmFormatNumber(v, unit) {
+    if (v == null || v === '') return '—';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    const u = String(unit || '').toLowerCase();
+    if (u.includes('ratio') || Math.abs(n) < 1 && Math.abs(n) > 0) return n.toFixed(Math.abs(n) < 0.1 ? 4 : 3);
+    if (u.includes('year') || Number.isInteger(n) || Math.abs(n - Math.round(n)) < 1e-9) {
+      if (Math.abs(n) >= 1000) return String(Math.round(n));
+      return String(Math.round(n * 100) / 100);
+    }
+    if (Math.abs(n) >= 100) return n.toFixed(1);
+    if (Math.abs(n) >= 10) return n.toFixed(2);
+    return n.toFixed(2);
+  }
+
+  function wmKpiLabel(row, strip) {
+    const id = String((row && row.kpi_id) || '');
+    let label = (row && row.label) || '';
+    // Enrich P0 horizon quote rows with latest speaker from expert_horizons
+    if (/_years_ahead$/.test(id) && strip) {
+      const domain = id.replace(/_years_ahead$/, '');
+      const h = (strip.expert_horizons || []).find(x => x.domain === domain);
+      const latest = (h && h.latest) || {};
+      const bits = ['P0'];
+      if (latest.speaker) bits.push(String(latest.speaker));
+      if (latest.years_ahead != null) bits.push(`${wmFormatNumber(latest.years_ahead)}y`);
+      if (!label) label = id.replace(/_/g, ' ');
+      if (!/P0/.test(label)) label = `${label} (${bits.join(' · ')})`;
+    }
+    if (label) {
+      return label.length > 64 ? `${label.slice(0, 63)}…` : label;
+    }
+    return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '—';
+  }
+
+  function wmIsSharedThemeKpi(row) {
+    if (!row) return false;
+    const mode = row.magis_display && row.magis_display.mode;
+    if (mode === 'shared_theme') return true;
+    const src = String(row.source || '');
+    return src.startsWith('theme:');
+  }
+
+  function wmSharedKey(row) {
+    return String((row && row.source) || (row && row.kpi_id) || '');
+  }
+
+  function wmHideZScore(row) {
+    const id = String((row && row.kpi_id) || '');
+    if (id === 'price_usd') return true;
+    if (/_years_ahead$/.test(id)) return true; // sparse quote series — z not meaningful
+    return false;
+  }
+
+  function wmIndustryKey(row) {
+    const ids = (row && row.industry_node_ids) || [];
+    return ids[0] || 'other';
+  }
+
+  function wmIndustryTitle(key) {
+    const titles = {
+      robotaxi: 'robotaxi / AV ground',
+      evtol_air_taxi: 'eVTOL / air taxi',
+      pharma_royalty: 'pharma royalty',
+      btc_mining_power: 'BTC mining / power',
+      market_data_indices: 'index / market-data fees',
+      ai_power: 'AI power / land',
+      water_surface: 'water / surface',
+      hyperscaler_cloud: 'hyperscaler cloud',
+      nuclear_firm_power: 'nuclear / SMR',
+      gold_royalty: 'gold royalty',
+      timber_land: 'timber / housing',
+      energy_royalty: 'energy royalty',
+      exchange_markets: 'exchange markets',
+      agi: 'AGI horizon',
+    };
+    return titles[key] || String(key || 'other').replace(/_/g, ' ');
+  }
+
+  function wmZValue(row) {
+    if (wmHideZScore(row)) return null;
+    const hist = (row && row.history) || {};
+    const z = hist.z_score != null ? hist.z_score : (row && row.z_score);
+    return z == null || Number.isNaN(Number(z)) ? null : Number(z);
+  }
+
+  function wmIsOutlier(row) {
+    const z = wmZValue(row);
+    return z != null && Math.abs(z) >= 2;
+  }
+
+  function wmGateText(row) {
+    const exp = (row && row.expected) || {};
+    if (!exp.op || exp.value == null) return '';
+    return `${exp.op} ${wmFormatNumber(exp.value)}`;
+  }
+
+  function wmWhyText(row) {
+    const kind = row._kind || row.status || '';
+    if (kind === 'hard' || kind === 'fail') return 'Hard gate miss';
+    if (kind === 'soft' || kind === 'soft-floor') return 'Soft floor (Goodhart)';
+    if (kind === 'stale') return 'Stale actual';
+    if (kind === 'unchecked') return 'Needs value';
+    if (wmIsOutlier(row)) return `|z| elevated`;
+    return kind || '—';
+  }
+
+  // Prefer theme_panel_config evidence; keep a UI fallback map in sync with ingest themes.
+  const WM_THEME_SERIES = {
+    ai_power_land: ['theme:hyperscaler_capex_ttm_usd_bn', 'theme:henry_hub_gas', 'theme:wti_crude'],
+    exchange_volatility: ['theme:vix_level', 'theme:spy_20d_realized_vol', 'theme:vol_term_slope'],
+    gold_royalties: ['theme:gold_spot_usd', 'theme:gdx_gld_ratio'],
+    macro_regime: ['theme:hy_oas', 'theme:ust_10y', 'theme:vix_level'],
+    water_surface: ['theme:tpl_water_revenue_m', 'theme:wti_crude', 'theme:permian_crude_production_mbbl_d'],
+    timber_housing: ['theme:housing_starts', 'theme:building_permits'],
+    btc_hash_power: ['theme:btc_usd', 'theme:henry_hub_gas'],
+    energy_royalty: ['theme:wti_crude', 'theme:henry_hub_gas'],
+    pharma_royalty: ['theme:xlv_etf', 'theme:xbi_etf', 'theme:ust_10y'],
+    nuclear_power: ['theme:ura_etf', 'theme:hyperscaler_capex_ttm_usd_bn'],
+    index_data_fees: ['theme:vix_level', 'theme:spy_20d_realized_vol'],
+    space_network: [],
+  };
+
+  function wmSeriesLatest(historySeries, seriesKey) {
+    const s = (historySeries || {})[seriesKey];
+    if (!s) return null;
+    const pts = s.points || [];
+    const last = pts.length ? pts[pts.length - 1] : null;
+    const stats = s.stats || {};
+    const v = last && last.v != null ? last.v : stats.latest;
+    return {
+      key: seriesKey,
+      label: s.label || seriesKey.replace(/^theme:/, '').replace(/_/g, ' '),
+      value: v,
+    };
+  }
+
+  function wmPillarLights(pillars) {
+    const entries = Object.entries(pillars || {});
+    if (!entries.length) return '—';
+    return entries.map(([, st]) => {
+      const s = String(st || '').toLowerCase();
+      if (s === 'pass' || s === 'ok' || s === 'strong') return '●';
+      if (s === 'partial' || s === 'watch' || s === 'weak') return '◐';
+      if (s === 'fail' || s === 'gap' || s === 'missing') return '○';
+      return '·';
+    }).join('');
+  }
+
+  function wmZBadge(z, escapeHtml, opts) {
+    if (opts && opts.hidden) {
+      return `<span class="badge badge-us" title="Z not shown for this KPI type">—</span>`;
+    }
     if (z == null || Number.isNaN(Number(z))) {
       return `<span class="badge badge-us" title="Insufficient history for z-score">n/a</span>`;
     }
@@ -1533,7 +1846,7 @@
     const abs = Math.abs(n);
     const cls = abs >= 2 ? 'badge-bad' : (abs >= 1 ? 'badge-warn' : 'badge-ok');
     const sign = n > 0 ? '+' : '';
-    return `<span class="badge ${cls}" title="Z vs trailing history (descriptive; not a Magis gate)">${escapeHtml(sign + n.toFixed(2))}</span>`;
+    return `<span class="badge ${cls}" title="Vs trailing history only — descriptive; not a Magis gate">${escapeHtml(sign + n.toFixed(2))}</span>`;
   }
 
   function wmSparklineSvg(values, width, height) {
@@ -1646,24 +1959,29 @@
   function wmKpiHistCells(r, escapeHtml) {
     const hist = r.history || {};
     const spark = wmSparklineSvg(hist.sparkline || []);
-    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}`.replace(/[^\w.\-]+/g, '_');
-    const title = 'Click to view time series and z-score vs history';
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}__${String(r.source || '').replace(/:/g, '_')}`
+      .replace(/[^\w.\-]+/g, '_');
+    const title = 'Click to view time series and vs-history detail';
+    const actualTxt = r.actual != null ? wmFormatNumber(r.actual, r.unit) : '—';
+    const hideZ = wmHideZScore(r);
+    const zVal = hideZ ? null : (hist.z_score != null ? hist.z_score : r.z_score);
     return {
       rowId,
-      actualCell: `<td class="mono"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${r.actual != null ? escapeHtml(String(r.actual)) : '—'}</button></td>`,
-      sparkCell: `<td style="color:var(--text-secondary)"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${spark}</button></td>`,
-      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(hist.z_score != null ? hist.z_score : r.z_score, escapeHtml)}</button></td>`,
+      actualCell: `<td class="mono"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${escapeHtml(actualTxt)}</button></td>`,
+      sparkCell: `<td class="wm-spark"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${spark}</button></td>`,
+      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(zVal, escapeHtml, { hidden: hideZ })}</button></td>`,
     };
   }
 
   function renderWorldModelStrip(worldModel, escapeHtml) {
     const strip = worldModel && worldModel.strip;
     if (!strip) {
-      return `<div class="detail-section world-model-strip" style="margin-bottom:14px">
-        <h3 style="font-size:14px;margin:0 0 6px">World Model</h3>
+      return `<div class="detail-section world-model-strip">
+        <h3>World Model</h3>
         <p class="tier-sub">No snapshot yet. Run: python _system/scripts/build_world_model_snapshot.py</p>
       </div>`;
     }
+
     const label = strip.label || 'steady';
     const labelCls = label === 'broken' ? 'badge-bad' : (label === 'attention' ? 'badge-warn' : 'badge-ok');
     const bounds = strip.claim_boundaries || {};
@@ -1671,84 +1989,105 @@
     const ceilingShort = wmClassShort(claimCeiling);
     const counts = strip.counts || {};
     const historySeries = strip.history_series || {};
-    const countLine = [
-      counts.fail_hard != null ? `${counts.fail_hard} hard-fail` : (counts.fail != null ? `${counts.fail} failed` : ''),
-      counts.fail_soft != null && counts.fail_soft ? `${counts.fail_soft} soft-floor` : '',
-      counts.stale != null ? `${counts.stale} stale` : '',
-      counts.drifted_edges != null ? `${counts.drifted_edges} drifted` : '',
-      counts.pass != null ? `${counts.pass} passing` : '',
-      counts.unchecked != null ? `${counts.unchecked} unchecked` : '',
-      counts.ledgers != null ? `${counts.ledgers} ledgers` : '',
-    ].filter(Boolean).join(' · ');
+    const darwin = bounds.darwin || {};
+    const demotions = bounds.demotions || [];
+    const isHorizonDemotion = (d) => {
+      const art = String(d.artifact || '');
+      const reason = String(d.reason || '');
+      return art.startsWith('expert_horizon:')
+        || /Arrival-date quotes are observations/i.test(reason);
+    };
+    const horizonDemotions = demotions.filter(isHorizonDemotion);
+    const nonHorizonDemotions = demotions.filter(d => !isHorizonDemotion(d));
+    const goodhartAll = bounds.goodhart_watch || [];
+    const goodhartFails = goodhartAll.filter(g => String(g.status || '').toLowerCase() === 'fail');
+    const openCockpit = label === 'attention' || label === 'broken';
+    const engines = bounds.engines || [];
+    const enginesTooltip = engines.length
+      ? engines.map(e => `${e.id || ''}: ${e.role || ''}`).join(' · ')
+      : 'World Model / Darwin / house valuation / Lawrence / Santa Fe stay separate languages';
+    const claimHygieneSummary = (() => {
+      const bits = [`${goodhartFails.length} GH fails`];
+      if (horizonDemotions.length) bits.push('horizons P0');
+      if (nonHorizonDemotions.length) bits.push(`${nonHorizonDemotions.length} other demotions`);
+      return bits.join(' · ');
+    })();
 
-    const alertRows = [
+    const exceptionBits = [
+      counts.fail_hard ? `${counts.fail_hard} hard` : '',
+      counts.fail_soft ? `${counts.fail_soft} soft` : '',
+      counts.stale ? `${counts.stale} stale` : '',
+      counts.unchecked ? `${counts.unchecked} unchecked` : '',
+    ].filter(Boolean);
+    const exceptionSummary = exceptionBits.length ? exceptionBits.join(' · ') : 'no exceptions';
+    const stance = wmTrimStance(strip.ev_stance || '', 120);
+
+    const attentionRows = [
       ...(strip.broken || []).map(r => ({ ...r, _kind: 'hard' })),
       ...(strip.soft_fails || []).map(r => ({ ...r, _kind: 'soft' })),
       ...(strip.stale || []).map(r => ({ ...r, _kind: 'stale' })),
-    ].slice(0, 12).map(r => {
-      const cells = wmKpiHistCells(r, escapeHtml);
-      return `
-      <tr>
-        <td class="mono">${escapeHtml(r.ticker || '')}</td>
-        <td><span class="badge ${r._kind === 'hard' ? 'badge-bad' : 'badge-warn'}">${escapeHtml(r._kind === 'soft' ? 'soft-floor' : (r.status || r._kind || ''))}</span></td>
-        <td style="font-size:12px">${escapeHtml(r.kpi_id || r.label || '')}${r.gameability ? ` <span class="badge badge-warn" title="Goodhart risk — does not alone mark strip broken">g:${escapeHtml(r.gameability)}</span>` : ''}</td>
-        ${cells.actualCell}
-        ${cells.sparkCell}
-        ${cells.zCell}
-        <td><span class="badge badge-us">${escapeHtml(wmClassShort(r.predictability_class))}</span></td>
-      </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 7)}`;
+      ...(strip.unchecked || []).map(r => ({ ...r, _kind: 'unchecked' })),
+    ].slice(0, 12);
+
+    const attentionTable = attentionRows.length ? `
+      <div class="wm-attention">
+        <h4 class="wm-section-title">Needs attention</h4>
+        <table class="darwin-table wm-table">
+          <thead><tr><th>Ticker</th><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Why</th></tr></thead>
+          <tbody>${attentionRows.map(r => {
+            const cells = wmKpiHistCells(r, escapeHtml);
+            const kindCls = r._kind === 'hard' ? 'badge-bad' : 'badge-warn';
+            const scaffoldBadge = r.scaffold ? ' <span class="badge badge-us" title="Industry scaffold — not curated filing KPIs">scaffold</span>' : '';
+            return `<tr>
+              <td class="mono">${escapeHtml(r.ticker || '')}</td>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}${scaffoldBadge}${r._kind === 'soft' ? ` <span class="badge badge-warn" title="Soft floor / Goodhart">soft</span>` : ''}</td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="tier-sub">${escapeHtml(wmWhyText(r))} <span class="badge ${kindCls}">${escapeHtml(r._kind === 'soft' ? 'soft' : r._kind)}</span></td>
+            </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 6)}`;
+          }).join('')}</tbody>
+        </table>
+      </div>` : '';
+
+    const cards = strip.prediction_cards || [];
+    const themeCards = cards.map(c => {
+      const tid = c.theme_id || '';
+      const seriesKeys = WM_THEME_SERIES[tid] || [];
+      const seriesBits = seriesKeys.map(k => wmSeriesLatest(historySeries, k)).filter(Boolean).slice(0, 3)
+        .map(s => `<span class="wm-theme-metric"><span class="wm-theme-metric-label">${escapeHtml(s.label)}</span> <span class="mono">${escapeHtml(wmFormatNumber(s.value))}</span></span>`)
+        .join('');
+      const phase = c.phase_transition || '—';
+      const phaseCls = phase === 'likely' ? 'badge-warn' : (phase === 'gradual' ? 'badge-us' : 'badge-us');
+      const rein = [
+        c.recursive ? 'recursive' : null,
+        c.tam_magnetism ? `TAM ${c.tam_magnetism}` : null,
+        c.regulatory || null,
+      ].filter(Boolean).join(' · ');
+      let metricsBlock = seriesBits
+        ? `<div class="wm-theme-metrics">${seriesBits}</div>`
+        : '';
+      if (!seriesBits && (tid === 'space_network' || seriesKeys.length === 0)) {
+        metricsBlock = `<div class="tier-sub wm-theme-metrics">No market series yet — see Expert horizons · starship and Superorgs</div>`;
+      }
+      return `<div class="wm-theme-card">
+        <div class="wm-theme-card-head">
+          <span class="wm-theme-name">${escapeHtml(c.label || tid)}</span>
+          <span class="badge ${phaseCls}">${escapeHtml(phase)}</span>
+        </div>
+        ${metricsBlock}
+        <div class="tier-sub wm-theme-rein">${escapeHtml(rein)}</div>
+      </div>`;
     }).join('');
-
-    const passRows = (strip.passes || []).slice(0, 80).map(r => {
-      const role = r.prediction_role || '';
-      const inds = (r.industry_node_ids || []).join(', ');
-      const exp = r.expected || {};
-      const gate = exp.op && exp.value != null ? `${exp.op} ${exp.value}` : '';
-      const cells = wmKpiHistCells(r, escapeHtml);
-      return `<tr>
-        <td class="mono">${escapeHtml(r.ticker || '')}</td>
-        <td class="tier-sub" style="font-size:11px">${escapeHtml(inds)}</td>
-        <td style="font-size:12px">${escapeHtml(r.kpi_id || '')}${role ? ` <span class="badge badge-us">${escapeHtml(role)}</span>` : ''}${r.gameability ? ` <span class="badge badge-warn">g:${escapeHtml(r.gameability)}</span>` : ''}</td>
-        ${cells.actualCell}
-        ${cells.sparkCell}
-        ${cells.zCell}
-        <td class="mono tier-sub">${escapeHtml(gate)}</td>
-        <td><span class="badge badge-us">${escapeHtml(wmClassShort(r.predictability_class))}</span></td>
-      </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 8)}`;
-    }).join('');
-
-    const cardRows = (strip.prediction_cards || []).map(c => `<tr>
-      <td class="mono">${escapeHtml(c.theme_id || '')}</td>
-      <td><span class="badge badge-us">${escapeHtml(wmClassShort(c.predictability_class || 'P3_oriented'))}</span></td>
-      <td>${escapeHtml(c.phase_transition || '')}</td>
-      <td>${escapeHtml(c.regulatory || '')}</td>
-      <td class="tier-sub">${c.recursive ? 'recursive' : '—'} · ${escapeHtml(c.tam_magnetism || '')}</td>
-    </tr>`).join('');
-
-    const demotionRows = (bounds.demotions || []).map(d => `<tr>
-      <td class="mono">${escapeHtml(d.artifact || '')}</td>
-      <td><span class="badge badge-us">${escapeHtml(wmClassShort(d.predictability_class))}</span></td>
-      <td style="font-size:12px">${escapeHtml(d.reason || '')}</td>
-    </tr>`).join('');
-    const goodhartRows = (bounds.goodhart_watch || []).slice(0, 24).map(g => `<tr>
-      <td class="mono">${escapeHtml(g.ticker || '')}</td>
-      <td style="font-size:12px">${escapeHtml(g.kpi_id || '')}</td>
-      <td><span class="badge badge-warn">${escapeHtml(g.gameability || '')}</span></td>
-      <td><span class="badge ${g.status === 'fail' ? 'badge-bad' : 'badge-us'}">${escapeHtml(g.status || '')}</span></td>
-    </tr>`).join('');
-    const engineRows = (bounds.engines || []).map(e => `<tr>
-      <td class="mono">${escapeHtml(e.id || '')}</td>
-      <td style="font-size:12px">${escapeHtml(e.role || '')}</td>
-    </tr>`).join('');
-    const darwin = bounds.darwin || {};
 
     const superRows = (strip.superorgs || []).map(s => {
-      const pillars = s.pillars || {};
-      const bits = Object.keys(pillars).map(k => `${k}:${pillars[k]}`).join(' · ');
+      const lights = wmPillarLights(s.pillars);
+      const sum = s.summary || {};
+      const score = sum.fail ? `${sum.fail} fail` : (sum.partial ? `${sum.partial} partial` : 'ok');
       return `<tr>
-        <td class="mono">${escapeHtml(s.org_id || s.label || '')}</td>
-        <td class="tier-sub" style="font-size:11px">${escapeHtml(bits)}</td>
-        <td style="font-size:12px">${escapeHtml(s.stance_implication || '')}</td>
+        <td>${escapeHtml(s.label || s.org_id || '')}</td>
+        <td class="mono wm-pillar-lights" title="Pillar traffic: filled=pass, half=partial, empty=fail">${escapeHtml(lights)}</td>
+        <td class="tier-sub">${escapeHtml(score)}</td>
       </tr>`;
     }).join('');
 
@@ -1757,18 +2096,15 @@
       const convCls = h.convergence === 'converging' ? 'badge-ok' : (h.convergence === 'receding' ? 'badge-bad' : 'badge-us');
       return `<tr>
         <td class="mono">${escapeHtml(h.domain || '')}</td>
-        <td><span class="badge badge-us" title="Not a Magis forecast">${escapeHtml(wmClassShort(h.predictability_class || 'P0_ill_defined'))}</span></td>
         <td><span class="badge ${convCls}">${escapeHtml(h.convergence || '')}</span></td>
-        <td class="mono">${latest.years_ahead != null ? escapeHtml(String(latest.years_ahead)) : '—'}y</td>
-        <td style="font-size:12px">${escapeHtml(latest.speaker || '')}: ${escapeHtml(latest.quote_note || '')}</td>
+        <td class="mono">${latest.years_ahead != null ? escapeHtml(wmFormatNumber(latest.years_ahead, 'years')) : '—'}y</td>
+        <td class="tier-sub">${escapeHtml(latest.speaker || '')}</td>
       </tr>`;
     }).join('');
 
     const industryNodes = strip.industry_nodes || [];
     const thesisInd = industryNodes.filter(n => (n.kind || 'thesis') !== 'horizon_industry');
     const horizonInd = industryNodes.filter(n => n.kind === 'horizon_industry');
-    const industryScope = strip.industry_scope
-      || `Industries: ${industryNodes.length} (${thesisInd.length} thesis, ${horizonInd.length} horizon). Macro is a regime card, not an industry.`;
     const industryRows = industryNodes.map(n => {
       const cl = n.checklist || {};
       const bits = ['capacity', 'pricing', 'regulatory'].map(k => {
@@ -1777,98 +2113,183 @@
       }).join(' · ');
       const kind = n.kind || 'thesis';
       return `<tr>
-        <td class="mono">${escapeHtml(n.node_id || '')}</td>
+        <td>${escapeHtml(n.label || n.node_id || '')}</td>
         <td><span class="badge ${kind === 'horizon_industry' ? 'badge-warn' : 'badge-ok'}">${escapeHtml(kind === 'horizon_industry' ? 'horizon' : 'thesis')}</span></td>
-        <td style="font-size:12px">${escapeHtml(n.label || '')}</td>
-        <td class="tier-sub">${escapeHtml(n.formation_tag || '—')}</td>
         <td class="tier-sub">${escapeHtml(bits)}</td>
       </tr>`;
     }).join('');
 
+    // KPI drill-down: group by industry; default outliers (+ attention already shown)
+    const allPasses = strip.passes || [];
+    const outlierPasses = allPasses.filter(wmIsOutlier);
+    const defaultShow = outlierPasses.length ? outlierPasses : [];
+    const groupsAll = new Map();
+    allPasses.forEach(r => {
+      const key = wmIndustryKey(r);
+      if (!groupsAll.has(key)) groupsAll.set(key, []);
+      groupsAll.get(key).push(r);
+    });
+    const groupsDefault = new Map();
+    defaultShow.forEach(r => {
+      const key = wmIndustryKey(r);
+      if (!groupsDefault.has(key)) groupsDefault.set(key, []);
+      groupsDefault.get(key).push(r);
+    });
+
+    function renderKpiGroups(groups, colSpan) {
+      if (!groups.size) return '<p class="tier-sub">No elevated-z rows. Use “Show all passing” for the full ledger.</p>';
+      return [...groups.entries()].map(([key, rows]) => {
+        const sharedMap = new Map();
+        const byTicker = new Map();
+        rows.forEach(r => {
+          if (wmIsSharedThemeKpi(r)) {
+            const sk = wmSharedKey(r);
+            if (!sharedMap.has(sk)) sharedMap.set(sk, { exemplar: r, tickers: [] });
+            const entry = sharedMap.get(sk);
+            const t = r.ticker || '—';
+            if (!entry.tickers.includes(t)) entry.tickers.push(t);
+            // Prefer denser history exemplar
+            const nNew = ((r.history || {}).n) || 0;
+            const nOld = ((entry.exemplar.history || {}).n) || 0;
+            if (nNew > nOld) entry.exemplar = r;
+          } else {
+            const t = r.ticker || '—';
+            if (!byTicker.has(t)) byTicker.set(t, []);
+            byTicker.get(t).push(r);
+          }
+        });
+        const sharedRows = [...sharedMap.values()].map(({ exemplar, tickers }) => {
+          const cells = wmKpiHistCells(exemplar, escapeHtml);
+          const gate = wmGateText(exemplar);
+          const applies = tickers.slice().sort().join(', ');
+          return `<tr>
+              <td><span class="badge badge-us" title="Same theme series for every listed ticker">shared</span> ${escapeHtml(wmKpiLabel(exemplar, strip))}
+                <div class="tier-sub">applies to ${escapeHtml(applies)}</div></td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
+            </tr>${wmHistoryDetailRow(exemplar, historySeries, escapeHtml, colSpan)}`;
+        }).join('');
+        const tickerBody = [...byTicker.entries()].map(([ticker, tRows]) => {
+          const isScaffold = tRows.some(r => r.scaffold);
+          const head = `<tr class="wm-ticker-band"><td colspan="5"><span class="mono">${escapeHtml(ticker)}</span>${isScaffold ? ' <span class="badge badge-us" title="Industry scaffold">scaffold</span>' : ' <span class="badge badge-ok" title="Curated / filing-backed ledger">curated</span>'}</td></tr>`;
+          const kpiRows = tRows.map(r => {
+            const cells = wmKpiHistCells(r, escapeHtml);
+            const gate = wmGateText(r);
+            return `<tr>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}</td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
+            </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, colSpan)}`;
+          }).join('');
+          return head + kpiRows;
+        }).join('');
+        const uniqueCount = sharedMap.size + [...byTicker.values()].reduce((n, a) => n + a.length, 0);
+        const body = (sharedRows ? `<tr class="wm-ticker-band"><td colspan="5"><span class="tier-sub">Shared theme pulses (shown once)</span></td></tr>${sharedRows}` : '') + tickerBody;
+        return `<details class="wm-group">
+          <summary>${escapeHtml(wmIndustryTitle(key))} <span class="tier-sub">(${uniqueCount} signals · ${rows.length} raw)</span></summary>
+          <table class="darwin-table wm-table">
+            <thead><tr><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Thesis floor</th></tr></thead>
+            <tbody>${body || '<tr><td colspan="5" class="tier-sub">No KPIs in this industry.</td></tr>'}</tbody>
+          </table>
+        </details>`;
+      }).join('');
+    }
+
+    const demotionRows = nonHorizonDemotions.map(d => `<tr>
+      <td>${escapeHtml(String(d.artifact || '').replace(/^expert_horizon:/, 'Horizon · '))}</td>
+      <td><span class="badge badge-us">${escapeHtml(wmClassShort(d.predictability_class))}</span></td>
+      <td class="tier-sub">${escapeHtml(d.reason || '')}</td>
+    </tr>`).join('');
+    const goodhartFailRows = goodhartFails.slice(0, 24).map(g => `<tr>
+      <td class="mono">${escapeHtml(g.ticker || '')}</td>
+      <td>${escapeHtml(wmKpiLabel({ kpi_id: g.kpi_id, label: g.label }))}</td>
+      <td><span class="badge badge-bad">fail</span></td>
+    </tr>`).join('');
+
     return `
-      <div class="detail-section world-model-strip" style="margin-bottom:14px">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px">
-          <h3 style="font-size:14px;margin:0">World Model</h3>
-          <span class="badge ${labelCls}" style="font-size:13px;padding:4px 10px">${escapeHtml(label)}</span>
-          <span class="badge badge-us" style="font-size:13px;padding:4px 10px" title="${escapeHtml(bounds.reason || 'Magis claim ceiling')}">claim ceiling: ${escapeHtml(ceilingShort)}</span>
-          ${strip.as_of ? `<span class="mono tier-sub">${escapeHtml(String(strip.as_of))}</span>` : ''}
-          ${countLine ? `<span class="tier-sub">${escapeHtml(countLine)}</span>` : ''}
+      <div class="detail-section world-model-strip" data-wm-strip>
+        <div class="wm-glance">
+          <div class="wm-glance-row">
+            <h3>World Model</h3>
+            <span class="badge ${labelCls}">${escapeHtml(label)}</span>
+            <span class="badge badge-us" title="${escapeHtml(bounds.reason || 'Magis claim ceiling')}">claim ${escapeHtml(ceilingShort)}</span>
+            ${strip.as_of ? `<span class="mono tier-sub">${escapeHtml(String(strip.as_of))}</span>` : ''}
+            <span class="tier-sub" title="About: Courtenay foresight + Magis claim gate. Context only — does not set capital stance. Engines: ${escapeHtml(enginesTooltip)}">ⓘ</span>
+          </div>
+          <div class="wm-glance-meta">
+            <span>${escapeHtml(exceptionSummary)}</span>
+            <span class="wm-sep">·</span>
+            <span>${escapeHtml(String(counts.pass != null ? counts.pass : allPasses.length))} passing</span>
+            ${goodhartAll.length ? `<span class="wm-sep">·</span><span title="Soft vol gates — Gameability high; fails only surface below">${escapeHtml(String(goodhartAll.length))} soft vol (Goodhart)${goodhartFails.length ? `, ${goodhartFails.length} fail` : ''}</span>` : ''}
+            <span class="wm-sep">·</span>
+            <span>${thesisInd.length} thesis · ${horizonInd.length} horizon industries</span>
+          </div>
+          ${stance ? `<p class="wm-stance">${escapeHtml(stance)}</p>` : ''}
         </div>
-        <p style="margin:0 0 6px;font-size:13px;max-width:900px">${escapeHtml(strip.summary || '')}</p>
-        <p style="margin:0 0 8px;font-size:12px;max-width:900px;color:var(--text-secondary)">${escapeHtml(industryScope)}</p>
-        ${strip.ev_stance ? `<p style="margin:0 0 10px;font-size:12px;max-width:900px;color:var(--text-secondary)">${escapeHtml(strip.ev_stance)}</p>` : ''}
-        ${alertRows ? `
-        <table class="darwin-table" style="max-width:1100px;margin-bottom:8px">
-          <thead><tr><th>Ticker</th><th>Status</th><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Class</th></tr></thead>
-          <tbody>${alertRows}</tbody>
-        </table>` : `<p class="tier-sub" style="margin-bottom:8px">No exceptions — expand panels below for passing KPIs across industry buckets. Steady means gates held, not path certainty.</p>`}
-        <details class="world-model-panel" style="margin:6px 0" open>
-          <summary style="cursor:pointer;font-size:13px">Claim boundaries (Magis)</summary>
-          <p class="tier-sub" style="margin:8px 0;max-width:900px">${escapeHtml(bounds.reason || 'Thesis hygiene vs market-path language.')}</p>
-          <p class="tier-sub" style="margin:0 0 8px">Thesis hygiene: <strong>${escapeHtml(wmClassShort(bounds.thesis_hygiene_ceiling || 'P3_oriented'))}</strong>
-            · Market-path: <strong>${escapeHtml(wmClassShort(bounds.market_path_ceiling || claimCeiling))}</strong>
-            · Darwin: <strong>${escapeHtml(String(darwin.regime_label || 'n/a'))}</strong>${darwin.stress ? ' (stress → P1 cap)' : ''}</p>
-          ${demotionRows ? `<table class="darwin-table" style="max-width:960px;margin-top:8px">
+
+        ${attentionTable}
+
+        <details class="wm-panel" ${openCockpit ? 'open' : ''}>
+          <summary>Themes <span class="tier-sub">(${cards.length})</span></summary>
+          <div class="wm-theme-grid">${themeCards || '<p class="tier-sub">No theme cards.</p>'}</div>
+        </details>
+
+        <details class="wm-panel">
+          <summary>Superorgs <span class="tier-sub">(${(strip.superorgs || []).length})</span></summary>
+          ${(strip.superorgs || []).length ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Org</th><th>Pillars</th><th>Status</th></tr></thead>
+            <tbody>${superRows}</tbody>
+          </table>` : '<p class="tier-sub">None.</p>'}
+        </details>
+
+        <details class="wm-panel">
+          <summary>Expert horizons <span class="tier-sub">(${(strip.expert_horizons || []).length}) · P0 quotes</span></summary>
+          ${(strip.expert_horizons || []).length ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Domain</th><th>Trend</th><th>Years</th><th>Speaker</th></tr></thead>
+            <tbody>${horizonRows}</tbody>
+          </table>
+          <p class="tier-sub wm-claim-line">Quotes are P0 observations — not Magis forecasts</p>` : '<p class="tier-sub">None.</p>'}
+        </details>
+
+        <details class="wm-panel">
+          <summary>Claim hygiene <span class="tier-sub">(${escapeHtml(claimHygieneSummary)})</span></summary>
+          <p class="tier-sub wm-claim-line">Darwin: <strong>${escapeHtml(String(darwin.regime_label || 'n/a'))}</strong>${darwin.stress ? ' (stress)' : ''} · Thesis ${escapeHtml(wmClassShort(bounds.thesis_hygiene_ceiling || 'P3_oriented'))} · Path ${escapeHtml(wmClassShort(bounds.market_path_ceiling || claimCeiling))}</p>
+          ${horizonDemotions.length ? `<p class="tier-sub wm-claim-line">Horizons already P0 (see Expert horizons) — demotion rows suppressed</p>` : ''}
+          ${demotionRows ? `<table class="darwin-table wm-table">
             <thead><tr><th>Demotion</th><th>Class</th><th>Why</th></tr></thead>
             <tbody>${demotionRows}</tbody>
           </table>` : ''}
-          ${goodhartRows ? `<table class="darwin-table" style="max-width:960px;margin-top:8px">
-            <thead><tr><th>Ticker</th><th>Goodhart KPI</th><th>Gameability</th><th>Status</th></tr></thead>
-            <tbody>${goodhartRows}</tbody>
-          </table>` : '<p class="tier-sub" style="margin-top:8px">No high-gameability KPI rows in watch list.</p>'}
-          ${engineRows ? `<table class="darwin-table" style="max-width:720px;margin-top:8px">
-            <thead><tr><th>Engine</th><th>Role</th></tr></thead>
-            <tbody>${engineRows}</tbody>
-          </table>` : ''}
+          ${goodhartFailRows ? `<h4 class="wm-section-title">Goodhart fails</h4>
+            <table class="darwin-table wm-table">
+              <thead><tr><th>Ticker</th><th>KPI</th><th>Status</th></tr></thead>
+              <tbody>${goodhartFailRows}</tbody>
+            </table>` : '<p class="tier-sub">No Goodhart fails (soft gates that are passing are hidden).</p>'}
         </details>
-        <details class="world-model-panel" style="margin:6px 0" ${label === 'steady' || label === 'attention' ? 'open' : ''}>
-          <summary style="cursor:pointer;font-size:13px">Passing KPIs (${(strip.passes || []).length})</summary>
-          <p class="tier-sub" style="margin:8px 0 0;max-width:900px">Click Actual, Hist, or Z for time series vs own history (theme CSV or ledger archive). Z is descriptive only — gates stay fixed.</p>
-          ${passRows ? `<table class="darwin-table" style="max-width:1180px;margin-top:8px">
-            <thead><tr><th>Ticker</th><th>Industry</th><th>KPI</th><th>Actual</th><th>Hist</th><th>Z</th><th>Gate</th><th>Class</th></tr></thead>
-            <tbody>${passRows}</tbody>
-          </table>` : '<p class="tier-sub">No pass rows.</p>'}
-        </details>
-        <details class="world-model-panel" style="margin:6px 0">
-          <summary style="cursor:pointer;font-size:13px">Unchecked / human KPIs (${(strip.unchecked || []).length})</summary>
-          ${(strip.unchecked || []).length ? `<table class="darwin-table" style="max-width:900px;margin-top:8px">
-            <thead><tr><th>Ticker</th><th>Industry</th><th>KPI</th></tr></thead>
-            <tbody>${(strip.unchecked || []).slice(0, 60).map(r => `<tr>
-              <td class="mono">${escapeHtml(r.ticker || '')}</td>
-              <td class="tier-sub" style="font-size:11px">${escapeHtml((r.industry_node_ids || []).join(', '))}</td>
-              <td style="font-size:12px">${escapeHtml(r.kpi_id || '')}</td>
-            </tr>`).join('')}</tbody>
+
+        <details class="wm-panel">
+          <summary>Industries <span class="tier-sub">(${industryNodes.length})</span></summary>
+          ${industryRows ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Industry</th><th>Kind</th><th>Checklist</th></tr></thead>
+            <tbody>${industryRows}</tbody>
           </table>` : '<p class="tier-sub">None.</p>'}
         </details>
-        <details class="world-model-panel" style="margin:6px 0">
-          <summary style="cursor:pointer;font-size:13px">Theme prediction cards (${(strip.prediction_cards || []).length})</summary>
-          ${cardRows ? `<table class="darwin-table" style="max-width:960px;margin-top:8px">
-            <thead><tr><th>Theme</th><th>Class</th><th>Phase</th><th>Regulatory</th><th>Reinforcement</th></tr></thead>
-            <tbody>${cardRows}</tbody>
-          </table>` : '<p class="tier-sub">No prediction cards.</p>'}
+
+        <details class="wm-panel wm-kpi-drilldown">
+          <summary>KPI drill-down <span class="tier-sub">(${outlierPasses.length} outliers · ${allPasses.length} pass)</span></summary>
+          <div class="wm-kpi-toolbar">
+            <button type="button" class="filter-btn wm-kpi-mode active" data-wm-kpi-mode="outliers">Outliers (|z|≥2)</button>
+            <button type="button" class="filter-btn wm-kpi-mode" data-wm-kpi-mode="all">Show all passing</button>
+            <span class="tier-sub">Click Actual / Hist / vs hist for history. Vs hist is descriptive only — not a capital gate.</span>
+          </div>
+          <div class="wm-kpi-panels">
+            <div class="wm-kpi-panel" data-wm-kpi-panel="outliers">${renderKpiGroups(groupsDefault, 5)}</div>
+            <div class="wm-kpi-panel" data-wm-kpi-panel="all" hidden>${renderKpiGroups(groupsAll, 5)}</div>
+          </div>
         </details>
-        <details class="world-model-panel" style="margin:6px 0">
-          <summary style="cursor:pointer;font-size:13px">Superorganisations (${(strip.superorgs || []).length})</summary>
-          ${superRows ? `<table class="darwin-table" style="max-width:960px;margin-top:8px">
-            <thead><tr><th>Org</th><th>Pillars</th><th>Stance implication</th></tr></thead>
-            <tbody>${superRows}</tbody>
-          </table>` : '<p class="tier-sub">No Superorg cards.</p>'}
-        </details>
-        <details class="world-model-panel" style="margin:6px 0">
-          <summary style="cursor:pointer;font-size:13px">Expert horizons (${(strip.expert_horizons || []).length}) · P0 quotes only</summary>
-          ${horizonRows ? `<table class="darwin-table" style="max-width:980px;margin-top:8px">
-            <thead><tr><th>Domain</th><th>Class</th><th>Convergence</th><th>Latest</th><th>Quote</th></tr></thead>
-            <tbody>${horizonRows}</tbody>
-          </table>` : '<p class="tier-sub">No horizon series.</p>'}
-        </details>
-        <details class="world-model-panel" style="margin:6px 0">
-          <summary style="cursor:pointer;font-size:13px">Industries (${industryNodes.length}: ${thesisInd.length} thesis + ${horizonInd.length} horizon)</summary>
-          ${industryRows ? `<table class="darwin-table" style="max-width:980px;margin-top:8px">
-            <thead><tr><th>Node</th><th>Kind</th><th>Label</th><th>Formation</th><th>Checklist</th></tr></thead>
-            <tbody>${industryRows}</tbody>
-          </table>` : '<p class="tier-sub">No industry nodes.</p>'}
-        </details>
-        <p class="tier-sub" style="margin-top:8px">Courtenay foresight + Magis claim gate — fails open diligence; Santa Fe is wisdom-only (no merge/simulator). House value = Power Zone / contract / IC / human.</p>
       </div>`;
   }
 
@@ -1888,6 +2309,18 @@
         const open = detail.hasAttribute('hidden');
         container.querySelectorAll('[data-wm-hist-detail]').forEach(row => row.setAttribute('hidden', ''));
         if (open) detail.removeAttribute('hidden');
+      });
+    });
+    container.querySelectorAll('[data-wm-kpi-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const mode = btn.getAttribute('data-wm-kpi-mode');
+        const root = btn.closest('[data-wm-strip]') || container;
+        root.querySelectorAll('[data-wm-kpi-mode]').forEach(b => b.classList.toggle('active', b === btn));
+        root.querySelectorAll('[data-wm-kpi-panel]').forEach(panel => {
+          if (panel.getAttribute('data-wm-kpi-panel') === mode) panel.removeAttribute('hidden');
+          else panel.setAttribute('hidden', '');
+        });
       });
     });
   }
@@ -1960,6 +2393,7 @@
     const filters = [
       { id: 'ownership', label: 'Letters + insider' },
       { id: 'letters', label: 'Letters' },
+      { id: 'podcast_episode', label: 'Podcasts' },
       { id: 'all', label: 'All sources' },
       { id: 'macro', label: 'Macro only' },
     ];
@@ -3904,6 +4338,11 @@
       portfolioMacroRegime = null,
       worldModel = null,
       tickerSourceFilter = 'ownership',
+      podcastShowId = 'all',
+      podcastFlagFilter = 'all',
+      selectedPodcastEpisodeId = null,
+      podcastEpisodeDetail = null,
+      podcastEpisodeDetailLoading = false,
       kpiTrends = null,
       inflectionTier = 'displayed',
       eventTier = 'signal',
@@ -4040,10 +4479,23 @@
       body = `<p class="tier-sub" style="margin-bottom:8px">${escapeHtml(period.label)}${bookOnly ? ' · overlap with our book only' : ''}</p>`
         + renderLetterIndex(letters, escapeHtml, linkHtml, ghRepo, true, positionStats, period, timeModel, bookOnly);
         } else if (activeSection === 'podcasts') {
-      body = renderPodcastIndex(insights?.podcast_index || [], escapeHtml, linkHtml, ghRepo, {
-        bookOnly,
-        search: fundSearch,
-      });
+      body = renderPodcastIndex(
+        insights?.podcast_index || [],
+        insights?.podcast_by_show || {},
+        escapeHtml,
+        linkHtml,
+        ghRepo,
+        {
+          bookOnly,
+          search: fundSearch,
+          period,
+          showId: podcastShowId,
+          flagFilter: podcastFlagFilter,
+          selectedEpisodeId: selectedPodcastEpisodeId,
+          episodeDetail: podcastEpisodeDetail,
+          episodeDetailLoading: podcastEpisodeDetailLoading,
+        },
+      );
 } else if (activeSection === 'funds') {
       body = renderFundRegistry(funds, escapeHtml, linkHtml, ghRepo, bookOnly);
     } else if (activeSection === 'documents') {
@@ -4114,7 +4566,7 @@
     return `
       <h2 style="font-size:18px;margin-bottom:6px">Insights</h2>
       <p class="subhead" style="margin-bottom:14px">
-        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
+        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
       </p>
       <nav class="view-tabs" id="insights-section-tabs" style="margin-bottom:10px">
         ${sections.map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}
@@ -4142,10 +4594,12 @@
             <input type="checkbox" id="insights-book-only" ${bookOnly ? 'checked' : ''} />
             ${escapeHtml(bookLabel)}
           </label>` : ''}
-          <input class="search" id="fund-registry-search" placeholder="Search ticker, event, fund, theme, source..." value="${escapeHtml(fundSearch)}" style="max-width:320px" />
+          <input class="search" id="fund-registry-search" placeholder="${activeSection === 'podcasts' ? 'Search show, guest, ticker, theme...' : 'Search ticker, event, fund, theme, source...'}" value="${escapeHtml(fundSearch)}" style="max-width:320px" />
         </div>` : ''}
         ${showPeriodControls && activeSection !== 'consensus' ? `<div class="tier-sub">
-          Viewing ${escapeHtml(period.label)} &middot; ${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}
+          Viewing ${escapeHtml(period.label)} &middot; ${activeSection === 'podcasts'
+            ? `${(insights?.podcast_index || []).length} indexed episode(s) · ${Object.keys(insights?.podcast_by_show || {}).length} show(s)`
+            : `${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}`}
         </div>` : ''}
       </div>
       ${body}`;
@@ -4174,6 +4628,7 @@
     attachWorldModelHistoryHandlers,
     buildConsensusCsv,
     buildTimeModel,
+    podcastEpisodeShardPath,
     STANCE_BADGE,
   };
 })(window);

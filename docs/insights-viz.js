@@ -16,6 +16,7 @@
 
   const SOURCE_LABEL = {
     superinvestor_letter: 'Letter',
+    podcast_episode: 'Podcast',
     filing: 'Filing',
     earnings: 'Earnings',
     macro: 'Macro',
@@ -31,6 +32,7 @@
 
   const CATALOG_SOURCE_LABEL = {
     superinvestor_letter: 'Letters',
+    podcast_episode: 'Podcasts',
     company_document: 'Company',
     third_party: 'VIC / third party',
     sumzero_research: 'SumZero',
@@ -230,6 +232,7 @@
     if (!filter || filter === 'all') return insights;
     const map = {
       letters: 'superinvestor_letter',
+      podcasts: 'podcast_episode',
       filings: 'filing',
       earnings: 'earnings',
       macro: 'macro',
@@ -293,6 +296,7 @@
     const rows = filterInsights(insights, filter).slice(0, 6);
     const pills = [
       { id: 'letters', label: 'Letters' },
+      { id: 'podcasts', label: 'Podcasts' },
       { id: 'filings', label: 'Filings' },
       { id: 'company', label: 'Company' },
       { id: 'vic', label: 'VIC' },
@@ -575,195 +579,267 @@
       return `<p class="subhead">No letters indexed for ${escapeHtml(period.label)}. `
         + `${latestLabel ? `<button type="button" class="linkish" data-use-latest-quarter>Use ${escapeHtml(latestLabel)}</button> instead.` : ''}</p>`;
     }
-    if (activeSection === 'themes') {
-      if (!emptyForPeriod) {
-        return '<p class="subhead">No superinvestor letter themes yet — run make persona-fetch-letters</p>';
-      }
-      return `<p class="subhead">No themes indexed for ${escapeHtml(period.label)}. `
-        + `<button type="button" class="linkish" data-use-latest-quarter>Use ${escapeHtml(latestLabel)}</button> instead, `
-        + `or open <strong>Letters</strong> for catalog-only PDFs.</p>`;
-    }
     return `<p class="subhead">No data for ${escapeHtml(period?.label || 'this period')}.</p>`;
   }
 
-  function themeSentimentBar(row) {
-    const bull = Number(row.bullish || 0);
-    const bear = Number(row.bearish || 0);
-    const neutral = Number(row.neutral || 0);
-    const total = bull + bear + neutral;
-    if (!total) return '<span class="mono" style="color:var(--text-muted)">—</span>';
-    const bp = Math.round((bull / total) * 100);
-    const brp = Math.round((bear / total) * 100);
-    const np = 100 - bp - brp;
-    return `<span style="display:inline-flex;width:72px;height:8px;border-radius:4px;overflow:hidden;background:var(--border-subtle,#333)" title="bull ${bull} · bear ${bear} · neutral ${neutral}">
-      <span style="width:${bp}%;background:var(--accent-green,#4ade80)"></span>
-      <span style="width:${brp}%;background:var(--accent-red,#f87171)"></span>
-      <span style="width:${np}%;background:var(--text-muted,#666)"></span>
-    </span>`;
+  function uniqueTickers(list) {
+    const out = [];
+    const seen = new Set();
+    for (const raw of list || []) {
+      const t = String(raw || '').trim().toUpperCase();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      out.push(t);
+    }
+    return out;
   }
 
-  function filterThemesBySearch(themes, search) {
-    if (!search) return themes || [];
-    const q = String(search).trim().toLowerCase();
-    if (!q) return themes || [];
-    return (themes || []).filter(t => String(t.theme || '').toLowerCase().includes(q));
+  function letterDocumentLabel(row) {
+    if (row?.document_label) return String(row.document_label);
+    const ref = row?.source_file || row?.source_document || '';
+    const stem = String(ref).replace(/\\/g, '/').split('/').pop() || '';
+    return stem.replace(/\.(txt|pdf|md)$/i, '').slice(0, 48);
   }
 
-  function themeQoqForPeriod(themeQoqByQ, period) {
-    if (!themeQoqByQ || !period || period.all || period.quarters?.length !== 1) return null;
-    return themeQoqByQ[period.quarters[0]] || null;
+  function podcastTranscriptRef(ref) {
+    if (!ref) return '';
+    const s = String(ref);
+    if (s.endsWith('.meta.json')) return s.replace(/\.meta\.json$/, '.txt');
+    return s;
   }
 
-  function renderThemeMomentum(shifts, priorLabel, escapeHtml, opts) {
-    const { search } = opts || {};
-    let rows = shifts || [];
+  function podcastEpisodeShardPath(episodeId) {
+    const safe = String(episodeId || '').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 180);
+    return `data/insights/podcast_episodes/${safe}.json`;
+  }
+
+  function normalizePodcastGuests(guests) {
+    if (!Array.isArray(guests)) return [];
+    return guests.map(g => {
+      if (typeof g === 'string') return g;
+      return g?.display || g?.guest_id || '';
+    }).filter(Boolean);
+  }
+
+  function renderPodcastEpisodeDetail(row, escapeHtml, linkHtml, ghRepo, opts = {}) {
+    if (!row) return '';
+    const detail = opts.detail || null;
+    const loading = Boolean(opts.loading);
+    const merged = detail ? { ...row, ...detail } : row;
+    const flags = [
+      merged.has_pz_guest ? 'PZ guest' : '',
+      merged.has_officer_hit ? 'Officer' : '',
+      merged.near_universe ? 'Near-universe' : '',
+      merged.in_book ? 'In book' : '',
+    ].filter(Boolean);
+    const guests = normalizePodcastGuests(merged.guests);
+    const personas = (merged.persona_ids || []).filter(Boolean);
+    const themes = (merged.themes || []).map(t => {
+      const label = typeof t === 'string' ? t : (t.theme || '');
+      const stance = typeof t === 'object' ? (t.stance || '') : '';
+      if (!label) return '';
+      return `<span class="badge badge-us">${escapeHtml(label)}</span>${stance ? ` ${escapeHtml(stance)}` : ''}`;
+    }).filter(Boolean).join(' · ');
+    const tickers = (merged.tickers || []).filter(Boolean);
+    const highlights = Array.isArray(merged.highlights)
+      ? merged.highlights.map(h => (typeof h === 'string' ? h : (h.quote || h.text || ''))).filter(Boolean)
+      : (merged.highlight_previews || []).filter(Boolean);
+    const summary = (merged.summary || '').trim();
+    const transcriptRef = podcastTranscriptRef(merged.source_document);
+    const transcriptLink = transcriptRef
+      ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
+      : '';
+    const episodeLink = merged.link ? linkHtml(merged.link, 'Episode', 'source-open-link') : '';
+    const positions = (merged.positions || []).filter(p => p && p.ticker).slice(0, 12);
+    return `
+      <div class="detail-section fund-detail" id="podcast-episode-detail">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <button type="button" class="filter-btn" data-podcast-back>← Back</button>
+          <h3 style="margin:0;font-size:15px;line-height:1.35">${escapeHtml(merged.title || 'Episode')}</h3>
+        </div>
+        <p class="tier-sub">${escapeHtml(merged.show_title || merged.show_id || 'Podcast')} · ${escapeHtml(merged.published || '—')}</p>
+        ${flags.length ? `<p style="margin:8px 0">${flags.map(f => `<span class="badge badge-us">${escapeHtml(f)}</span>`).join(' ')}</p>` : ''}
+        ${guests.length ? `<p class="tier-sub">Guests: ${escapeHtml(guests.join(', '))}</p>` : ''}
+        ${personas.length ? `<p class="tier-sub">Personas: ${escapeHtml(personas.join(', '))}</p>` : ''}
+        ${themes ? `<div style="margin:8px 0"><strong>Themes:</strong> ${themes}</div>` : ''}
+        ${loading ? '<p class="tier-sub">Loading summary and highlights…</p>' : ''}
+        ${summary ? `<p style="font-size:13px;line-height:1.5;margin:10px 0">${escapeHtml(summary)}</p>` : ''}
+        ${tickers.length ? `
+        <div style="margin:10px 0">
+          <strong>Tickers</strong>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+            ${tickers.map(t => `<button type="button" class="filter-btn source-pill mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
+          </div>
+        </div>` : ''}
+        ${positions.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">TICKER COMMENTARY</h4>
+        <ul class="dev-list">${positions.map(p => `<li style="font-size:12px"><span class="mono">${escapeHtml(p.ticker)}</span>${p.commentary ? ` — ${escapeHtml(String(p.commentary).slice(0, 200))}` : ''}</li>`).join('')}</ul>
+        ` : ''}
+        ${highlights.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">HIGHLIGHTS</h4>
+        <ul class="dev-list">${highlights.map(p => `<li style="font-size:13px;line-height:1.45">${escapeHtml(p)}</li>`).join('')}</ul>
+        ` : (!loading && merged.highlight_count ? `<p class="tier-sub">${merged.highlight_count} highlight(s) — open transcript for detail</p>` : '')}
+        <p class="tier-sub" style="margin-top:12px">${[transcriptLink, episodeLink].filter(Boolean).join(' · ') || '—'}</p>
+      </div>`;
+  }
+
+  function renderPodcastIndex(rows, byShow, escapeHtml, linkHtml, ghRepo, opts = {}) {
+    const {
+      bookOnly = false,
+      search = '',
+      period = null,
+      showId = 'all',
+      flagFilter = 'all',
+      selectedEpisodeId = null,
+      episodeDetail = null,
+      episodeDetailLoading = false,
+    } = opts;
+    let list = Array.isArray(rows) ? rows.slice() : [];
+    if (period) list = list.filter(r => periodMatchesRecord(r, period, ['published']));
+    if (bookOnly) list = list.filter(r => r.in_book || (r.tickers || []).length);
+    if (showId && showId !== 'all') list = list.filter(r => r.show_id === showId);
+    if (flagFilter === 'pz') list = list.filter(r => r.has_pz_guest);
+    else if (flagFilter === 'officer') list = list.filter(r => r.has_officer_hit);
+    else if (flagFilter === 'in_book') list = list.filter(r => r.in_book);
+    else if (flagFilter === 'highlights') list = list.filter(r => (r.highlight_count || 0) > 0);
     if (search) {
-      const q = String(search).trim().toLowerCase();
-      rows = rows.filter(r => String(r.theme || '').toLowerCase().includes(q));
+      const q = String(search).toLowerCase();
+      list = list.filter(r => {
+        const blob = [
+          r.show_title, r.title, (r.guests || []).join(' '), (r.tickers || []).join(' '),
+          (r.persona_ids || []).join(' '),
+          (r.themes || []).map(t => (typeof t === 'string' ? t : t.theme) || '').join(' '),
+        ].join(' ').toLowerCase();
+        return blob.includes(q);
+      });
     }
-    if (!rows.length) {
-      return '<p class="subhead">No quarter-over-quarter theme shifts for this period.</p>';
-    }
-    return `
-      <p class="tier-sub" style="margin-bottom:8px">Fund-count change vs ${escapeHtml(priorLabel || 'prior quarter')} — macro momentum only (ticker shifts live in <strong>Consensus</strong>).</p>
-      <table class="darwin-table" id="insights-theme-momentum-table">
-        <thead><tr><th>Theme</th><th>Funds</th><th>Δ funds</th><th>Δ bull</th><th>Δ bear</th><th>Top tickers</th><th></th></tr></thead>
-        <tbody>
-          ${rows.slice(0, 40).map(r => `
-            <tr>
-              <td><button type="button" class="linkish" data-theme-drill="${escapeHtml(r.theme)}">${escapeHtml(r.theme)}</button></td>
-              <td class="mono">${r.fund_count || 0}</td>
-              <td>${formatConsensusDelta(r.delta_funds)}</td>
-              <td>${formatConsensusDelta(r.delta_bullish)}</td>
-              <td>${formatConsensusDelta(r.delta_bearish)}</td>
-              <td class="mono" style="font-size:11px">${(r.top_tickers || []).slice(0, 5).join(', ') || '—'}</td>
-              <td><button type="button" class="linkish" data-theme-drill="${escapeHtml(r.theme)}" style="font-size:11px">Letters</button></td>
-            </tr>`).join('')}
-        </tbody>
-      </table>`;
-  }
 
-  function renderThemeRankings(themes, escapeHtml, opts) {
-    const { period, timeModel, viewMode = 'snapshot', themeQoq = null, search = '', glossary = null } = opts || {};
-    const viewTabs = [
-      { id: 'snapshot', label: 'Snapshot' },
-      { id: 'momentum', label: 'Momentum' },
-    ];
-    const tabNav = `<nav class="view-tabs" id="insights-theme-view-tabs" style="margin-bottom:10px">
-      ${viewTabs.map(t => `<button type="button" class="view-tab${viewMode === t.id ? ' active' : ''}" data-theme-view-mode="${t.id}">${t.label}</button>`).join('')}
-    </nav>`;
-
-    if (viewMode === 'momentum') {
-      const qoq = themeQoq;
-      if (!qoq?.shifts?.length) {
-        return tabNav + '<p class="subhead">Momentum view needs a single indexed quarter (try <strong>Latest</strong> or a specific Q).</p>';
+    if (selectedEpisodeId) {
+      const selected = list.find(r => r.episode_id === selectedEpisodeId)
+        || (rows || []).find(r => r.episode_id === selectedEpisodeId);
+      if (selected) {
+        return renderPodcastEpisodeDetail(selected, escapeHtml, linkHtml, ghRepo, {
+          detail: episodeDetail && episodeDetail.episode_id === selectedEpisodeId ? episodeDetail : null,
+          loading: episodeDetailLoading && !(episodeDetail && episodeDetail.episode_id === selectedEpisodeId),
+        });
       }
-      return tabNav + renderThemeMomentum(qoq.shifts, quarterLabel(qoq.prior_quarter), escapeHtml, { search });
     }
 
-    const filtered = filterThemesBySearch(themes, search);
-    if (!filtered?.length) {
-      return tabNav + renderPeriodEmptyState('themes', period, timeModel, escapeHtml);
+    const shows = Object.values(byShow || {}).sort((a, b) =>
+      String(a.show_title || a.show_id).localeCompare(String(b.show_title || b.show_id))
+    );
+    const showPills = [
+      { id: 'all', label: `All shows (${(rows || []).length})` },
+      ...shows.map(s => ({
+        id: s.show_id,
+        label: `${s.show_title || s.show_id} (${s.episode_count || (s.episode_ids || []).length || 0})`,
+      })),
+    ];
+    const flagPills = [
+      { id: 'all', label: 'All' },
+      { id: 'pz', label: 'PZ guest' },
+      { id: 'officer', label: 'Officer' },
+      { id: 'in_book', label: 'In book' },
+      { id: 'highlights', label: 'Has highlights' },
+    ];
+
+    if (!list.length) {
+      return `
+        <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+          ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+          ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+        </nav>
+        <p class="muted">${(rows || []).length ? 'No episodes match these filters.' : 'No podcast episodes indexed yet. Run <code>make podcasts-refresh</code>.'}</p>`;
     }
-    const glossaryMap = glossary || {};
+
     return `
-      ${tabNav}
-      <p class="tier-sub" style="margin-bottom:10px">
-        Macro themes from letter extractions — frequency and stance mix.
-        Ticker agreement: <strong>Consensus</strong>. Source letters: <strong>Letters</strong>.
-      </p>
-      <table class="darwin-table" id="insights-theme-table">
-        <thead><tr><th>Theme</th><th>Funds</th><th>Sentiment</th><th>Bull</th><th>Bear</th><th>Neutral</th><th>Top tickers</th><th></th></tr></thead>
+      <nav class="source-pills" id="podcast-show-tabs" style="margin-bottom:8px">
+        ${showPills.map(p => `<button type="button" class="filter-btn source-pill${showId === p.id ? ' active' : ''}" data-podcast-show="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <nav class="source-pills" id="podcast-flag-tabs" style="margin-bottom:10px">
+        ${flagPills.map(p => `<button type="button" class="filter-btn source-pill${flagFilter === p.id ? ' active' : ''}" data-podcast-flag="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`).join('')}
+      </nav>
+      <p class="tier-sub" style="margin-bottom:8px">${list.length} episode(s)${bookOnly ? ' · in-book / ticker overlap' : ''}${period && !period.all ? ` · ${escapeHtml(period.label || '')}` : ''}</p>
+      <table class="darwin-table" id="insights-podcast-table">
+        <thead><tr><th>Date</th><th>Show</th><th>Episode</th><th>Guests / PZ</th><th>Tickers</th><th>Flags</th><th>Highlights</th><th>Source</th></tr></thead>
         <tbody>
-          ${filtered.map(t => {
-            const kw = (glossaryMap[t.theme] || []).slice(0, 4).join(', ');
-            const title = kw ? ` title="${escapeHtml(kw)}"` : '';
-            return `
-            <tr>
-              <td><button type="button" class="linkish" data-theme-drill="${escapeHtml(t.theme)}"${title}>${escapeHtml(t.theme)}</button></td>
-              <td class="mono">${t.letter_count ?? t.fund_count ?? 0}</td>
-              <td>${themeSentimentBar(t)}</td>
-              <td>${t.bullish || 0}</td>
-              <td>${t.bearish || 0}</td>
-              <td>${t.neutral || 0}</td>
-              <td class="mono" style="font-size:11px">${(t.top_tickers || []).slice(0, 6).join(', ') || '—'}</td>
-              <td><button type="button" class="linkish" data-theme-drill="${escapeHtml(t.theme)}" style="font-size:11px">Letters</button></td>
+          ${list.slice(0, 100).map(r => {
+            const flags = [
+              r.has_pz_guest ? 'PZ guest' : '',
+              r.has_officer_hit ? 'Officer' : '',
+              r.near_universe ? 'Near-universe' : '',
+              r.in_book ? 'In book' : '',
+            ].filter(Boolean).join(' · ') || '—';
+            const guests = (r.guests || []).filter(Boolean).slice(0, 4).join(', ') || '—';
+            const personas = (r.persona_ids || []).slice(0, 3).join(', ');
+            const guestCell = personas ? `${escapeHtml(guests)}<div class="tier-sub" style="font-size:10px">${escapeHtml(personas)}</div>` : escapeHtml(guests);
+            const tickers = (r.tickers || []).slice(0, 6);
+            const tickerCell = tickers.length
+              ? tickers.map(t => `<button type="button" class="linkish mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join(' ')
+              : '—';
+            const transcriptRef = podcastTranscriptRef(r.source_document);
+            const src = transcriptRef
+              ? evidenceLink(transcriptRef, linkHtml, ghRepo, 'Transcript')
+              : (r.link ? linkHtml(r.link, 'Open', 'source-open-link') : '—');
+            const eid = escapeHtml(r.episode_id || '');
+            return `<tr class="podcast-row" data-podcast-episode="${eid}" style="cursor:pointer">
+              <td class="mono">${escapeHtml(r.published || '—')}</td>
+              <td>${escapeHtml(r.show_title || r.show_id || '—')}</td>
+              <td style="font-size:11px;max-width:260px"><button type="button" class="linkish" data-podcast-episode="${eid}" style="text-align:left">${escapeHtml(r.title || '—')}</button></td>
+              <td style="font-size:11px">${guestCell}</td>
+              <td class="mono" style="font-size:11px">${tickerCell}</td>
+              <td style="font-size:11px">${escapeHtml(flags)}</td>
+              <td class="mono">${escapeHtml(String(r.highlight_count ?? 0))}</td>
+              <td>${src}</td>
             </tr>`;
           }).join('')}
         </tbody>
-      </table>`;
+      </table>
+      ${list.length > 100 ? `<p class="tier-sub">${list.length - 100} more episodes — refine search</p>` : ''}`;
   }
 
-  function filterThemesForBook(themes, letterIndex, period, bookOnly) {
-    if (!bookOnly || !themes?.length) return themes || [];
-    const activeThemes = new Set();
-    filterLetterIndex(letterIndex, { period, bookOnly: true }).forEach(row => {
-      (row.themes || []).forEach(theme => {
-        const label = typeof theme === 'string' ? theme : theme?.theme;
-        if (label) activeThemes.add(String(label).toLowerCase());
-      });
-    });
-    if (!activeThemes.size) return [];
-    return themes.filter(t => activeThemes.has(String(t.theme || '').toLowerCase()));
-  }
-
-  function themesForPeriod(byQ, fallback, period) {
-    if (!period || period.all) return byQ?.all || fallback || [];
-    if (period.quarters.length === 1 && byQ?.[period.quarters[0]]) return byQ[period.quarters[0]];
-    const merged = new Map();
-    period.quarters.forEach(qid => {
-      (byQ?.[qid] || []).forEach(t => {
-        const key = t.theme || 'Other';
-        const row = merged.get(key) || {
-          theme: key,
-          letter_count: 0,
-          fund_count: 0,
-          bullish: 0,
-          bearish: 0,
-          neutral: 0,
-          top_tickers: [],
-          _tickers: new Set(),
-        };
-        row.letter_count += Number(t.letter_count || 0);
-        row.fund_count += Number(t.fund_count || 0);
-        row.bullish += Number(t.bullish || 0);
-        row.bearish += Number(t.bearish || 0);
-        row.neutral += Number(t.neutral || 0);
-        (t.top_tickers || []).forEach(tk => row._tickers.add(tk));
-        merged.set(key, row);
-      });
-    });
-    return Array.from(merged.values())
-      .map(row => ({ ...row, top_tickers: Array.from(row._tickers).slice(0, 8), _tickers: undefined }))
-      .sort((a, b) => (b.letter_count - a.letter_count) || String(a.theme).localeCompare(String(b.theme)));
-  }
-
-  function renderLetterIndex(rows, escapeHtml, linkHtml, ghRepo, onFundClick, positionStats, period, timeModel) {
+  function renderLetterIndex(rows, escapeHtml, linkHtml, ghRepo, onFundClick, positionStats, period, timeModel, bookOnly) {
     if (!rows?.length) {
       return renderPeriodEmptyState('letters', period, timeModel, escapeHtml);
     }
     const statsLine = positionStats
       ? `<p class="tier-sub" style="margin-bottom:8px">${positionStats}</p>`
       : '';
-    const fmtTickers = (list) => (list || []).slice(0, 5).join(', ') || '—';
+    const fmtTickers = (list) => uniqueTickers(list).slice(0, 5).join(', ') || '—';
+    const tickerHeader = bookOnly ? 'Other tickers' : 'Tickers';
     return `
       ${statsLine}
       <table class="darwin-table" id="insights-letter-table">
-        <thead><tr><th>Date</th><th>Fund</th><th>Quarter</th><th>Themes</th><th>Tickers</th><th>New / Add</th><th>Trim / Exit</th><th>Our overlap</th><th>Summary</th><th>Source</th></tr></thead>
+        <thead><tr><th>Date</th><th>Fund</th><th>Quarter</th><th>Themes</th><th>${tickerHeader}</th><th>New / Add</th><th>Trim / Exit</th><th>Our overlap</th><th>Summary</th><th>Source</th></tr></thead>
         <tbody>
-          ${rows.slice(0, 80).map(r => `
+          ${rows.slice(0, 80).map(r => {
+            const overlapSet = new Set(uniqueTickers(r.our_overlap));
+            const tickerList = bookOnly
+              ? uniqueTickers(r.tickers).filter(t => !overlapSet.has(t))
+              : uniqueTickers(r.tickers);
+            const fundCell = onFundClick
+              ? `<button type="button" class="linkish" data-fund-id="${escapeHtml(r.fund_id || '')}">${escapeHtml(r.fund)}</button>`
+              : escapeHtml(r.fund);
+            const docLabel = letterDocumentLabel(r);
+            const fundBlock = docLabel
+              ? `${fundCell}<div class="tier-sub" style="font-size:10px;margin-top:2px">${escapeHtml(docLabel)}</div>`
+              : fundCell;
+            return `
             <tr class="clickable-row" data-fund-id="${escapeHtml(r.fund_id || '')}">
               <td class="mono">${escapeHtml(r.letter_date || '—')}</td>
-              <td>${onFundClick ? `<button type="button" class="linkish" data-fund-id="${escapeHtml(r.fund_id || '')}">${escapeHtml(r.fund)}</button>` : escapeHtml(r.fund)}</td>
+              <td>${fundBlock}</td>
               <td class="mono">${escapeHtml(r.quarter || '—')}</td>
-              <td style="font-size:11px">${(r.themes || []).slice(0, 4).join(', ') || '—'}</td>
-              <td class="mono" style="font-size:11px">${(r.tickers || []).slice(0, 5).join(', ') || '—'}</td>
+              <td style="font-size:11px">${(r.themes || []).slice(0, 2).join(', ') || '—'}</td>
+              <td class="mono" style="font-size:11px">${fmtTickers(tickerList)}</td>
               <td class="mono" style="font-size:11px;color:var(--accent-green)">${fmtTickers(r.adds)}</td>
               <td class="mono" style="font-size:11px;color:var(--accent-amber)">${fmtTickers([...(r.trims || []), ...(r.exits || [])])}</td>
-              <td class="mono" style="font-size:11px;color:var(--accent-cyan)">${(r.our_overlap || []).join(', ') || '—'}</td>
+              <td class="mono" style="font-size:11px;color:var(--accent-cyan)">${fmtTickers(r.our_overlap)}</td>
               <td style="font-size:11px;max-width:240px">${escapeHtml((r.lead_summary || '').slice(0, 120))}</td>
               <td>${recordEvidenceLink(r, linkHtml, ghRepo)}</td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
       ${rows.length > 80 ? `<p class="tier-sub">${rows.length - 80} more letters — use fund search</p>` : ''}`;
@@ -1581,6 +1657,9 @@
         if (sourceFilter === 'letters') {
           return sources.has('superinvestor_letter') || e.owner?.source === 'superinvestor_letter';
         }
+        if (sourceFilter === 'podcast_episode' || sourceFilter === 'podcasts') {
+          return sources.has('podcast_episode');
+        }
         if (sourceFilter === 'macro') {
           return e.macro_only || sources.has('macro');
         }
@@ -1592,6 +1671,658 @@
       rows = rows.filter(t => SearchMatch.matchTickerEssential(t, search, tickers));
     }
     return rows;
+  }
+
+  function wmClassShort(cls) {
+    if (!cls) return 'P?';
+    const m = String(cls).match(/^P(\d)/);
+    return m ? `P${m[1]}` : String(cls);
+  }
+
+  function wmTrimStance(text, maxLen) {
+    let s = String(text || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+    const max = maxLen || 120;
+    if (s.length <= max) return s;
+    return `${s.slice(0, max - 1).trim()}…`;
+  }
+
+  function wmFormatNumber(v, unit) {
+    if (v == null || v === '') return '—';
+    const n = Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    const u = String(unit || '').toLowerCase();
+    if (u.includes('ratio') || Math.abs(n) < 1 && Math.abs(n) > 0) return n.toFixed(Math.abs(n) < 0.1 ? 4 : 3);
+    if (u.includes('year') || Number.isInteger(n) || Math.abs(n - Math.round(n)) < 1e-9) {
+      if (Math.abs(n) >= 1000) return String(Math.round(n));
+      return String(Math.round(n * 100) / 100);
+    }
+    if (Math.abs(n) >= 100) return n.toFixed(1);
+    if (Math.abs(n) >= 10) return n.toFixed(2);
+    return n.toFixed(2);
+  }
+
+  function wmKpiLabel(row, strip) {
+    const id = String((row && row.kpi_id) || '');
+    let label = (row && row.label) || '';
+    // Enrich P0 horizon quote rows with latest speaker from expert_horizons
+    if (/_years_ahead$/.test(id) && strip) {
+      const domain = id.replace(/_years_ahead$/, '');
+      const h = (strip.expert_horizons || []).find(x => x.domain === domain);
+      const latest = (h && h.latest) || {};
+      const bits = ['P0'];
+      if (latest.speaker) bits.push(String(latest.speaker));
+      if (latest.years_ahead != null) bits.push(`${wmFormatNumber(latest.years_ahead)}y`);
+      if (!label) label = id.replace(/_/g, ' ');
+      if (!/P0/.test(label)) label = `${label} (${bits.join(' · ')})`;
+    }
+    if (label) {
+      return label.length > 64 ? `${label.slice(0, 63)}…` : label;
+    }
+    return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '—';
+  }
+
+  function wmIsSharedThemeKpi(row) {
+    if (!row) return false;
+    const mode = row.magis_display && row.magis_display.mode;
+    if (mode === 'shared_theme') return true;
+    const src = String(row.source || '');
+    return src.startsWith('theme:');
+  }
+
+  function wmSharedKey(row) {
+    return String((row && row.source) || (row && row.kpi_id) || '');
+  }
+
+  function wmHideZScore(row) {
+    const id = String((row && row.kpi_id) || '');
+    if (id === 'price_usd') return true;
+    if (/_years_ahead$/.test(id)) return true; // sparse quote series — z not meaningful
+    return false;
+  }
+
+  function wmIndustryKey(row) {
+    const ids = (row && row.industry_node_ids) || [];
+    return ids[0] || 'other';
+  }
+
+  function wmIndustryTitle(key) {
+    const titles = {
+      robotaxi: 'robotaxi / AV ground',
+      evtol_air_taxi: 'eVTOL / air taxi',
+      pharma_royalty: 'pharma royalty',
+      btc_mining_power: 'BTC mining / power',
+      market_data_indices: 'index / market-data fees',
+      ai_power: 'AI power / land',
+      water_surface: 'water / surface',
+      hyperscaler_cloud: 'hyperscaler cloud',
+      nuclear_firm_power: 'nuclear / SMR',
+      gold_royalty: 'gold royalty',
+      timber_land: 'timber / housing',
+      energy_royalty: 'energy royalty',
+      exchange_markets: 'exchange markets',
+      agi: 'AGI horizon',
+    };
+    return titles[key] || String(key || 'other').replace(/_/g, ' ');
+  }
+
+  function wmZValue(row) {
+    if (wmHideZScore(row)) return null;
+    const hist = (row && row.history) || {};
+    const z = hist.z_score != null ? hist.z_score : (row && row.z_score);
+    return z == null || Number.isNaN(Number(z)) ? null : Number(z);
+  }
+
+  function wmIsOutlier(row) {
+    const z = wmZValue(row);
+    return z != null && Math.abs(z) >= 2;
+  }
+
+  function wmGateText(row) {
+    const exp = (row && row.expected) || {};
+    if (!exp.op || exp.value == null) return '';
+    return `${exp.op} ${wmFormatNumber(exp.value)}`;
+  }
+
+  function wmWhyText(row) {
+    const kind = row._kind || row.status || '';
+    if (kind === 'hard' || kind === 'fail') return 'Hard gate miss';
+    if (kind === 'soft' || kind === 'soft-floor') return 'Soft floor (Goodhart)';
+    if (kind === 'stale') return 'Stale actual';
+    if (kind === 'unchecked') return 'Needs value';
+    if (wmIsOutlier(row)) return `|z| elevated`;
+    return kind || '—';
+  }
+
+  // Prefer theme_panel_config evidence; keep a UI fallback map in sync with ingest themes.
+  const WM_THEME_SERIES = {
+    ai_power_land: ['theme:hyperscaler_capex_ttm_usd_bn', 'theme:henry_hub_gas', 'theme:wti_crude'],
+    exchange_volatility: ['theme:vix_level', 'theme:spy_20d_realized_vol', 'theme:vol_term_slope'],
+    gold_royalties: ['theme:gold_spot_usd', 'theme:gdx_gld_ratio'],
+    macro_regime: ['theme:hy_oas', 'theme:ust_10y', 'theme:vix_level'],
+    water_surface: ['theme:tpl_water_revenue_m', 'theme:wti_crude', 'theme:permian_crude_production_mbbl_d'],
+    timber_housing: ['theme:housing_starts', 'theme:building_permits'],
+    btc_hash_power: ['theme:btc_usd', 'theme:henry_hub_gas'],
+    energy_royalty: ['theme:wti_crude', 'theme:henry_hub_gas'],
+    pharma_royalty: ['theme:xlv_etf', 'theme:xbi_etf', 'theme:ust_10y'],
+    nuclear_power: ['theme:ura_etf', 'theme:hyperscaler_capex_ttm_usd_bn'],
+    index_data_fees: ['theme:vix_level', 'theme:spy_20d_realized_vol'],
+    space_network: [],
+  };
+
+  function wmSeriesLatest(historySeries, seriesKey) {
+    const s = (historySeries || {})[seriesKey];
+    if (!s) return null;
+    const pts = s.points || [];
+    const last = pts.length ? pts[pts.length - 1] : null;
+    const stats = s.stats || {};
+    const v = last && last.v != null ? last.v : stats.latest;
+    return {
+      key: seriesKey,
+      label: s.label || seriesKey.replace(/^theme:/, '').replace(/_/g, ' '),
+      value: v,
+    };
+  }
+
+  function wmPillarLights(pillars) {
+    const entries = Object.entries(pillars || {});
+    if (!entries.length) return '—';
+    return entries.map(([, st]) => {
+      const s = String(st || '').toLowerCase();
+      if (s === 'pass' || s === 'ok' || s === 'strong') return '●';
+      if (s === 'partial' || s === 'watch' || s === 'weak') return '◐';
+      if (s === 'fail' || s === 'gap' || s === 'missing') return '○';
+      return '·';
+    }).join('');
+  }
+
+  function wmZBadge(z, escapeHtml, opts) {
+    if (opts && opts.hidden) {
+      return `<span class="badge badge-us" title="Z not shown for this KPI type">—</span>`;
+    }
+    if (z == null || Number.isNaN(Number(z))) {
+      return `<span class="badge badge-us" title="Insufficient history for z-score">n/a</span>`;
+    }
+    const n = Number(z);
+    const abs = Math.abs(n);
+    const cls = abs >= 2 ? 'badge-bad' : (abs >= 1 ? 'badge-warn' : 'badge-ok');
+    const sign = n > 0 ? '+' : '';
+    return `<span class="badge ${cls}" title="Vs trailing history only — descriptive; not a Magis gate">${escapeHtml(sign + n.toFixed(2))}</span>`;
+  }
+
+  function wmSparklineSvg(values, width, height) {
+    const vals = (values || []).map(Number).filter(v => Number.isFinite(v));
+    const w = width || 72;
+    const h = height || 22;
+    if (vals.length < 2) {
+      return `<svg width="${w}" height="${h}" aria-hidden="true"></svg>`;
+    }
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const span = max - min || 1;
+    const pts = vals.map((v, i) => {
+      const x = (i / (vals.length - 1)) * (w - 2) + 1;
+      const y = h - 2 - ((v - min) / span) * (h - 4);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="display:block">
+      <polyline fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.85" points="${pts}"/>
+    </svg>`;
+  }
+
+  function wmHistoryChartSvg(points, stats, width, height) {
+    const pts = (points || []).filter(p => p && p.d != null && Number.isFinite(Number(p.v)));
+    const w = width || 420;
+    const h = height || 120;
+    if (pts.length < 2) {
+      return `<p class="tier-sub">Not enough history points for a chart.</p>`;
+    }
+    const vals = pts.map(p => Number(p.v));
+    const mean = stats && stats.mean != null ? Number(stats.mean) : null;
+    const stdev = stats && stats.stdev != null ? Number(stats.stdev) : null;
+    let min = Math.min(...vals);
+    let max = Math.max(...vals);
+    if (mean != null && stdev != null && Number.isFinite(stdev)) {
+      min = Math.min(min, mean - stdev);
+      max = Math.max(max, mean + stdev);
+    }
+    const span = max - min || 1;
+    const padL = 36;
+    const padR = 8;
+    const padT = 8;
+    const padB = 22;
+    const iw = w - padL - padR;
+    const ih = h - padT - padB;
+    const xy = (i, v) => {
+      const x = padL + (i / (pts.length - 1)) * iw;
+      const y = padT + ih - ((v - min) / span) * ih;
+      return [x, y];
+    };
+    const line = vals.map((v, i) => {
+      const [x, y] = xy(i, v);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    let band = '';
+    if (mean != null && stdev != null && stdev > 0) {
+      const [, yHi] = xy(0, mean + stdev);
+      const [, yLo] = xy(0, mean - stdev);
+      band = `<rect x="${padL}" y="${Math.min(yHi, yLo).toFixed(1)}" width="${iw}" height="${Math.abs(yLo - yHi).toFixed(1)}" fill="currentColor" opacity="0.08"/>`;
+      const [, yM] = xy(0, mean);
+      band += `<line x1="${padL}" y1="${yM.toFixed(1)}" x2="${w - padR}" y2="${yM.toFixed(1)}" stroke="currentColor" stroke-dasharray="3 3" opacity="0.45"/>`;
+    }
+    const [lx, ly] = xy(pts.length - 1, vals[vals.length - 1]);
+    const d0 = pts[0].d;
+    const d1 = pts[pts.length - 1].d;
+    const y0 = min.toFixed(min >= 100 ? 0 : 2);
+    const y1 = max.toFixed(max >= 100 ? 0 : 2);
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="KPI history">
+      ${band}
+      <polyline fill="none" stroke="var(--accent, #6aa1ff)" stroke-width="1.6" points="${line}"/>
+      <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.2" fill="var(--accent, #6aa1ff)"/>
+      <text x="${padL}" y="${h - 6}" font-size="10" fill="currentColor" opacity="0.65">${d0}</text>
+      <text x="${w - padR}" y="${h - 6}" font-size="10" fill="currentColor" opacity="0.65" text-anchor="end">${d1}</text>
+      <text x="4" y="${padT + 8}" font-size="10" fill="currentColor" opacity="0.65">${y1}</text>
+      <text x="4" y="${h - padB}" font-size="10" fill="currentColor" opacity="0.65">${y0}</text>
+    </svg>`;
+  }
+
+  function wmHistoryDetailRow(r, historySeries, escapeHtml, colSpan) {
+    const hist = r.history || {};
+    const key = hist.series_key || r.series_key || '';
+    const series = (historySeries && key && historySeries[key]) || null;
+    const stats = (series && series.stats) || hist;
+    const points = (series && series.points) || [];
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}`.replace(/[^\w.\-]+/g, '_');
+    const zLine = hist.z_score != null
+      ? `z=${Number(hist.z_score) >= 0 ? '+' : ''}${Number(hist.z_score).toFixed(2)}`
+      : 'z=n/a';
+    const meanLine = stats.mean != null ? `mean ${Number(stats.mean).toPrecision(4)}` : '';
+    const sdLine = stats.stdev != null ? `σ ${Number(stats.stdev).toPrecision(4)}` : '';
+    const nLine = stats.n != null ? `n=${stats.n}` : '';
+    const pctLine = stats.percentile != null ? `pct ${stats.percentile}` : '';
+    const win = stats.window || hist.window || '';
+    const meta = [zLine, meanLine, sdLine, nLine, pctLine, win, hist.source_kind || '', hist.status || '']
+      .filter(Boolean).join(' · ');
+    return `<tr class="wm-hist-detail" data-wm-hist-detail="${escapeHtml(rowId)}" hidden>
+      <td colspan="${colSpan || 7}" style="padding:10px 12px;background:rgba(127,127,127,0.06)">
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start">
+          <div style="min-width:280px;flex:1 1 320px">${wmHistoryChartSvg(points, stats)}</div>
+          <div style="flex:1 1 220px;font-size:12px;max-width:420px">
+            <div class="mono" style="margin-bottom:4px">${escapeHtml(key || 'no series')}</div>
+            <div class="tier-sub" style="margin-bottom:6px">${escapeHtml(meta)}</div>
+            <div class="tier-sub">Descriptive vs own history. Does not change the gate or capital stance.</div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  function wmKpiHistCells(r, escapeHtml) {
+    const hist = r.history || {};
+    const spark = wmSparklineSvg(hist.sparkline || []);
+    const rowId = `${r.ticker || ''}__${r.kpi_id || ''}__${String(r.source || '').replace(/:/g, '_')}`
+      .replace(/[^\w.\-]+/g, '_');
+    const title = 'Click to view time series and vs-history detail';
+    const actualTxt = r.actual != null ? wmFormatNumber(r.actual, r.unit) : '—';
+    const hideZ = wmHideZScore(r);
+    const zVal = hideZ ? null : (hist.z_score != null ? hist.z_score : r.z_score);
+    return {
+      rowId,
+      actualCell: `<td class="mono"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${escapeHtml(actualTxt)}</button></td>`,
+      sparkCell: `<td class="wm-spark"><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer;color:inherit">${spark}</button></td>`,
+      zCell: `<td><button type="button" class="wm-hist-toggle" data-wm-hist-toggle="${escapeHtml(rowId)}" title="${title}" style="all:unset;cursor:pointer">${wmZBadge(zVal, escapeHtml, { hidden: hideZ })}</button></td>`,
+    };
+  }
+
+  function renderWorldModelStrip(worldModel, escapeHtml) {
+    const strip = worldModel && worldModel.strip;
+    if (!strip) {
+      return `<div class="detail-section world-model-strip">
+        <h3>World Model</h3>
+        <p class="tier-sub">No snapshot yet. Run: python _system/scripts/build_world_model_snapshot.py</p>
+      </div>`;
+    }
+
+    const label = strip.label || 'steady';
+    const labelCls = label === 'broken' ? 'badge-bad' : (label === 'attention' ? 'badge-warn' : 'badge-ok');
+    const bounds = strip.claim_boundaries || {};
+    const claimCeiling = strip.claim_ceiling || bounds.claim_ceiling || 'P3_oriented';
+    const ceilingShort = wmClassShort(claimCeiling);
+    const counts = strip.counts || {};
+    const historySeries = strip.history_series || {};
+    const darwin = bounds.darwin || {};
+    const demotions = bounds.demotions || [];
+    const isHorizonDemotion = (d) => {
+      const art = String(d.artifact || '');
+      const reason = String(d.reason || '');
+      return art.startsWith('expert_horizon:')
+        || /Arrival-date quotes are observations/i.test(reason);
+    };
+    const horizonDemotions = demotions.filter(isHorizonDemotion);
+    const nonHorizonDemotions = demotions.filter(d => !isHorizonDemotion(d));
+    const goodhartAll = bounds.goodhart_watch || [];
+    const goodhartFails = goodhartAll.filter(g => String(g.status || '').toLowerCase() === 'fail');
+    const openCockpit = label === 'attention' || label === 'broken';
+    const engines = bounds.engines || [];
+    const enginesTooltip = engines.length
+      ? engines.map(e => `${e.id || ''}: ${e.role || ''}`).join(' · ')
+      : 'World Model / Darwin / house valuation / Lawrence / Santa Fe stay separate languages';
+    const claimHygieneSummary = (() => {
+      const bits = [`${goodhartFails.length} GH fails`];
+      if (horizonDemotions.length) bits.push('horizons P0');
+      if (nonHorizonDemotions.length) bits.push(`${nonHorizonDemotions.length} other demotions`);
+      return bits.join(' · ');
+    })();
+
+    const exceptionBits = [
+      counts.fail_hard ? `${counts.fail_hard} hard` : '',
+      counts.fail_soft ? `${counts.fail_soft} soft` : '',
+      counts.stale ? `${counts.stale} stale` : '',
+      counts.unchecked ? `${counts.unchecked} unchecked` : '',
+    ].filter(Boolean);
+    const exceptionSummary = exceptionBits.length ? exceptionBits.join(' · ') : 'no exceptions';
+    const stance = wmTrimStance(strip.ev_stance || '', 120);
+
+    const attentionRows = [
+      ...(strip.broken || []).map(r => ({ ...r, _kind: 'hard' })),
+      ...(strip.soft_fails || []).map(r => ({ ...r, _kind: 'soft' })),
+      ...(strip.stale || []).map(r => ({ ...r, _kind: 'stale' })),
+      ...(strip.unchecked || []).map(r => ({ ...r, _kind: 'unchecked' })),
+    ].slice(0, 12);
+
+    const attentionTable = attentionRows.length ? `
+      <div class="wm-attention">
+        <h4 class="wm-section-title">Needs attention</h4>
+        <table class="darwin-table wm-table">
+          <thead><tr><th>Ticker</th><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Why</th></tr></thead>
+          <tbody>${attentionRows.map(r => {
+            const cells = wmKpiHistCells(r, escapeHtml);
+            const kindCls = r._kind === 'hard' ? 'badge-bad' : 'badge-warn';
+            const scaffoldBadge = r.scaffold ? ' <span class="badge badge-us" title="Industry scaffold — not curated filing KPIs">scaffold</span>' : '';
+            return `<tr>
+              <td class="mono">${escapeHtml(r.ticker || '')}</td>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}${scaffoldBadge}${r._kind === 'soft' ? ` <span class="badge badge-warn" title="Soft floor / Goodhart">soft</span>` : ''}</td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="tier-sub">${escapeHtml(wmWhyText(r))} <span class="badge ${kindCls}">${escapeHtml(r._kind === 'soft' ? 'soft' : r._kind)}</span></td>
+            </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, 6)}`;
+          }).join('')}</tbody>
+        </table>
+      </div>` : '';
+
+    const cards = strip.prediction_cards || [];
+    const themeCards = cards.map(c => {
+      const tid = c.theme_id || '';
+      const seriesKeys = WM_THEME_SERIES[tid] || [];
+      const seriesBits = seriesKeys.map(k => wmSeriesLatest(historySeries, k)).filter(Boolean).slice(0, 3)
+        .map(s => `<span class="wm-theme-metric"><span class="wm-theme-metric-label">${escapeHtml(s.label)}</span> <span class="mono">${escapeHtml(wmFormatNumber(s.value))}</span></span>`)
+        .join('');
+      const phase = c.phase_transition || '—';
+      const phaseCls = phase === 'likely' ? 'badge-warn' : (phase === 'gradual' ? 'badge-us' : 'badge-us');
+      const rein = [
+        c.recursive ? 'recursive' : null,
+        c.tam_magnetism ? `TAM ${c.tam_magnetism}` : null,
+        c.regulatory || null,
+      ].filter(Boolean).join(' · ');
+      let metricsBlock = seriesBits
+        ? `<div class="wm-theme-metrics">${seriesBits}</div>`
+        : '';
+      if (!seriesBits && (tid === 'space_network' || seriesKeys.length === 0)) {
+        metricsBlock = `<div class="tier-sub wm-theme-metrics">No market series yet — see Expert horizons · starship and Superorgs</div>`;
+      }
+      return `<div class="wm-theme-card">
+        <div class="wm-theme-card-head">
+          <span class="wm-theme-name">${escapeHtml(c.label || tid)}</span>
+          <span class="badge ${phaseCls}">${escapeHtml(phase)}</span>
+        </div>
+        ${metricsBlock}
+        <div class="tier-sub wm-theme-rein">${escapeHtml(rein)}</div>
+      </div>`;
+    }).join('');
+
+    const superRows = (strip.superorgs || []).map(s => {
+      const lights = wmPillarLights(s.pillars);
+      const sum = s.summary || {};
+      const score = sum.fail ? `${sum.fail} fail` : (sum.partial ? `${sum.partial} partial` : 'ok');
+      return `<tr>
+        <td>${escapeHtml(s.label || s.org_id || '')}</td>
+        <td class="mono wm-pillar-lights" title="Pillar traffic: filled=pass, half=partial, empty=fail">${escapeHtml(lights)}</td>
+        <td class="tier-sub">${escapeHtml(score)}</td>
+      </tr>`;
+    }).join('');
+
+    const horizonRows = (strip.expert_horizons || []).map(h => {
+      const latest = h.latest || {};
+      const convCls = h.convergence === 'converging' ? 'badge-ok' : (h.convergence === 'receding' ? 'badge-bad' : 'badge-us');
+      return `<tr>
+        <td class="mono">${escapeHtml(h.domain || '')}</td>
+        <td><span class="badge ${convCls}">${escapeHtml(h.convergence || '')}</span></td>
+        <td class="mono">${latest.years_ahead != null ? escapeHtml(wmFormatNumber(latest.years_ahead, 'years')) : '—'}y</td>
+        <td class="tier-sub">${escapeHtml(latest.speaker || '')}</td>
+      </tr>`;
+    }).join('');
+
+    const industryNodes = strip.industry_nodes || [];
+    const thesisInd = industryNodes.filter(n => (n.kind || 'thesis') !== 'horizon_industry');
+    const horizonInd = industryNodes.filter(n => n.kind === 'horizon_industry');
+    const industryRows = industryNodes.map(n => {
+      const cl = n.checklist || {};
+      const bits = ['capacity', 'pricing', 'regulatory'].map(k => {
+        const st = (cl[k] && cl[k].status) || '—';
+        return `${k}:${st}`;
+      }).join(' · ');
+      const kind = n.kind || 'thesis';
+      return `<tr>
+        <td>${escapeHtml(n.label || n.node_id || '')}</td>
+        <td><span class="badge ${kind === 'horizon_industry' ? 'badge-warn' : 'badge-ok'}">${escapeHtml(kind === 'horizon_industry' ? 'horizon' : 'thesis')}</span></td>
+        <td class="tier-sub">${escapeHtml(bits)}</td>
+      </tr>`;
+    }).join('');
+
+    // KPI drill-down: group by industry; default outliers (+ attention already shown)
+    const allPasses = strip.passes || [];
+    const outlierPasses = allPasses.filter(wmIsOutlier);
+    const defaultShow = outlierPasses.length ? outlierPasses : [];
+    const groupsAll = new Map();
+    allPasses.forEach(r => {
+      const key = wmIndustryKey(r);
+      if (!groupsAll.has(key)) groupsAll.set(key, []);
+      groupsAll.get(key).push(r);
+    });
+    const groupsDefault = new Map();
+    defaultShow.forEach(r => {
+      const key = wmIndustryKey(r);
+      if (!groupsDefault.has(key)) groupsDefault.set(key, []);
+      groupsDefault.get(key).push(r);
+    });
+
+    function renderKpiGroups(groups, colSpan) {
+      if (!groups.size) return '<p class="tier-sub">No elevated-z rows. Use “Show all passing” for the full ledger.</p>';
+      return [...groups.entries()].map(([key, rows]) => {
+        const sharedMap = new Map();
+        const byTicker = new Map();
+        rows.forEach(r => {
+          if (wmIsSharedThemeKpi(r)) {
+            const sk = wmSharedKey(r);
+            if (!sharedMap.has(sk)) sharedMap.set(sk, { exemplar: r, tickers: [] });
+            const entry = sharedMap.get(sk);
+            const t = r.ticker || '—';
+            if (!entry.tickers.includes(t)) entry.tickers.push(t);
+            // Prefer denser history exemplar
+            const nNew = ((r.history || {}).n) || 0;
+            const nOld = ((entry.exemplar.history || {}).n) || 0;
+            if (nNew > nOld) entry.exemplar = r;
+          } else {
+            const t = r.ticker || '—';
+            if (!byTicker.has(t)) byTicker.set(t, []);
+            byTicker.get(t).push(r);
+          }
+        });
+        const sharedRows = [...sharedMap.values()].map(({ exemplar, tickers }) => {
+          const cells = wmKpiHistCells(exemplar, escapeHtml);
+          const gate = wmGateText(exemplar);
+          const applies = tickers.slice().sort().join(', ');
+          return `<tr>
+              <td><span class="badge badge-us" title="Same theme series for every listed ticker">shared</span> ${escapeHtml(wmKpiLabel(exemplar, strip))}
+                <div class="tier-sub">applies to ${escapeHtml(applies)}</div></td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
+            </tr>${wmHistoryDetailRow(exemplar, historySeries, escapeHtml, colSpan)}`;
+        }).join('');
+        const tickerBody = [...byTicker.entries()].map(([ticker, tRows]) => {
+          const isScaffold = tRows.some(r => r.scaffold);
+          const head = `<tr class="wm-ticker-band"><td colspan="5"><span class="mono">${escapeHtml(ticker)}</span>${isScaffold ? ' <span class="badge badge-us" title="Industry scaffold">scaffold</span>' : ' <span class="badge badge-ok" title="Curated / filing-backed ledger">curated</span>'}</td></tr>`;
+          const kpiRows = tRows.map(r => {
+            const cells = wmKpiHistCells(r, escapeHtml);
+            const gate = wmGateText(r);
+            return `<tr>
+              <td>${escapeHtml(wmKpiLabel(r, strip))}</td>
+              ${cells.actualCell}
+              ${cells.sparkCell}
+              ${cells.zCell}
+              <td class="mono tier-sub" title="Thesis floor pass/fail — not the same as vs-history z">${escapeHtml(gate)}</td>
+            </tr>${wmHistoryDetailRow(r, historySeries, escapeHtml, colSpan)}`;
+          }).join('');
+          return head + kpiRows;
+        }).join('');
+        const uniqueCount = sharedMap.size + [...byTicker.values()].reduce((n, a) => n + a.length, 0);
+        const body = (sharedRows ? `<tr class="wm-ticker-band"><td colspan="5"><span class="tier-sub">Shared theme pulses (shown once)</span></td></tr>${sharedRows}` : '') + tickerBody;
+        return `<details class="wm-group">
+          <summary>${escapeHtml(wmIndustryTitle(key))} <span class="tier-sub">(${uniqueCount} signals · ${rows.length} raw)</span></summary>
+          <table class="darwin-table wm-table">
+            <thead><tr><th>KPI</th><th>Actual</th><th>Hist</th><th>vs hist</th><th>Thesis floor</th></tr></thead>
+            <tbody>${body || '<tr><td colspan="5" class="tier-sub">No KPIs in this industry.</td></tr>'}</tbody>
+          </table>
+        </details>`;
+      }).join('');
+    }
+
+    const demotionRows = nonHorizonDemotions.map(d => `<tr>
+      <td>${escapeHtml(String(d.artifact || '').replace(/^expert_horizon:/, 'Horizon · '))}</td>
+      <td><span class="badge badge-us">${escapeHtml(wmClassShort(d.predictability_class))}</span></td>
+      <td class="tier-sub">${escapeHtml(d.reason || '')}</td>
+    </tr>`).join('');
+    const goodhartFailRows = goodhartFails.slice(0, 24).map(g => `<tr>
+      <td class="mono">${escapeHtml(g.ticker || '')}</td>
+      <td>${escapeHtml(wmKpiLabel({ kpi_id: g.kpi_id, label: g.label }))}</td>
+      <td><span class="badge badge-bad">fail</span></td>
+    </tr>`).join('');
+
+    return `
+      <div class="detail-section world-model-strip" data-wm-strip>
+        <div class="wm-glance">
+          <div class="wm-glance-row">
+            <h3>World Model</h3>
+            <span class="badge ${labelCls}">${escapeHtml(label)}</span>
+            <span class="badge badge-us" title="${escapeHtml(bounds.reason || 'Magis claim ceiling')}">claim ${escapeHtml(ceilingShort)}</span>
+            ${strip.as_of ? `<span class="mono tier-sub">${escapeHtml(String(strip.as_of))}</span>` : ''}
+            <span class="tier-sub" title="About: Courtenay foresight + Magis claim gate. Context only — does not set capital stance. Engines: ${escapeHtml(enginesTooltip)}">ⓘ</span>
+          </div>
+          <div class="wm-glance-meta">
+            <span>${escapeHtml(exceptionSummary)}</span>
+            <span class="wm-sep">·</span>
+            <span>${escapeHtml(String(counts.pass != null ? counts.pass : allPasses.length))} passing</span>
+            ${goodhartAll.length ? `<span class="wm-sep">·</span><span title="Soft vol gates — Gameability high; fails only surface below">${escapeHtml(String(goodhartAll.length))} soft vol (Goodhart)${goodhartFails.length ? `, ${goodhartFails.length} fail` : ''}</span>` : ''}
+            <span class="wm-sep">·</span>
+            <span>${thesisInd.length} thesis · ${horizonInd.length} horizon industries</span>
+          </div>
+          ${stance ? `<p class="wm-stance">${escapeHtml(stance)}</p>` : ''}
+        </div>
+
+        ${attentionTable}
+
+        <details class="wm-panel" ${openCockpit ? 'open' : ''}>
+          <summary>Themes <span class="tier-sub">(${cards.length})</span></summary>
+          <div class="wm-theme-grid">${themeCards || '<p class="tier-sub">No theme cards.</p>'}</div>
+        </details>
+
+        <details class="wm-panel">
+          <summary>Superorgs <span class="tier-sub">(${(strip.superorgs || []).length})</span></summary>
+          ${(strip.superorgs || []).length ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Org</th><th>Pillars</th><th>Status</th></tr></thead>
+            <tbody>${superRows}</tbody>
+          </table>` : '<p class="tier-sub">None.</p>'}
+        </details>
+
+        <details class="wm-panel">
+          <summary>Expert horizons <span class="tier-sub">(${(strip.expert_horizons || []).length}) · P0 quotes</span></summary>
+          ${(strip.expert_horizons || []).length ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Domain</th><th>Trend</th><th>Years</th><th>Speaker</th></tr></thead>
+            <tbody>${horizonRows}</tbody>
+          </table>
+          <p class="tier-sub wm-claim-line">Quotes are P0 observations — not Magis forecasts</p>` : '<p class="tier-sub">None.</p>'}
+        </details>
+
+        <details class="wm-panel">
+          <summary>Claim hygiene <span class="tier-sub">(${escapeHtml(claimHygieneSummary)})</span></summary>
+          <p class="tier-sub wm-claim-line">Darwin: <strong>${escapeHtml(String(darwin.regime_label || 'n/a'))}</strong>${darwin.stress ? ' (stress)' : ''} · Thesis ${escapeHtml(wmClassShort(bounds.thesis_hygiene_ceiling || 'P3_oriented'))} · Path ${escapeHtml(wmClassShort(bounds.market_path_ceiling || claimCeiling))}</p>
+          ${horizonDemotions.length ? `<p class="tier-sub wm-claim-line">Horizons already P0 (see Expert horizons) — demotion rows suppressed</p>` : ''}
+          ${demotionRows ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Demotion</th><th>Class</th><th>Why</th></tr></thead>
+            <tbody>${demotionRows}</tbody>
+          </table>` : ''}
+          ${goodhartFailRows ? `<h4 class="wm-section-title">Goodhart fails</h4>
+            <table class="darwin-table wm-table">
+              <thead><tr><th>Ticker</th><th>KPI</th><th>Status</th></tr></thead>
+              <tbody>${goodhartFailRows}</tbody>
+            </table>` : '<p class="tier-sub">No Goodhart fails (soft gates that are passing are hidden).</p>'}
+        </details>
+
+        <details class="wm-panel">
+          <summary>Industries <span class="tier-sub">(${industryNodes.length})</span></summary>
+          ${industryRows ? `<table class="darwin-table wm-table">
+            <thead><tr><th>Industry</th><th>Kind</th><th>Checklist</th></tr></thead>
+            <tbody>${industryRows}</tbody>
+          </table>` : '<p class="tier-sub">None.</p>'}
+        </details>
+
+        <details class="wm-panel wm-kpi-drilldown">
+          <summary>KPI drill-down <span class="tier-sub">(${outlierPasses.length} outliers · ${allPasses.length} pass)</span></summary>
+          <div class="wm-kpi-toolbar">
+            <button type="button" class="filter-btn wm-kpi-mode active" data-wm-kpi-mode="outliers">Outliers (|z|≥2)</button>
+            <button type="button" class="filter-btn wm-kpi-mode" data-wm-kpi-mode="all">Show all passing</button>
+            <span class="tier-sub">Click Actual / Hist / vs hist for history. Vs hist is descriptive only — not a capital gate.</span>
+          </div>
+          <div class="wm-kpi-panels">
+            <div class="wm-kpi-panel" data-wm-kpi-panel="outliers">${renderKpiGroups(groupsDefault, 5)}</div>
+            <div class="wm-kpi-panel" data-wm-kpi-panel="all" hidden>${renderKpiGroups(groupsAll, 5)}</div>
+          </div>
+        </details>
+      </div>`;
+  }
+
+  function attachWorldModelHistoryHandlers(container) {
+    if (!container) return;
+    container.querySelectorAll('[data-wm-hist-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-wm-hist-toggle');
+        if (!id) return;
+        let detail = null;
+        container.querySelectorAll('[data-wm-hist-detail]').forEach(row => {
+          if (row.getAttribute('data-wm-hist-detail') === id) detail = row;
+        });
+        if (!detail) return;
+        const open = detail.hasAttribute('hidden');
+        container.querySelectorAll('[data-wm-hist-detail]').forEach(row => row.setAttribute('hidden', ''));
+        if (open) detail.removeAttribute('hidden');
+      });
+    });
+    container.querySelectorAll('[data-wm-kpi-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const mode = btn.getAttribute('data-wm-kpi-mode');
+        const root = btn.closest('[data-wm-strip]') || container;
+        root.querySelectorAll('[data-wm-kpi-mode]').forEach(b => b.classList.toggle('active', b === btn));
+        root.querySelectorAll('[data-wm-kpi-panel]').forEach(panel => {
+          if (panel.getAttribute('data-wm-kpi-panel') === mode) panel.removeAttribute('hidden');
+          else panel.setAttribute('hidden', '');
+        });
+      });
+    });
   }
 
   function renderPortfolioMacroStrip(portfolioMacroRegime, escapeHtml, linkHtml, portfolioMacro) {
@@ -1662,6 +2393,7 @@
     const filters = [
       { id: 'ownership', label: 'Letters + insider' },
       { id: 'letters', label: 'Letters' },
+      { id: 'podcast_episode', label: 'Podcasts' },
       { id: 'all', label: 'All sources' },
       { id: 'macro', label: 'Macro only' },
     ];
@@ -3604,7 +4336,13 @@
       pdfTimeMode = 'period',
       portfolioMacro = [],
       portfolioMacroRegime = null,
+      worldModel = null,
       tickerSourceFilter = 'ownership',
+      podcastShowId = 'all',
+      podcastFlagFilter = 'all',
+      selectedPodcastEpisodeId = null,
+      podcastEpisodeDetail = null,
+      podcastEpisodeDetailLoading = false,
       kpiTrends = null,
       inflectionTier = 'displayed',
       eventTier = 'signal',
@@ -3618,7 +4356,6 @@
       eventReview = 'unreviewed',
       eventReviewState = {},
       eventLastSeenAt = null,
-      themesViewMode = 'snapshot',
     } = options || {};
 
     const profiles = insights?.fund_profiles || {};
@@ -3626,17 +4363,10 @@
       return renderFundDetail(profiles[selectedFundId], escapeHtml, linkHtml, ghRepo);
     }
 
-    const byQ = insights?.theme_rankings_by_quarter || {};
     const letterIndex = insights?.letter_index || [];
     const timeModel = buildTimeModel(insights, documentCatalog);
     const periodQuarter = activeSection === 'consensus' ? (options?.consensusQuarter || quarter || 'last4') : quarter;
     const period = periodFromSelection(periodQuarter, timeModel);
-    let themes = filterThemesForBook(
-      themesForPeriod(byQ, insights?.theme_rankings || [], period),
-      letterIndex,
-      period,
-      bookOnly,
-    );
     const knownTickers = SearchMatch.catalogKnownTickers(documentCatalog);
     let funds = Object.values(insights?.fund_profiles || {});
     if (!funds.length) {
@@ -3685,6 +4415,7 @@
       : [];
     const sections = [
       { id: 'letters', label: 'Letters' },
+      { id: 'podcasts', label: 'Podcasts' },
       { id: 'inflections', label: 'Inflections' },
       { id: 'events', label: 'What changed' },
       { id: 'index_watch', label: 'Index Watch' },
@@ -3695,9 +4426,6 @@
       { id: 'memory', label: 'Research memory' },
       { id: 'sources', label: 'Pipeline status' },
     ];
-
-    // Overview merged into Pipeline status
-    if (activeSection === 'overview') activeSection = 'sources';
 
     let body = '';
     if (activeSection === 'inflections') {
@@ -3749,8 +4477,26 @@
         : '';
       const positionStats = [posPct, `${letters.length} letter(s)`, escapeHtml(period.label), bookOnly ? 'overlap with our book only' : ''].filter(Boolean).join(' · ');
       body = `<p class="tier-sub" style="margin-bottom:8px">${escapeHtml(period.label)}${bookOnly ? ' · overlap with our book only' : ''}</p>`
-        + renderLetterIndex(letters, escapeHtml, linkHtml, ghRepo, true, positionStats, period, timeModel);
-    } else if (activeSection === 'funds') {
+        + renderLetterIndex(letters, escapeHtml, linkHtml, ghRepo, true, positionStats, period, timeModel, bookOnly);
+        } else if (activeSection === 'podcasts') {
+      body = renderPodcastIndex(
+        insights?.podcast_index || [],
+        insights?.podcast_by_show || {},
+        escapeHtml,
+        linkHtml,
+        ghRepo,
+        {
+          bookOnly,
+          search: fundSearch,
+          period,
+          showId: podcastShowId,
+          flagFilter: podcastFlagFilter,
+          selectedEpisodeId: selectedPodcastEpisodeId,
+          episodeDetail: podcastEpisodeDetail,
+          episodeDetailLoading: podcastEpisodeDetailLoading,
+        },
+      );
+} else if (activeSection === 'funds') {
       body = renderFundRegistry(funds, escapeHtml, linkHtml, ghRepo, bookOnly);
     } else if (activeSection === 'documents') {
       body = renderDocumentCatalog(documentCatalog, escapeHtml, linkHtml, {
@@ -3761,7 +4507,8 @@
         pdfTimeMode,
       });
     } else if (activeSection === 'tickers') {
-      body = renderPortfolioMacroStrip(portfolioMacroRegime, escapeHtml, linkHtml, portfolioMacro)
+      body = renderWorldModelStrip(worldModel, escapeHtml)
+        + renderPortfolioMacroStrip(portfolioMacroRegime, escapeHtml, linkHtml, portfolioMacro)
         + renderTickerEssentials(tickers, escapeHtml, linkHtml, {
           search: fundSearch,
           bookOnly,
@@ -3819,7 +4566,7 @@
     return `
       <h2 style="font-size:18px;margin-bottom:6px">Insights</h2>
       <p class="subhead" style="margin-bottom:14px">
-        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
+        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
       </p>
       <nav class="view-tabs" id="insights-section-tabs" style="margin-bottom:10px">
         ${sections.map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}
@@ -3847,33 +4594,15 @@
             <input type="checkbox" id="insights-book-only" ${bookOnly ? 'checked' : ''} />
             ${escapeHtml(bookLabel)}
           </label>` : ''}
-          <input class="search" id="fund-registry-search" placeholder="Search ticker, event, fund, theme, source..." value="${escapeHtml(fundSearch)}" style="max-width:320px" />
+          <input class="search" id="fund-registry-search" placeholder="${activeSection === 'podcasts' ? 'Search show, guest, ticker, theme...' : 'Search ticker, event, fund, theme, source...'}" value="${escapeHtml(fundSearch)}" style="max-width:320px" />
         </div>` : ''}
         ${showPeriodControls && activeSection !== 'consensus' ? `<div class="tier-sub">
-          Viewing ${escapeHtml(period.label)} &middot; ${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}
+          Viewing ${escapeHtml(period.label)} &middot; ${activeSection === 'podcasts'
+            ? `${(insights?.podcast_index || []).length} indexed episode(s) · ${Object.keys(insights?.podcast_by_show || {}).length} show(s)`
+            : `${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}`}
         </div>` : ''}
       </div>
       ${body}`;
-  }
-
-  function attachThemesHandlers(root, opts) {
-    const { onThemeDrill, onUseLatestQuarter, onViewMode } = opts || {};
-    if (!root) return;
-    root.querySelectorAll('[data-theme-drill]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (onThemeDrill) onThemeDrill(btn.dataset.themeDrill || '');
-      });
-    });
-    root.querySelectorAll('[data-use-latest-quarter]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (onUseLatestQuarter) onUseLatestQuarter();
-      });
-    });
-    root.querySelectorAll('[data-theme-view-mode]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (onViewMode) onViewMode(btn.dataset.themeViewMode || 'snapshot');
-      });
-    });
   }
 
   global.InsightsViz = {
@@ -3896,9 +4625,10 @@
     diversifyEvents,
     attachConsensusHandlers,
     attachTickerInsightsHandlers,
-    attachThemesHandlers,
+    attachWorldModelHistoryHandlers,
     buildConsensusCsv,
     buildTimeModel,
+    podcastEpisodeShardPath,
     STANCE_BADGE,
   };
 })(window);
