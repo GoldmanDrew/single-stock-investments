@@ -5,7 +5,7 @@ name: Data Pipeline
 on:
   schedule:
     - cron: "0 3 * * *"     # nightly intake-full
-    - cron: "15 2 * * 1-5"  # weekday technical z-score refresh
+    - cron: "15 2 * * 1-5"  # weekday technical fear/capitulation refresh
     - cron: "0 6 * * *"     # activist scan
     - cron: "0 12 * * 1,2,4,5,6" # light portfolio refresh
     - cron: "0 10 * * 0,3"  # full document harvest twice weekly
@@ -138,14 +138,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Refresh free technical price signals
+      - name: Refresh free technical fear and capitulation signals
         run: |
           python _system/scripts/build_technical_signals.py --workers 12
           python _system/scripts/validate_dashboard_data.py
       - name: Commit technical snapshots
         uses: ./.github/actions/commit-main
         with:
-          message: "chore: refresh technical z-scores $(date -u +%Y-%m-%d)"
+          message: "chore: refresh technical fear signals $(date -u +%Y-%m-%d)"
 
   activist:
     needs: decide
