@@ -3,21 +3,37 @@
  * Deploy: npx wrangler deploy
  * Set repo variable OAUTH_PROXY_URL to the worker URL (e.g. https://marvin-oauth-proxy.USER.workers.dev)
  */
-const PROXY_VERSION = '2026-07-02';
+const PROXY_VERSION = '2026-07-29';
+
+const DEFAULT_ORIGIN = 'https://single-stock-investments.pages.dev';
 
 const ALLOW_ORIGINS = new Set([
+  DEFAULT_ORIGIN,
   'https://magis-capital-partners.github.io',
   'https://goldmandrew.github.io',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
+  'http://localhost:8765',
+  'http://127.0.0.1:8765',
 ]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOW_ORIGINS.has(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    return (
+      host === 'single-stock-investments.pages.dev' ||
+      host.endsWith('.single-stock-investments.pages.dev')
+    );
+  } catch (_e) {
+    return false;
+  }
+}
 
 function corsHeaders(origin) {
   // Echo the request origin when allowlisted so browser CORS checks pass.
-  const allow =
-    origin && ALLOW_ORIGINS.has(origin)
-      ? origin
-      : 'https://magis-capital-partners.github.io';
+  const allow = isAllowedOrigin(origin) ? origin : DEFAULT_ORIGIN;
   return {
     'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',

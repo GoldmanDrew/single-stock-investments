@@ -1,4 +1,4 @@
-name: Deploy Dashboard (GitHub Pages)
+name: Deploy Dashboard (Cloudflare Pages)
 
 on:
   push:
@@ -16,12 +16,11 @@ on:
       - ".github/workflows/dashboard-pages.yml"
       - ".github/actions/publish-dashboard/**"
       - ".github/actions/rebuild-data/**"
-      - ".github/actions/deploy-pages-retry/**"
       - ".github/actions/deploy-cloudflare-dashboard/**"
   workflow_dispatch:
     inputs:
       reason:
-        description: "Why this manual Pages deploy is needed"
+        description: "Why this manual dashboard deploy is needed"
         required: false
         default: "manual republish of committed dashboard/"
   workflow_run:
@@ -35,8 +34,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: dashboard-deploy
@@ -58,6 +55,8 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for dashboard deploy." >&2
+            exit 1
           fi
 
   # Detect oauth-proxy path changes without cloning this monorepo.
@@ -103,6 +102,7 @@ jobs:
     needs: [oauth-secrets, oauth-changed]
     if: |
       always() &&
+      needs.oauth-secrets.result == 'success' &&
       needs.oauth-secrets.outputs.configured == 'true' &&
       (
         (github.event_name == 'push' && needs.oauth-changed.outputs.changed == 'true')
@@ -133,6 +133,7 @@ jobs:
     needs: [oauth-secrets, oauth-proxy]
     if: |
       always() &&
+      needs.oauth-secrets.result == 'success' &&
       (needs.oauth-proxy.result == 'success' || needs.oauth-proxy.result == 'skipped') &&
       (
         github.event_name != 'workflow_run' ||
@@ -145,8 +146,8 @@ jobs:
       RESEARCH_VAULT_CLONE_TOKEN: ${{ secrets.RESEARCH_VAULT_CLONE_TOKEN }}
       RESEARCH_VAULT_ROOT: _external/research-vault
     environment:
-      name: github-pages
-      url: ${{ steps.publish.outputs.page_url }}
+      name: cloudflare-pages
+      url: ${{ steps.cloudflare.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -173,19 +174,19 @@ jobs:
           swap-storage: true
       - name: Checkout workspace (deploy mode)
         run: bash _system/scripts/ci_checkout_workspace.sh "${{ steps.mode.outputs.checkout_profile }}"
-      - name: Rebuild and publish to GitHub Pages
+      - name: Rebuild and validate dashboard
         id: publish
         uses: ./.github/actions/publish-dashboard
         with:
           skip_rebuild: ${{ steps.mode.outputs.skip_rebuild }}
           rebuild_profile: ${{ steps.mode.outputs.rebuild_profile }}
           validate: ${{ steps.mode.outputs.validate }}
-          skip_deploy: "false"
+          github_pages: "false"
         env:
           OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
           OAUTH_PROXY_URL: ${{ vars.OAUTH_PROXY_URL }}
-      - name: Mirror dashboard to Cloudflare Pages and D1
-        if: needs.oauth-secrets.outputs.configured == 'true'
+      - name: Deploy dashboard to Cloudflare Pages and D1
+        id: cloudflare
         uses: ./.github/actions/deploy-cloudflare-dashboard
         with:
           project-name: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'single-stock-investments' }}

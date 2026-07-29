@@ -36,9 +36,9 @@ python -m http.server 8765
 
 Open http://localhost:8765/
 
-**Live site (GitHub Pages, same repo):**
+**Live site (Cloudflare Pages):**
 
-https://magis-capital-partners.github.io/single-stock-investments/
+https://single-stock-investments.pages.dev/
 
 ## Agents
 
@@ -51,7 +51,7 @@ https://magis-capital-partners.github.io/single-stock-investments/
 |------|-----|
 | **Operational repo** | [github.com/magis-capital-partners/single-stock-investments](https://github.com/magis-capital-partners/single-stock-investments) |
 | **Research vault (private)** | [github.com/magis-capital-partners/research-vault](https://github.com/magis-capital-partners/research-vault) — letters, HK PDFs, licensed sources |
-| **Dashboard (Pages)** | [magis-capital-partners.github.io/single-stock-investments](https://magis-capital-partners.github.io/single-stock-investments/) |
+| **Dashboard (Cloudflare Pages)** | [single-stock-investments.pages.dev](https://single-stock-investments.pages.dev/) |
 
 Sensitive reference corpora live in **`research-vault`**; this repo holds code, portfolio, CI, and dashboard payloads. See [`_system/reference/research-vault-split.md`](_system/reference/research-vault-split.md) for setup.
 
@@ -63,13 +63,13 @@ $env:RESEARCH_VAULT_ROOT = "..\research-vault"
 powershell -ExecutionPolicy Bypass -File _system/scripts/setup_local.ps1
 ```
 
-### One-time Pages setup
+### One-time Cloudflare Pages setup
 
-1. **Settings → General → Change repository visibility → Public**
-2. **Settings → Pages → Build and deployment → Source: GitHub Actions**
-3. Push a dashboard change to `main`; deployment starts automatically.
+1. Set repo secrets **`CLOUDFLARE_API_TOKEN`** (Pages Write + D1 Write) and **`CLOUDFLARE_ACCOUNT_ID`**
+2. Push a dashboard change to `main`, or run **Deploy Dashboard (Cloudflare Pages)**
+3. Site URL: https://single-stock-investments.pages.dev/
 
-You can delete the old `DASHBOARD_SYNC_TOKEN` secret and archive `single-stock-dashboard` if no longer needed.
+GitHub Pages is no longer used for the dashboard.
 
 ### Workflows
 
@@ -80,7 +80,7 @@ The Actions tab is intentionally automatic: repository workflows do not expose m
 | [`data-pipeline.yml`](.github/workflows/data-pipeline.yml) | Separate schedules | Intake, activist, light/full downloads, Drive, and news in bounded jobs |
 | [`daily-sync.yml`](.github/workflows/daily-sync.yml) | Successful download stage | Admit at most one evidence-changed research company |
 | [`darwin-refresh.yml`](.github/workflows/darwin-refresh.yml) | Weekly + relevant push paths | Full Darwin rebuild → **chains Deploy Dashboard** |
-| [`dashboard-pages.yml`](.github/workflows/dashboard-pages.yml) | Relevant push + successful upstream run | Deploy committed dashboard data to GitHub Pages |
+| [`dashboard-pages.yml`](.github/workflows/dashboard-pages.yml) | Relevant push + successful upstream run | Deploy committed dashboard data to Cloudflare Pages + D1 |
 | [`deploy-oauth-proxy.yml`](.github/workflows/deploy-oauth-proxy.yml) | OAuth proxy path change | Deploy the Cloudflare Worker when credentials exist |
 | [`marvin-onboard.yml`](.github/workflows/marvin-onboard.yml) | Authenticated dashboard event | Onboard deterministically, then request evidence-gated research |
 | [`marvin-deep-dive.yml`](.github/workflows/marvin-deep-dive.yml) | Research queue change | Process queued evidence changes serially through the shared dispatcher |

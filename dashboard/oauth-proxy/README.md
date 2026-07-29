@@ -28,7 +28,7 @@ The worker must echo the browser `Origin` header when it is allowlisted. If sign
 
 1. Run `npx wrangler deploy` and note the **exact URL** in the output (your account's `*.workers.dev` subdomain may differ from an older URL in repo variables).
 2. Set GitHub repo variable **`OAUTH_PROXY_URL`** to that URL (Settings → Secrets and variables → Actions → Variables).
-3. Redeploy the dashboard (push to `main` or run **Deploy Dashboard (GitHub Pages)**).
+3. Redeploy the dashboard (push to `main` or run **Deploy Dashboard (Cloudflare Pages)**).
 4. Verify: `curl https://YOUR-PROXY-URL/health` should return `{"ok":true,...}`.
 
 If CI should auto-deploy the proxy on push, also set secrets **`CLOUDFLARE_API_TOKEN`** and **`CLOUDFLARE_ACCOUNT_ID`** (without these, deploy locally with Wrangler).
@@ -38,7 +38,7 @@ If CI should auto-deploy the proxy on push, also set secrets **`CLOUDFLARE_API_T
 Enable **Device Flow** on your OAuth App (github.com/settings/developers → your app → Device Flow checkbox).
 
 Callback URL is still required but device flow is primary; keep:
-`https://magis-capital-partners.github.io/single-stock-investments/oauth/callback.html`
+`https://single-stock-investments.pages.dev/oauth/callback.html`
 
 ## Repo variables
 
