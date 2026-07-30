@@ -1,0 +1,28 @@
+# TRMB — Insider conviction (2026-07-30)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| SPRAGUE KARA LYNN | 2026-06-17 | 3974 | $50.78 | $201799.72 | 2.865 |
+| Nersesian Ronald S. | 2026-06-17 | 3974 | $50.78 | $201799.72 | 2.689 |
+| Gabriel Kaigham | 2026-06-17 | 3974 | $50.78 | $201799.72 | 2.628 |
+| Sweet Thomas W | 2026-06-17 | 3974 | $50.78 | $201799.72 | 2.562 |
+| PAINTER ROBERT G | 2026-04-15 | 140809 | $66.51 | $9365206.59 | 2.278 |
+
+**Routine / planned sales (context):**
+
+- Wibergh Johan: 265 @ $50.78 on 2026-06-17
+- PEEK MARK S: 4928 @ $0.0 on 2025-09-19
+- Sawarynski Phillip: 1705 @ $66.51 on 2026-04-15
+
+Source: `_system/reference/market-data/insider/TRMB_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
