@@ -1242,6 +1242,11 @@ def valuation_decision_summary(
         break
     if not next_gap and (evidence.get("gaps") or []):
         next_gap = (evidence["gaps"][0] or {}).get("id")
+    diagnostic_returns = (
+        decision.get("annualized_return_at_price_pct")
+        or ((wb or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
+        or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
+    )
     return {
         "status": status,
         "provisional": status in {"evidence_blocked", "provisional"},
@@ -1253,11 +1258,9 @@ def valuation_decision_summary(
         "upside_downside_pct": _sane_upside_pct(
             (cv or {}).get("upside_downside_pct") or decision.get("upside_downside_pct")
         ),
-        "annualized_return_at_price_pct": (
-            decision.get("annualized_return_at_price_pct")
-            or ((wb or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
-            or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
-        ),
+        # Keep diagnostic returns inside the workbench, but never publish an
+        # unvalidated IRR into the front-page ranking or D1 valuation table.
+        "annualized_return_at_price_pct": diagnostic_returns if status == "decision_grade" else None,
         "horizon_years": (
             decision.get("horizon_years")
             or ((wb or {}).get("valuation") or {}).get("horizon_years")

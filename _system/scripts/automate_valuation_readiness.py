@@ -147,6 +147,67 @@ def _latest_companyfact(payload: dict, namespace: str, tags: list[str], annual: 
     return tag, {**row, "unit": unit}
 
 
+def _latest_across_companyfacts(
+    payload: dict, specs: list[tuple[str, list[str]]], annual: bool
+) -> tuple[str, str, dict] | None:
+    candidates = []
+    for namespace, tags in specs:
+        selected = _latest_companyfact(payload, namespace, tags, annual)
+        if selected:
+            tag, row = selected
+            candidates.append((str(row.get("end") or ""), str(row.get("filed") or ""), namespace, tag, row))
+    if not candidates:
+        return None
+    _end, _filed, namespace, tag, row = max(candidates, key=lambda item: (item[0], item[1]))
+    return namespace, tag, row
+
+
+def _select_share_companyfact(payload: dict) -> tuple[str, dict] | None:
+    """Choose the freshest issuer-wide share denominator.
+
+    SEC ``dei:EntityCommonStockSharesOutstanding`` occasionally contains an
+    old class-member or spin-formation artifact. Current diluted/basic weighted
+    shares are a safer fallback than accepting that stale value merely because
+    it is the only DEI row.
+    """
+    entity = _latest_across_companyfacts(
+        payload, [("dei", ["EntityCommonStockSharesOutstanding"])], annual=False
+    )
+    weighted = _latest_across_companyfacts(
+        payload,
+        [
+            ("us-gaap", [
+                "WeightedAverageNumberOfDilutedSharesOutstanding",
+                "WeightedAverageNumberOfSharesOutstandingBasic",
+            ]),
+            ("ifrs-full", ["WeightedAverageNumberOfSharesOutstanding"]),
+        ],
+        annual=False,
+    )
+    candidates = [row for row in (entity, weighted) if row]
+    if not candidates:
+        return None
+    selected = max(candidates, key=lambda item: (str(item[2].get("end") or ""), str(item[2].get("filed") or "")))
+    if entity and weighted:
+        entity_value = float(entity[2]["val"])
+        weighted_value = float(weighted[2]["val"])
+        ratio = entity_value / weighted_value if weighted_value > 0 else 0
+        try:
+            date_gap_days = abs(
+                (date.fromisoformat(str(entity[2]["end"])[:10])
+                 - date.fromisoformat(str(weighted[2]["end"])[:10])).days
+            )
+        except (TypeError, ValueError):
+            date_gap_days = 10_000
+        # A current cover count normally reconciles closely to weighted shares.
+        # Large divergence signals a class-member/context artifact; use the
+        # issuer-wide weighted denominator until class counts can be reconciled.
+        if date_gap_days <= 550 and (ratio < 0.5 or ratio > 1.5):
+            selected = weighted
+    namespace, tag, row = selected
+    return tag, {**row, "namespace": namespace}
+
+
 def build_fact_ledger(ticker: str, as_of: str) -> dict:
     path, filing = latest_filing_facts(ticker)
     facts = []
@@ -177,21 +238,43 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
     companyfacts_path = ROOT / ticker / "research" / "evidence" / "sec_companyfacts.json"
     companyfacts = read_json(companyfacts_path)
     companyfact_specs = {
-        "operating_cash_flow_m": ("us-gaap", ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"], True, 1 / 1_000_000, "USD millions"),
-        "capital_expenditures_m": ("us-gaap", ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsForAdditionsToPropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"], True, 1 / 1_000_000, "USD millions"),
-        "shares_outstanding": ("dei", ["EntityCommonStockSharesOutstanding"], False, 1, "shares"),
-        "cash_m": ("us-gaap", ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"], False, 1 / 1_000_000, "USD millions"),
-        "debt_m": ("us-gaap", ["LongTermDebt", "LongTermDebtAndFinanceLeaseObligations", "LongTermDebtNoncurrent"], False, 1 / 1_000_000, "USD millions"),
+        "operating_cash_flow_m": ([
+            ("us-gaap", ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"]),
+            ("ifrs-full", ["CashFlowsFromUsedInOperatingActivities"]),
+        ], True, 1 / 1_000_000, "USD millions"),
+        "capital_expenditures_m": ([
+            ("us-gaap", ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsForAdditionsToPropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"]),
+            ("ifrs-full", ["PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"]),
+        ], True, 1 / 1_000_000, "USD millions"),
+        "cash_m": ([
+            ("us-gaap", ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"]),
+            ("ifrs-full", ["CashAndCashEquivalents"]),
+        ], False, 1 / 1_000_000, "USD millions"),
+        "debt_m": ([
+            ("us-gaap", ["LongTermDebt", "LongTermDebtAndFinanceLeaseObligations", "LongTermDebtNoncurrent"]),
+            ("ifrs-full", ["LongtermBorrowings"]),
+        ], False, 1 / 1_000_000, "USD millions"),
     }
     by_id = {row["field_id"]: row for row in facts}
     companyfact_rows = {}
-    for field_id, (namespace, tags, annual, scale, unit) in companyfact_specs.items():
-        selected = _latest_companyfact(companyfacts, namespace, tags, annual)
+    for field_id, (specs, annual, scale, unit) in companyfact_specs.items():
+        selected = _latest_across_companyfacts(companyfacts, specs, annual)
         if not selected:
             continue
-        tag, row = selected
+        namespace, tag, row = selected
         companyfact_rows[field_id] = {
             "field_id": field_id, "value": float(row["val"]) * scale, "unit": unit, "locked": True, "confidence": "high",
+            "source": {"ref": str(companyfacts_path.relative_to(ROOT)).replace("\\", "/"),
+                       "locator": f"{namespace}:{tag}; accession {row.get('accn')}; form {row.get('form')}",
+                       "as_of": row.get("end"), "content_sha256": sha256(companyfacts_path)},
+        }
+    selected_shares = _select_share_companyfact(companyfacts)
+    if selected_shares:
+        tag, row = selected_shares
+        namespace = row["namespace"]
+        companyfact_rows["shares_outstanding"] = {
+            "field_id": "shares_outstanding", "value": float(row["val"]), "unit": "shares",
+            "locked": True, "confidence": "high",
             "source": {"ref": str(companyfacts_path.relative_to(ROOT)).replace("\\", "/"),
                        "locator": f"{namespace}:{tag}; accession {row.get('accn')}; form {row.get('form')}",
                        "as_of": row.get("end"), "content_sha256": sha256(companyfacts_path)},
@@ -568,7 +651,6 @@ def compile_owner_earnings(ticker: str, as_of: str, identity: dict, ledger: dict
     calculations = [
         {"id": "growth", "label": "Growth from reinvestment", "op": "multiply", "args": ["reinvestment", "incremental_roic"], "unit": "ratio"},
         {"id": "growth_factor", "op": "add", "args": [1, "growth"], "unit": "ratio"},
-        {"id": "distribution_rate", "op": "subtract", "args": [1, "reinvestment"], "unit": "ratio"},
     ]
     cash_nodes = []
     prior = "owner_earnings"
@@ -577,7 +659,9 @@ def compile_owner_earnings(ticker: str, as_of: str, identity: dict, ledger: dict
         cash = f"owner_cash_y{year}"
         calculations.extend([
             {"id": earn, "op": "multiply", "args": [prior, "growth_factor"], "unit": "USD millions"},
-            {"id": cash, "op": "multiply", "args": [earn, "distribution_rate"], "unit": "USD millions"},
+            # Starting owner earnings are already after total capital spending.
+            # Applying a second retention haircut here double-counts reinvestment.
+            {"id": cash, "op": "multiply", "args": [earn, 1], "unit": "USD millions"},
         ])
         cash_nodes.extend([cash, year])
         prior = earn
@@ -950,6 +1034,10 @@ def compile_existing_approved_proofs(ticker: str, as_of: str, identity: dict) ->
     primary evidence while still refusing legacy ranges or non-approved methods.
     """
     prior = read_json(ROOT / ticker / "research" / "valuation.json")
+    if prior.get("method") == "proof_first_automated":
+        # Recompile automated graphs from the current fact ledger. Reusing them
+        # would pin corrected SEC facts behind an otherwise valid old proof.
+        return None
     component_results = prior.get("component_valuation_results") or {}
     components = component_results.get("additive_components") or []
     if not components or component_results.get("all_material_components_identified") is not True:

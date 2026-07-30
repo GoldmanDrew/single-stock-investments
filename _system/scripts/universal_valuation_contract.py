@@ -2,7 +2,9 @@
 """Build the common, proof-first decision contract emitted by every valuation."""
 from __future__ import annotations
 
+from datetime import date
 from math import isfinite
+import re
 
 from calculation_proof import (
     CASES,
@@ -16,6 +18,9 @@ from valuation_method_registry import approved_method
 from valuation_method_router import route_valuation
 
 PRIMARY_EVIDENCE = {"primary", "primary_verified", "primary_derived", "filing", "contract", "audited"}
+NON_TICKER_SOURCE_ROOTS = {"_system", "_external", "dashboard", "investor-documents"}
+HARD_STALE_DAYS = 1095
+EXTREME_RETURN_PCT = 25.0
 
 
 def _annualized(value: float | None, price: float | None, years: int, distributions: float = 0) -> float | None:
@@ -23,6 +28,47 @@ def _annualized(value: float | None, price: float | None, years: int, distributi
         return None
     result = ((float(value) + distributions) / float(price)) ** (1 / years) - 1
     return round(result * 100, 2) if isfinite(result) else None
+
+
+def _source_acceptance_errors(ticker: str, as_of: str | None, rows: list[dict]) -> list[str]:
+    errors = []
+    try:
+        contract_date = date.fromisoformat(str(as_of)[:10])
+    except (TypeError, ValueError):
+        contract_date = None
+    for row in rows:
+        component_id = str(row.get("component_id") or "component")
+        proof = row.get("calculation_proof") or {}
+        for source in proof.get("source_lineage") or []:
+            ref = str(source.get("ref") or "").replace("\\", "/")
+            locator = str(source.get("locator") or "")
+            root = ref.split("/", 1)[0] if "/" in ref else ""
+            if (
+                root
+                and root not in NON_TICKER_SOURCE_ROOTS
+                and not root.startswith("_")
+                and root.upper() != ticker.upper()
+                and re.fullmatch(r"[A-Za-z0-9._-]+", root)
+            ):
+                errors.append(
+                    f"{component_id}: source {ref} belongs to {root}, not {ticker}"
+                )
+            if "human review" in locator.lower():
+                errors.append(
+                    f"{component_id}: source locator explicitly requires human review"
+                )
+            source_date = source.get("as_of")
+            if contract_date and source_date:
+                try:
+                    age_days = (contract_date - date.fromisoformat(str(source_date)[:10])).days
+                except ValueError:
+                    age_days = 0
+                if age_days > HARD_STALE_DAYS:
+                    errors.append(
+                        f"{component_id}: source fact {source.get('node_id')} is stale "
+                        f"({source_date}; {age_days} days old)"
+                    )
+    return errors
 
 
 def _input_kind(row: dict) -> str:
@@ -76,6 +122,8 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
     components = [*additive, *embedded]
     price = inputs.get("price")
     shares = inputs.get("shares_outstanding")
+    if shares is None and inputs.get("shares_millions") is not None:
+        shares = float(inputs["shares_millions"]) * 1_000_000
     methodology = data.get("valuation_methodology") or {}
     years = int(methodology.get("horizon_years") or data.get("lawrence_horizon_years") or 7)
     distributions = float(methodology.get("expected_distributions_per_share") or 0)
@@ -214,6 +262,29 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
     cash = inputs.get("cash_m")
     enterprise_value = market_cap + float(debt or 0) - float(cash or 0) if market_cap is not None and (debt is not None or cash is not None) else None
     returns = {case: _annualized(total.get(case), price, years, distributions) for case in CASES}
+    source_acceptance_errors = _source_acceptance_errors(
+        str(data.get("ticker") or ""), data.get("as_of"), evaluated_rows
+    )
+    evidence_blockers.extend(source_acceptance_errors)
+    extreme_return = (
+        returns.get("base") is not None
+        and abs(float(returns["base"])) >= EXTREME_RETURN_PCT
+    )
+    outlier_validation = methodology.get("outlier_validation") or {}
+    extreme_return_validated = (
+        not extreme_return
+        or (
+            isinstance(outlier_validation, dict)
+            and outlier_validation.get("status") == "passed"
+            and len(outlier_validation.get("independent_methods") or []) >= 1
+            and bool(outlier_validation.get("evidence_refs"))
+        )
+    )
+    if not extreme_return_validated:
+        evidence_blockers.append(
+            "Extreme annualized return requires independent validation with a "
+            "second method and source-backed evidence."
+        )
     top_drivers = sorted(({
         "component_id": row.get("component_id"), "label": row.get("label"),
         "valuation_status": row.get("valuation_status"),
@@ -287,6 +358,8 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
                 or row["range_per_share"]["low"] <= row["range_per_share"]["base"] <= row["range_per_share"]["high"]
                 for row in records
             ),
+            "source_identity_and_freshness_valid": not source_acceptance_errors,
+            "extreme_return_validated": extreme_return_validated,
         },
         "evidence": {
             "unresolved_count": len(set(evidence_blockers)),

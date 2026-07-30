@@ -170,7 +170,7 @@ class ValuationAutomationTests(unittest.TestCase):
         self.assertLessEqual(result["outputs"]["low"], result["outputs"]["base"])
         self.assertLessEqual(result["outputs"]["base"], result["outputs"]["high"])
         # Market price is required for decision_grade (live mark from fetch_equity_prices).
-        valuation.setdefault("inputs", {})["price"] = 50.0
+        valuation.setdefault("inputs", {})["price"] = 100.0
         contract = build_universal_valuation_contract(valuation, "quality_reinvestment")
         self.assertEqual(contract["status"], "decision_grade", contract.get("evidence", {}).get("blockers"))
         self.assertEqual(strict_contract_errors(valuation), [])
@@ -186,6 +186,65 @@ class ValuationAutomationTests(unittest.TestCase):
         statuses = {row["field_id"]: row["status"] for row in plan["tasks"]}
         self.assertEqual(statuses["normalized_owner_earnings_m"], "pending_collection")
         self.assertEqual(statuses["component_model"], "pending_collection")
+
+    def test_share_selector_rejects_stale_dei_class_artifact(self):
+        companyfacts = {
+            "facts": {
+                "dei": {
+                    "EntityCommonStockSharesOutstanding": {
+                        "units": {"shares": [{
+                            "val": 1,
+                            "end": "2019-03-18",
+                            "filed": "2019-03-25",
+                            "form": "10-Q",
+                        }]}
+                    }
+                },
+                "us-gaap": {
+                    "WeightedAverageNumberOfDilutedSharesOutstanding": {
+                        "units": {"shares": [{
+                            "val": 443_000_000,
+                            "end": "2026-03-31",
+                            "filed": "2026-05-11",
+                            "form": "10-Q",
+                        }]}
+                    }
+                },
+            }
+        }
+        tag, row = automation._select_share_companyfact(companyfacts)
+        self.assertEqual(tag, "WeightedAverageNumberOfDilutedSharesOutstanding")
+        self.assertEqual(row["val"], 443_000_000)
+
+    def test_share_selector_rejects_current_dei_count_that_does_not_reconcile(self):
+        companyfacts = {
+            "facts": {
+                "dei": {"EntityCommonStockSharesOutstanding": {"units": {"shares": [{
+                    "val": 1, "end": "2026-04-30", "filed": "2026-05-11", "form": "10-Q",
+                }]}}},
+                "us-gaap": {"WeightedAverageNumberOfDilutedSharesOutstanding": {"units": {"shares": [{
+                    "val": 443_000_000, "end": "2026-03-31", "filed": "2026-05-11", "form": "10-Q",
+                }]}}},
+            }
+        }
+        tag, row = automation._select_share_companyfact(companyfacts)
+        self.assertEqual(tag, "WeightedAverageNumberOfDilutedSharesOutstanding")
+        self.assertEqual(row["val"], 443_000_000)
+
+    def test_share_selector_keeps_current_dei_when_weighted_fact_is_stale(self):
+        companyfacts = {
+            "facts": {
+                "dei": {"EntityCommonStockSharesOutstanding": {"units": {"shares": [{
+                    "val": 1_675_000_000, "end": "2025-12-31", "filed": "2026-02-27", "form": "40-F",
+                }]}}},
+                "us-gaap": {"WeightedAverageNumberOfDilutedSharesOutstanding": {"units": {"shares": [{
+                    "val": 950_000_000, "end": "2010-12-31", "filed": "2011-03-31", "form": "40-F",
+                }]}}},
+            }
+        }
+        tag, row = automation._select_share_companyfact(companyfacts)
+        self.assertEqual(tag, "EntityCommonStockSharesOutstanding")
+        self.assertEqual(row["val"], 1_675_000_000)
 
     def test_zero_base_value_requires_explicit_terminal_outcome(self):
         identity = {"primary_method": "owner_earnings_reinvestment_dcf", "archetype": "compounder"}

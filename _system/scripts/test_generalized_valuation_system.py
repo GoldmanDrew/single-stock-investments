@@ -82,6 +82,42 @@ class GeneralizedValuationSystemTests(unittest.TestCase):
         contract = compute_valuation(fixture)["universal_valuation_contract"]
         self.assertEqual(contract["economic_ownership_map"][0]["evidence_level"], "primary_derived")
 
+    def test_cross_ticker_source_cannot_be_decision_grade(self):
+        fixture = component_fixture()
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["inputs"][0]["source"]["ref"] = "OTHER/research/evidence/10-K.htm"
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["status"], "evidence_blocked")
+        self.assertTrue(any("belongs to OTHER" in row for row in contract["evidence"]["blockers"]))
+
+    def test_human_review_source_cannot_be_decision_grade(self):
+        fixture = component_fixture()
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["inputs"][0]["source"]["locator"] = "Provisional share count [HUMAN REVIEW]"
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["status"], "evidence_blocked")
+        self.assertTrue(any("human review" in row.lower() for row in contract["evidence"]["blockers"]))
+
+    def test_stale_owner_earnings_fact_cannot_be_decision_grade(self):
+        fixture = component_fixture()
+        fixture["as_of"] = "2026-07-30"
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["inputs"][0]["id"] = "owner_earnings"
+        proof["inputs"][0]["source"]["as_of"] = "2010-12-31"
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["status"], "evidence_blocked")
+        self.assertTrue(any("stale" in row.lower() for row in contract["evidence"]["blockers"]))
+
+    def test_extreme_return_requires_independent_validation(self):
+        fixture = component_fixture()
+        fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]["inputs"][0]["values"] = {
+            "low": 200, "base": 300, "high": 400,
+        }
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["status"], "evidence_blocked")
+        self.assertTrue(contract["model_checks"]["extreme_return_validated"] is False)
+        self.assertTrue(any("independent validation" in row.lower() for row in contract["evidence"]["blockers"]))
+
     def test_specialized_calculators_are_ordered_and_auditable(self):
         specs = {
             "scarce_asset_optionality": {"units": 100, "scenarios": {case: {"value_per_unit": value, "realization_probability": .8, "discount_rate": .1, "years_to_realization": 2} for case, value in zip(("low", "base", "high"), (5, 10, 20))}},

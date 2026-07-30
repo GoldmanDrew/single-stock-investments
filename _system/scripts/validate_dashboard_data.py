@@ -30,6 +30,7 @@ GITHUB_WARN_LIMIT_BYTES = 50 * 1024 * 1024
 # Sharded payload budgets: keep first paint fast as the universe grows.
 CORE_MAX_MB = 6.0
 TICKER_SHARD_MAX_MB = 2.0
+EXTREME_PUBLISHED_IRR_PCT = 25.0
 
 
 def sparse_checkout_enabled(root: Path = ROOT) -> bool:
@@ -186,6 +187,30 @@ def main() -> int:
     front_tickers = set(holdings) | set((registry.get("watchlist") or {}).keys())
     rows = payload.get("tickers") or []
     dash_tickers = [r.get("ticker") for r in rows]
+    extreme_decision_grade = []
+    blocked_with_published_irr = []
+    for row in rows:
+        decision = row.get("valuation_decision") or {}
+        returns = decision.get("annualized_return_at_price_pct") or {}
+        base_return = returns.get("base")
+        if base_return is None:
+            continue
+        if decision.get("status") != "decision_grade":
+            blocked_with_published_irr.append(str(row.get("ticker") or ""))
+        elif abs(float(base_return)) >= EXTREME_PUBLISHED_IRR_PCT:
+            extreme_decision_grade.append(
+                f"{row.get('ticker')}={float(base_return):.2f}%"
+            )
+    if blocked_with_published_irr:
+        errors.append(
+            "Blocked valuations publish front-page IRRs: "
+            + ", ".join(blocked_with_published_irr[:20])
+        )
+    if extreme_decision_grade:
+        errors.append(
+            "Decision-grade valuations exceed the uncorroborated IRR limit: "
+            + ", ".join(extreme_decision_grade[:20])
+        )
     summary = payload.get("summary") or {}
     ticker_count = int(summary.get("ticker_count") or len(rows) or 0)
     total_pdfs = int(summary.get("total_pdfs") or 0)

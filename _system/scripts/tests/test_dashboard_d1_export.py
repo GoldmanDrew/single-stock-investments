@@ -55,13 +55,11 @@ class DashboardD1ExportTests(unittest.TestCase):
                 },
             }],
         }
-        migration = (
-            ROOT
-            / "dashboard"
-            / "cloudflare"
-            / "migrations"
-            / "0001_operational_schema.sql"
-        ).read_text(encoding="utf-8")
+        migrations_dir = ROOT / "dashboard" / "cloudflare" / "migrations"
+        migration = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(migrations_dir.glob("*.sql"))
+        )
         with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
             temp = Path(temp_dir)
             core_path = temp / "core.json"
