@@ -58,8 +58,12 @@ jobs:
         run: bash _system/scripts/ci_checkout_workspace.sh marvin-pick
       - name: Checkout LS-algo screener
         env:
-          LS_ALGO_TOKEN: ${{ secrets.LS_ALGO_REPO_TOKEN || github.token }}
+          LS_ALGO_TOKEN: ${{ secrets.LS_ALGO_TOKEN || secrets.LS_ALGO_REPO_TOKEN }}
         run: |
+          if [ -z "${LS_ALGO_TOKEN:-}" ]; then
+            echo "::error::Missing secrets.LS_ALGO_TOKEN (PAT with contents:read on GoldmanDrew/ls-algo). github.token cannot clone that private repo from this org."
+            exit 1
+          fi
           git clone --depth 1 "https://x-access-token:${LS_ALGO_TOKEN}@github.com/GoldmanDrew/ls-algo.git" _external/ls-algo
           test -f _external/ls-algo/data/etf_screened_today.csv
       - uses: actions/setup-python@v5
