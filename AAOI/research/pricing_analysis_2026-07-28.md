@@ -74,7 +74,7 @@ Entry prices were computed mechanically from the routed power-zone profile (Capi
 
 **Strongest counter-explanation:** peak margins capitalized
 
-**Committee routing:** not_initialized — not initialized
+**Committee routing:** round_one_open — marathon_capital_cycle, marks_credit_cycle, pabrai
 
 **Falsifiers:**
 
