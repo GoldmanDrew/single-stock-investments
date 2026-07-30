@@ -1,0 +1,162 @@
+{
+  "schema_version": "3.0",
+  "ticker": "HLT",
+  "updated_at": "2026-07-30T11:40:12Z",
+  "method_id": "owner_earnings_reinvestment_dcf",
+  "method_profile": "quality_reinvestment",
+  "route_status": "routed",
+  "ready_count": 3,
+  "task_count": 7,
+  "terminal_count": 0,
+  "tasks": [
+    {
+      "id": "valuation_route_classification_required",
+      "priority": "critical",
+      "field_id": "valuation_route",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Supply enough source-backed classification to select a non-default Power Zone valuation route.",
+      "evidence_required": "security archetype, economic ownership map, investment sleeve, and material component categories",
+      "acceptance_test": "The canonical Power Zone router has a positive score and no default_needs_review status.",
+      "collector": "primary_documents_then_classification",
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "max_attempts": 5,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "method_input:owner_earnings_reinvestment_dcf:normalized_owner_earnings_m",
+      "priority": "critical",
+      "field_id": "normalized_owner_earnings_m",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Supply a primary-source value for normalized owner earnings m.",
+      "evidence_required": "normalized_owner_earnings_m",
+      "input_schema": {
+        "type": "number",
+        "min_exclusive": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
+      "collector": "primary_documents_then_fact_ledger",
+      "status": "evidence_ready",
+      "attempts": 0,
+      "last_attempt_at": null,
+      "max_attempts": 5,
+      "next_attempt_at": null,
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": [
+        "HLT/research/evidence/sec_companyfacts.json"
+      ]
+    },
+    {
+      "id": "method_input:owner_earnings_reinvestment_dcf:shares_outstanding",
+      "priority": "critical",
+      "field_id": "shares_outstanding",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Supply a primary-source value for shares outstanding.",
+      "evidence_required": "shares_outstanding",
+      "input_schema": {
+        "type": "number",
+        "min_exclusive": 0,
+        "unit": "shares"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
+      "collector": "primary_documents_then_fact_ledger",
+      "status": "evidence_ready",
+      "attempts": 0,
+      "last_attempt_at": null,
+      "max_attempts": 5,
+      "next_attempt_at": null,
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": [
+        "HLT/research/evidence/sec_companyfacts.json"
+      ]
+    },
+    {
+      "id": "method_input:owner_earnings_reinvestment_dcf:cash_m",
+      "priority": "critical",
+      "field_id": "cash_m",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Supply a primary-source value for cash m.",
+      "evidence_required": "cash_m",
+      "input_schema": {
+        "type": "number",
+        "min": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
+      "collector": "primary_documents_then_fact_ledger",
+      "status": "evidence_ready",
+      "attempts": 0,
+      "last_attempt_at": null,
+      "max_attempts": 5,
+      "next_attempt_at": null,
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": [
+        "HLT/research/evidence/sec_companyfacts.json"
+      ]
+    },
+    {
+      "id": "method_input:owner_earnings_reinvestment_dcf:debt_m",
+      "priority": "critical",
+      "field_id": "debt_m",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Supply a primary-source value for debt m.",
+      "evidence_required": "debt_m",
+      "input_schema": {
+        "type": "number",
+        "min": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
+      "collector": "primary_documents_then_fact_ledger",
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "max_attempts": 5,
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": []
+    },
+    {
+      "id": "complete_component_model_required",
+      "priority": "critical",
+      "field_id": "component_model",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Build a complete primary-sourced component valuation.",
+      "evidence_required": "normalized_owner_earnings_m; shares_outstanding; cash_m; debt_m",
+      "acceptance_test": "Every material economic claim is valued exactly once with a valid deterministic proof.",
+      "collector": "compile_owner_earnings_reinvestment_dcf",
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "max_attempts": 5,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
+      "evidence_refs": []
+    },
+    {
+      "id": "contract_blocker:75aa77f3040e",
+      "priority": "critical",
+      "field_id": null,
+      "method_id": null,
+      "question": "A complete economic ownership map has not been supplied.",
+      "evidence_required": "A complete economic ownership map has not been supplied.",
+      "acceptance_test": "The blocker is absent after rebuilding the universal valuation contract.",
+      "collector": "sec_primary_documents",
+      "status": "pending_collection",
+      "attempts": 0,
+      "max_attempts": 5,
+      "last_attempt_at": null,
+      "next_attempt_at": null,
+      "last_error": null,
+      "evidence_refs": []
+    }
+  ]
+}

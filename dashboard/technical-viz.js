@@ -24,7 +24,7 @@
       extended: { label: 'extended', cls: 'technical-warning' },
       washed_out: { label: 'washed out', cls: 'technical-cyan' },
       neutral: { label: 'neutral', cls: 'technical-neutral' },
-      unavailable: { label: 'unavailable', cls: 'technical-neutral' },
+      unavailable: { label: 'not scored · insufficient history', cls: 'technical-neutral' },
     }[key] || { label: key.replace(/_/g, ' '), cls: 'technical-neutral' };
   }
 
@@ -37,7 +37,7 @@
       capitulation_candidate: { label: 'capitulation?', cls: 'fear-candidate', marker: '◆' },
       exhaustion_emerging: { label: 'exhaustion emerging', cls: 'fear-emerging', marker: '↗' },
       confirmed_exhaustion: { label: 'exhaustion confirmed', cls: 'fear-confirmed', marker: '✓' },
-      unavailable: { label: 'unavailable', cls: 'fear-normal', marker: '—' },
+      unavailable: { label: 'not scored · insufficient history', cls: 'fear-normal', marker: '—' },
     }[key] || { label: key.replace(/_/g, ' '), cls: 'fear-normal', marker: '·' };
   }
 
@@ -143,7 +143,7 @@
     const width = Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
     return `<div class="fear-rail">
       <div class="fear-rail-head"><span>${label}</span><strong>${Number.isFinite(number) ? Math.round(number) : '—'}</strong></div>
-      <div class="fear-rail-track" aria-label="${label}: ${Number.isFinite(number) ? Math.round(number) : 'unavailable'} out of 100">
+      <div class="fear-rail-track" aria-label="${label}: ${Number.isFinite(number) ? Math.round(number) : 'not scored'} out of 100">
         <span style="width:${width}%"></span>
       </div>
       <small>${detail}</small>

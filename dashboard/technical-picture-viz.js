@@ -142,10 +142,10 @@
   function macroRead(marketContext) {
     const internal = marketContext?.internal || {};
     const panic = finite(internal.scores?.panic);
-    const state = String(internal.state || 'unavailable').replace(/_/g, ' ');
+    const state = String(internal.state || 'pending').replace(/_/g, ' ');
     return {
-      label: internal.state ? `Market ${state}` : 'Macro context unavailable',
-      detail: panic == null ? 'SPY fear tape unavailable' : `SPY panic ${Math.round(panic)}/100`,
+      label: internal.state ? `Market ${state}` : 'Macro refresh pending',
+      detail: panic == null ? 'Waiting for the latest SPY benchmark calculation' : `SPY panic ${Math.round(panic)}/100`,
       tone: panic != null && panic >= 70 ? 'picture-warning' : 'picture-neutral',
     };
   }
@@ -174,8 +174,8 @@
     const business = businessRead(ticker);
     const macro = macroRead(marketContext);
     const tape = {
-      label: setup.phase_label || 'Technical setup unavailable',
-      detail: `${setup.direction_label || 'Direction unavailable'} · ${setup.participation_label || 'volume unavailable'}`,
+      label: setup.phase_label || 'Setup calculation pending',
+      detail: `${setup.direction_label || 'Direction not yet scored'} · ${setup.participation_label || 'participation not yet scored'}`,
       tone: tone(setup.phase),
     };
     const lanes = [
@@ -206,16 +206,20 @@
     </div>`;
   }
 
-  function marketStructure(structure, escapeHtml) {
+  function marketStructure(structure, ticker, escapeHtml) {
     if (!structure || (!structure.float_shares && !structure.short_interest_shares)) {
+      const market = String(ticker.market || '').toUpperCase();
+      const reason = market && market !== 'US'
+        ? `The free provider does not consistently publish float and exchange-reported short interest for ${market} listings. Price technicals remain fully usable.`
+        : 'The free provider has not returned a reported float or short-interest snapshot for this security. Price technicals remain fully usable.';
       return `<section class="market-structure">
         <div class="section-kicker">Crowding & liquidity</div>
-        <p class="market-structure-empty">Float and reported short interest are awaiting the free market-structure refresh.</p>
+        <p class="market-structure-empty">${escapeHtml(reason)}</p>
       </section>`;
     }
     const shortFloat = finite(structure.short_percent_float);
     const crowdLabel = shortFloat == null
-      ? 'Crowding unavailable'
+      ? 'Short percentage not reported'
       : shortFloat >= 20
         ? 'Heavily shorted'
         : shortFloat >= 10
@@ -227,7 +231,7 @@
     return `<section class="market-structure ${crowdTone}">
       <div class="market-structure-head">
         <div><span>Crowding & liquidity</span><strong>${crowdLabel}</strong></div>
-        <span class="market-structure-date">Reported ${escapeHtml(structure.as_of || 'date unavailable')}</span>
+        <span class="market-structure-date">${structure.as_of ? `Reported ${escapeHtml(structure.as_of)}` : 'Reporting date not supplied'}</span>
       </div>
       <div class="market-structure-grid">
         <div><span>Float</span><strong>${compact(structure.float_shares)}</strong><small>${pct(structure.float_percent_outstanding)} of shares outstanding</small></div>
@@ -277,7 +281,7 @@
     const scores = capitulation.scores || {};
     const families = capitulation.families || {};
     const measures = technicals.measures || {};
-    const fear = base.fearMeta ? base.fearMeta(capitulation.state) : { label: capitulation.state || 'unavailable', cls: 'fear-normal', marker: '·' };
+    const fear = base.fearMeta ? base.fearMeta(capitulation.state) : { label: capitulation.state || 'not yet scored', cls: 'fear-normal', marker: '·' };
     const directionRead = `${pct(indicators.price_vs_50d_pct)} vs 50d · ${pct(indicators.price_vs_200d_pct)} vs 200d · ${pct(measures.relative_return_60d_pct)} vs SPY`;
     const pressureRead = `RSI ${finite(indicators.rsi_14) == null ? '—' : finite(indicators.rsi_14).toFixed(0)} · panic ${whole(scores.panic)}/100 · exhaustion ${whole(scores.exhaustion)}/100`;
     const participationRead = `CMF ${finite(indicators.chaikin_money_flow_20d) == null ? '—' : finite(indicators.chaikin_money_flow_20d).toFixed(2)} · volume ${finite(indicators.relative_volume_20d) == null ? '—' : finite(indicators.relative_volume_20d).toFixed(1) + '×'} normal · ATR ${pct(indicators.atr_20d_pct)}`;
@@ -292,12 +296,12 @@
             <span class="setup-confidence">${escapeHtml(technicals.data_grade || '—')} grade · ${whole(scores.confidence)}% coverage</span>
           </div>
           <div class="stock-setup-grid">
-            ${setupPillar('Direction', escapeHtml(setup.direction_label || 'Unavailable'), escapeHtml(setup.explainers?.direction || ''), directionRead, setup.direction)}
-            ${setupPillar('Pressure', escapeHtml(setup.pressure_label || 'Unavailable'), escapeHtml(setup.explainers?.pressure || ''), pressureRead, setup.pressure)}
-            ${setupPillar('Participation', escapeHtml(setup.participation_label || 'Unavailable'), escapeHtml(setup.explainers?.participation || ''), participationRead, setup.participation)}
+            ${setupPillar('Direction', escapeHtml(setup.direction_label || 'Not yet scored'), escapeHtml(setup.explainers?.direction || ''), directionRead, setup.direction)}
+            ${setupPillar('Pressure', escapeHtml(setup.pressure_label || 'Not yet scored'), escapeHtml(setup.explainers?.pressure || ''), pressureRead, setup.pressure)}
+            ${setupPillar('Participation', escapeHtml(setup.participation_label || 'Not yet scored'), escapeHtml(setup.explainers?.participation || ''), participationRead, setup.participation)}
           </div>
         </section>
-        ${marketStructure(technicals.market_structure, escapeHtml)}
+        ${marketStructure(technicals.market_structure, ticker, escapeHtml)}
         ${priceChart(technicals.history, escapeHtml)}
         <details class="technical-diagnostics">
           <summary>Why the model says ${escapeHtml(fear.label)} · detailed diagnostics</summary>
@@ -324,7 +328,7 @@
           </div>
         </details>
         <div class="technical-foot">
-          <span>${escapeHtml(technicals.data_grade_reason || 'Technical data quality unavailable')}</span>
+          <span>${escapeHtml(technicals.data_grade_reason || 'Data grade will be assigned by the current technical refresh')}</span>
           <span class="mono">${escapeHtml(technicals.as_of || '—')} · ${escapeHtml(technicals.source || 'source pending')} · benchmark ${escapeHtml(technicals.benchmark || '—')}</span>
         </div>
         <div class="technical-references">

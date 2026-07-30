@@ -1,0 +1,386 @@
+# Filing digest — FN
+
+**Generated:** 2026-07-29  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `FN/research/evidence/document_inventory.json`  
+
+Documents in folder: **61** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | 10-K | 2021-08-17 | `investor-documents/sec-edgar/10-K_20210817_rpt20210625_acc0001408710_21_000034.htm` | 30000 |
+| partial | 10-K | 2022-08-16 | `investor-documents/sec-edgar/10-K_20220816_rpt20220624_acc0001408710_22_000045.htm` | 30000 |
+| partial | 10-K | 2023-08-22 | `investor-documents/sec-edgar/10-K_20230822_rpt20230630_acc0001408710_23_000028.htm` | 30000 |
+| partial | 10-K | 2024-08-20 | `investor-documents/sec-edgar/10-K_20240820_rpt20240628_acc0001408710_24_000032.htm` | 30000 |
+| full | 10-K | 2025-08-19 | `investor-documents/sec-edgar/10-K_20250819_rpt20250627_acc0001408710_25_000039.htm` | 120000 |
+| scan | 10-Q | 2022-02-01 | `investor-documents/sec-edgar/10-Q_20220201_rpt20211224_acc0001408710_22_000018.htm` | 8000 |
+| scan | 10-Q | 2022-05-03 | `investor-documents/sec-edgar/10-Q_20220503_rpt20220325_acc0001408710_22_000028.htm` | 8000 |
+| scan | 10-Q | 2022-11-08 | `investor-documents/sec-edgar/10-Q_20221108_rpt20220930_acc0001408710_22_000060.htm` | 8000 |
+| scan | 10-Q | 2023-02-07 | `investor-documents/sec-edgar/10-Q_20230207_rpt20221230_acc0001408710_23_000008.htm` | 8000 |
+| scan | 10-Q | 2023-05-09 | `investor-documents/sec-edgar/10-Q_20230509_rpt20230331_acc0001408710_23_000018.htm` | 8000 |
+| scan | 10-Q | 2023-11-07 | `investor-documents/sec-edgar/10-Q_20231107_rpt20230929_acc0001408710_23_000036.htm` | 8000 |
+| scan | 10-Q | 2024-02-06 | `investor-documents/sec-edgar/10-Q_20240206_rpt20231229_acc0001408710_24_000009.htm` | 8000 |
+| partial | 10-Q | 2024-05-07 | `investor-documents/sec-edgar/10-Q_20240507_rpt20240329_acc0001408710_24_000019.htm` | 30000 |
+| partial | 10-Q | 2024-11-05 | `investor-documents/sec-edgar/10-Q_20241105_rpt20240927_acc0001408710_24_000040.htm` | 30000 |
+| partial | 10-Q | 2025-02-04 | `investor-documents/sec-edgar/10-Q_20250204_rpt20241227_acc0001408710_25_000008.htm` | 30000 |
+| partial | 10-Q | 2025-05-06 | `investor-documents/sec-edgar/10-Q_20250506_rpt20250328_acc0001408710_25_000023.htm` | 30000 |
+| partial | 10-Q | 2025-11-04 | `investor-documents/sec-edgar/10-Q_20251104_rpt20250926_acc0001408710_25_000056.htm` | 30000 |
+| partial | 10-Q | 2026-02-03 | `investor-documents/sec-edgar/10-Q_20260203_rpt20251226_acc0001408710_26_000008.htm` | 30000 |
+| full | 10-Q | 2026-05-05 | `investor-documents/sec-edgar/10-Q_20260505_rpt20260327_acc0001408710_26_000016.htm` | 120000 |
+| scan | proxy | 2022-10-20 | `investor-documents/sec-edgar/DEF 14A_20221020_rpt20221208_acc0001140361_22_037905.htm` | 8000 |
+| scan | proxy | 2023-10-24 | `investor-documents/sec-edgar/DEF 14A_20231024_rpt20231212_acc0001140361_23_049314.htm` | 8000 |
+| scan | proxy | 2024-10-23 | `investor-documents/sec-edgar/DEF 14A_20241023_rpt20241212_acc0001140361_24_043972.htm` | 8000 |
+| full | proxy | 2025-10-23 | `investor-documents/sec-edgar/DEF 14A_20251023_rpt20251211_acc0001140361_25_039008.htm` | 120000 |
+| scan | 8-K | 2022-11-07 | `investor-documents/sec-edgar/8-K_20221107_rpt20221107_acc0001408710_22_000058.htm` | 3613 |
+| scan | 8-K | 2022-12-13 | `investor-documents/sec-edgar/8-K_20221213_rpt20221208_acc0001408710_22_000062.htm` | 4166 |
+| scan | 8-K | 2023-02-06 | `investor-documents/sec-edgar/8-K_20230206_rpt20230206_acc0001408710_23_000006.htm` | 3613 |
+| scan | 8-K | 2023-05-08 | `investor-documents/sec-edgar/8-K_20230508_rpt20230503_acc0001408710_23_000016.htm` | 8000 |
+| scan | 8-K | 2023-08-21 | `investor-documents/sec-edgar/8-K_20230821_rpt20230815_acc0001408710_23_000026.htm` | 8000 |
+| scan | 8-K | 2023-11-06 | `investor-documents/sec-edgar/8-K_20231106_rpt20231106_acc0001408710_23_000034.htm` | 3636 |
+| scan | 8-K | 2023-12-13 | `investor-documents/sec-edgar/8-K_20231213_rpt20231212_acc0001408710_23_000038.htm` | 4764 |
+| scan | 8-K | 2024-02-05 | `investor-documents/sec-edgar/8-K_20240205_rpt20240205_acc0001408710_24_000007.htm` | 3635 |
+| scan | 8-K | 2024-05-06 | `investor-documents/sec-edgar/8-K_20240506_rpt20240506_acc0001408710_24_000017.htm` | 3612 |
+| scan | 8-K | 2024-06-14 | `investor-documents/sec-edgar/8-K_20240614_rpt20240612_acc0001408710_24_000023.htm` | 5652 |
+| scan | 8-K | 2024-08-19 | `investor-documents/sec-edgar/8-K_20240819_rpt20240819_acc0001408710_24_000030.htm` | 8000 |
+| scan | 8-K | 2024-11-04 | `investor-documents/sec-edgar/8-K_20241104_rpt20241104_acc0001408710_24_000038.htm` | 3613 |
+| scan | 8-K | 2024-12-13 | `investor-documents/sec-edgar/8-K_20241213_rpt20241212_acc0001408710_24_000042.htm` | 4115 |
+| scan | 8-K | 2024-12-20 | `investor-documents/sec-edgar/8-K_20241220_rpt20241219_acc0001408710_24_000044.htm` | 7166 |
+| scan | 8-K | 2025-02-03 | `investor-documents/sec-edgar/8-K_20250203_rpt20250203_acc0001408710_25_000006.htm` | 3612 |
+| scan | 8-K | 2025-03-13 | `investor-documents/sec-edgar/8-K_20250313_rpt20250312_acc0001408710_25_000010.htm` | 8000 |
+| scan | 8-K | 2025-05-05 | `investor-documents/sec-edgar/8-K_20250505_rpt20250505_acc0001408710_25_000021.htm` | 3589 |
+| scan | 8-K | 2025-05-27 | `investor-documents/sec-edgar/8-K_20250527_rpt20250522_acc0001408710_25_000027.htm` | 3261 |
+| scan | 8-K | 2025-08-18 | `investor-documents/sec-edgar/8-K_20250818_rpt20250812_acc0001408710_25_000036.htm` | 8000 |
+| scan | 8-K | 2025-10-16 | `investor-documents/sec-edgar/8-K_20251016_rpt20251013_acc0001408710_25_000044.htm` | 5831 |
+| scan | 8-K | 2025-10-17 | `investor-documents/sec-edgar/8-K_20251017_rpt20251013_acc0001408710_25_000047.htm` | 3610 |
+| scan | 8-K | 2025-11-03 | `investor-documents/sec-edgar/8-K_20251103_rpt20251103_acc0001408710_25_000054.htm` | 3610 |
+| scan | 8-K | 2025-12-12 | `investor-documents/sec-edgar/8-K_20251212_rpt20251211_acc0001408710_25_000058.htm` | 4037 |
+| scan | 8-K | 2026-02-02 | `investor-documents/sec-edgar/8-K_20260202_rpt20260202_acc0001408710_26_000006.htm` | 3609 |
+| scan | 8-K | 2026-05-04 | `investor-documents/sec-edgar/8-K_20260504_rpt20260504_acc0001408710_26_000014.htm` | 3586 |
+| inventory | other | 2025-04-10 | `investor-documents/sec-edgar/S-3ASR_20250410_rpt_acc0001408710_25_000015.htm` | 0 |
+| inventory | other | 2018-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20180209_acc0001258897_18_000955.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0001258897_19_000934.htm` | 0 |
+| inventory | other | 2019-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20190211_acc0000932471_19_004971.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0001104659_20_017964.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0001258897_20_000963.htm` | 0 |
+| inventory | other | 2020-07-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20200710_acc0001104659_20_082652.htm` | 0 |
+| inventory | other | 2021-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20210210_acc0001104659_21_018056.htm` | 0 |
+| inventory | other | 2021-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20210212_acc0000354204_21_000074.htm` | 0 |
+| inventory | other | 2022-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20220210_acc0001104659_22_017521.htm` | 0 |
+| inventory | other | 2023-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20230209_acc0001104659_23_015931.htm` | 0 |
+| inventory | other | 2024-02-13 | `third-party-analyses/activist_reports/long/SC-13G/A_20240213_acc0001104659_24_020904.htm` | 0 |
+| inventory | other | 2018-02-09 | `third-party-analyses/activist_reports/long/SC-13G_20180209_acc0000932471_18_004196.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/10-K_20250819_rpt20250627_acc0001408710_25_000039.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 5,768
+- OperatingLeaseRightOfUseAsset: 5,336
+- OperatingLeaseLiabilityCurrent: 1,792
+- OperatingLeaseLiabilityCurrent: 1,355
+- OperatingLeaseLiabilityNoncurrent: 3,679
+- OperatingLeaseLiabilityNoncurrent: 3,635
+- StockholdersEquity: 1,981,812
+- StockholdersEquity: 1,745,745
+- LiabilitiesAndStockholdersEquity: 2,831,432
+- LiabilitiesAndStockholdersEquity: 2,338,519
+- Revenues: 3,419,327
+- Revenues: 2,882,967
+- Revenues: 2,645,237
+- CostOfRevenue: 3,005,978
+- CostOfRevenue: 2,526,849
+- CostOfRevenue: 2,308,964
+- StockholdersEquity: 390
+- StockholdersEquity: 196,667
+- StockholdersEquity: 147,258
+- StockholdersEquity: 12,793
+- StockholdersEquity: 1,216,676
+- StockholdersEquity: 1,253,682
+- StockholdersEquity: 393
+- StockholdersEquity: 206,624
+- StockholdersEquity: 194,833
+- StockholdersEquity: 8,115
+- StockholdersEquity: 1,464,589
+- StockholdersEquity: 1,468,658
+- StockholdersEquity: 395
+- StockholdersEquity: 222,044
+- StockholdersEquity: 234,323
+- StockholdersEquity: 3,141
+- StockholdersEquity: 1,760,770
+- StockholdersEquity: 396
+
+### `investor-documents/sec-edgar/10-Q_20260505_rpt20260327_acc0001408710_26_000016.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 4,434
+- OperatingLeaseRightOfUseAsset: 5,768
+- OperatingLeaseLiabilityCurrent: 1,462
+- OperatingLeaseLiabilityCurrent: 1,792
+- OperatingLeaseLiabilityNoncurrent: 2,963
+- OperatingLeaseLiabilityNoncurrent: 3,679
+- StockholdersEquity: 2,304,711
+- StockholdersEquity: 1,981,812
+- LiabilitiesAndStockholdersEquity: 3,508,986
+- LiabilitiesAndStockholdersEquity: 2,831,432
+- Revenues: 1,214,293
+- Revenues: 871,799
+- Revenues: 3,325,309
+- Revenues: 2,509,635
+- CostOfRevenue: 1,069,954
+- CostOfRevenue: 769,616
+- CostOfRevenue: 2,926,849
+- CostOfRevenue: 2,207,577
+- StockholdersEquity: 397
+- StockholdersEquity: 233,235
+- StockholdersEquity: 365,136
+- StockholdersEquity: 14,439
+- StockholdersEquity: 2,301,851
+- StockholdersEquity: 2,184,786
+- StockholdersEquity: 243,038
+- StockholdersEquity: 365,287
+- StockholdersEquity: 501
+- StockholdersEquity: 2,427,064
+- StockholdersEquity: 396
+- StockholdersEquity: 237,881
+- StockholdersEquity: 360,056
+- StockholdersEquity: 10,294
+- StockholdersEquity: 2,093,297
+- StockholdersEquity: 218,449
+
+### `investor-documents/sec-edgar/DEF 14A_20251023_rpt20251211_acc0001140361_25_039008.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/10-K_20240820_rpt20240628_acc0001408710_24_000032.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 5,336
+- OperatingLeaseRightOfUseAsset: 1,634
+- OperatingLeaseLiabilityCurrent: 1,355
+- OperatingLeaseLiabilityCurrent: 1,201
+- OperatingLeaseLiabilityNoncurrent: 3,635
+- OperatingLeaseLiabilityNoncurrent: 66
+- StockholdersEquity: 1,745,745
+- StockholdersEquity: 1,468,658
+- LiabilitiesAndStockholdersEquity: 2,338,519
+- LiabilitiesAndStockholdersEquity: 1,979,648
+- Revenues: 2,882,967
+- Revenues: 2,645,237
+- Revenues: 2,262,224
+- CostOfRevenue: 2,526,849
+- CostOfRevenue: 2,308,964
+- CostOfRevenue: 1,983,630
+- StockholdersEquity: 388
+- StockholdersEquity: 189,445
+- StockholdersEquity: 87,343
+
+### `investor-documents/sec-edgar/10-K_20230822_rpt20230630_acc0001408710_23_000028.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 1,634
+- OperatingLeaseRightOfUseAsset: 4,084
+- OperatingLeaseLiabilityCurrent: 1,201
+- OperatingLeaseLiabilityCurrent: 2,319
+- OperatingLeaseLiabilityNoncurrent: 66
+- OperatingLeaseLiabilityNoncurrent: 1,476
+- StockholdersEquity: 1,468,658
+- StockholdersEquity: 1,253,682
+- LiabilitiesAndStockholdersEquity: 1,979,648
+- LiabilitiesAndStockholdersEquity: 1,835,641
+- Revenues: 2,645,237
+- Revenues: 2,262,224
+- Revenues: 1,879,350
+- CostOfRevenue: 2,308,964
+- CostOfRevenue: 1,983,630
+- CostOfRevenue: 1,657,987
+- StockholdersEquity: 385
+- StockholdersEquity: 175,610
+- StockholdersEquity: 68,501
+
+### `investor-documents/sec-edgar/10-K_20220816_rpt20220624_acc0001408710_22_000045.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRentalExpenseShortTerm: 0
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 4,084
+- OperatingLeaseRightOfUseAsset: 6,699
+- OperatingLeaseLiabilityCurrent: 2,319
+- OperatingLeaseLiabilityCurrent: 2,593
+- OperatingLeaseLiabilityNoncurrent: 1,476
+- OperatingLeaseLiabilityNoncurrent: 3,850
+- StockholdersEquity: 1,253,682
+- StockholdersEquity: 1,112,520
+- LiabilitiesAndStockholdersEquity: 1,835,641
+- LiabilitiesAndStockholdersEquity: 1,616,122
+- Revenues: 2,262,224
+- Revenues: 1,879,350
+- Revenues: 1,641,836
+- CostOfRevenue: 1,983,630
+- CostOfRevenue: 1,657,987
+- CostOfRevenue: 1,455,731
+- StockholdersEquity: 382
+- StockholdersEquity: 158,299
+
+### `investor-documents/sec-edgar/10-K_20210817_rpt20210625_acc0001408710_21_000034.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRentalExpenseShortTerm: 0
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 6,699
+- OperatingLeaseRightOfUseAsset: 8,068
+- OperatingLeaseLiabilityCurrent: 2,593
+- OperatingLeaseLiabilityCurrent: 1,979
+- OperatingLeaseLiabilityNoncurrent: 3,850
+- OperatingLeaseLiabilityNoncurrent: 5,873
+- StockholdersEquity: 1,112,520
+- StockholdersEquity: 974,409
+- LiabilitiesAndStockholdersEquity: 1,616,122
+- LiabilitiesAndStockholdersEquity: 1,381,980
+- Revenues: 1,879,350
+- Revenues: 1,641,836
+- Revenues: 1,584,335
+- CostOfRevenue: 1,657,987
+- CostOfRevenue: 1,455,731
+- CostOfRevenue: 1,405,111
+- StockholdersEquity: 377
+- StockholdersEquity: 151,797
+
+### `investor-documents/sec-edgar/10-Q_20260203_rpt20251226_acc0001408710_26_000008.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 4,888
+- OperatingLeaseRightOfUseAsset: 5,768
+- OperatingLeaseLiabilityCurrent: 1,691
+- OperatingLeaseLiabilityCurrent: 1,792
+- OperatingLeaseLiabilityNoncurrent: 3,194
+- OperatingLeaseLiabilityNoncurrent: 3,679
+- StockholdersEquity: 2,184,786
+- StockholdersEquity: 1,981,812
+- LiabilitiesAndStockholdersEquity: 3,268,598
+- LiabilitiesAndStockholdersEquity: 2,831,432
+- Revenues: 1,132,888
+- Revenues: 833,608
+- Revenues: 2,111,016
+- Revenues: 1,637,836
+- CostOfRevenue: 995,206
+- CostOfRevenue: 732,759
+- CostOfRevenue: 1,856,895
+- CostOfRevenue: 1,437,961
+- StockholdersEquity: 397
+
+### `investor-documents/sec-edgar/10-Q_20251104_rpt20250926_acc0001408710_25_000056.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- OperatingLeaseRightOfUseAsset: 5,263
+- OperatingLeaseRightOfUseAsset: 5,768
+- OperatingLeaseLiabilityCurrent: 1,860
+- OperatingLeaseLiabilityCurrent: 1,792
+- OperatingLeaseLiabilityNoncurrent: 3,304
+- OperatingLeaseLiabilityNoncurrent: 3,679
+- StockholdersEquity: 2,061,168
+- StockholdersEquity: 1,981,812
+- LiabilitiesAndStockholdersEquity: 3,008,763
+- LiabilitiesAndStockholdersEquity: 2,831,432
+- Revenues: 978,128
+- Revenues: 804,228
+- CostOfRevenue: 861,689
+- CostOfRevenue: 705,202
+- StockholdersEquity: 396
+- StockholdersEquity: 237,881
+- StockholdersEquity: 360,056
+- StockholdersEquity: 10,294
+- StockholdersEquity: 2,093,297
+
+### `investor-documents/sec-edgar/10-Q_20250506_rpt20250328_acc0001408710_25_000023.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRightOfUseAsset: 6,021
+- OperatingLeaseRightOfUseAsset: 5,336
+- OperatingLeaseLiabilityCurrent: 1,709
+- OperatingLeaseLiabilityCurrent: 1,355
+- OperatingLeaseLiabilityNoncurrent: 4,012
+- OperatingLeaseLiabilityNoncurrent: 3,635
+- StockholdersEquity: 1,907,194
+- StockholdersEquity: 1,745,745
+- LiabilitiesAndStockholdersEquity: 2,619,301
+- LiabilitiesAndStockholdersEquity: 2,338,519
+- Revenues: 871,799
+- Revenues: 731,535
+- Revenues: 2,509,635
+- Revenues: 2,129,706
+- CostOfRevenue: 769,616
+- CostOfRevenue: 640,600
+- CostOfRevenue: 2,207,577
+- CostOfRevenue: 1,866,037
+- StockholdersEquity: 396
+- StockholdersEquity: 218,449
+
+### `investor-documents/sec-edgar/10-Q_20250204_rpt20241227_acc0001408710_25_000008.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRightOfUseAsset: 6,397
+- OperatingLeaseRightOfUseAsset: 5,336
+- OperatingLeaseLiabilityCurrent: 1,676
+- OperatingLeaseLiabilityCurrent: 1,355
+- OperatingLeaseLiabilityNoncurrent: 4,417
+- OperatingLeaseLiabilityNoncurrent: 3,635
+- StockholdersEquity: 1,842,971
+- StockholdersEquity: 1,745,745
+- LiabilitiesAndStockholdersEquity: 2,542,405
+- LiabilitiesAndStockholdersEquity: 2,338,519
+- Revenues: 833,608
+- Revenues: 712,694
+- Revenues: 1,637,836
+- Revenues: 1,398,171
+- CostOfRevenue: 732,759
+- CostOfRevenue: 624,364
+- CostOfRevenue: 1,437,961
+- CostOfRevenue: 1,225,437
+- StockholdersEquity: 396
+- StockholdersEquity: 210,505
+
+### `investor-documents/sec-edgar/10-Q_20241105_rpt20240927_acc0001408710_24_000040.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRightOfUseAsset: 5,133
+- OperatingLeaseRightOfUseAsset: 5,336
+- OperatingLeaseLiabilityCurrent: 1,416
+- OperatingLeaseLiabilityCurrent: 1,355
+- OperatingLeaseLiabilityNoncurrent: 3,434
+- OperatingLeaseLiabilityNoncurrent: 3,635
+- StockholdersEquity: 1,826,600
+- StockholdersEquity: 1,745,745
+- LiabilitiesAndStockholdersEquity: 2,439,013
+- LiabilitiesAndStockholdersEquity: 2,338,519
+- Revenues: 804,228
+- Revenues: 685,477
+- CostOfRevenue: 705,202
+- CostOfRevenue: 601,073
+- StockholdersEquity: 395
+- StockholdersEquity: 222,044
+- StockholdersEquity: 234,323
+- StockholdersEquity: 3,141
+- StockholdersEquity: 1,760,770
+- StockholdersEquity: 396
+
+### `investor-documents/sec-edgar/10-Q_20240507_rpt20240329_acc0001408710_24_000019.htm`
+**Keyword snippets (related party, financials, segments):**
+- OperatingLeaseRightOfUseAsset: 3,742
+- OperatingLeaseRightOfUseAsset: 1,634
+- OperatingLeaseLiabilityCurrent: 1,333
+- OperatingLeaseLiabilityCurrent: 1,201
+- OperatingLeaseLiabilityNoncurrent: 2,003
+- OperatingLeaseLiabilityNoncurrent: 66
+- StockholdersEquity: 1,660,235
+- StockholdersEquity: 1,468,658
+- LiabilitiesAndStockholdersEquity: 2,237,025
+- LiabilitiesAndStockholdersEquity: 1,979,648
+- Revenues: 731,535
+- Revenues: 665,281
+- Revenues: 2,129,706
+- Revenues: 1,989,366
+- CostOfRevenue: 640,600
+- CostOfRevenue: 579,274
+- CostOfRevenue: 1,866,037
+- CostOfRevenue: 1,735,388
+- StockholdersEquity: 394
+- StockholdersEquity: 209,208

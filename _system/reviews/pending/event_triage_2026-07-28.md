@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-07-28
-**Rows:** 1347
+**Rows:** 1357
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -9,6 +9,8 @@
 | 2026-07-29 | APLD | earnings | context | 35 | rule_conflict, activist_cross_link, scheduled_context, neutral_low_impact | Upcoming earnings |
 | 2026-07-28 | FRMI | earnings | context | 41 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
 | 2026-07-28 | DELL | filing | context | 44 | rule_conflict, filing_balance_material, small_base_pct | Cash up 217% |
+| 2026-07-28 | STX | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Seagate Technology perks up as Q4 results, guidance top esti |
+| 2026-07-28 | APLD | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Applied Digital (APLD) Tops Quarterly Revenue Estimates As A |
 | 2026-07-28 | APLD | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Applied Digital (APLD) Beats Revenue Estimates As AI Infrast |
 | 2026-07-28 | INTU | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | 全球頂尖法律事務所 ROSEN 鼓勵 Intuit Inc. 投資者在對 INTU 提出證券集體訴訟的重要截止日期之前聘 |
 | 2026-07-28 | APD | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
@@ -203,5 +205,3 @@
 | 2025-09-30 | BRBR | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: BRBR |
 | 2025-09-30 | SHC | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: SHC |
 | 2025-09-30 | MCO | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: MCO |
-| 2025-09-30 | AXON | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: AXON |
-| 2025-09-30 | CHTR | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |

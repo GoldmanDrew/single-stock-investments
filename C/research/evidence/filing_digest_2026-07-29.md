@@ -1,0 +1,240 @@
+# Filing digest — C
+
+**Generated:** 2026-07-29  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `C/research/evidence/document_inventory.json`  
+
+Documents in folder: **30** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+**Latest earnings transcript:** `investor-documents/transcripts/undated_other_unknown_06e23fd0.pdf` (date unknown, tier partial).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | 10-K | 2026-02-20 | `investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm` | 120000 |
+| partial | 10-Q | 2025-08-06 | `investor-documents/sec-edgar/10-Q_20250806_rpt20250630_acc0000831001_25_000131.htm` | 30000 |
+| partial | 10-Q | 2025-11-06 | `investor-documents/sec-edgar/10-Q_20251106_rpt20250930_acc0000831001_25_000154.htm` | 30000 |
+| full | 10-Q | 2026-05-07 | `investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0000831001_26_000019.htm` | 120000 |
+| full | proxy | 2026-04-02 | `investor-documents/sec-edgar/DEF 14A_20260402_rpt20260520_acc0001206774_26_000185.htm` | 120000 |
+| partial | transcript | — | `investor-documents/ir-c/2026psqtr2-transcript.pdf` | 71669 |
+| partial | transcript | — | `investor-documents/transcripts/undated_other_unknown_06e23fd0.pdf` | 71669 |
+| scan | 8-K | 2025-07-23 | `investor-documents/sec-edgar/8-K_20250723_rpt20250722_acc0001193125_25_163410.htm` | 5461 |
+| scan | 8-K | 2025-07-23 | `investor-documents/sec-edgar/8-K_20250723_rpt20250723_acc0001193125_25_163408.htm` | 3785 |
+| scan | 8-K | 2025-09-11 | `investor-documents/sec-edgar/8-K_20250911_rpt20250911_acc0001193125_25_201328.htm` | 2991 |
+| scan | 8-K | 2025-09-24 | `investor-documents/sec-edgar/8-K_20250924_rpt20250924_acc0001104659_25_092977.htm` | 6907 |
+| scan | 8-K | 2025-10-14 | `investor-documents/sec-edgar/8-K_20251014_rpt20251014_acc0001104659_25_099097.htm` | 5016 |
+| scan | 8-K | 2025-10-22 | `investor-documents/sec-edgar/8-K_20251022_rpt20251022_acc0001104659_25_101579.htm` | 7614 |
+| scan | 8-K | 2025-10-22 | `investor-documents/sec-edgar/8-K_20251022_rpt20251022_acc0001193125_25_246780.htm` | 3001 |
+| scan | 8-K | 2025-11-20 | `investor-documents/sec-edgar/8-K_20251120_rpt20251119_acc0001104659_25_114632.htm` | 5323 |
+| scan | 8-K | 2025-12-10 | `investor-documents/sec-edgar/8-K_20251210_rpt20251209_acc0001193125_25_314169.htm` | 5240 |
+| scan | 8-K | 2025-12-29 | `investor-documents/sec-edgar/8-K_20251229_rpt20251229_acc0001104659_25_124865.htm` | 6992 |
+| scan | 8-K | 2026-01-12 | `investor-documents/sec-edgar/8-K_20260112_rpt20260109_acc0001193125_26_010408.htm` | 4505 |
+| scan | 8-K | 2026-01-14 | `investor-documents/sec-edgar/8-K_20260114_rpt20260114_acc0001104659_26_003604.htm` | 5062 |
+| partial | 8-K | 2026-02-03 | `investor-documents/sec-edgar/8-K_20260203_rpt20260202_acc0001193125_26_035604.htm` | 5201 |
+| partial | 8-K | 2026-02-12 | `investor-documents/sec-edgar/8-K_20260212_rpt20260211_acc0001104659_26_014378.htm` | 8825 |
+| partial | 8-K | 2026-02-12 | `investor-documents/sec-edgar/8-K_20260212_rpt20260211_acc0001193125_26_048689.htm` | 5327 |
+| partial | 8-K | 2026-04-03 | `investor-documents/sec-edgar/8-K_20260403_rpt20260403_acc0001104659_26_039663.htm` | 6479 |
+| partial | 8-K | 2026-04-14 | `investor-documents/sec-edgar/8-K_20260414_rpt20260414_acc0001104659_26_042942.htm` | 5070 |
+| partial | 8-K | 2026-05-21 | `investor-documents/sec-edgar/8-K_20260521_rpt20260520_acc0001104659_26_065155.htm` | 7822 |
+| partial | 8-K | 2026-07-14 | `investor-documents/sec-edgar/8-K_20260714_rpt20260714_acc0001104659_26_083383.htm` | 5062 |
+| inventory | other | — | `investor-documents/ir-c/2026fsqtr2rslt.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-c/2026presoqtr2rslt.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-c/2026prqtr2rslt.pdf` | 0 |
+| inventory | other | 2026-02-25 | `investor-documents/sec-edgar/S-3ASR_20260225_rpt_acc0001193125_26_071567.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm`
+**Keyword snippets (related party, financials, segments):**
+- PrincipalTransactionsRevenue: 10,235
+- PrincipalTransactionsRevenue: 11,109
+- PrincipalTransactionsRevenue: 8,281
+- Revenues: 85,225
+- Revenues: 80,722
+- Revenues: 78,066
+- StockholdersEquity: 212,291
+- StockholdersEquity: 208,598
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 213,822
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 209,366
+- LiabilitiesAndStockholdersEquity: 2,657,202
+- LiabilitiesAndStockholdersEquity: 2,352,945
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,850
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,600
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,995
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 20,050
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 109,148
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,986
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,489
+- StockholdersEquityOther: 5
+- StockholdersEquityOther: 27
+- StockholdersEquityOther: 45
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,483
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 206,294
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 198,905
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 194,734
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: &#8212;
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 290
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 195,024
+- StockholdersEquityOther: 18
+- StockholdersEquityOther: 21
+- StockholdersEquityOther: 73
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 215,128
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 76,842
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 75,238
+
+### `investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0000831001_26_000019.htm`
+**Keyword snippets (related party, financials, segments):**
+- PrincipalTransactionsRevenue: 4,008
+- PrincipalTransactionsRevenue: 3,510
+- Revenues: 24,633
+- Revenues: 21,596
+- StockholdersEquity: 210,959
+- StockholdersEquity: 212,291
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 212,572
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 213,822
+- LiabilitiesAndStockholdersEquity: 2,777,687
+- LiabilitiesAndStockholdersEquity: 2,657,202
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 20,050
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,850
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 19,550
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,350
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,483
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 109,148
+- StockholdersEquityOther: 6
+- StockholdersEquityOther: 1
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 107,852
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,647
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 215,128
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 206,294
+- StockholdersEquityOther: 9
+- StockholdersEquityOther: 4
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 219,542
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 209,013
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 89,473
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 76,842
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 95,370
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 77,880
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 41,897
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 47,852
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 40,615
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 45,722
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 191,409
+
+### `investor-documents/sec-edgar/DEF 14A_20260402_rpt20260520_acc0001206774_26_000185.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/10-Q_20251106_rpt20250930_acc0000831001_25_000154.htm`
+**Keyword snippets (related party, financials, segments):**
+- PrincipalTransactionsRevenue: 2,772
+- PrincipalTransactionsRevenue: 2,835
+- PrincipalTransactionsRevenue: 8,785
+- PrincipalTransactionsRevenue: 8,656
+- Revenues: 22,090
+- Revenues: 20,209
+- Revenues: 65,354
+- Revenues: 61,257
+- StockholdersEquity: 213,023
+- StockholdersEquity: 208,598
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 213,877
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 209,366
+- LiabilitiesAndStockholdersEquity: 2,642,475
+- LiabilitiesAndStockholdersEquity: 2,352,945
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 16,350
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,100
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,850
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,600
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 19,050
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,870
+
+### `investor-documents/sec-edgar/10-Q_20250806_rpt20250630_acc0000831001_25_000131.htm`
+**Keyword snippets (related party, financials, segments):**
+- PrincipalTransactionsRevenue: 3,406
+- PrincipalTransactionsRevenue: 2,874
+- PrincipalTransactionsRevenue: 7,327
+- PrincipalTransactionsRevenue: 6,148
+- Revenues: 21,668
+- Revenues: 20,032
+- Revenues: 43,264
+- Revenues: 41,048
+- StockholdersEquity: 213,222
+- StockholdersEquity: 208,598
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 214,130
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 209,366
+- LiabilitiesAndStockholdersEquity: 2,622,772
+- LiabilitiesAndStockholdersEquity: 2,352,945
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,350
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,600
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 17,850
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 16,350
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,100
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 108,647
+
+### `investor-documents/transcripts/undated_other_unknown_06e23fd0.pdf`
+**Keyword snippets (related party, financials, segments):**
+- Jane Fraser, Citi Chair and Chief Executive Officer
+- Jenn Landis, Head of Citi Investor Relations. We ask that you please hold all questions until the completion
+- as a reminder, this conference is being recorded today. If you have any objections, please disconnect at this
+- earnings call. I am joined today by our Chair and Chief Executive Officer, Jane Fraser, and our Chief Financial
+- quarter capped a very good first half of the year.  This morning, we reported net income of $5.8 billion for the
+- This was Citi ’s best quarterly revenue in a decade, which we delivered with over 9% positive operating
+- leverage. Once again, we saw double-digit revenue growth for the firm and in four out of our five businesses.
+- Let me take you through our five businesses.  Services delivered its highest ever quarterly revenue and a
+- Markets revenues were up 17% and crossed $7 billion again, as sentiment stayed positive throughout the
+- Banking revenues climbed 34% led by a sharp increase in financing activity amidst an overall strong wallet.
+- Investment banking was up 44% as we gained share in equity capital markets. We played a role in the
+- Wealth revenues increased for the ninth straight quarter, up 13%, with growth across all three businesses
+- while returns improved to over 14%.  Client investment assets were up 14% and net new investment assets
+- In U.S. Consumer Cards, investments in our products and partners, which shows up in both revenue and
+- The extraordinary investment in AI - and its supporting cast of semi -conductors, data centers and related
+- contributions. I’m also very pleased to have Margo Pilic stepping into the role of Head of Strategy, M&A and
+- momentum of our strategy. This quarter we reported net income of $5.8 billion, EPS of $3.15 and an RoTCE
+- of 13.0% on $24.8 billion of revenues, generating positive operating leverage.  Total revenues were up 14%,
+- partially offset by a decline in Corporate/Other. Non-interest revenues excluding Markets were up 39%,
+- Cards. Excluding All Other as well as Markets, non-interest revenues were up 18%.
+
+### `investor-documents/ir-c/2026psqtr2-transcript.pdf`
+**Keyword snippets (related party, financials, segments):**
+- Jane Fraser, Citi Chair and Chief Executive Officer
+- Jenn Landis, Head of Citi Investor Relations. We ask that you please hold all questions until the completion
+- as a reminder, this conference is being recorded today. If you have any objections, please disconnect at this
+- earnings call. I am joined today by our Chair and Chief Executive Officer, Jane Fraser, and our Chief Financial
+- quarter capped a very good first half of the year.  This morning, we reported net income of $5.8 billion for the
+- This was Citi ’s best quarterly revenue in a decade, which we delivered with over 9% positive operating
+- leverage. Once again, we saw double-digit revenue growth for the firm and in four out of our five businesses.
+- Let me take you through our five businesses.  Services delivered its highest ever quarterly revenue and a
+- Markets revenues were up 17% and crossed $7 billion again, as sentiment stayed positive throughout the
+- Banking revenues climbed 34% led by a sharp increase in financing activity amidst an overall strong wallet.
+- Investment banking was up 44% as we gained share in equity capital markets. We played a role in the
+- Wealth revenues increased for the ninth straight quarter, up 13%, with growth across all three businesses
+- while returns improved to over 14%.  Client investment assets were up 14% and net new investment assets
+- In U.S. Consumer Cards, investments in our products and partners, which shows up in both revenue and
+- The extraordinary investment in AI - and its supporting cast of semi -conductors, data centers and related
+- contributions. I’m also very pleased to have Margo Pilic stepping into the role of Head of Strategy, M&A and
+- momentum of our strategy. This quarter we reported net income of $5.8 billion, EPS of $3.15 and an RoTCE
+- of 13.0% on $24.8 billion of revenues, generating positive operating leverage.  Total revenues were up 14%,
+- partially offset by a decline in Corporate/Other. Non-interest revenues excluding Markets were up 39%,
+- Cards. Excluding All Other as well as Markets, non-interest revenues were up 18%.
+
+### `investor-documents/sec-edgar/8-K_20260714_rpt20260714_acc0001104659_26_083383.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260521_rpt20260520_acc0001104659_26_065155.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260414_rpt20260414_acc0001104659_26_042942.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260403_rpt20260403_acc0001104659_26_039663.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260212_rpt20260211_acc0001193125_26_048689.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260212_rpt20260211_acc0001104659_26_014378.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*
+
+### `investor-documents/sec-edgar/8-K_20260203_rpt20260202_acc0001193125_26_035604.htm`
+- *(no keyword hits; see cached full text in `research/evidence/_text/` if tier=full)*

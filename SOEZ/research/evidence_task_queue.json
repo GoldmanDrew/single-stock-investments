@@ -1,10 +1,13 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "ticker": "SOEZ",
-  "updated_at": "2026-07-28T21:51:58Z",
+  "updated_at": "2026-07-30T11:40:12Z",
   "method_id": "owner_earnings_reinvestment_dcf",
-  "ready_count": 0,
+  "method_profile": "quality_reinvestment",
+  "route_status": "routed",
+  "ready_count": 2,
   "task_count": 5,
+  "terminal_count": 0,
   "tasks": [
     {
       "id": "method_input:owner_earnings_reinvestment_dcf:normalized_owner_earnings_m",
@@ -13,11 +16,20 @@
       "method_id": "owner_earnings_reinvestment_dcf",
       "question": "Supply a primary-source value for normalized owner earnings m.",
       "evidence_required": "normalized_owner_earnings_m",
-      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and value.",
+      "input_schema": {
+        "type": "number",
+        "min_exclusive": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
       "collector": "primary_documents_then_fact_ledger",
-      "status": "pending_collection",
-      "attempts": 0,
-      "last_attempt_at": null,
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "max_attempts": 5,
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
       "evidence_refs": []
     },
     {
@@ -27,12 +39,23 @@
       "method_id": "owner_earnings_reinvestment_dcf",
       "question": "Supply a primary-source value for shares outstanding.",
       "evidence_required": "shares_outstanding",
-      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and value.",
+      "input_schema": {
+        "type": "number",
+        "min_exclusive": 0,
+        "unit": "shares"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
       "collector": "primary_documents_then_fact_ledger",
-      "status": "pending_collection",
+      "status": "evidence_ready",
       "attempts": 0,
       "last_attempt_at": null,
-      "evidence_refs": []
+      "max_attempts": 5,
+      "next_attempt_at": null,
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": [
+        "SOEZ/research/evidence/sec_companyfacts.json"
+      ]
     },
     {
       "id": "method_input:owner_earnings_reinvestment_dcf:cash_m",
@@ -41,12 +64,23 @@
       "method_id": "owner_earnings_reinvestment_dcf",
       "question": "Supply a primary-source value for cash m.",
       "evidence_required": "cash_m",
-      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and value.",
+      "input_schema": {
+        "type": "number",
+        "min": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
       "collector": "primary_documents_then_fact_ledger",
-      "status": "pending_collection",
+      "status": "evidence_ready",
       "attempts": 0,
       "last_attempt_at": null,
-      "evidence_refs": []
+      "max_attempts": 5,
+      "next_attempt_at": null,
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
+      "evidence_refs": [
+        "SOEZ/research/evidence/sec_companyfacts.json"
+      ]
     },
     {
       "id": "method_input:owner_earnings_reinvestment_dcf:debt_m",
@@ -55,23 +89,37 @@
       "method_id": "owner_earnings_reinvestment_dcf",
       "question": "Supply a primary-source value for debt m.",
       "evidence_required": "debt_m",
-      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and value.",
+      "input_schema": {
+        "type": "number",
+        "min": 0,
+        "unit": "USD millions"
+      },
+      "acceptance_test": "A locked fact-ledger row has a primary source ref, locator, as-of date, and a value that passes the method input schema.",
       "collector": "primary_documents_then_fact_ledger",
-      "status": "pending_collection",
-      "attempts": 0,
-      "last_attempt_at": null,
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "max_attempts": 5,
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
+      "satisfied_by": "normalized_fact_ledger",
       "evidence_refs": []
     },
     {
       "id": "complete_component_model_required",
       "priority": "critical",
-      "question": "A complete primary-sourced component valuation has not been built.",
-      "evidence_required": "normalized owner earnings; incremental return on capital; reinvestment runway; diluted share count; competitive-advantage mechanism",
-      "acceptance_test": "Every material economic claim is valued exactly once with causal low/base/high assumptions and primary evidence.",
-      "collector": "primary_documents_then_model",
-      "status": "pending_collection",
-      "attempts": 0,
-      "last_attempt_at": null,
+      "field_id": "component_model",
+      "method_id": "owner_earnings_reinvestment_dcf",
+      "question": "Build a complete primary-sourced component valuation.",
+      "evidence_required": "normalized_owner_earnings_m; shares_outstanding; cash_m; debt_m",
+      "acceptance_test": "Every material economic claim is valued exactly once with a valid deterministic proof.",
+      "collector": "compile_owner_earnings_reinvestment_dcf",
+      "status": "retry_scheduled",
+      "attempts": 1,
+      "max_attempts": 5,
+      "last_attempt_at": "2026-07-29T20:32:45Z",
+      "next_attempt_at": "2026-07-29T21:32:45Z",
+      "last_error": null,
       "evidence_refs": []
     }
   ]

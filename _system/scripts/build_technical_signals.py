@@ -409,8 +409,8 @@ def _technical_setup(
         direction_label = "Mixed / repairing"
 
     if rsi14 is None:
-        pressure = "unavailable"
-        pressure_label = "Momentum unavailable"
+        pressure = "not_observed"
+        pressure_label = "Momentum history pending"
     elif rsi14 < 25:
         pressure = "deeply_oversold"
         pressure_label = "Deeply oversold"
@@ -425,8 +425,8 @@ def _technical_setup(
         pressure_label = "Momentum balanced"
 
     if cmf20 is None:
-        participation = "unavailable"
-        participation_label = "Volume signal unavailable"
+        participation = "not_observed"
+        participation_label = "Volume history pending"
     elif cmf20 <= -0.10:
         participation = "distribution"
         participation_label = "Distribution"
@@ -437,7 +437,7 @@ def _technical_setup(
         participation = "mixed"
         participation_label = "Mixed participation"
 
-    fear_state = str(capitulation.get("state") or "unavailable")
+    fear_state = str(capitulation.get("state") or "not_scored")
     exhaustion = _finite((capitulation.get("scores") or {}).get("exhaustion")) or 0.0
     if fear_state in {"panic", "capitulation_candidate"} and exhaustion < 40:
         phase = "falling_knife"
@@ -888,6 +888,67 @@ def calculate_snapshot(
     }
 
 
+def migrate_cached_close_snapshot(
+    old: dict,
+    *,
+    benchmark: str,
+    market_structure: dict | None,
+    fetch_error: str,
+) -> dict:
+    """Upgrade a legacy snapshot from its committed adjusted-close history.
+
+    This is a truthful degraded mode for source outages: price direction, RSI,
+    drawdown and path stress are current-model calculations, while volume and
+    intraday participation remain explicitly pending until OHLCV is refreshed.
+    """
+    rows = [
+        {"date": str(point[0]), "close": _finite(point[1])}
+        for point in (old.get("history") or [])
+        if isinstance(point, list)
+        and len(point) >= 2
+        and point[0]
+        and _finite(point[1]) is not None
+    ]
+    if len(rows) < 120:
+        raise ValueError("fewer than 120 cached adjusted-close observations")
+
+    migrated = calculate_snapshot(
+        str(old.get("ticker") or ""),
+        rows,
+        benchmark_rows=None,
+        benchmark=benchmark,
+        source=str(old.get("source") or "committed adjusted-close cache"),
+    )
+    old_measures = old.get("measures") or {}
+    old_scores = old.get("scores") or {}
+    relative_return = _finite(old_measures.get("relative_return_60d_pct"))
+    migrated["measures"]["relative_return_60d_pct"] = _round(relative_return, 2)
+    migrated["scores"]["relative_strength_60d_z"] = _round(
+        old_scores.get("relative_strength_60d_z")
+    )
+    migrated["setup"] = _technical_setup(
+        rows,
+        relative_return_60d_pct=relative_return,
+        capitulation=migrated["capitulation"],
+    )
+    migrated["observation_count"] = int(old.get("observation_count") or len(rows))
+    migrated["data_grade"] = "C"
+    migrated["data_grade_reason"] = (
+        "Current setup from the committed one-year adjusted-close cache; "
+        "OHLCV participation will fill on the next successful free-source refresh"
+    )
+    migrated["fetch_status"] = "cached_close_migration_after_fetch_failure"
+    migrated["fetch_error"] = fetch_error[:240]
+    migrated["coverage_notes"] = {
+        "price_path": "calculated",
+        "benchmark_relative": "preserved from prior valid snapshot",
+        "volume_and_intraday": "pending free-source refresh",
+    }
+    if market_structure:
+        migrated["market_structure"] = market_structure
+    return migrated
+
+
 def _registry_rows() -> list[dict]:
     holdings = load_registry().get("holdings") or {}
     return [
@@ -1043,9 +1104,29 @@ def build(*, limit: int = 0, workers: int = 12, tickers: set[str] | None = None)
                 errors[ticker] = str(exc)
                 old = ((prior.get("by_ticker") or {}).get(ticker))
                 if old:
-                    preserved = dict(old)
-                    preserved["fetch_status"] = "preserved_after_fetch_failure"
+                    market_structure = _market_structure_snapshot(
+                        ticker,
+                        market_structure_current,
+                        market_structure_history,
+                    )
+                    if old.get("model_version") != MODEL_VERSION:
+                        try:
+                            preserved = migrate_cached_close_snapshot(
+                                old,
+                                benchmark=BENCHMARKS.get(meta["market"], "SPY"),
+                                market_structure=market_structure,
+                                fetch_error=str(exc),
+                            )
+                        except ValueError:
+                            preserved = dict(old)
+                    else:
+                        preserved = dict(old)
+                    preserved["fetch_status"] = preserved.get(
+                        "fetch_status", "preserved_after_fetch_failure"
+                    )
                     preserved["fetch_error"] = str(exc)[:240]
+                    if market_structure:
+                        preserved["market_structure"] = market_structure
                     current[ticker] = preserved
                 print(f"WARN {ticker}: {exc}", file=sys.stderr)
 
