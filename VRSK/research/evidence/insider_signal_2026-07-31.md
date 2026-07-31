@@ -1,0 +1,28 @@
+# VRSK — Insider conviction (2026-07-31)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| PERRY CHRISTOPHER JOHN | 2025-08-13 | 1000 | $259.8 | $259800.0 | 1.994 |
+| Purtill Sabra R. | 2025-10-31 | 450 | $217.95 | $98077.5 | 1.689 |
+| Hendrick Gregory | 2025-10-31 | 500 | $216.14 | $108070.0 | 1.566 |
+| LISS SAMUEL G | 2026-06-02 | 6765 | $80.93 | $547491.45 | 1.469 |
+| DAILEY JEFFREY J | 2025-10-31 | 500 | $217.03 | $108515.0 | 1.468 |
+
+**Routine / planned sales (context):**
+
+- Mann Elizabeth: 400 @ $192.11 on 2026-07-15
+- Mann Elizabeth: 400 @ $179.54 on 2026-06-15
+- LISS SAMUEL G: 4671 @ $182.21 on 2026-06-05
+
+Source: `_system/reference/market-data/insider/VRSK_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
