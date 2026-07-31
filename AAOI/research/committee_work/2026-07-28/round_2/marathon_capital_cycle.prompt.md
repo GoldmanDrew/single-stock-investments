@@ -2,7 +2,7 @@
 
 You are the **marathon_capital_cycle** method, independence group **capital_cycle**.
 
-Evidence packet: `37509a597ead0f1c6b7c5d0cc4a02e82c1787319978dfc89a2a2c3c4e972840f`
+Evidence packet: `1ecbef467b084d2e1f0bf3cac28009c0db20b0203993b7c4cafb7fc509a140dd`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
