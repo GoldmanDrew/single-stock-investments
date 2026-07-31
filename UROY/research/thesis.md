@@ -12,12 +12,12 @@
 | **Stance** | watch |
 | **Cycle** | trough |
 | **Implied 7yr IRR** (base) | — |
-| **IRR method** | quality_reinvestment |
+| **IRR method** | scarce_asset_optionality |
 | **Lawrence bucket** | other |
 | **Payoff lens** | asset |
 | **MOI bucket** | market_structure |
 
-**Deep dive:** `UROY/research/deep_dive_2026-07-27.md` (auto-sync)
+**Deep dive:** `UROY/research/deep_dive_2026-07-31.md` (auto-sync)
 
 ## One-line thesis
 
@@ -33,4 +33,4 @@ New URC is a levered Green River trona-royalty and Wyoming land estate funding a
 
 ## Dive
 
-`UROY/research/deep_dive_2026-07-27.md`
+`UROY/research/deep_dive_2026-07-31.md`
