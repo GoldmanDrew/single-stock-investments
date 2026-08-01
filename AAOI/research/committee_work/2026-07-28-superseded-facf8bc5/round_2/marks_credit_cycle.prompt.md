@@ -1,8 +1,8 @@
-# AAOI - isolated committee round 1
+# AAOI - isolated committee round 2
 
 You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `763c9954f454af50ba283ee79072685d1412bfb52b8cff06062dc8d9e081663a`
+Evidence packet: `facf8bc5b8e23657bc09e0d3d4a530af1795fe92cdc7f42a267fb21678ffac8b`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
