@@ -1,0 +1,99 @@
+name: Market Risk Components
+
+on:
+  # Offset from the top of the hour to reduce scheduled-run contention.
+  # The 18:37 run is the end-of-day snapshot.
+  schedule:
+    - cron: "7,37 8-17 * * 1-5"
+      timezone: "America/New_York"
+    - cron: "7,37 18 * * 1-5"
+      timezone: "America/New_York"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this snapshot should be rebuilt"
+        required: false
+        default: "manual market-risk refresh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-risk-components
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MARKET_RISK_INGEST_URL: https://single-stock-market-risk-ingest.magis-capital.workers.dev/api/v1/market-risk/ingest
+      MARKET_RISK_INGEST_TOKEN: ${{ secrets.MARKET_RISK_INGEST_TOKEN }}
+
+    steps:
+      - name: Check out dashboard
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check out ETF Dashboard data
+        uses: actions/checkout@v4
+        with:
+          repository: GoldmanDrew/etf-dashboard
+          path: _external/etf-dashboard
+          fetch-depth: 1
+
+      - name: Check out ls-algo data
+        uses: actions/checkout@v4
+        with:
+          repository: GoldmanDrew/ls-algo
+          path: _external/ls-algo
+          token: ${{ secrets.LS_ALGO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Check out SPX 0DTE data
+        uses: actions/checkout@v4
+        with:
+          repository: magis-capital-partners/spx-0dte
+          path: _external/spx-0dte
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate source snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f _external/etf-dashboard/data/letf_rebalance_flows_latest.json
+          test -f _external/ls-algo/data/etf_screened_today.csv
+          test -d _external/spx-0dte/data
+          test -f dashboard/data/technical_summary.json
+
+      - name: Build and publish signed component snapshot
+        run: |
+          python _system/scripts/build_market_risk_components.py \
+            --etf-root "$GITHUB_WORKSPACE/_external/etf-dashboard" \
+            --ls-root "$GITHUB_WORKSPACE/_external/ls-algo" \
+            --spx-root "$GITHUB_WORKSPACE/_external/spx-0dte" \
+            --ssi-root "$GITHUB_WORKSPACE" \
+            --output "$RUNNER_TEMP/market-risk-components.json" \
+            --publish
+
+      - name: Verify published snapshot artifact
+        run: |
+          python - "$RUNNER_TEMP/market-risk-components.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          components = payload.get("components", [])
+          coverage = payload.get("coverage", {})
+          assert len(components) >= 10, f"unexpected component count: {len(components)}"
+          assert coverage.get("total") == len(components)
+          assert payload.get("generated_at")
+          print(json.dumps({"components": len(components), "coverage": coverage}, sort_keys=True))
+          PY
