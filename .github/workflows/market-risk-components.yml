@@ -31,14 +31,26 @@ jobs:
       MARKET_RISK_INGEST_TOKEN: ${{ secrets.MARKET_RISK_INGEST_TOKEN }}
 
     steps:
-      - name: Check out dashboard
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-          sparse-checkout: |
-            _system/scripts/build_market_risk_components.py
+      - name: Fetch dashboard inputs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/ssi-source"
+          git clone --depth 1 --filter=blob:none --no-checkout \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "$source_root"
+          git -C "$source_root" sparse-checkout init --no-cone
+          git -C "$source_root" sparse-checkout set \
+            _system/scripts/build_market_risk_components.py \
             dashboard/data/technical_summary.json
-          sparse-checkout-cone-mode: false
+          git -C "$source_root" checkout --detach "$GITHUB_SHA"
+          mkdir -p _system/scripts dashboard/data
+          cp "$source_root/_system/scripts/build_market_risk_components.py" \
+            _system/scripts/build_market_risk_components.py
+          cp "$source_root/dashboard/data/technical_summary.json" \
+            dashboard/data/technical_summary.json
 
       - name: Check out ETF Dashboard data
         uses: actions/checkout@v5
