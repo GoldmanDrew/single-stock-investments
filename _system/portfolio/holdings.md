@@ -38,14 +38,14 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-02.
 | AFL | AFL/ | Aflac | US | 2026-07-29 | 2026-08-02 | unknown | watch |
 | AFRM | AFRM/ | AFRM | US | 2026-07-29 | 2026-08-02 | unknown | watch |
 | AI | AI/ | AI | US | 2026-07-29 | 2026-08-02 | unknown | watch |
-| AIG | AIG/ | American International Group | US | 2026-07-09 | 2026-08-02 | unknown | watch |
-| AIZ | AIZ/ | Assurant | US | 2026-07-09 | 2026-08-02 | unknown | watch |
-| AJG | AJG/ | Arthur J. Gallagher & Co. | US | 2026-07-09 | 2026-08-02 | unknown | watch |
-| AKAM | AKAM/ | Akamai Technologies | US | 2026-07-09 | 2026-08-02 | unknown | watch |
-| ALAB | ALAB/ | ALAB | US | 2026-07-28 | 2026-08-02 | unknown | watch |
-| ALB | ALB/ | Albemarle Corporation | US | 2026-07-29 | 2026-08-02 | unknown | watch |
-| ALGN | ALGN/ | Align Technology | US | 2026-07-09 | 2026-08-02 | unknown | watch |
-| ALL | ALL/ | Allstate | US | 2026-07-09 | 2026-08-02 | unknown | watch |
+| AIG | AIG/ | American International Group | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| AIZ | AIZ/ | Assurant | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| AJG | AJG/ | Arthur J. Gallagher & Co. | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| AKAM | AKAM/ | Akamai Technologies | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| ALAB | ALAB/ | ALAB | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| ALB | ALB/ | Albemarle Corporation | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| ALGN | ALGN/ | Align Technology | US | 2026-08-02 | 2026-08-02 | unknown | watch |
+| ALL | ALL/ | Allstate | US | 2026-08-02 | 2026-08-02 | unknown | watch |
 | ALLE | ALLE/ | Allegion | US | 2026-07-09 | 2026-08-02 | unknown | watch |
 | ALS.TO | ALS.TO/ | Altius Minerals Corporation | CA | 2026-06-03 | 2026-08-02 | unknown | watch |
 | AMAT | AMAT/ | Applied Materials | US | 2026-07-10 | 2026-08-02 | unknown | watch |
