@@ -60,6 +60,12 @@ records each nonce so a captured request cannot be replayed. Public dashboard
 read APIs do not receive or require this secret. The deploy workflow synchronizes
 the GitHub Actions secret of the same name into Cloudflare Pages.
 
+The user-facing Pages site remains behind Cloudflare Access. Machine ingestion
+uses a separate minimal Workers endpoint that exposes only
+`POST /api/v1/market-risk/ingest`. This avoids giving a collector a human Access
+session or bypassing Access for the dashboard. The Worker and Pages Functions
+share the same D1 database and signing secret.
+
 The normal D1 seed exporter includes the current static criticality snapshot:
 
 ```powershell

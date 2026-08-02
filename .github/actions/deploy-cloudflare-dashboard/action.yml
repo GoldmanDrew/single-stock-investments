@@ -9,6 +9,10 @@ inputs:
     description: Cloudflare D1 database name
     required: false
     default: single-stock-investments
+  ingest-worker-name:
+    description: Public edge Worker used only for signed market-risk ingestion
+    required: false
+    default: single-stock-market-risk-ingest
 outputs:
   page_url:
     description: URL reported by the Cloudflare Pages deployment
@@ -34,6 +38,7 @@ runs:
       env:
         PROJECT_NAME: ${{ inputs.project-name }}
         DATABASE_NAME: ${{ inputs.database-name }}
+        INGEST_WORKER_NAME: ${{ inputs.ingest-worker-name }}
       run: |
         set -euo pipefail
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
@@ -110,6 +115,22 @@ runs:
               migrations_dir: "../dashboard/cloudflare/migrations"
             }]
           }' > _cf_project/wrangler.jsonc
+        jq -n \
+          --arg name "$INGEST_WORKER_NAME" \
+          --arg database_name "$DATABASE_NAME" \
+          --arg database_id "$DATABASE_ID" \
+          '{
+            name: $name,
+            main: "../dashboard/cloudflare/market-risk-ingest-worker.js",
+            compatibility_date: "2026-07-29",
+            compatibility_flags: ["nodejs_compat"],
+            workers_dev: true,
+            d1_databases: [{
+              binding: "DB",
+              database_name: $database_name,
+              database_id: $database_id
+            }]
+          }' > _cf_project/wrangler.market-risk.jsonc
         echo "database_id=$DATABASE_ID" >> "$GITHUB_OUTPUT"
 
     - name: Apply D1 schema and synchronize current dashboard state
@@ -126,10 +147,11 @@ runs:
           --file dashboard/cloudflare/generated/dashboard_seed.sql \
           --config _cf_project/wrangler.jsonc
 
-    - name: Synchronize private market-risk signing secret
+    - name: Deploy signed market-risk ingest Worker
       shell: bash
       env:
         PROJECT_NAME: ${{ inputs.project-name }}
+        INGEST_WORKER_NAME: ${{ inputs.ingest-worker-name }}
       run: |
         set -euo pipefail
         if [ -z "${MARKET_RISK_INGEST_TOKEN:-}" ]; then
@@ -145,6 +167,20 @@ runs:
             json.dump({"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}, handle)
         PY
         "$WRANGLER" pages secret bulk "$SECRET_FILE" --project-name="$PROJECT_NAME"
+        DEPLOY_LOG="$RUNNER_TEMP/market-risk-worker-deploy.log"
+        "$WRANGLER" deploy --config _cf_project/wrangler.market-risk.jsonc 2>&1 | tee "$DEPLOY_LOG"
+        printf '%s' "$MARKET_RISK_INGEST_TOKEN" \
+          | "$WRANGLER" secret put MARKET_RISK_INGEST_TOKEN \
+              --config _cf_project/wrangler.market-risk.jsonc
+        INGEST_URL="$(grep -Eo 'https://[^ ]+\.workers\.dev' "$DEPLOY_LOG" | tail -n1 || true)"
+        {
+          echo "### Market-risk ingest"
+          echo
+          echo "- Worker: \`$INGEST_WORKER_NAME\`"
+          if [ -n "$INGEST_URL" ]; then
+            echo "- Signed endpoint: ${INGEST_URL}/api/v1/market-risk/ingest"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Deploy Cloudflare Pages
       id: deploy

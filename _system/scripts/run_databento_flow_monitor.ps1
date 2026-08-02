@@ -2,7 +2,7 @@
 param(
     [string]$CredentialPath = "C:\Users\drewg\.magis-market-risk\databento-api-key.dpapi",
     [string]$IngestCredentialPath = "C:\Users\drewg\.magis-market-risk\market-risk-ingest-token.dpapi",
-    [string]$IngestUrl = $(if ($env:MARKET_RISK_INGEST_URL) { $env:MARKET_RISK_INGEST_URL } else { "https://single-stock-investments.pages.dev/api/v1/market-risk/ingest" }),
+    [string]$IngestUrl = $env:MARKET_RISK_INGEST_URL,
     [string]$IngestToken = $env:MARKET_RISK_INGEST_TOKEN,
     [string]$Dataset = "EQUS.MINI",
     [string]$Symbols = "SPY,QQQ,IWM,DIA,EWJ,VXX,HYG,LQD,TLT,UUP,EFA,EEM,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY",
@@ -20,7 +20,13 @@ if (-not (Test-Path -LiteralPath $CredentialPath -PathType Leaf)) {
     throw "Encrypted Databento credential not found at $CredentialPath"
 }
 if (-not $IngestUrl) {
-    throw "Set MARKET_RISK_INGEST_URL or pass -IngestUrl."
+    $ingestUrlPath = "C:\Users\drewg\.magis-market-risk\ingest-url.txt"
+    if (Test-Path -LiteralPath $ingestUrlPath -PathType Leaf) {
+        $IngestUrl = (Get-Content -LiteralPath $ingestUrlPath -Raw).Trim()
+    }
+}
+if (-not $IngestUrl) {
+    throw "Set MARKET_RISK_INGEST_URL, pass -IngestUrl, or create the protected local ingest-url.txt configuration."
 }
 if (-not $IngestToken -and (Test-Path -LiteralPath $IngestCredentialPath -PathType Leaf)) {
     $encryptedIngest = Get-Content -LiteralPath $IngestCredentialPath -Raw
