@@ -138,10 +138,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install criticality model dependencies
+        run: pip install -r _system/scripts/requirements-criticality.txt
       - name: Refresh free technical fear and capitulation signals
         run: |
           python _system/scripts/fetch_float_adv.py --no-sec-fallback --sleep 0.05
           python _system/scripts/build_technical_signals.py --workers 12
+          python _system/scripts/build_criticality_signals.py --workers 4
           python _system/scripts/validate_dashboard_data.py
       - name: Commit technical snapshots
         uses: ./.github/actions/commit-main

@@ -85,6 +85,23 @@ class DashboardD1ExportTests(unittest.TestCase):
                 "SELECT decision_status FROM valuation_current WHERE ticker = 'TEST'"
             ).fetchone()[0]
             self.assertEqual(status, "evidence_blocked")
+            criticality = connection.execute(
+                """
+                SELECT direction, criticality_score, quality_state
+                FROM criticality_snapshots
+                WHERE symbol = 'SPY'
+                ORDER BY as_of DESC
+                LIMIT 1
+                """
+            ).fetchone()
+            self.assertIsNotNone(criticality)
+            self.assertIn(
+                criticality[0],
+                {"positive_bubble", "negative_bubble", "none"},
+            )
+            self.assertGreaterEqual(criticality[1], 0)
+            self.assertLessEqual(criticality[1], 100)
+            self.assertIn(criticality[2], {"ready", "limited"})
 
 
 if __name__ == "__main__":

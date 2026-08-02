@@ -126,6 +126,26 @@ runs:
           --file dashboard/cloudflare/generated/dashboard_seed.sql \
           --config _cf_project/wrangler.jsonc
 
+    - name: Synchronize private market-risk signing secret
+      shell: bash
+      env:
+        PROJECT_NAME: ${{ inputs.project-name }}
+      run: |
+        set -euo pipefail
+        if [ -z "${MARKET_RISK_INGEST_TOKEN:-}" ]; then
+          echo "MARKET_RISK_INGEST_TOKEN is required for the signed risk ingest." >&2
+          exit 1
+        fi
+        WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
+        SECRET_FILE="$RUNNER_TEMP/market-risk-pages-secrets.json"
+        trap 'rm -f "$SECRET_FILE"' EXIT
+        python - "$SECRET_FILE" <<'PY'
+        import json, os, sys
+        with open(sys.argv[1], "w", encoding="utf-8") as handle:
+            json.dump({"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}, handle)
+        PY
+        "$WRANGLER" pages secret bulk "$SECRET_FILE" --project-name="$PROJECT_NAME"
+
     - name: Deploy Cloudflare Pages
       id: deploy
       shell: bash
