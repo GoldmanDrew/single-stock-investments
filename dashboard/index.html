@@ -958,6 +958,32 @@
   .risk-severity { font-size: 8px; text-transform: uppercase; } .risk-severity-critical, .risk-severity-high { color: #ff5d6c; } .risk-severity-medium { color: #f5b942; }
   .risk-empty { padding: 28px 12px; color: var(--text-muted); font-size: 9px; text-align: center; }
   .risk-method { margin-top: 10px; }
+  .risk-data-stack { margin-top: 10px; padding: 13px; border: 1px solid #31415d; background: linear-gradient(135deg, rgba(6,182,212,.055), rgba(10,14,23,.72)); }
+  .risk-data-stack > header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+  .risk-data-stack h3 { margin: 3px 0 4px; font-size: 13px; text-transform: uppercase; }
+  .risk-data-stack header p { color: var(--text-secondary); font-size: 9px; }
+  .risk-coverage { min-width: 170px; padding: 8px 10px; border: 1px solid var(--border); text-align: right; text-transform: uppercase; }
+  .risk-coverage strong, .risk-coverage span { display: block; } .risk-coverage strong { color: #3dd6a0; font-size: 9px; } .risk-coverage span { margin-top: 3px; color: var(--text-muted); font-size: 7px; }
+  .risk-component-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
+  .risk-component-card { min-width: 0; padding: 10px; border: 1px solid var(--border); background: rgba(7,11,19,.76); }
+  .risk-component-head { display: flex; justify-content: space-between; gap: 8px; }
+  .risk-component-head span { color: var(--text-muted); font-size: 7px; letter-spacing: .4px; text-transform: uppercase; }
+  .risk-component-head h4 { margin-top: 2px; font-size: 9px; text-transform: uppercase; }
+  .risk-component-head b { align-self: flex-start; font-size: 7px; text-transform: uppercase; }
+  .risk-component-head .is-ready { color: #3dd6a0; } .risk-component-head .is-delayed { color: #f5b942; } .risk-component-head .is-stale, .risk-component-head .is-unavailable { color: #ff5d6c; }
+  .risk-component-value { margin: 10px 0 7px; font: 800 20px 'JetBrains Mono', monospace; }
+  .risk-component-value small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 7px; font-weight: 500; text-transform: uppercase; }
+  .risk-component-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .risk-component-card dl div { min-width: 0; padding: 5px; background: rgba(18,27,43,.55); }
+  .risk-component-card dt { color: var(--text-muted); font-size: 7px; text-transform: uppercase; } .risk-component-card dd { margin-top: 2px; font: 8px 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+  .risk-component-card p { min-height: 28px; margin-top: 7px; color: var(--text-secondary); font-size: 8px; line-height: 1.45; }
+  .risk-component-card footer { margin-top: 7px; color: var(--text-muted); font: 7px 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+  .risk-sector-flows { margin-top: 8px; border: 1px solid var(--border); }
+  .risk-sector-flows summary { padding: 8px 10px; color: var(--text-secondary); cursor: pointer; font-size: 8px; text-transform: uppercase; }
+  .risk-sector-flows > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--border); }
+  .risk-sector-flows span { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px 10px; border-right: 1px solid rgba(30,45,70,.55); border-bottom: 1px solid rgba(30,45,70,.55); }
+  .risk-sector-flows b { font: 800 9px 'JetBrains Mono', monospace; } .risk-sector-flows em { color: var(--text-primary); font: normal 8px 'JetBrains Mono', monospace; text-align: right; }
+  .risk-sector-flows small { grid-column: 1 / -1; color: var(--text-muted); font-size: 7px; }
   .valuation-status-cell { display: flex; flex-direction: column; gap: 2px; }
   .valuation-decision-strip .workbench-callout { margin-top: 10px; }
   .valuation-filter-group { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 6px; }
@@ -999,6 +1025,8 @@
     .risk-panel { padding: 12px; }
     .risk-view-head { display: block; } .risk-live-state { margin-top: 10px; }
     .risk-grid { grid-template-columns: 1fr; }
+    .risk-data-stack > header { display: block; } .risk-coverage { margin-top: 8px; text-align: left; }
+    .risk-component-grid { grid-template-columns: 1fr; } .risk-sector-flows > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .operational-task-grid { grid-template-columns: 1fr; }
     .technical-scoreboard { grid-template-columns: 1fr 1fr; }
     .technical-combined-read { grid-column: 1 / -1; }
@@ -2386,6 +2414,12 @@ async function load() {
       data.market_risk = null;
     }
   }
+  try {
+    const componentFallback = await fetchShardJson('data/market_risk_components.json');
+    if (data.market_risk && !(data.market_risk.components || []).length) {
+      data.market_risk.components = componentFallback.components || [];
+    }
+  } catch (_) {}
   try {
     const [historyResponse, alertsResponse, healthResponse] = await Promise.all([
       fetch('/api/v1/market-risk/history?symbol=SPY&limit=250', { headers: { accept: 'application/json' } }),

@@ -7,6 +7,7 @@ param(
     [string]$Dataset = "EQUS.MINI",
     [string]$Symbols = "SPY,QQQ,IWM,DIA,EWJ,VXX,HYG,LQD,TLT,UUP,EFA,EEM,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY",
     [string]$StypeIn = "raw_symbol",
+    [string]$LiquiditySchema = "mbp-1",
     [ValidateSet("market", "sector", "security")]
     [string]$Scope = "market",
     [double]$PublishSeconds = 60
@@ -52,6 +53,7 @@ try {
             --dataset $Dataset `
             --symbols $Symbols `
             --stype-in $StypeIn `
+            --liquidity-schema $LiquiditySchema `
             --scope $Scope `
             --publish-seconds $PublishSeconds
         exit $LASTEXITCODE

@@ -7,7 +7,7 @@ export async function onRequestGet(context) {
     const [latestIngest, snapshotCounts, alertCounts] = await db.batch([
       db.prepare(`
         SELECT request_id, received_at, generated_at, source, criticality_count,
-               flow_count, symbols_json, status, latency_ms, payload_bytes
+               flow_count, component_count, symbols_json, status, latency_ms, payload_bytes
         FROM market_risk_ingest_runs
         ORDER BY received_at DESC
         LIMIT 1
@@ -16,8 +16,10 @@ export async function onRequestGet(context) {
         SELECT
           (SELECT COUNT(*) FROM criticality_snapshots) AS criticality_count,
           (SELECT COUNT(*) FROM flow_stress_snapshots) AS flow_count,
+          (SELECT COUNT(*) FROM market_risk_component_snapshots) AS component_count,
           (SELECT MAX(as_of) FROM criticality_snapshots) AS latest_criticality_at,
-          (SELECT MAX(as_of) FROM flow_stress_snapshots) AS latest_flow_at
+          (SELECT MAX(as_of) FROM flow_stress_snapshots) AS latest_flow_at,
+          (SELECT MAX(as_of) FROM market_risk_component_snapshots) AS latest_component_at
       `),
       db.prepare(`
         SELECT

@@ -158,6 +158,74 @@
       ${exhaustionPoints ? `<polyline points="${exhaustionPoints}" class="risk-line risk-line-exhaustion"></polyline>` : ''}</svg>`;
   }
 
+  function compactNumber(value, unit) {
+    const number = finite(value);
+    if (number == null) return '—';
+    if (unit === 'USD') {
+      const abs = Math.abs(number);
+      const scale = abs >= 1e9 ? [1e9, 'B'] : abs >= 1e6 ? [1e6, 'M'] : abs >= 1e3 ? [1e3, 'K'] : [1, ''];
+      return `${number < 0 ? '−' : ''}$${(abs / scale[0]).toFixed(abs / scale[0] >= 100 ? 0 : 1)}${scale[1]}`;
+    }
+    if (unit === 'annualized_volatility') return `${(number * 100).toFixed(1)}%`;
+    if (unit === 'z_score') return `${number.toFixed(2)}σ`;
+    if (unit === 'index_points') return number.toFixed(2);
+    if (unit === 'share_of_universe') return `${(number * 100).toFixed(1)}%`;
+    return Math.abs(number) >= 100 ? Math.round(number).toLocaleString() : number.toFixed(2);
+  }
+
+  function qualityMeta(state) {
+    return {
+      ready: ['Current', 'is-ready'], delayed: ['Delayed', 'is-delayed'],
+      stale: ['Stale', 'is-stale'], unavailable: ['Unavailable', 'is-unavailable'],
+    }[String(state || '').toLowerCase()] || [String(state || 'Unknown').replace(/_/g, ' '), 'is-unavailable'];
+  }
+
+  function componentDetail(item, escapeHtml) {
+    if (item.component.startsWith('letf_rebalance')) {
+      return `<dl><div><dt>Net close flow</dt><dd>${compactNumber(item.net_dollars ?? item.value, 'USD')}</dd></div>
+        <div><dt>Gross flow</dt><dd>${compactNumber(item.gross_dollars, 'USD')}</dd></div>
+        <div><dt>Coverage</dt><dd>${whole(item.underlyings)} underlyings</dd></div></dl>`;
+    }
+    if (item.component === 'volatility_borrow') {
+      return `<dl><div><dt>Median 20d RV</dt><dd>${compactNumber(item.median_underlying_rv_20d_annual, 'annualized_volatility')}</dd></div>
+        <div><dt>Borrow spikes</dt><dd>${whole(item.borrow_spiking_count)}</dd></div><div><dt>Products</dt><dd>${whole(item.products)}</dd></div></dl>`;
+    }
+    if (item.component === 'options_stress') {
+      return `<dl><div><dt>Latest skew</dt><dd>${compactNumber(item.latest?.skew_z, 'z_score')}</dd></div>
+        <div><dt>VIX</dt><dd>${compactNumber(item.latest_vix, 'index_points')}</dd></div><div><dt>Minute samples</dt><dd>${whole(item.observations)}</dd></div></dl>`;
+    }
+    if (item.component === 'etf_holdings_coverage') {
+      return `<dl><div><dt>Funds mapped</dt><dd>${whole(item.funds)}</dd></div><div><dt>Positions</dt><dd>${whole(item.positions)}</dd></div>
+        <div><dt>Derivatives</dt><dd>${whole(item.derivative_positions)}</dd></div></dl>`;
+    }
+    if (item.component === 'vix_regime') {
+      return `<dl><div><dt>Close</dt><dd>${compactNumber(item.close, 'index_points')}</dd></div><div><dt>Daily change</dt><dd>${finite(item.change_pct) == null ? '—' : `${Number(item.change_pct).toFixed(1)}%`}</dd></div></dl>`;
+    }
+    if (item.component === 'market_breadth') {
+      return `<dl><div><dt>Stressed</dt><dd>${finite(item.stress_share) == null ? '—' : `${(Number(item.stress_share) * 100).toFixed(1)}%`}</dd></div>
+        <div><dt>Severe</dt><dd>${finite(item.severe_share) == null ? '—' : `${(Number(item.severe_share) * 100).toFixed(1)}%`}</dd></div><div><dt>Stocks</dt><dd>${whole(item.available)}</dd></div></dl>`;
+    }
+    return `<p>${escapeHtml(item.description || 'This source is not connected.')}</p>`;
+  }
+
+  function componentStack(payload, escapeHtml) {
+    const all = payload?.components || [];
+    const market = all.filter((item) => item.scope === 'market');
+    const sectors = all.filter((item) => item.scope === 'sector' && item.component === 'letf_rebalance_intraday');
+    const counts = all.reduce((memo, item) => { memo[item.quality_state] = (memo[item.quality_state] || 0) + 1; return memo; }, {});
+    if (!all.length) return `<section class="risk-data-stack"><header><div><h3>Mechanical-flow data stack</h3><p>Awaiting the first component ingest.</p></div></header></section>`;
+    return `<section class="risk-data-stack"><header><div><span class="criticality-kicker">Independent inputs · never silently blended</span><h3>Mechanical-flow data stack</h3>
+      <p>Each tile retains its source cadence and quality. “Unavailable” means the model does not have that dataset—not that risk is zero.</p></div>
+      <div class="risk-coverage"><strong>${counts.ready || 0} current</strong><span>${counts.delayed || 0} delayed · ${counts.stale || 0} stale · ${counts.unavailable || 0} unavailable</span></div></header>
+      <div class="risk-component-grid">${market.map((item) => { const q = qualityMeta(item.quality_state); return `<article class="risk-component-card">
+        <div class="risk-component-head"><div><span>${escapeHtml(String(item.component).replace(/_/g, ' '))}</span><h4>${escapeHtml(item.label || item.symbol)}</h4></div><b class="${q[1]}">${escapeHtml(q[0])}</b></div>
+        <div class="risk-component-value">${compactNumber(item.value, item.unit)}${finite(item.score) == null ? '' : `<small>stress ${whole(item.score)} / 100</small>`}</div>
+        ${componentDetail(item, escapeHtml)}<p>${escapeHtml(item.description || '')}</p><footer>${escapeHtml(item.source)} · ${escapeHtml(String(item.as_of || '').replace('T', ' ').slice(0, 19))}</footer>
+      </article>`; }).join('')}</div>
+      ${sectors.length ? `<details class="risk-sector-flows"><summary>Intraday sector close-flow map · ${sectors.length} sectors</summary><div>${sectors.sort((a, b) => Math.abs(finite(b.value) || 0) - Math.abs(finite(a.value) || 0)).map((item) => `<span><b>${escapeHtml(item.symbol)}</b><em>${compactNumber(item.value, 'USD')}</em><small>${finite(item.pct_auction_volume) == null ? '—' : `${Number(item.pct_auction_volume).toFixed(2)}% auction`}</small></span>`).join('')}</div></details>` : ''}
+    </section>`;
+  }
+
   function renderRiskView(payload, details = {}, options = {}) {
     const escapeHtml = options.escapeHtml || escapeFallback;
     const health = details.health || {};
@@ -169,12 +237,13 @@
       <p>Tracks unstable price regimes, mechanical deleveraging pressure, and evidence that forced selling is fading. Signals are descriptive—not automatic trade instructions.</p></div>
       <div class="risk-live-state"><span class="risk-status-dot ${status === 'operational' ? 'is-live' : ''}"></span><strong>${escapeHtml(status.replace(/_/g, ' '))}</strong><small>${escapeHtml(receivedFresh.label)}</small></div></div>
       ${render(payload, { ...options, open: true, expandSectors: true })}
+      ${componentStack(payload, escapeHtml)}
       <div class="risk-grid">
         <section class="risk-card risk-history"><header><h3>SPY signal history</h3><div class="risk-legend"><span class="criticality-positive">Criticality</span><span class="criticality-pressure">Pressure</span><span class="criticality-exhaustion">Exhaustion</span></div></header>${historyChart(details)}</section>
         <section class="risk-card"><h3>Feed health</h3><dl class="risk-health">
           <div><dt>Last signed ingest</dt><dd>${escapeHtml(ingest.received_at ? String(ingest.received_at).replace('T', ' ').slice(0, 19) + ' UTC' : 'Awaiting first live snapshot')}</dd></div>
           <div><dt>Latest flow</dt><dd>${escapeHtml(health.snapshots?.latest_flow_at || '—')}</dd></div>
-          <div><dt>Stored snapshots</dt><dd>${whole(health.snapshots?.criticality_count)} criticality · ${whole(health.snapshots?.flow_count)} flow</dd></div>
+          <div><dt>Stored snapshots</dt><dd>${whole(health.snapshots?.criticality_count)} criticality · ${whole(health.snapshots?.flow_count)} flow · ${whole(health.snapshots?.component_count)} components</dd></div>
           <div><dt>Open alerts</dt><dd>${whole(health.alerts?.open_count)}</dd></div></dl></section>
         <section class="risk-card"><h3>Alert journal</h3>${alerts.length ? `<div class="risk-alerts">${alerts.slice(0, 12).map((alert) => `<article><strong>${escapeHtml(alert.symbol)} · ${escapeHtml(alert.state.replace(/_/g, ' '))}</strong><span class="risk-severity risk-severity-${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span><small>${escapeHtml((alert.reason_codes || []).join(' · '))}</small></article>`).join('')}</div>` : '<div class="risk-empty">No alert episodes have been recorded yet.</div>'}</section>
         <section class="risk-card"><h3>How the private ingest works</h3><p>The browser can read risk data, but cannot write it. The publisher signs each payload with the market-risk ingest token, a timestamp, and a one-time nonce. Cloudflare verifies the signature, rejects requests older than five minutes, and refuses reused nonces.</p><p>The token never appears in this page, D1, request headers, or the market data feed. It is a private signing secret, separate from the Databento API key.</p></section>

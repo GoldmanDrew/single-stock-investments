@@ -3,6 +3,7 @@ import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js
 const MAX_BODY_BYTES = 512_000;
 const SCOPES = new Set(["market", "sector", "security"]);
 const DIRECTIONS = new Set(["positive_bubble", "negative_bubble", "none"]);
+const COMPONENT_ID = /^[a-z][a-z0-9_]{1,63}$/;
 
 function hex(bytes) {
   return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -88,7 +89,8 @@ export async function onRequestPost(context) {
     }
     const criticality = Array.isArray(payload.criticality) ? payload.criticality : [];
     const flow = Array.isArray(payload.flow) ? payload.flow : [];
-    if (criticality.length + flow.length > 250) {
+    const components = Array.isArray(payload.components) ? payload.components : [];
+    if (criticality.length + flow.length + components.length > 500) {
       return json({ error: "Too many snapshots.", request_id: id }, 400);
     }
 
@@ -229,26 +231,59 @@ export async function onRequestPost(context) {
         }
       }
     }
+    for (const row of components) {
+      if (!COMPONENT_ID.test(String(row.component || ""))
+          || !SCOPES.has(row.scope) || !row.symbol || !row.as_of
+          || !row.cadence || !row.source || !row.model_version
+          || !row.entitlement_mode || !row.quality_state) {
+        return json({ error: "Invalid component snapshot.", request_id: id }, 400);
+      }
+      statements.push(db.prepare(`
+        INSERT INTO market_risk_component_snapshots (
+          component, scope, symbol, as_of, cadence, source, model_version,
+          entitlement_mode, quality_state, score, value, unit, payload_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (component, scope, symbol, as_of, source, model_version)
+        DO UPDATE SET
+          cadence=excluded.cadence,
+          entitlement_mode=excluded.entitlement_mode,
+          quality_state=excluded.quality_state,
+          score=excluded.score,
+          value=excluded.value,
+          unit=excluded.unit,
+          payload_json=excluded.payload_json
+      `).bind(
+        row.component, row.scope, String(row.symbol).toUpperCase(), row.as_of,
+        row.cadence, row.source, row.model_version, row.entitlement_mode,
+        row.quality_state, finite(row.score), finite(row.value), row.unit || null,
+        compact(row),
+      ));
+    }
     const symbols = [...new Set([
       ...criticality.map((row) => String(row.symbol || "").toUpperCase()),
       ...flow.map((row) => String(row.symbol || "").toUpperCase()),
+      ...components.map((row) => String(row.symbol || "").toUpperCase()),
     ].filter(Boolean))];
     const generatedAt = payload.generated_at || null;
     const generatedMs = Date.parse(generatedAt || "");
     statements.push(db.prepare(`
       INSERT INTO market_risk_ingest_runs (
         request_id, received_at, generated_at, source, criticality_count,
-        flow_count, symbols_json, status, latency_ms, payload_bytes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'accepted', ?, ?)
+        flow_count, component_count, symbols_json, status, latency_ms, payload_bytes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'accepted', ?, ?)
     `).bind(
       id, receivedAt, generatedAt, payload.source || null,
-      criticality.length, flow.length, compact(symbols),
+      criticality.length, flow.length, components.length, compact(symbols),
       Number.isFinite(generatedMs) ? Math.max(0, Date.now() - generatedMs) : null,
       body.byteLength,
     ));
     if (statements.length) await db.batch(statements);
     return json({
-      accepted: { criticality: criticality.length, flow: flow.length },
+      accepted: {
+        criticality: criticality.length,
+        flow: flow.length,
+        components: components.length,
+      },
       request_id: id,
     }, 202, { "cache-control": "no-store" });
   } catch (error) {

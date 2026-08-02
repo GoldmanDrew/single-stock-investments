@@ -61,6 +61,31 @@ export function parseFlow(row) {
   };
 }
 
+export function parseComponent(row) {
+  if (!row) return null;
+  let payload = {};
+  try {
+    payload = JSON.parse(row.payload_json || "{}");
+  } catch (_) {
+    payload = {};
+  }
+  return {
+    ...payload,
+    component: row.component,
+    symbol: row.symbol,
+    scope: row.scope,
+    as_of: row.as_of,
+    cadence: row.cadence,
+    source: row.source,
+    model_version: row.model_version,
+    entitlement_mode: row.entitlement_mode,
+    quality_state: row.quality_state,
+    score: row.score ?? payload.score ?? null,
+    value: row.value ?? payload.value ?? null,
+    unit: row.unit ?? payload.unit ?? null,
+  };
+}
+
 export const LATEST_CRITICALITY_SQL = `
   SELECT *
   FROM (
@@ -88,4 +113,18 @@ export const LATEST_FLOW_SQL = `
     FROM flow_stress_snapshots f
   )
   WHERE row_number = 1
+`;
+
+export const LATEST_COMPONENTS_SQL = `
+  SELECT *
+  FROM (
+    SELECT c.*,
+      ROW_NUMBER() OVER (
+        PARTITION BY c.component, c.scope, c.symbol
+        ORDER BY c.as_of DESC, c.created_at DESC
+      ) AS row_number
+    FROM market_risk_component_snapshots c
+  )
+  WHERE row_number = 1
+  ORDER BY component, scope, symbol
 `;

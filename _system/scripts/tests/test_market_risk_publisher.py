@@ -38,7 +38,10 @@ class MarketRiskPublisherTests(unittest.TestCase):
         with mock.patch.object(publisher.time, "time", return_value=1_722_866_400), \
              mock.patch.object(publisher.secrets, "token_hex", return_value="a" * 32), \
              mock.patch.object(publisher.urllib.request, "urlopen", side_effect=fake_open):
-            result = publisher.publish("https://example.test/ingest", "s" * 32, [{"symbol": "SPY"}])
+            result = publisher.publish(
+                "https://example.test/ingest", "s" * 32, [{"symbol": "SPY"}],
+                [{"component": "databento_liquidity"}],
+            )
 
         request = captured["request"]
         headers = {key.lower(): value for key, value in request.header_items()}
@@ -52,6 +55,8 @@ class MarketRiskPublisherTests(unittest.TestCase):
             hashlib.sha256,
         ).hexdigest()
         self.assertEqual(headers["x-market-risk-signature"], expected)
+        body = json.loads(request.data)
+        self.assertEqual(body["components"][0]["component"], "databento_liquidity")
         self.assertEqual(result["accepted"]["flow"], 1)
 
 

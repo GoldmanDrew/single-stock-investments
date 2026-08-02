@@ -12,8 +12,11 @@ import argparse
 import hashlib
 import hmac
 import json
+import math
 import os
 import secrets
+import statistics
+import threading
 import time
 import urllib.request
 from collections import defaultdict, deque
@@ -33,11 +36,12 @@ SECTORS = {
 }
 
 
-def publish(url: str, token: str, snapshots: list[dict]) -> dict:
+def publish(url: str, token: str, snapshots: list[dict], components: list[dict] | None = None) -> dict:
     body = json.dumps({
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "flow": snapshots,
+        "components": components or [],
     }).encode("utf-8")
     timestamp = str(int(time.time()))
     nonce = secrets.token_hex(16)
@@ -59,6 +63,113 @@ def publish(url: str, token: str, snapshots: list[dict]) -> dict:
         return json.loads(response.read().decode("utf-8"))
 
 
+def _quote_price(value, scale: float) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not number or number >= 9.22e18:
+        return None
+    return number / scale
+
+
+def stream_liquidity(
+    *, symbols: tuple[str, ...], dataset: str, schema: str, stype_in: str,
+    quotes: dict[str, dict], lock: threading.Lock,
+) -> None:
+    """Maintain a best-bid/offer cache in a separate Databento live session."""
+    import databento as db
+    import databento_dbn as dbn
+
+    while True:
+        try:
+            client = db.Live()
+            client.subscribe(dataset=dataset, schema=schema, symbols=list(symbols), stype_in=stype_in, start=0)
+            symbol_by_instrument: dict[int, str] = {}
+            for record in client:
+                mapped = getattr(record, "stype_out_symbol", None) or getattr(record, "stype_in_symbol", None)
+                instrument_id = getattr(record, "instrument_id", None)
+                if mapped:
+                    if instrument_id is not None:
+                        symbol_by_instrument[int(instrument_id)] = str(mapped).upper()
+                    continue
+                symbol = getattr(record, "symbol", None)
+                if not symbol and instrument_id is not None:
+                    symbol = symbol_by_instrument.get(int(instrument_id))
+                if not symbol:
+                    continue
+                bid = _quote_price(getattr(record, "bid_px_00", None) or getattr(record, "bid_px", None), float(dbn.FIXED_PRICE_SCALE))
+                ask = _quote_price(getattr(record, "ask_px_00", None) or getattr(record, "ask_px", None), float(dbn.FIXED_PRICE_SCALE))
+                bid_size = getattr(record, "bid_sz_00", None)
+                ask_size = getattr(record, "ask_sz_00", None)
+                levels = getattr(record, "levels", None)
+                if levels:
+                    level = levels[0]
+                    bid = bid or _quote_price(getattr(level, "bid_px", None), float(dbn.FIXED_PRICE_SCALE))
+                    ask = ask or _quote_price(getattr(level, "ask_px", None), float(dbn.FIXED_PRICE_SCALE))
+                    bid_size = bid_size or getattr(level, "bid_sz", None)
+                    ask_size = ask_size or getattr(level, "ask_sz", None)
+                if bid is None or ask is None or ask < bid:
+                    continue
+                mid = (bid + ask) / 2.0
+                stamp = datetime.fromtimestamp(int(getattr(record, "ts_event", 0)) / 1e9, tz=timezone.utc)
+                with lock:
+                    quotes[str(symbol).upper()] = {
+                        "symbol": str(symbol).upper(), "as_of": stamp.isoformat(),
+                        "bid": bid, "ask": ask, "mid": mid,
+                        "spread_bps": 0.0 if mid <= 0 else (ask - bid) / mid * 10_000.0,
+                        "bid_size": None if bid_size is None else float(bid_size),
+                        "ask_size": None if ask_size is None else float(ask_size),
+                    }
+        except Exception as exc:  # the price/volume monitor must remain independent
+            print(json.dumps({"liquidity_stream_error": str(exc)[:240]}), flush=True)
+            time.sleep(30)
+
+
+def liquidity_components(quotes: dict[str, dict], lock: threading.Lock, symbols: tuple[str, ...], source: str) -> list[dict]:
+    now = datetime.now(timezone.utc)
+    with lock:
+        rows = [dict(row) for row in quotes.values()]
+    fresh = []
+    for row in rows:
+        try:
+            age = (now - datetime.fromisoformat(row["as_of"])).total_seconds()
+        except (ValueError, TypeError):
+            continue
+        if age <= 120:
+            row["age_seconds"] = round(max(0.0, age), 1)
+            fresh.append(row)
+    spreads = [row["spread_bps"] for row in fresh]
+    median_spread = statistics.median(spreads) if spreads else None
+    coverage = len(fresh) / max(1, len(symbols))
+    as_of = max((row["as_of"] for row in fresh), default=now.isoformat())
+    aggregate = {
+        "component": "databento_liquidity", "scope": "market", "symbol": "US_EQUITY",
+        "as_of": as_of, "cadence": "intraday", "source": source,
+        "model_version": "databento-touch-liquidity-v1", "entitlement_mode": "live",
+        "quality_state": "ready" if coverage >= 0.6 else "limited",
+        "score": None if median_spread is None else round(min(100.0, median_spread * 10.0), 2),
+        "value": median_spread, "unit": "spread_bps", "label": "Databento top-of-book liquidity",
+        "description": "Observed best-bid/offer spreads and touch sizes; separate from the OHLCV range proxy.",
+        "coverage": round(coverage, 3), "fresh_symbols": len(fresh), "requested_symbols": len(symbols),
+        "median_spread_bps": median_spread,
+        "p95_spread_bps": sorted(spreads)[max(0, math.ceil(len(spreads) * .95) - 1)] if spreads else None,
+        "quotes": sorted(fresh, key=lambda row: row["spread_bps"], reverse=True),
+    }
+    result = [aggregate]
+    for row in fresh:
+        if row["symbol"] not in SECTORS:
+            continue
+        result.append({
+            "component": "databento_liquidity", "scope": "sector", "symbol": row["symbol"],
+            "as_of": row["as_of"], "cadence": "intraday", "source": source,
+            "model_version": "databento-touch-liquidity-v1", "entitlement_mode": "live",
+            "quality_state": "ready", "score": round(min(100.0, row["spread_bps"] * 10.0), 2),
+            "value": row["spread_bps"], "unit": "spread_bps", **row,
+        })
+    return result
+
+
 def run(
     *,
     symbols: tuple[str, ...],
@@ -70,6 +181,7 @@ def run(
     stype_in: str,
     default_scope: str,
     state_path: Path,
+    liquidity_schema: str,
 ) -> None:
     import databento as db
     import databento_dbn as dbn
@@ -86,6 +198,15 @@ def run(
     bars: dict[str, deque] = defaultdict(lambda: deque(maxlen=240))
     last_publish = 0.0
     source = f"databento:{dataset}:ohlcv-1m"
+    quotes: dict[str, dict] = {}
+    quote_lock = threading.Lock()
+    liquidity_source = f"databento:{dataset}:{liquidity_schema}"
+    threading.Thread(
+        target=stream_liquidity,
+        kwargs={"symbols": symbols, "dataset": dataset, "schema": liquidity_schema,
+                "stype_in": stype_in, "quotes": quotes, "lock": quote_lock},
+        daemon=True, name="databento-liquidity",
+    ).start()
     try:
         state_memory = json.loads(state_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -140,7 +261,8 @@ def run(
             snapshots.append(snapshot)
         if not snapshots:
             continue
-        result = publish(ingest_url, ingest_token, snapshots)
+        components = liquidity_components(quotes, quote_lock, symbols, liquidity_source)
+        result = publish(ingest_url, ingest_token, snapshots, components)
         state_path.parent.mkdir(parents=True, exist_ok=True)
         temporary_state = state_path.with_suffix(".tmp")
         temporary_state.write_text(
@@ -165,6 +287,7 @@ def main() -> int:
     )
     parser.add_argument("--publish-seconds", type=float, default=60.0)
     parser.add_argument("--stype-in", default="raw_symbol")
+    parser.add_argument("--liquidity-schema", default="mbp-1")
     parser.add_argument(
         "--scope",
         choices=("market", "sector", "security"),
@@ -201,6 +324,7 @@ def main() -> int:
         stype_in=args.stype_in,
         default_scope=args.scope,
         state_path=args.state_path,
+        liquidity_schema=args.liquidity_schema,
     )
     return 0
 
