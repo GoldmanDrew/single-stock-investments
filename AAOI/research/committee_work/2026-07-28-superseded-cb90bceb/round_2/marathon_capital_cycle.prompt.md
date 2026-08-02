@@ -1,8 +1,8 @@
-# AAOI - isolated committee round 1
+# AAOI - isolated committee round 2
 
-You are the **marks_credit_cycle** method, independence group **credit_cycle**.
+You are the **marathon_capital_cycle** method, independence group **capital_cycle**.
 
-Evidence packet: `e9d99f92152b53ee65694effc54f7fc8c6a6875e890b292268b7eac15e4acc65`
+Evidence packet: `cb90bceb637c54a489b5da424c1e9d750598864f2fcc6875dc1f900f07680ec2`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
