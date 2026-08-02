@@ -3,10 +3,22 @@ param(
     [string]$IngestCredentialPath = (Join-Path $env:USERPROFILE ".magis-market-risk\market-risk-ingest-token.dpapi"),
     [string]$IngestUrl = $env:MARKET_RISK_INGEST_URL,
     [string]$IngestToken = $env:MARKET_RISK_INGEST_TOKEN,
-    [switch]$NoPublish
+    [switch]$NoPublish,
+    [switch]$Scheduled
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($Scheduled) {
+    $now = Get-Date
+    if ($now.DayOfWeek -in @([DayOfWeek]::Saturday, [DayOfWeek]::Sunday) -or
+        $now.TimeOfDay -lt ([timespan]::Parse("08:00")) -or
+        $now.TimeOfDay -gt ([timespan]::Parse("18:30"))) {
+        Write-Output "Outside weekday market-risk schedule; no snapshot published."
+        exit 0
+    }
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $builder = Join-Path $PSScriptRoot "build_market_risk_components.py"
 
