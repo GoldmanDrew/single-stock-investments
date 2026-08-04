@@ -4,6 +4,7 @@
   const CUSTOM_KEY = 'ssi_short_alpha_custom_v1';
   const CHECKINS_KEY = 'ssi_short_alpha_checkins_v1';
   const FILTER_KEY = 'ssi_short_alpha_filter_v1';
+  const REMOVED_KEY = 'ssi_short_alpha_removed_v1';
   const REPO_BASE = 'https://github.com/magis-capital-partners/single-stock-investments/blob/main/';
 
   function esc(value) {
@@ -26,20 +27,18 @@
   function sourceTypeMap(payload) { return Object.fromEntries((payload.source_types || []).map(x => [x.id, x])); }
   function getIdeas(payload) {
     const overlays = read(CHECKINS_KEY, {});
-    return [...(payload.ideas || []), ...read(CUSTOM_KEY, [])].map(raw => {
+    const removed = new Set(read(REMOVED_KEY, []));
+    return [...(payload.ideas || []), ...read(CUSTOM_KEY, [])].filter(raw => !removed.has(raw.ticker)).map(raw => {
       const idea = JSON.parse(JSON.stringify(raw));
       const allChecks = [...(idea.check_ins || []), ...(overlays[idea.ticker] || [])]
         .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-      const latest = allChecks[allChecks.length - 1] || { date: idea.position.baseline_date, price: idea.position.baseline_price, hypothesis_state: 'open' };
-      const baseline = Number(idea.position.baseline_price);
+      const latest = allChecks[allChecks.length - 1] || { date: idea.position.opened_date, price: idea.position.opened_price, hypothesis_state: 'open' };
       const last = Number(latest.price);
       idea.check_ins = allChecks;
       idea.outcome = {
         latest_date: latest.date,
         latest_price: last,
         hypothesis_state: latest.hypothesis_state || 'open',
-        short_return_pct: ((baseline - last) / baseline) * 100,
-        pnl_usd: (baseline - last) * Math.abs(Number(idea.position.shares)),
         check_in_count: allChecks.length,
       };
       return idea;
@@ -65,7 +64,7 @@
         <label>Ticker<input name="ticker" required maxlength="14" placeholder="XYZ"></label>
         <label>Security name<input name="security_name" required placeholder="Company or instrument"></label>
         <label>Shares short<input name="shares" required type="number" min="1" step="any" placeholder="1000"></label>
-        <label>Exposure ($)<input name="exposure" required type="number" min="0.01" step="0.01" placeholder="25000"></label>
+        <label>Opened price<input name="opened_price" required type="number" min="0.0001" step="any" placeholder="25.00"></label>
         <label>Primary framework<select name="framework">${formOptions(payload.frameworks)}</select></label>
         <label>Instrument<select name="instrument_type"><option value="operating_company">Operating company</option><option value="holding_company">Holding company</option><option value="leveraged_etf">Leveraged ETF</option><option value="etf">ETF</option><option value="other">Other</option></select></label>
         <label>Source type<select name="source_type">${formOptions(payload.source_types, 'internal_analysis')}</select></label>
@@ -77,7 +76,6 @@
   }
   function renderRow(idea, maps) {
     const outcome = idea.outcome || {};
-    const pnlClass = Number(outcome.pnl_usd) > 0 ? 'positive' : Number(outcome.pnl_usd) < 0 ? 'negative' : '';
     const completion = Number(idea.artifact_status?.completion_pct || 0);
     const sourceTypes = sourceTypeMap(maps.payload);
     const tags = (idea.frameworks || []).map(id => `<span class="short-tag">${esc(maps.frameworks[id]?.label || id)}</span>`).join('');
@@ -92,8 +90,8 @@
       <summary>
         <div class="short-name"><span class="short-symbol">${esc(idea.ticker)}</span><span class="short-security"><strong>${esc(idea.security_name)}</strong><small>${esc(String(idea.instrument_type || '').replace(/_/g, ' '))}${idea.underlying ? ` · underlying ${esc(idea.underlying)}` : ''}</small></span></div>
         <div class="short-frameworks">${tags}</div>
-        <div class="short-metric">${money(idea.position.initial_exposure_usd)}<small>gross exposure</small></div>
-        <div class="short-metric ${pnlClass}">${money(outcome.pnl_usd)}<small>${Number(outcome.short_return_pct || 0).toFixed(1)}% tracked P&amp;L</small></div>
+        <div class="short-metric">$${price(idea.position.split_adjusted_open_price || idea.position.opened_price)}<small>split-adjusted entry</small></div>
+        <div class="short-metric">${idea.borrow?.rate_pct == null ? '—' : `${Number(idea.borrow.rate_pct).toFixed(1)}%`}<small>IBKR borrow · ${esc(idea.borrow?.status || 'pending')}</small></div>
         <div class="short-metric">${completion}%<small>${esc(idea.research?.status || 'draft')}</small></div>
       </summary>
       <div class="short-alpha-detail">
@@ -116,6 +114,7 @@
             <button type="submit">Save check-in</button>
           </form>
         </details>
+        <button type="button" class="short-remove" data-short-remove="${esc(idea.ticker)}">Remove from this dashboard</button>
       </div>
     </details>`;
   }
@@ -128,8 +127,6 @@
       return (!savedFilter.query || hay.includes(savedFilter.query.toLowerCase()))
         && (savedFilter.framework === 'all' || (idea.frameworks || []).includes(savedFilter.framework));
     });
-    const gross = ideas.reduce((sum, x) => sum + Number(x.position.initial_exposure_usd || 0), 0);
-    const pnl = ideas.reduce((sum, x) => sum + Number(x.outcome?.pnl_usd || 0), 0);
     const complete = ideas.filter(x => Number(x.artifact_status?.completion_pct || 0) >= 85).length;
     return `<div class="short-alpha-header">
       <div><div class="short-alpha-kicker">Short Alpha · hypothesis ledger</div><h2>Thesis first. Tape second. Memory always.</h2><p>Partition every short by its economic failure mode, bind it to source evidence, and preserve what we expected before the outcome was known.</p></div>
@@ -137,8 +134,6 @@
     </div>
     <div class="short-alpha-summary">
       <div class="short-alpha-stat"><span>Positions</span><strong>${ideas.length}</strong><small>${ideas.filter(x => x.instrument_type === 'leveraged_etf').length} instrument-level</small></div>
-      <div class="short-alpha-stat"><span>Gross short</span><strong>${money(gross)}</strong><small>supplied baseline exposure</small></div>
-      <div class="short-alpha-stat"><span>Tracked P&amp;L</span><strong>${money(pnl)}</strong><small>excludes borrow and dividends</small></div>
       <div class="short-alpha-stat"><span>Research complete</span><strong>${complete}/${ideas.length}</strong><small>artifact gate, not an IC decision</small></div>
     </div>
     <div class="short-alpha-toolbar">
@@ -147,7 +142,7 @@
       <div class="short-alpha-actions"><button type="button" data-short-export>Export ledger</button><button type="button" data-short-reset title="Remove browser-only drafts and check-ins">Reset browser drafts</button></div>
     </div>
     ${renderAddForm(payload)}
-    <p class="short-alpha-note">Tracked P&amp;L is a hypothesis scorecard, not broker P&amp;L. It excludes borrow fees, dividends, financing costs, taxes, slippage, locates, and corporate actions.</p>
+    <p class="short-alpha-note">Entry prices are kept on a split-adjusted basis. Borrow is an IBKR feed field; missing means pending, never zero.</p>
     <div class="short-alpha-book">${filtered.length ? filtered.map(x => renderRow(x, maps)).join('') : '<div class="short-alpha-empty">No short ideas match this partition.</div>'}</div>`;
   }
   function mergedExport(payload) {
@@ -174,8 +169,8 @@
       const form = new FormData(event.currentTarget);
       const ticker = String(form.get('ticker') || '').trim().toUpperCase();
       const shares = Number(form.get('shares'));
-      const exposure = Number(form.get('exposure'));
-      if (!ticker || !(shares > 0) || !(exposure > 0)) return;
+      const openedPrice = Number(form.get('opened_price'));
+      if (!ticker || !(shares > 0) || !(openedPrice > 0)) return;
       if ((payload.ideas || []).some(idea => idea.ticker === ticker)) {
         const status = event.currentTarget.querySelector('[data-short-add-status]');
         if (status) status.textContent = `${ticker} is already in the repository ledger. Add a check-in to its existing row.`;
@@ -186,11 +181,12 @@
       const custom = read(CUSTOM_KEY, []).filter(x => x.ticker !== ticker);
       custom.push({
         ticker, security_name: String(form.get('security_name') || ticker), instrument_type: String(form.get('instrument_type') || 'operating_company'),
-        position: { shares: -Math.abs(shares), initial_exposure_usd: exposure, baseline_price: exposure / Math.abs(shares), baseline_date: new Date().toISOString().slice(0,10) },
+        position: { shares: -Math.abs(shares), opened_price: openedPrice, opened_date: new Date().toISOString().slice(0,10), split_adjustment_factor: 1, split_adjusted_open_price: openedPrice },
         frameworks: [frameworkId], primary_framework: frameworkId, hypothesis: String(form.get('hypothesis') || ''), catalysts: [], falsifiers: [],
         research: { status: 'browser_draft', ic: 'not_ready', next_step: 'Promote the exported draft to the repository ledger and begin evidence collection.' },
         sources: sourceUrl ? [{ type: String(form.get('source_type') || 'internal_analysis'), label: 'Initial source', url: sourceUrl }] : [],
-        check_ins: [{ date: new Date().toISOString().slice(0,10), price: exposure / Math.abs(shares), hypothesis_state: 'open', note: 'Browser draft baseline.' }],
+        borrow: { status: 'pending', source: 'IBKR borrow feed', message: 'Awaiting the next IBKR borrow refresh.' },
+        check_ins: [{ date: new Date().toISOString().slice(0,10), price: openedPrice, hypothesis_state: 'open', note: 'Browser draft baseline.' }],
         artifact_status: { completion_pct: 0 },
       });
       write(CUSTOM_KEY, custom); rerender();
@@ -208,8 +204,13 @@
     });
     container.querySelector('[data-short-reset]')?.addEventListener('click', () => {
       if (!window.confirm('Remove all browser-only Short Alpha drafts and check-ins? The repository ledger is unchanged.')) return;
-      localStorage.removeItem(CUSTOM_KEY); localStorage.removeItem(CHECKINS_KEY); rerender();
+      localStorage.removeItem(CUSTOM_KEY); localStorage.removeItem(CHECKINS_KEY); localStorage.removeItem(REMOVED_KEY); rerender();
     });
+    container.querySelectorAll('[data-short-remove]').forEach(button => button.addEventListener('click', () => {
+      const ticker = button.dataset.shortRemove;
+      if (!window.confirm(`Remove ${ticker} from this browser's Short Alpha dashboard? You can restore it with Reset browser drafts.`)) return;
+      write(REMOVED_KEY, [...new Set([...read(REMOVED_KEY, []), ticker])]); rerender();
+    }));
   }
   global.ShortAlphaViz = { render, attach, getIdeas };
 })(window);

@@ -24,15 +24,14 @@ def source() -> dict:
 
 def test_initial_short_alpha_book_compiles() -> None:
     payload = MODULE.build()
-    assert payload["summary"]["position_count"] == 8
-    assert payload["summary"]["gross_short_exposure_usd"] == 69_746
+    assert payload["summary"]["position_count"] == 7
     assert {row["ticker"] for row in payload["ideas"]} == {
-        "ASPN", "WEST", "EQPT", "FLUX", "XTIA", "EFOR", "LBRDK", "ECHX"
+        "ASPN", "WEST", "EQPT", "FLUX", "XTIA", "EFOR", "LBRDK"
     }
-    echx = next(row for row in payload["ideas"] if row["ticker"] == "ECHX")
-    assert echx["instrument_type"] == "leveraged_etf"
-    assert echx["underlying"] == "ECHO"
-    assert echx["primary_framework"] == "structural_decay"
+    assert "gross_short_exposure_usd" not in payload["summary"]
+    assert "tracked_pnl_usd" not in payload["summary"]
+    assert payload["ideas"][0]["position"]["split_adjusted_open_price"] > 0
+    assert payload["ideas"][0]["borrow"]["status"] == "pending"
 
 
 def test_primary_framework_must_be_assigned() -> None:
