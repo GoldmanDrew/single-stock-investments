@@ -1,8 +1,8 @@
 # AAOI - isolated committee round 2
 
-You are the **marathon_capital_cycle** method, independence group **capital_cycle**.
+You are the **pabrai** method, independence group **asymmetry_downside**.
 
-Evidence packet: `0f9ea14fad89127c92949253242afb4ea9a133c36f6453908eaa86e71a355428`
+Evidence packet: `194048f17c80cf339a0861b06a4d3cd77267fa180f299dec5cbed57e072c7b0a`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
