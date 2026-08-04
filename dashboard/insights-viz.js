@@ -2008,7 +2008,48 @@
     return out;
   }
 
-  function hkLogChart(doc, width, height) {
+  function hkSmoothSeries(pts, windowSize) {
+    const win = Math.max(1, windowSize || 7);
+    if (!pts || pts.length <= 2) return pts || [];
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = Math.max(0, i - Math.floor(win / 2));
+      const b = Math.min(pts.length, a + win);
+      let sum = 0;
+      let n = 0;
+      for (let j = a; j < b; j++) {
+        if (Number.isFinite(pts[j].v)) {
+          sum += pts[j].v;
+          n += 1;
+        }
+      }
+      out.push({ d: pts[i].d, v: n ? sum / n : pts[i].v });
+    }
+    return out;
+  }
+
+  function hkFilterByTime(pts, tMin, tMax, parse) {
+    return (pts || []).filter((p) => {
+      const t = parse(p.d);
+      return Number.isFinite(t) && t >= tMin && t <= tMax && Number.isFinite(p.v);
+    });
+  }
+
+  function hkBandPath(floorPts, premPts, xScale, yScale, parse) {
+    if (!floorPts.length || !premPts.length) return '';
+    const n = Math.min(floorPts.length, premPts.length);
+    const top = [];
+    const bot = [];
+    for (let i = 0; i < n; i++) {
+      top.push(`${i ? 'L' : 'M'}${xScale(parse(floorPts[i].d)).toFixed(1)},${yScale(floorPts[i].v).toFixed(1)}`);
+      bot.push(`L${xScale(parse(premPts[n - 1 - i].d)).toFixed(1)},${yScale(premPts[n - 1 - i].v).toFixed(1)}`);
+    }
+    return `<path d="${top.join(' ')} ${bot.join(' ')} Z" fill="rgba(248,113,113,0.14)" stroke="none" />`;
+  }
+
+  function hkLogChart(doc, opts) {
+    const options = opts || {};
+    const zoom = options.zoom === 'full' ? 'full' : 'recent';
     const demand = (doc && doc.demand) || {};
     const supply = (doc && doc.supply) || {};
     const hkRef = (doc && doc.hk_reference) || {};
@@ -2017,44 +2058,60 @@
     const costPath = supply.cost_path || [];
     const supplyCurve = supply.curve || [];
     const spot = ((doc && doc.spot) || {}).btc_usd;
-    const w = width || 1000;
-    const h = height || 420;
-    const pad = { t: 28, r: 72, b: 40, l: 64 };
-    const Y_FLOOR = 1;
-    const ptsA = hkDownsample((actual || []).filter((p) => p && p.v >= Y_FLOOR && p.d), 360);
-    const ptsM = hkDownsample((model || []).filter((p) => p && p.v >= Y_FLOOR && p.d), 240);
-    if (!ptsA.length && !ptsM.length) {
+    const dial = (doc && doc.dial) || {};
+    const w = options.width || 920;
+    const h = options.height || 540;
+    const pad = { t: 22, r: 18, b: 36, l: 58 };
+    const Y_FLOOR = zoom === 'full' ? 1 : 100;
+    const parse = (d) => Date.parse(String(d) + 'T00:00:00Z');
+
+    let rawA = (actual || []).filter((p) => p && p.v >= Y_FLOOR && p.d);
+    let rawM = (model || []).filter((p) => p && p.v >= Y_FLOOR && p.d);
+    if (!rawA.length && !rawM.length) {
       return '<p class="tier-sub">No price path yet. Run fetch_crypto_panel.py.</p>';
     }
-    const parse = (d) => Date.parse(String(d) + 'T00:00:00Z');
-    const all = ptsA.concat(ptsM);
-    let tMin = Math.min(...all.map((p) => parse(p.d)));
-    let tMax = Math.max(...all.map((p) => parse(p.d)));
+
     const halvingIso = ((supply.assumptions || {}).next_halving) || '2028-04-15';
     const halvingT = parse(halvingIso);
+    let tMin = Math.min(...rawA.concat(rawM).map((p) => parse(p.d)));
+    let tMax = Math.max(...rawA.concat(rawM).map((p) => parse(p.d)));
     if (Number.isFinite(halvingT)) tMax = Math.max(tMax, halvingT);
+    if (zoom === 'recent') {
+      const recentStart = parse('2017-01-01');
+      if (Number.isFinite(recentStart)) tMin = Math.max(tMin, recentStart);
+    }
+    if (!(tMax > tMin)) tMax = tMin + 1;
 
-    const floorSeries = hkDownsample((costPath.length
+    rawA = hkFilterByTime(rawA, tMin, tMax, parse);
+    rawM = hkFilterByTime(rawM, tMin, tMax, parse);
+    const ptsA = hkDownsample(rawA, zoom === 'full' ? 360 : 280);
+    const ptsM = hkDownsample(rawM, zoom === 'full' ? 240 : 200);
+
+    const rawFloor = (costPath.length
       ? costPath.map((p) => ({ d: p.d || p.date, v: Number(p.v || p.all_in_cost_usd) }))
       : supplyCurve.map((p) => ({ d: p.date, v: Number(p.all_in_cost_usd) }))
-    ).filter((p) => p.d && p.v >= 1000), 120);
+    ).filter((p) => p.d && p.v >= 1000);
     const premMult = Number((supply.assumptions || {}).premium_multiple) || 1.75;
-    const premSeries = hkDownsample((costPath.length
+    const rawPrem = (costPath.length
       ? costPath.map((p) => ({
         d: p.d || p.date,
         v: Number(p.v || p.all_in_cost_usd) * premMult,
       }))
       : supplyCurve.map((p) => ({ d: p.date, v: Number(p.premium_band_usd || p.all_in_cost_usd) }))
-    ).filter((p) => p.d && p.v >= 1000), 120);
+    ).filter((p) => p.d && p.v >= 1000);
 
-    if (!(tMax > tMin)) tMax = tMin + 1;
+    const floorSeries = hkDownsample(
+      hkSmoothSeries(hkFilterByTime(rawFloor, tMin, tMax, parse), 14),
+      90,
+    );
+    const premSeries = hkDownsample(
+      hkSmoothSeries(hkFilterByTime(rawPrem, tMin, tMax, parse), 14),
+      90,
+    );
 
-    let vMin = Math.min(...all.map((p) => p.v));
-    let vMax = Math.max(...all.map((p) => p.v));
-    [...floorSeries, ...premSeries].forEach((p) => {
-      vMin = Math.min(vMin, p.v);
-      vMax = Math.max(vMax, p.v);
-    });
+    const allVals = ptsA.concat(ptsM).concat(floorSeries).concat(premSeries).map((p) => p.v);
+    let vMin = allVals.length ? Math.min(...allVals) : Y_FLOOR;
+    let vMax = allVals.length ? Math.max(...allVals) : Y_FLOOR * 10;
     if (hkRef.model_2028) vMax = Math.max(vMax, Number(hkRef.model_2028));
     if (hkRef.supply_high) vMax = Math.max(vMax, Number(hkRef.supply_high));
     if (spot && spot > 0) {
@@ -2062,8 +2119,8 @@
       vMax = Math.max(vMax, spot);
     }
     vMin = Math.max(vMin, Y_FLOOR);
-    const logMin = Math.log10(vMin) - 0.05;
-    const logMax = Math.log10(vMax) + 0.08;
+    const logMin = Math.log10(vMin) - 0.04;
+    const logMax = Math.log10(vMax) + 0.1;
     const xScale = (t) => pad.l + ((t - tMin) / (tMax - tMin)) * (w - pad.l - pad.r);
     const yScale = (v) => {
       const lv = Math.log10(Math.max(v, Y_FLOOR));
@@ -2084,60 +2141,84 @@
       const v = Math.pow(10, e);
       if (v >= Y_FLOOR) yTicks.push(v);
     }
-    const tickVals = yTicks.length > 8 ? yTicks.filter((v) => Math.log10(v) % 1 === 0) : yTicks;
+    const guideLevels = [150000, 250000, 270000].filter((v) => v > vMin && v <= vMax * 1.05);
 
     const asOfT = doc.as_of ? parse(doc.as_of) : Date.now();
     const spotX = xScale(Math.min(tMax, Number.isFinite(asOfT) ? asOfT : Date.now()));
     const spotMark = spot && spot > 0
-      ? `<circle cx="${spotX.toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="5" fill="#60a5fa" stroke="#0b1220" stroke-width="1.5" />
-         <text x="${(spotX + 8).toFixed(1)}" y="${(yScale(spot) - 8).toFixed(1)}" font-size="12" font-weight="600" fill="#93c5fd">${hkFmtUsd(spot)}</text>`
+      ? `<circle cx="${spotX.toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="5.5" fill="#60a5fa" stroke="#0b1220" stroke-width="2" />`
       : '';
-    const halvingGuide = Number.isFinite(halvingT)
-      ? `<line x1="${xScale(halvingT).toFixed(1)}" y1="${pad.t}" x2="${xScale(halvingT).toFixed(1)}" y2="${h - pad.b}" stroke="rgba(255,255,255,0.28)" stroke-width="1.25" stroke-dasharray="4 4" />
-         <text x="${xScale(halvingT).toFixed(1)}" y="${(pad.t + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.75">Next halving</text>`
+    const halvingGuide = Number.isFinite(halvingT) && halvingT >= tMin && halvingT <= tMax
+      ? `<line x1="${xScale(halvingT).toFixed(1)}" y1="${pad.t}" x2="${xScale(halvingT).toFixed(1)}" y2="${h - pad.b}" stroke="rgba(255,255,255,0.22)" stroke-width="1.25" stroke-dasharray="4 4" />
+         <text x="${xScale(halvingT).toFixed(1)}" y="${(h - pad.b + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7">Apr 2028</text>`
       : '';
-    const hkMarker = hkRef.model_2028 && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.model_2028)).toFixed(1)}" r="5" fill="#f472b6" stroke="#0b1220" stroke-width="1.5" />
-         <text x="${(xScale(halvingT) - 8).toFixed(1)}" y="${(yScale(Number(hkRef.model_2028)) - 10).toFixed(1)}" text-anchor="end" font-size="12" font-weight="600" fill="#f9a8d4">HK ${hkFmtUsd(hkRef.model_2028)}</text>`
+    const hkDot = hkRef.model_2028 && Number.isFinite(halvingT) && halvingT >= tMin
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.model_2028)).toFixed(1)}" r="5" fill="#f472b6" stroke="#0b1220" stroke-width="1.5" />`
       : '';
-    const bandLo = hkRef.supply_low && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_low)).toFixed(1)}" r="3.5" fill="#f87171" />
-         <text x="${(xScale(halvingT) + 8).toFixed(1)}" y="${(yScale(Number(hkRef.supply_low)) + 4).toFixed(1)}" font-size="11" fill="#fca5a5">${hkFmtUsd(hkRef.supply_low)}</text>`
+    const bandLoDot = hkRef.supply_low && Number.isFinite(halvingT) && halvingT >= tMin
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_low)).toFixed(1)}" r="3.5" fill="#f87171" opacity="0.9" />`
       : '';
-    const bandHi = hkRef.supply_high && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_high)).toFixed(1)}" r="3.5" fill="#34d399" />
-         <text x="${(xScale(halvingT) + 8).toFixed(1)}" y="${(yScale(Number(hkRef.supply_high)) + 4).toFixed(1)}" font-size="11" fill="#6ee7b7">${hkFmtUsd(hkRef.supply_high)}</text>`
+    const bandHiDot = hkRef.supply_high && Number.isFinite(halvingT) && halvingT >= tMin
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_high)).toFixed(1)}" r="3.5" fill="#34d399" opacity="0.9" />`
       : '';
 
-    return `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price versus demand model and cost floor">
+    const residual = dial.spot_vs_model_pct;
+    const residualTxt = residual != null && Number.isFinite(Number(residual))
+      ? `${Number(residual) > 0 ? '+' : ''}${Number(residual).toFixed(0)}% vs model`
+      : '';
+    const floorNow = floorSeries.length ? floorSeries[floorSeries.length - 1].v : supply.halving_2028_cost_usd;
+    const premNow = premSeries.length ? premSeries[premSeries.length - 1].v : supply.halving_2028_premium_band_usd;
+    const modelNow = demand.model_price_as_of;
+
+    const rail = `<aside class="hk-callout-rail" aria-label="Key levels">
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:#60a5fa"></span><div><div class="hk-callout-label">Spot now</div><div class="hk-callout-value">${hkFmtUsd(spot)}</div><div class="hk-callout-sub">${residualTxt || '—'}</div></div></div>
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:#fbbf24"></span><div><div class="hk-callout-label">Demand model</div><div class="hk-callout-value">${hkFmtUsd(modelNow)}</div><div class="hk-callout-sub">as of ${String(doc.as_of || '—')}</div></div></div>
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:#f87171"></span><div><div class="hk-callout-label">Cost floor</div><div class="hk-callout-value">${hkFmtUsd(floorNow)}</div><div class="hk-callout-sub">smoothed live</div></div></div>
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:#34d399"></span><div><div class="hk-callout-label">Cost +75%</div><div class="hk-callout-value">${hkFmtUsd(premNow)}</div><div class="hk-callout-sub">premium band</div></div></div>
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:#f472b6"></span><div><div class="hk-callout-label">HK 2028</div><div class="hk-callout-value">${hkFmtUsd(hkRef.model_2028)}</div><div class="hk-callout-sub">quote target</div></div></div>
+      <div class="hk-callout"><span class="hk-callout-swatch" style="background:linear-gradient(180deg,#34d399,#f87171)"></span><div><div class="hk-callout-label">2028 supply band</div><div class="hk-callout-value">${hkFmtUsd(hkRef.supply_low)}–${hkFmtUsd(hkRef.supply_high)}</div><div class="hk-callout-sub">HK reference</div></div></div>
+    </aside>`;
+
+    const svg = `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price versus demand model and cost band">
       <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="rgba(255,255,255,0.02)" />
-      ${tickVals.map((v) => {
+      ${yTicks.map((v) => {
         const y = yScale(v);
-        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.07)" />
-          <text x="${pad.l - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="currentColor" opacity="0.7">${hkFmtAxisUsd(v)}</text>`;
+        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.08)" />
+          <text x="${pad.l - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="currentColor" opacity="0.75">${hkFmtAxisUsd(v)}</text>`;
+      }).join('')}
+      ${guideLevels.map((v) => {
+        const y = yScale(v);
+        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(244,114,182,0.28)" stroke-dasharray="3 5" />
+          <text x="${pad.l + 6}" y="${(y - 4).toFixed(1)}" font-size="10" fill="#f9a8d4" opacity="0.85">${hkFmtAxisUsd(v)}</text>`;
       }).join('')}
       ${years.map((y) => {
         const t = Date.parse(y + '-01-01T00:00:00Z');
         if (t < tMin || t > tMax) return '';
-        if ((y1 - y0) > 10 && y % 2 !== 0) return '';
+        const span = y1 - y0;
+        if (span > 12 && y % 2 !== 0) return '';
         const x = xScale(t);
-        return `<text x="${x.toFixed(1)}" y="${h - 14}" text-anchor="middle" font-size="12" fill="currentColor" opacity="0.7">${y}</text>`;
+        return `<text x="${x.toFixed(1)}" y="${h - 12}" text-anchor="middle" font-size="12" fill="currentColor" opacity="0.72">${y}</text>`;
       }).join('')}
       ${halvingGuide}
-      ${poly(floorSeries, '#f87171', 2, '5 4', 0.85)}
-      ${poly(premSeries, '#34d399', 2, '3 4', 0.8)}
-      ${poly(ptsM, '#fbbf24', 2.5, '8 5', 0.95)}
-      ${poly(ptsA, '#60a5fa', 2.75)}
+      ${hkBandPath(floorSeries, premSeries, xScale, yScale, parse)}
+      ${poly(floorSeries, '#f87171', 1.75, null, 0.7)}
+      ${poly(premSeries, '#34d399', 1.75, '5 4', 0.75)}
+      ${poly(ptsM, '#fbbf24', 3.25, '9 5', 0.98)}
+      ${poly(ptsA, '#60a5fa', 3.4)}
       ${spotMark}
-      ${hkMarker}
-      ${bandLo}
-      ${bandHi}
-    </svg>
+      ${hkDot}
+      ${bandLoDot}
+      ${bandHiDot}
+    </svg>`;
+
+    return `<div class="hk-chart-layout">
+      <div class="hk-chart-main">${svg}</div>
+      ${rail}
+    </div>
     <div class="hk-legend">
       <span><i class="actual"></i>BTC spot</span>
       <span><i class="model"></i>Demand model</span>
-      <span><i class="floor"></i>Cost floor</span>
-      <span><i class="premium"></i>Cost +75%</span>
+      <span><i class="floor"></i>Cost band (floor → +75%)</span>
       <span><i class="hkref"></i>HK 2028 refs</span>
     </div>`;
   }
@@ -2166,7 +2247,7 @@
       if (Number.isFinite(ms)) daysToHalving = `${Math.max(0, Math.round(ms / 86400000))} days`;
     } catch (_) { /* ignore */ }
     const kTxt = fit.k != null
-      ? `${Number(fit.k).toFixed(2)}${fit.r2_log != null ? ` (R² ${Number(fit.r2_log).toFixed(2)})` : ''}`
+      ? `${Number(fit.k).toFixed(2)}${fit.r2_log != null ? ` · R² ${Number(fit.r2_log).toFixed(2)}` : ''}`
       : '—';
     return `<details class="wm-panel hk-snowball" open>
       <summary>BTC snowball (HK) <span class="tier-sub">Demand path · cost floor</span></summary>
@@ -2204,15 +2285,21 @@
         </div>
       </div>
       <div class="hk-snowball-grid">
-        <div class="hk-snowball-card">
-          <h4>BTC log path</h4>
-          ${hkLogChart(doc)}
+        <div class="hk-snowball-card" data-hk-chart-root>
+          <div class="hk-chart-header">
+            <h4>BTC log path</h4>
+            <div class="hk-zoom-toggle" role="group" aria-label="Chart time range">
+              <button type="button" class="filter-btn source-pill active" data-hk-zoom="recent">2017–2028</button>
+              <button type="button" class="filter-btn source-pill" data-hk-zoom="full">Full history</button>
+            </div>
+          </div>
+          <div class="hk-zoom-panel" data-hk-zoom-panel="recent">${hkLogChart(doc, { zoom: 'recent' })}</div>
+          <div class="hk-zoom-panel" data-hk-zoom-panel="full" hidden>${hkLogChart(doc, { zoom: 'full' })}</div>
         </div>
       </div>
       <p class="tier-sub" style="margin-top:10px">${escapeHtml(doc.disclaimer || 'Context only. Not a trade signal. Not in base IRR.')}</p>
     </details>`;
   }
-
   function renderWorldModelStrip(worldModel, escapeHtml, hkSnowball) {
     const strip = worldModel && worldModel.strip;
     if (!strip) {
@@ -2562,6 +2649,19 @@
         root.querySelectorAll('[data-wm-kpi-mode]').forEach(b => b.classList.toggle('active', b === btn));
         root.querySelectorAll('[data-wm-kpi-panel]').forEach(panel => {
           if (panel.getAttribute('data-wm-kpi-panel') === mode) panel.removeAttribute('hidden');
+          else panel.setAttribute('hidden', '');
+        });
+      });
+    });
+    container.querySelectorAll('[data-hk-zoom]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const mode = btn.getAttribute('data-hk-zoom');
+        const root = btn.closest('[data-hk-chart-root]') || container;
+        root.querySelectorAll('[data-hk-zoom]').forEach(b => b.classList.toggle('active', b === btn));
+        root.querySelectorAll('[data-hk-zoom-panel]').forEach(panel => {
+          if (panel.getAttribute('data-hk-zoom-panel') === mode) panel.removeAttribute('hidden');
           else panel.setAttribute('hidden', '');
         });
       });
