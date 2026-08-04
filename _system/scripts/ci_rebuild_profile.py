@@ -107,6 +107,8 @@ PROFILES: dict[str, list[list[str]]] = {
     ],
     "world-model-weekly": [
         ["_system/scripts/fetch_theme_panel.py"],
+        ["_system/scripts/fetch_crypto_panel.py"],
+        ["_system/scripts/build_hk_snowball_model.py"],
         ["_system/scripts/scaffold_industry_kpi_ledgers.py", "--write"],
         ["_system/scripts/resolve_linkages.py", "--update-ledgers"],
         [

@@ -1973,12 +1973,172 @@
     };
   }
 
-  function renderWorldModelStrip(worldModel, escapeHtml) {
+  function hkFmtUsd(v, digits) {
+    if (v == null || !Number.isFinite(Number(v))) return '—';
+    const n = Number(v);
+    if (Math.abs(n) >= 1000) return '$' + n.toLocaleString(undefined, { maximumFractionDigits: digits != null ? digits : 0 });
+    return '$' + n.toLocaleString(undefined, { maximumFractionDigits: digits != null ? digits : 2 });
+  }
+
+  function hkLogChart(actual, model, supplyCurve, spot, width, height) {
+    const w = width || 520;
+    const h = height || 200;
+    const pad = { t: 12, r: 12, b: 28, l: 52 };
+    const ptsA = (actual || []).filter((p) => p && p.v > 0 && p.d);
+    const ptsM = (model || []).filter((p) => p && p.v > 0 && p.d);
+    if (!ptsA.length && !ptsM.length) {
+      return '<p class="tier-sub">No price path yet. Run fetch_crypto_panel.py then build_hk_snowball_model.py.</p>';
+    }
+    const all = ptsA.concat(ptsM);
+    const parse = (d) => Date.parse(d + 'T00:00:00Z');
+    let tMin = Math.min(...all.map((p) => parse(p.d)));
+    let tMax = Math.max(...all.map((p) => parse(p.d)));
+    const curve = (supplyCurve || []).filter((p) => p && p.all_in_cost_usd > 0);
+    curve.forEach((p) => {
+      const t = parse(p.date);
+      if (Number.isFinite(t)) {
+        tMin = Math.min(tMin, t);
+        tMax = Math.max(tMax, t);
+      }
+    });
+    if (!(tMax > tMin)) tMax = tMin + 1;
+    let vMin = Math.min(...all.map((p) => p.v));
+    let vMax = Math.max(...all.map((p) => p.v));
+    curve.forEach((p) => {
+      vMin = Math.min(vMin, p.all_in_cost_usd, p.premium_band_usd || p.all_in_cost_usd);
+      vMax = Math.max(vMax, p.all_in_cost_usd, p.premium_band_usd || p.all_in_cost_usd);
+    });
+    if (spot && spot > 0) {
+      vMin = Math.min(vMin, spot);
+      vMax = Math.max(vMax, spot);
+    }
+    vMin = Math.max(vMin, 1e-6);
+    const logMin = Math.log10(vMin);
+    const logMax = Math.log10(vMax);
+    const xScale = (t) => pad.l + ((t - tMin) / (tMax - tMin)) * (w - pad.l - pad.r);
+    const yScale = (v) => {
+      const lv = Math.log10(Math.max(v, 1e-6));
+      return pad.t + (1 - (lv - logMin) / Math.max(logMax - logMin, 1e-9)) * (h - pad.t - pad.b);
+    };
+    const poly = (pts, stroke, widthPx, dash) => {
+      if (!pts.length) return '';
+      const d = pts.map((p, i) => `${i ? 'L' : 'M'}${xScale(parse(p.d)).toFixed(1)},${yScale(p.v).toFixed(1)}`).join(' ');
+      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${widthPx}" ${dash ? `stroke-dasharray="${dash}"` : ''} />`;
+    };
+    const floorPts = curve.map((p) => ({ d: p.date, v: p.all_in_cost_usd }));
+    const premPts = curve.map((p) => ({ d: p.date, v: p.premium_band_usd || p.all_in_cost_usd }));
+    const years = [];
+    const d0 = new Date(tMin);
+    const d1 = new Date(tMax);
+    for (let y = d0.getUTCFullYear(); y <= d1.getUTCFullYear(); y += 2) {
+      years.push(y);
+    }
+    const yTicks = [];
+    for (let e = Math.floor(logMin); e <= Math.ceil(logMax); e++) {
+      yTicks.push(Math.pow(10, e));
+    }
+    const spotMark = spot && spot > 0
+      ? `<circle cx="${xScale(tMax).toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="3.5" fill="#60a5fa" />`
+      : '';
+    return `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price vs power-law model and cost floor">
+      ${yTicks.map((v) => {
+        const y = yScale(v);
+        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" />
+          <text x="${pad.l - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="currentColor" opacity="0.55">${v >= 1000 ? (v / 1000) + 'k' : v}</text>`;
+      }).join('')}
+      ${years.map((y) => {
+        const t = Date.parse(y + '-01-01T00:00:00Z');
+        if (t < tMin || t > tMax) return '';
+        const x = xScale(t);
+        return `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.55">${y}</text>`;
+      }).join('')}
+      ${poly(floorPts, '#f87171', 1.5, '4 3')}
+      ${poly(premPts, '#34d399', 1.25, '2 3')}
+      ${poly(ptsM, '#fbbf24', 1.75, '6 4')}
+      ${poly(ptsA, '#60a5fa', 1.8)}
+      ${spotMark}
+    </svg>
+    <div class="hk-legend">
+      <span><i class="actual"></i>BTC spot (log)</span>
+      <span><i class="model"></i>Demand power law</span>
+      <span><i class="floor"></i>Cost floor</span>
+      <span><i class="premium"></i>Premium band</span>
+    </div>`;
+  }
+
+  function hkMilestoneBars(btcStops, amznStops, escapeHtml) {
+    const rows = (btcStops || []).filter((s) => s.time_frac < 1).map((s) => {
+      const amzn = (amznStops || []).find((a) => Math.abs(a.time_frac - s.time_frac) < 0.001);
+      const btcPct = Math.max(0, Math.min(Number(s.pct_of_terminal) || 0, 100));
+      const amznPct = amzn ? Math.max(0, Math.min(Number(amzn.pct_of_terminal) || 0, 100)) : null;
+      return `<div class="hk-bar-row">
+        <span class="mono">${escapeHtml(String(Math.round(s.time_frac * 100)))}% time</span>
+        <div>
+          <div class="hk-bar-track" title="BTC % of terminal"><div class="hk-bar-fill" style="width:${btcPct}%"></div></div>
+          ${amznPct != null ? `<div class="hk-bar-track" title="AMZN % of terminal" style="margin-top:3px"><div class="hk-bar-fill amzn" style="width:${amznPct}%"></div></div>` : ''}
+        </div>
+        <span class="mono tier-sub">${escapeHtml(String(Math.round(btcPct)))}%${amznPct != null ? ' / ' + Math.round(amznPct) + '%' : ''}</span>
+      </div>`;
+    }).join('');
+    return `${rows || '<p class="tier-sub">No milestones.</p>'}
+      <div class="hk-legend" style="margin-top:8px"><span><i class="actual"></i>BTC % of recent</span><span><i class="model"></i>AMZN % of recent</span></div>
+      <p class="tier-sub">At halfway through time, most of the dollar gain is still ahead — the snowball lesson.</p>`;
+  }
+
+  function renderHkSnowballPanel(doc, escapeHtml) {
+    if (!doc || !doc.demand) {
+      return `<details class="wm-panel hk-snowball">
+        <summary>Compounding snowball (HK lens)</summary>
+        <p class="tier-sub">No model JSON yet. Run: <code>python _system/scripts/fetch_crypto_panel.py</code></p>
+      </details>`;
+    }
+    const dial = doc.dial || {};
+    const demand = doc.demand || {};
+    const supply = doc.supply || {};
+    const fit = demand.fit || {};
+    const dialCls = dial.label === 'on_schedule' ? 'badge-ok'
+      : (dial.label === 'below_cost_floor' ? 'badge-bad' : 'badge-warn');
+    const chart = hkLogChart(
+      demand.actual_path,
+      demand.model_path,
+      supply.curve,
+      (doc.spot || {}).btc_usd,
+    );
+    const btcStops = ((doc.milestones || {}).btc || {}).stops || [];
+    const amznStops = ((doc.milestones || {}).amzn || {}).stops || [];
+    return `<details class="wm-panel hk-snowball" open>
+      <summary>Compounding snowball (HK lens) <span class="tier-sub">BTC power law · cost floor</span></summary>
+      <div class="hk-snowball-glance">
+        <span class="badge ${dialCls}">${escapeHtml(dial.label || 'n/a')}</span>
+        <span class="mono">spot ${escapeHtml(hkFmtUsd((doc.spot || {}).btc_usd))}</span>
+        <span class="mono">model ${escapeHtml(hkFmtUsd(demand.model_price_as_of))}</span>
+        <span class="mono">2028 model ${escapeHtml(hkFmtUsd(demand.model_price_2028_04_15))}</span>
+        <span class="mono">2028 floor ${escapeHtml(hkFmtUsd(supply.halving_2028_cost_usd))} → band ${escapeHtml(hkFmtUsd(supply.halving_2028_premium_band_usd))}</span>
+        ${fit.k != null ? `<span class="tier-sub">k=${escapeHtml(String(fit.k))}${fit.r2_log != null ? ' · R²(log)=' + Number(fit.r2_log).toFixed(3) : ''}</span>` : ''}
+        ${doc.as_of ? `<span class="mono tier-sub">${escapeHtml(String(doc.as_of))}</span>` : ''}
+      </div>
+      <p class="tier-sub">${escapeHtml(dial.plain_english || demand.interpretation || '')}</p>
+      <div class="hk-snowball-grid">
+        <div class="hk-snowball-card">
+          <h4>Log price vs demand path + supply band</h4>
+          ${chart}
+        </div>
+        <div class="hk-snowball-card">
+          <h4>Time vs value milestones (BTC / AMZN)</h4>
+          ${hkMilestoneBars(btcStops, amznStops, escapeHtml)}
+        </div>
+      </div>
+      <p class="tier-sub" style="margin-top:10px">${escapeHtml(doc.disclaimer || '')}</p>
+    </details>`;
+  }
+
+  function renderWorldModelStrip(worldModel, escapeHtml, hkSnowball) {
     const strip = worldModel && worldModel.strip;
     if (!strip) {
       return `<div class="detail-section world-model-strip">
         <h3>World Model</h3>
         <p class="tier-sub">No snapshot yet. Run: python _system/scripts/build_world_model_snapshot.py</p>
+        ${renderHkSnowballPanel(hkSnowball, escapeHtml)}
       </div>`;
     }
 
@@ -2230,6 +2390,8 @@
           </div>
           ${stance ? `<p class="wm-stance">${escapeHtml(stance)}</p>` : ''}
         </div>
+
+        ${renderHkSnowballPanel(hkSnowball, escapeHtml)}
 
         ${attentionTable}
 
@@ -4337,6 +4499,7 @@
       portfolioMacro = [],
       portfolioMacroRegime = null,
       worldModel = null,
+      hkSnowball = null,
       tickerSourceFilter = 'ownership',
       podcastShowId = 'all',
       podcastFlagFilter = 'all',
@@ -4507,7 +4670,7 @@
         pdfTimeMode,
       });
     } else if (activeSection === 'tickers') {
-      body = renderWorldModelStrip(worldModel, escapeHtml)
+      body = renderWorldModelStrip(worldModel, escapeHtml, hkSnowball)
         + renderPortfolioMacroStrip(portfolioMacroRegime, escapeHtml, linkHtml, portfolioMacro)
         + renderTickerEssentials(tickers, escapeHtml, linkHtml, {
           search: fundSearch,

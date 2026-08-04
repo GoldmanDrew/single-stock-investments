@@ -491,6 +491,14 @@ def main() -> int:
         f"cards={strip['counts']['prediction_cards']} "
         f"superorgs={strip['counts']['superorgs']}"
     )
+    # Best-effort HK snowball companion JSON (uses crypto CSVs if present)
+    try:
+        from build_hk_snowball_model import build as build_snowball  # noqa: WPS433
+
+        snow_path = build_snowball()
+        print(f"wrote {snow_path.relative_to(wm.ROOT)}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"hk_snowball_model skipped: {exc}")
     return 0
 
 

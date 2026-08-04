@@ -57,18 +57,30 @@ def write_csv(path: Path, rows: list[tuple[str, float]]) -> None:
             w.writerow([d, v])
 
 
-def fetch_yahoo_daily(symbol: str) -> tuple[list[tuple[str, float]], str | None]:
+def fetch_yahoo_chart(
+    symbol: str,
+    *,
+    history_start: str | None = None,
+    lookback_days: int = 400,
+    interval: str = "1d",
+) -> tuple[list[tuple[str, float]], str | None]:
     from datetime import timedelta
 
     end = datetime.now(timezone.utc)
-    start = end - timedelta(days=400)
+    if history_start:
+        try:
+            start = datetime.fromisoformat(history_start).replace(tzinfo=timezone.utc)
+        except ValueError:
+            start = end - timedelta(days=lookback_days)
+    else:
+        start = end - timedelta(days=lookback_days)
     url = (
         f"{YAHOO_CHART_URL}/{symbol}?period1={int(start.timestamp())}"
-        f"&period2={int(end.timestamp())}&interval=1d"
+        f"&period2={int(end.timestamp())}&interval={interval}"
     )
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
-        payload = json.loads(urllib.request.urlopen(req, timeout=25).read())
+        payload = json.loads(urllib.request.urlopen(req, timeout=45).read())
         result = payload["chart"]["result"][0]
         timestamps = result["timestamp"]
         closes = result["indicators"]["quote"][0]["close"]
@@ -82,6 +94,62 @@ def fetch_yahoo_daily(symbol: str) -> tuple[list[tuple[str, float]], str | None]
         rows.append((d, float(close)))
     rows.sort()
     return rows, (None if rows else "empty")
+
+
+def fetch_yahoo_daily(symbol: str) -> tuple[list[tuple[str, float]], str | None]:
+    """Backward-compatible wrapper (last ~400 daily closes)."""
+    return fetch_yahoo_chart(symbol, lookback_days=400, interval="1d")
+
+
+def fetch_coingecko_btc_history() -> tuple[list[tuple[str, float]], str | None]:
+    """Daily BTC USD history from CoinGecko (covers pre-Yahoo era)."""
+    data = _get_json(f"{COINGECKO}/coins/bitcoin/market_chart?vs_currency=usd&days=max")
+    if not data or not isinstance(data, dict):
+        return [], "network"
+    rows: list[tuple[str, float]] = []
+    for pair in data.get("prices") or []:
+        if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+            continue
+        try:
+            ts_ms = float(pair[0])
+            px = float(pair[1])
+        except (TypeError, ValueError):
+            continue
+        if px <= 0:
+            continue
+        d = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%d")
+        rows.append((d, px))
+    # Keep last close per calendar day
+    by_day: dict[str, float] = {}
+    for d, v in rows:
+        by_day[d] = v
+    out = sorted(by_day.items())
+    return out, (None if out else "empty")
+
+
+def fetch_amzn_weekly() -> tuple[list[tuple[str, float]], str | None]:
+    """Weekly AMZN closes from IPO week (HK snowball comparison series)."""
+    return fetch_yahoo_chart(
+        "AMZN",
+        history_start="1997-05-15",
+        interval="1wk",
+    )
+
+
+def write_amzn_weekly(offline: bool = False) -> Path:
+    equity_dir = ROOT / "_system" / "reference" / "market-data" / "equity"
+    path = equity_dir / "amzn_weekly_usd.csv"
+    cached = read_csv_series(path)
+    if offline:
+        return path
+    rows, _err = fetch_amzn_weekly()
+    if not rows and cached:
+        rows = cached
+    if rows:
+        merged = {d: v for d, v in cached}
+        merged.update({d: v for d, v in rows})
+        write_csv(path, sorted(merged.items()))
+    return path
 
 
 def fetch_mempool_hashrate(period: str = "1w") -> tuple[list[tuple[str, float]], str | None]:
@@ -216,8 +284,22 @@ def process_series(spec: dict, ctx: dict, offline: bool) -> dict:
     if offline:
         rows, err = cached, (None if cached else "offline_no_cache")
     elif src == "yahoo_daily":
-        rows, err = fetch_yahoo_daily(spec.get("yahoo_symbol", ""))
+        rows, err = fetch_yahoo_chart(
+            spec.get("yahoo_symbol", ""),
+            history_start=spec.get("history_start"),
+            lookback_days=int(spec.get("lookback_days") or 400),
+            interval=str(spec.get("interval") or "1d"),
+        )
         source_label = f"yahoo:{spec.get('yahoo_symbol')}"
+        if spec.get("backfill") == "coingecko_btc" and not offline:
+            cg_rows, cg_err = fetch_coingecko_btc_history()
+            if cg_rows:
+                merged_bf = {d: v for d, v in cg_rows}
+                merged_bf.update({d: v for d, v in rows})
+                rows = sorted(merged_bf.items())
+                source_label = f"yahoo:{spec.get('yahoo_symbol')}+coingecko:bitcoin"
+            elif cg_err and not rows:
+                err = err or cg_err
     elif src == "mempool_hashrate":
         rows, err = fetch_mempool_hashrate(spec.get("period", "1w"))
         source_label = "mempool.space:hashrate"
@@ -333,6 +415,12 @@ def build(theme_filter: str | None = None, offline: bool = False) -> dict:
         }
     CRYPTO_DIR.mkdir(parents=True, exist_ok=True)
     (CRYPTO_DIR / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    # AMZN weekly companion series for HK snowball milestones
+    try:
+        amzn_path = write_amzn_weekly(offline=offline)
+        manifest["amzn_weekly_path"] = str(amzn_path.relative_to(ROOT)).replace("\\", "/")
+    except Exception as exc:  # noqa: BLE001 — companion series must not fail crypto panel
+        manifest["amzn_weekly_error"] = str(exc)
     return manifest
 
 
@@ -340,9 +428,18 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--theme", help="Single theme id")
     ap.add_argument("--offline", action="store_true")
+    ap.add_argument("--skip-snowball", action="store_true", help="Do not rebuild HK snowball model JSON")
     args = ap.parse_args()
     build(args.theme, args.offline)
     print(f"Wrote {CRYPTO_DIR / 'manifest.json'}")
+    if not args.skip_snowball:
+        try:
+            from build_hk_snowball_model import build as build_snowball  # noqa: WPS433
+
+            out = build_snowball()
+            print(f"Wrote {out}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"hk_snowball_model skipped: {exc}")
     return 0
 
 
