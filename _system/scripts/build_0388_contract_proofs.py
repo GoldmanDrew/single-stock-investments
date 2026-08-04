@@ -13,14 +13,21 @@ from calculation_proof import evaluate_calculation_proof  # noqa: E402
 from marvin_valuation import cashflows_full, irr  # noqa: E402
 
 TICKER = "0388.HK"
-AS_OF = "2026-07-24"
-SHARES_M = 1264.0
+AS_OF = "2026-08-04"
+SHARES_M = 1267.836895
+SHARES_OUTSTANDING = 1_267_836_895
 FCF0 = 11.0
 YEARS = 7
 
 FILING_AR = "0388.HK/official-reports/annual-reports/annual_report_fy2024.pdf"
+FILING_AR_FY2025 = "0388.HK/investor-documents/ir-0388.hk/260316ar_e.pdf"
 FILING_SR = "0388.HK/investor-documents/ir-0388.hk/260316sr_e.pdf"
 FILING_PRES = "0388.HK/investor-documents/ir-0388.hk/202605_HKEX-IR-Pack_v5-_vF_.pdf"
+SHARES_LOCATOR = (
+    "1,267,836,895 HKEX shares in issue as at 31 December 2025 "
+    "(FY2025 annual report shareholder information; unchanged vs 31 December 2024)"
+)
+SHARES_AS_OF = "2026-03-16"
 
 SCENARIOS = {
     "low": {"growth_y1_5": 0.0, "growth_y6_10": 0.0, "exit_pfcf_y10": 14},
@@ -246,9 +253,9 @@ def reinvestment_proof() -> dict:
                 "Issued shares",
                 SHARES_M,
                 "million shares",
-                FILING_AR,
-                "Issued shares ~1,264M; [HUMAN REVIEW] confirm latest filing count.",
-                "2025-03-17",
+                FILING_AR_FY2025,
+                SHARES_LOCATOR,
+                SHARES_AS_OF,
             ),
         ],
         "assumptions": [
@@ -292,9 +299,9 @@ def net_financial_proof() -> dict:
                 "Issued shares",
                 SHARES_M,
                 "million shares",
-                FILING_AR,
-                "Issued shares ~1,264M; [HUMAN REVIEW] confirm latest filing count.",
-                "2025-03-17",
+                FILING_AR_FY2025,
+                SHARES_LOCATOR,
+                SHARES_AS_OF,
             ),
         ],
         "assumptions": [
@@ -434,8 +441,8 @@ def seed_component_valuation(data: dict) -> None:
                 "and peak-cycle reserve."
             ),
             "unit_label": "ordinary share",
-            "unit_count": int(round(SHARES_M * 1_000_000)),
-            "unit_source": f"{FILING_AR}: issued shares ~{SHARES_M}M",
+            "unit_count": SHARES_OUTSTANDING,
+            "unit_source": f"{FILING_AR_FY2025}: {SHARES_LOCATOR}",
             "enterprise_to_equity_reconciliation": (
                 "Operating engine and reinvestment valued separately; clearing member deposits "
                 "and margin-fund pass-through excluded from net financial claim."
@@ -449,8 +456,8 @@ def seed_component_valuation(data: dict) -> None:
             "Component ranges are bounded estimates, not committee-approved price targets.",
         ],
     }
-    data["inputs"]["shares_outstanding"] = int(SHARES_M * 1_000_000)
-    data["inputs"]["shares_source"] = f"{FILING_AR}; [HUMAN REVIEW] confirm latest issued shares."
+    data["inputs"]["shares_outstanding"] = SHARES_OUTSTANDING
+    data["inputs"]["shares_source"] = f"{FILING_AR_FY2025}: {SHARES_LOCATOR}"
 
 
 def main() -> int:
