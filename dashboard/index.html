@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="insights-events.css" rel="stylesheet">
+<link href="short-alpha.css" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #0a0e17;
@@ -1078,8 +1079,9 @@
 
   <nav class="view-tabs" id="view-tabs" aria-label="Primary" role="tablist">
     <button type="button" class="view-tab active" data-view="holdings" role="tab" aria-selected="true">Holdings</button>
-    <button type="button" class="view-tab" data-view="valuation" role="tab" aria-selected="false">Valuation</button>
+
     <button type="button" class="view-tab" data-view="risk" role="tab" aria-selected="false">Risk</button>
+    <button type="button" class="view-tab" data-view="short-alpha" role="tab" aria-selected="false">Short Alpha</button>
     <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
     <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
     <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
@@ -1140,6 +1142,10 @@
     <div id="risk-content" style="display:none"></div>
   </section>
 
+  <section class="short-alpha-panel" id="short-alpha-panel">
+    <div class="loading" id="short-alpha-loading">Loading hypothesis ledger…</div>
+    <div id="short-alpha-content" style="display:none"></div>
+  </section>
   <section class="insights-panel" id="insights-panel">
     <div class="loading" id="insights-loading">Loading insights…</div>
     <div id="insights-content" style="display:none"></div>
@@ -1210,6 +1216,7 @@
 <script src="technical-picture-viz.js"></script>
 <script src="index-viz.js"></script>
 <script src="activist-viz.js"></script>
+<script src="short-alpha-viz.js"></script>
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'magis-capital-partners/single-stock-investments';
@@ -1273,6 +1280,8 @@ function readLocalJson(key, fallback) {
 }
 
 let data = null;
+let shortAlphaData = null;
+let shortAlphaPromise = null;
 let operationalSummary = null;
 let operationalTasks = [];
 let oauthConfig = null;
@@ -1553,7 +1562,7 @@ function parseRouteFromHashString(hash) {
       watchlistSub: watchlistMatch[1] ? watchlistMatch[1].toLowerCase() : null,
     };
   }
-  const viewMatch = /^#\/(valuation|risk|insights|activist|darwin)$/i.exec(hash || '');
+  const viewMatch = /^#\/(risk|short-alpha|insights|activist|darwin)$/i.exec(hash || '');
   if (viewMatch) return { view: viewMatch[1].toLowerCase(), ticker: null, watchlistSub: null };
   return null;
 }
@@ -2352,7 +2361,7 @@ async function loadOperationalData() {
   }
   if (data) {
     renderSummary();
-    if (activeView === 'valuation') renderValuationQueue();
+
     if (activeView === 'risk') renderMarketRiskView();
   }
 }
@@ -2478,6 +2487,42 @@ function renderMarketRiskView() {
   );
 }
 
+async function loadShortAlpha() {
+  if (shortAlphaData) return shortAlphaData;
+  if (!shortAlphaPromise) {
+    shortAlphaPromise = fetch('data/short_alpha.json?' + Date.now())
+      .then(response => {
+        if (!response.ok) throw new Error(`Short Alpha data ${response.status}`);
+        return response.json();
+      })
+      .then(value => { shortAlphaData = value; return value; })
+      .finally(() => { shortAlphaPromise = null; });
+  }
+  return shortAlphaPromise;
+}
+
+function renderShortAlpha() {
+  const loading = document.getElementById('short-alpha-loading');
+  const content = document.getElementById('short-alpha-content');
+  if (!loading || !content) return;
+  if (!shortAlphaData) {
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    loadShortAlpha().then(renderShortAlpha).catch(error => {
+      loading.textContent = `Short Alpha ledger unavailable: ${error.message}`;
+    });
+    return;
+  }
+  loading.style.display = 'none';
+  content.style.display = 'block';
+  if (!window.ShortAlphaViz) {
+    content.innerHTML = '<div class="short-alpha-empty">Short Alpha visualization is unavailable.</div>';
+    return;
+  }
+  const rerender = () => renderShortAlpha();
+  content.innerHTML = ShortAlphaViz.render(shortAlphaData);
+  ShortAlphaViz.attach(content, shortAlphaData, rerender);
+}
 function setView(view, opts = {}) {
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
@@ -2490,15 +2535,15 @@ function setView(view, opts = {}) {
   document.getElementById('insights-panel').classList.toggle('active', view === 'insights');
   document.getElementById('activist-panel').classList.toggle('active', view === 'activist');
   document.getElementById('watchlist-panel').classList.toggle('active', view === 'watchlist');
-  const valuationPanel = document.getElementById('valuation-panel');
-  if (valuationPanel) valuationPanel.classList.toggle('active', view === 'valuation');
   const riskPanel = document.getElementById('risk-panel');
   if (riskPanel) riskPanel.classList.toggle('active', view === 'risk');
-  document.getElementById('summary').style.display = (view === 'holdings' || view === 'valuation') ? '' : 'none';
+  const shortAlphaPanel = document.getElementById('short-alpha-panel');
+  if (shortAlphaPanel) shortAlphaPanel.classList.toggle('active', view === 'short-alpha');
+  document.getElementById('summary').style.display = view === 'holdings' ? '' : 'none';
   document.getElementById('watchlist-wrap').style.display =
     view === 'holdings' && (data.watchlist || []).length ? 'block' : 'none';
-  if (view === 'valuation') renderValuationQueue();
   if (view === 'risk') renderMarketRiskView();
+  if (view === 'short-alpha') renderShortAlpha();
   if (view === 'watchlist') renderWatchlistTab();
   // Lazy-loaded tabs fetch their shards on first open.
   if (view === 'insights') renderInsights();
