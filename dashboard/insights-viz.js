@@ -1980,6 +1980,14 @@
     return '$' + n.toLocaleString(undefined, { maximumFractionDigits: digits != null ? digits : 2 });
   }
 
+  function hkFmtAxisUsd(v) {
+    if (!Number.isFinite(v) || v <= 0) return '';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + 'M';
+    if (v >= 1000) return '$' + Math.round(v / 1000) + 'k';
+    if (v >= 1) return '$' + String(Math.round(v));
+    return '$' + v.toFixed(2);
+  }
+
   function hkDialLabel(raw) {
     const map = {
       on_schedule: 'On schedule',
@@ -1991,6 +1999,15 @@
     return map[raw] || String(raw || 'n/a').replace(/_/g, ' ');
   }
 
+  function hkDownsample(pts, maxN) {
+    if (!pts || pts.length <= maxN) return pts || [];
+    const step = Math.ceil(pts.length / maxN);
+    const out = pts.filter((_, i) => i % step === 0);
+    const last = pts[pts.length - 1];
+    if (out[out.length - 1] !== last) out.push(last);
+    return out;
+  }
+
   function hkLogChart(doc, width, height) {
     const demand = (doc && doc.demand) || {};
     const supply = (doc && doc.supply) || {};
@@ -1999,42 +2016,39 @@
     const model = demand.model_path || [];
     const costPath = supply.cost_path || [];
     const supplyCurve = supply.curve || [];
-    const hashPts = ((doc && doc.hashrate) || {}).points || [];
     const spot = ((doc && doc.spot) || {}).btc_usd;
-    const w = width || 900;
-    const h = height || 300;
-    const pad = { t: 16, r: 56, b: 32, l: 52 };
-    const ptsA = (actual || []).filter((p) => p && p.v > 0 && p.d);
-    const ptsM = (model || []).filter((p) => p && p.v > 0 && p.d);
+    const w = width || 1000;
+    const h = height || 420;
+    const pad = { t: 28, r: 72, b: 40, l: 64 };
+    const Y_FLOOR = 1;
+    const ptsA = hkDownsample((actual || []).filter((p) => p && p.v >= Y_FLOOR && p.d), 360);
+    const ptsM = hkDownsample((model || []).filter((p) => p && p.v >= Y_FLOOR && p.d), 240);
     if (!ptsA.length && !ptsM.length) {
       return '<p class="tier-sub">No price path yet. Run fetch_crypto_panel.py.</p>';
     }
-    const all = ptsA.concat(ptsM);
     const parse = (d) => Date.parse(String(d) + 'T00:00:00Z');
+    const all = ptsA.concat(ptsM);
     let tMin = Math.min(...all.map((p) => parse(p.d)));
     let tMax = Math.max(...all.map((p) => parse(p.d)));
     const halvingIso = ((supply.assumptions || {}).next_halving) || '2028-04-15';
     const halvingT = parse(halvingIso);
     if (Number.isFinite(halvingT)) tMax = Math.max(tMax, halvingT);
-    const floorSeries = (costPath.length
-      ? costPath.map((p) => ({ d: p.d || p.date, v: p.v || p.all_in_cost_usd }))
-      : supplyCurve.map((p) => ({ d: p.date, v: p.all_in_cost_usd }))
-    ).filter((p) => p.d && p.v > 0);
-    const premSeries = (costPath.length
+
+    const floorSeries = hkDownsample((costPath.length
+      ? costPath.map((p) => ({ d: p.d || p.date, v: Number(p.v || p.all_in_cost_usd) }))
+      : supplyCurve.map((p) => ({ d: p.date, v: Number(p.all_in_cost_usd) }))
+    ).filter((p) => p.d && p.v >= 1000), 120);
+    const premMult = Number((supply.assumptions || {}).premium_multiple) || 1.75;
+    const premSeries = hkDownsample((costPath.length
       ? costPath.map((p) => ({
         d: p.d || p.date,
-        v: (p.v || p.all_in_cost_usd) * (Number((supply.assumptions || {}).premium_multiple) || 1.75),
+        v: Number(p.v || p.all_in_cost_usd) * premMult,
       }))
-      : supplyCurve.map((p) => ({ d: p.date, v: p.premium_band_usd || p.all_in_cost_usd }))
-    ).filter((p) => p.d && p.v > 0);
-    [...floorSeries, ...premSeries].forEach((p) => {
-      const t = parse(p.d);
-      if (Number.isFinite(t)) {
-        tMin = Math.min(tMin, t);
-        tMax = Math.max(tMax, t);
-      }
-    });
+      : supplyCurve.map((p) => ({ d: p.date, v: Number(p.premium_band_usd || p.all_in_cost_usd) }))
+    ).filter((p) => p.d && p.v >= 1000), 120);
+
     if (!(tMax > tMin)) tMax = tMin + 1;
+
     let vMin = Math.min(...all.map((p) => p.v));
     let vMax = Math.max(...all.map((p) => p.v));
     [...floorSeries, ...premSeries].forEach((p) => {
@@ -2047,76 +2061,73 @@
       vMin = Math.min(vMin, spot);
       vMax = Math.max(vMax, spot);
     }
-    vMin = Math.max(vMin, 1e-6);
-    const logMin = Math.log10(vMin);
-    const logMax = Math.log10(vMax);
+    vMin = Math.max(vMin, Y_FLOOR);
+    const logMin = Math.log10(vMin) - 0.05;
+    const logMax = Math.log10(vMax) + 0.08;
     const xScale = (t) => pad.l + ((t - tMin) / (tMax - tMin)) * (w - pad.l - pad.r);
     const yScale = (v) => {
-      const lv = Math.log10(Math.max(v, 1e-6));
+      const lv = Math.log10(Math.max(v, Y_FLOOR));
       return pad.t + (1 - (lv - logMin) / Math.max(logMax - logMin, 1e-9)) * (h - pad.t - pad.b);
     };
-    const poly = (pts, stroke, widthPx, dash) => {
+    const poly = (pts, stroke, widthPx, dash, opacity) => {
       if (!pts.length) return '';
       const d = pts.map((p, i) => `${i ? 'L' : 'M'}${xScale(parse(p.d)).toFixed(1)},${yScale(p.v).toFixed(1)}`).join(' ');
-      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${widthPx}" ${dash ? `stroke-dasharray="${dash}"` : ''} />`;
+      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${widthPx}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity == null ? 1 : opacity}" ${dash ? `stroke-dasharray="${dash}"` : ''} />`;
     };
-    // Hashrate overlay: normalize into log price band for shape comparison
-    let hashPoly = '';
-    if (hashPts.length >= 2) {
-      const hv = hashPts.map((p) => Number(p.v)).filter((v) => v > 0);
-      const hMin = Math.min(...hv);
-      const hMax = Math.max(...hv);
-      if (hMax > hMin) {
-        const mapped = hashPts.filter((p) => p.v > 0).map((p) => {
-          const frac = (Number(p.v) - hMin) / (hMax - hMin);
-          const vv = Math.pow(10, logMin + frac * (logMax - logMin) * 0.85);
-          return { d: p.d, v: vv };
-        });
-        hashPoly = poly(mapped, '#a78bfa', 1.1, '1 3');
-      }
-    }
+
     const years = [];
-    const d0 = new Date(tMin);
-    const d1 = new Date(tMax);
-    for (let y = d0.getUTCFullYear(); y <= d1.getUTCFullYear(); y += 2) years.push(y);
+    const y0 = new Date(tMin).getUTCFullYear();
+    const y1 = new Date(tMax).getUTCFullYear();
+    for (let y = y0; y <= y1; y += 1) years.push(y);
     const yTicks = [];
-    for (let e = Math.floor(logMin); e <= Math.ceil(logMax); e++) yTicks.push(Math.pow(10, e));
+    for (let e = Math.ceil(logMin); e <= Math.floor(logMax); e++) {
+      const v = Math.pow(10, e);
+      if (v >= Y_FLOOR) yTicks.push(v);
+    }
+    const tickVals = yTicks.length > 8 ? yTicks.filter((v) => Math.log10(v) % 1 === 0) : yTicks;
+
+    const asOfT = doc.as_of ? parse(doc.as_of) : Date.now();
+    const spotX = xScale(Math.min(tMax, Number.isFinite(asOfT) ? asOfT : Date.now()));
     const spotMark = spot && spot > 0
-      ? `<circle cx="${xScale(Math.min(tMax, Date.now())).toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="3.5" fill="#60a5fa" />
-         <text x="${(xScale(Math.min(tMax, Date.now())) + 6).toFixed(1)}" y="${(yScale(spot) - 4).toFixed(1)}" font-size="10" fill="#60a5fa">${hkFmtUsd(spot)}</text>`
+      ? `<circle cx="${spotX.toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="5" fill="#60a5fa" stroke="#0b1220" stroke-width="1.5" />
+         <text x="${(spotX + 8).toFixed(1)}" y="${(yScale(spot) - 8).toFixed(1)}" font-size="12" font-weight="600" fill="#93c5fd">${hkFmtUsd(spot)}</text>`
       : '';
     const halvingGuide = Number.isFinite(halvingT)
-      ? `<line x1="${xScale(halvingT).toFixed(1)}" y1="${pad.t}" x2="${xScale(halvingT).toFixed(1)}" y2="${h - pad.b}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3 3" />
-         <text x="${xScale(halvingT).toFixed(1)}" y="${pad.t + 10}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.7">halving</text>`
+      ? `<line x1="${xScale(halvingT).toFixed(1)}" y1="${pad.t}" x2="${xScale(halvingT).toFixed(1)}" y2="${h - pad.b}" stroke="rgba(255,255,255,0.28)" stroke-width="1.25" stroke-dasharray="4 4" />
+         <text x="${xScale(halvingT).toFixed(1)}" y="${(pad.t + 14).toFixed(1)}" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.75">Next halving</text>`
       : '';
     const hkMarker = hkRef.model_2028 && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.model_2028)).toFixed(1)}" r="3.5" fill="#f472b6" />
-         <text x="${(xScale(halvingT) - 6).toFixed(1)}" y="${(yScale(Number(hkRef.model_2028)) - 6).toFixed(1)}" text-anchor="end" font-size="9" fill="#f472b6">HK ${hkFmtUsd(hkRef.model_2028)}</text>`
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.model_2028)).toFixed(1)}" r="5" fill="#f472b6" stroke="#0b1220" stroke-width="1.5" />
+         <text x="${(xScale(halvingT) - 8).toFixed(1)}" y="${(yScale(Number(hkRef.model_2028)) - 10).toFixed(1)}" text-anchor="end" font-size="12" font-weight="600" fill="#f9a8d4">HK ${hkFmtUsd(hkRef.model_2028)}</text>`
       : '';
     const bandLo = hkRef.supply_low && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_low)).toFixed(1)}" r="2.5" fill="#f87171" opacity="0.85" />`
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_low)).toFixed(1)}" r="3.5" fill="#f87171" />
+         <text x="${(xScale(halvingT) + 8).toFixed(1)}" y="${(yScale(Number(hkRef.supply_low)) + 4).toFixed(1)}" font-size="11" fill="#fca5a5">${hkFmtUsd(hkRef.supply_low)}</text>`
       : '';
     const bandHi = hkRef.supply_high && Number.isFinite(halvingT)
-      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_high)).toFixed(1)}" r="2.5" fill="#34d399" opacity="0.85" />`
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_high)).toFixed(1)}" r="3.5" fill="#34d399" />
+         <text x="${(xScale(halvingT) + 8).toFixed(1)}" y="${(yScale(Number(hkRef.supply_high)) + 4).toFixed(1)}" font-size="11" fill="#6ee7b7">${hkFmtUsd(hkRef.supply_high)}</text>`
       : '';
-    return `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price vs power-law model and cost floor">
-      ${yTicks.map((v) => {
+
+    return `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price versus demand model and cost floor">
+      <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="rgba(255,255,255,0.02)" />
+      ${tickVals.map((v) => {
         const y = yScale(v);
-        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" />
-          <text x="${pad.l - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="currentColor" opacity="0.55">${v >= 1000 ? (v / 1000) + 'k' : v}</text>`;
+        return `<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${w - pad.r}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.07)" />
+          <text x="${pad.l - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="currentColor" opacity="0.7">${hkFmtAxisUsd(v)}</text>`;
       }).join('')}
       ${years.map((y) => {
         const t = Date.parse(y + '-01-01T00:00:00Z');
         if (t < tMin || t > tMax) return '';
+        if ((y1 - y0) > 10 && y % 2 !== 0) return '';
         const x = xScale(t);
-        return `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.55">${y}</text>`;
+        return `<text x="${x.toFixed(1)}" y="${h - 14}" text-anchor="middle" font-size="12" fill="currentColor" opacity="0.7">${y}</text>`;
       }).join('')}
       ${halvingGuide}
-      ${hashPoly}
-      ${poly(floorSeries, '#f87171', 1.5, '4 3')}
-      ${poly(premSeries, '#34d399', 1.25, '2 3')}
-      ${poly(ptsM, '#fbbf24', 1.75, '6 4')}
-      ${poly(ptsA, '#60a5fa', 1.8)}
+      ${poly(floorSeries, '#f87171', 2, '5 4', 0.85)}
+      ${poly(premSeries, '#34d399', 2, '3 4', 0.8)}
+      ${poly(ptsM, '#fbbf24', 2.5, '8 5', 0.95)}
+      ${poly(ptsA, '#60a5fa', 2.75)}
       ${spotMark}
       ${hkMarker}
       ${bandLo}
@@ -2124,11 +2135,10 @@
     </svg>
     <div class="hk-legend">
       <span><i class="actual"></i>BTC spot</span>
-      <span><i class="model"></i>Model</span>
+      <span><i class="model"></i>Demand model</span>
       <span><i class="floor"></i>Cost floor</span>
       <span><i class="premium"></i>Cost +75%</span>
-      <span><i class="hash"></i>Hashrate (shape)</span>
-      <span><i class="hkref"></i>HK 2028 ref</span>
+      <span><i class="hkref"></i>HK 2028 refs</span>
     </div>`;
   }
 
@@ -2147,28 +2157,52 @@
       : (dial.label === 'below_cost_floor' ? 'badge-bad' : 'badge-warn');
     const residual = dial.spot_vs_model_pct;
     const residualTxt = residual != null && Number.isFinite(Number(residual))
-      ? `${Number(residual) > 0 ? '+' : ''}${Number(residual).toFixed(0)}% vs model`
-      : '';
+      ? `${Number(residual) > 0 ? '+' : ''}${Number(residual).toFixed(0)}%`
+      : '—';
     const nextHalving = ((supply.assumptions || {}).next_halving) || '2028-04-15';
-    let daysToHalving = '';
+    let daysToHalving = '—';
     try {
       const ms = Date.parse(nextHalving + 'T00:00:00Z') - Date.now();
-      if (Number.isFinite(ms)) daysToHalving = `${Math.max(0, Math.round(ms / 86400000))}d to halving`;
+      if (Number.isFinite(ms)) daysToHalving = `${Math.max(0, Math.round(ms / 86400000))} days`;
     } catch (_) { /* ignore */ }
+    const kTxt = fit.k != null
+      ? `${Number(fit.k).toFixed(2)}${fit.r2_log != null ? ` (R² ${Number(fit.r2_log).toFixed(2)})` : ''}`
+      : '—';
     return `<details class="wm-panel hk-snowball" open>
       <summary>BTC snowball (HK) <span class="tier-sub">Demand path · cost floor</span></summary>
-      <div class="hk-snowball-glance">
-        <span class="badge ${dialCls}">${escapeHtml(hkDialLabel(dial.label))}</span>
-        <span class="mono">spot ${escapeHtml(hkFmtUsd((doc.spot || {}).btc_usd))}</span>
-        <span class="mono">model ${escapeHtml(hkFmtUsd(demand.model_price_as_of))}</span>
-        ${residualTxt ? `<span class="mono tier-sub">${escapeHtml(residualTxt)}</span>` : ''}
-        <span class="mono">2028 model ${escapeHtml(hkFmtUsd(demand.model_price_2028_04_15))}</span>
-        <span class="mono">2028 floor ${escapeHtml(hkFmtUsd(supply.halving_2028_cost_usd))} → ${escapeHtml(hkFmtUsd(supply.halving_2028_premium_band_usd))}</span>
-        ${fit.k != null ? `<span class="tier-sub">k=${escapeHtml(Number(fit.k).toFixed(2))}${fit.r2_log != null ? ' · R²=' + Number(fit.r2_log).toFixed(2) : ''}</span>` : ''}
-        ${daysToHalving ? `<span class="tier-sub">${escapeHtml(daysToHalving)}</span>` : ''}
-        ${doc.as_of ? `<span class="mono tier-sub">${escapeHtml(String(doc.as_of))}</span>` : ''}
+      <p class="hk-snowball-lede">${escapeHtml(dial.plain_english || '')}</p>
+      <div class="hk-metric-grid">
+        <div class="hk-metric hk-metric-status">
+          <span class="hk-metric-label">Status</span>
+          <span class="badge ${dialCls}">${escapeHtml(hkDialLabel(dial.label))}</span>
+          <span class="hk-metric-sub">${escapeHtml(String(doc.as_of || ''))}</span>
+        </div>
+        <div class="hk-metric">
+          <span class="hk-metric-label">Spot</span>
+          <span class="hk-metric-value">${escapeHtml(hkFmtUsd((doc.spot || {}).btc_usd))}</span>
+          <span class="hk-metric-sub">vs model ${escapeHtml(residualTxt)}</span>
+        </div>
+        <div class="hk-metric">
+          <span class="hk-metric-label">Model now</span>
+          <span class="hk-metric-value">${escapeHtml(hkFmtUsd(demand.model_price_as_of))}</span>
+          <span class="hk-metric-sub">k = ${escapeHtml(kTxt)}</span>
+        </div>
+        <div class="hk-metric">
+          <span class="hk-metric-label">2028 model</span>
+          <span class="hk-metric-value">${escapeHtml(hkFmtUsd(demand.model_price_2028_04_15))}</span>
+          <span class="hk-metric-sub">HK ref ${escapeHtml(hkFmtUsd((doc.hk_reference || {}).model_2028))}</span>
+        </div>
+        <div class="hk-metric">
+          <span class="hk-metric-label">2028 cost floor</span>
+          <span class="hk-metric-value">${escapeHtml(hkFmtUsd(supply.halving_2028_cost_usd))}</span>
+          <span class="hk-metric-sub">+75% ${escapeHtml(hkFmtUsd(supply.halving_2028_premium_band_usd))}</span>
+        </div>
+        <div class="hk-metric">
+          <span class="hk-metric-label">Next halving</span>
+          <span class="hk-metric-value">${escapeHtml(daysToHalving)}</span>
+          <span class="hk-metric-sub">${escapeHtml(nextHalving)}</span>
+        </div>
       </div>
-      <p class="tier-sub">${escapeHtml(dial.plain_english || '')}</p>
       <div class="hk-snowball-grid">
         <div class="hk-snowball-card">
           <h4>BTC log path</h4>
