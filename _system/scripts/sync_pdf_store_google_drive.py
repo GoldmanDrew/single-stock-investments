@@ -7,6 +7,7 @@ import concurrent.futures
 import json
 import os
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,6 +21,24 @@ REGISTRY_PATH = ROOT / "dashboard" / "data" / "document_registry.json"
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 FOLDER_MIME = "application/vnd.google-apps.folder"
 _THREAD_LOCAL = threading.local()
+TRANSIENT_DRIVE_STATUS = {429, 500, 502, 503, 504}
+
+
+def execute_with_retry(request, *, label: str, attempts: int = 5):
+    """Retry only transient Drive API failures with bounded exponential backoff."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return request.execute()
+        except HttpError as exc:
+            if exc.resp.status not in TRANSIENT_DRIVE_STATUS or attempt == attempts:
+                raise
+            delay = min(30, 2 ** (attempt - 1))
+            print(
+                f"Transient Drive HTTP {exc.resp.status} during {label}; "
+                f"retrying in {delay}s ({attempt}/{attempts})...",
+                flush=True,
+            )
+            time.sleep(delay)
 
 
 def now_iso() -> str:
@@ -62,11 +81,14 @@ def drive_quote(value: str) -> str:
 
 def preflight_root(service, root_id: str, root_key: str) -> None:
     try:
-        meta = service.files().get(
-            fileId=root_id,
-            fields="id,name,mimeType,driveId,capabilities",
-            supportsAllDrives=True,
-        ).execute()
+        meta = execute_with_retry(
+            service.files().get(
+                fileId=root_id,
+                fields="id,name,mimeType,driveId,capabilities",
+                supportsAllDrives=True,
+            ),
+            label=f"preflight Drive root {root_key}",
+        )
     except HttpError as exc:
         if exc.resp.status == 404:
             raise SystemExit(
@@ -116,7 +138,10 @@ class DriveIndex:
         drive_ids: set[str] = set()
         print(f"Building Drive cache for {len(root_ids)} root(s)...", flush=True)
         for root_id in root_ids:
-            meta = service.files().get(fileId=root_id, fields="id,driveId", supportsAllDrives=True).execute()
+            meta = execute_with_retry(
+                service.files().get(fileId=root_id, fields="id,driveId", supportsAllDrives=True),
+                label=f"read Drive root {root_id}",
+            )
             if meta.get("driveId"):
                 drive_ids.add(meta["driveId"])
         for drive_id in sorted(drive_ids):
@@ -131,7 +156,8 @@ class DriveIndex:
                     fields="nextPageToken,files(id,name,size,mimeType,webViewLink,webContentLink,appProperties,parents)",
                     pageSize=1000,
                     pageToken=page_token,
-                ).execute()
+                )
+                res = execute_with_retry(res, label=f"index Shared Drive {drive_id}")
                 for file in res.get("files") or []:
                     index.add(file)
                 page_token = res.get("nextPageToken")

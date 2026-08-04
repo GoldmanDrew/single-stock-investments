@@ -20,8 +20,14 @@ def lint_ledger(ticker: str, ledger: dict) -> list[str]:
     if ledger.get("ticker") and ledger.get("ticker") != ticker:
         errors.append(f"{ticker}: ticker field mismatch ({ledger.get('ticker')})")
     kpis = ledger.get("kpis")
-    if not isinstance(kpis, list) or not kpis:
-        errors.append(f"{ticker}: kpis must be a non-empty list")
+    if not isinstance(kpis, list):
+        errors.append(f"{ticker}: kpis must be a list")
+        return errors
+    # A newly scaffolded industry may legitimately have no thesis-narrow KPI
+    # until the first filing review. Keep it visible but do not fail the whole
+    # weekly World Model pipeline for that acknowledged state.
+    if not kpis and not (ledger.get("scaffold_meta") or {}).get("note"):
+        errors.append(f"{ticker}: empty kpis require scaffold_meta.note")
         return errors
     if len(kpis) > 15:
         errors.append(f"{ticker}: more than 15 KPIs ({len(kpis)}); keep thesis-narrow")
@@ -74,8 +80,8 @@ def lint_ledger(ticker: str, ledger: dict) -> list[str]:
                 )
 
         on_fail = binds.get("on_fail")
-        if on_fail and on_fail not in ("human_review", "stance_only"):
-            errors.append(f"{ticker}/{kid}: binds_to.on_fail must be human_review or stance_only")
+        if on_fail and on_fail not in ("human_review", "stance_only", "open_diligence"):
+            errors.append(f"{ticker}/{kid}: binds_to.on_fail must be human_review, stance_only, or open_diligence")
 
     summary = ledger.get("summary") or {}
     computed = wm.summarize_statuses(kpis)

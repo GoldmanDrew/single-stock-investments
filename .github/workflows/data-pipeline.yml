@@ -454,7 +454,9 @@ jobs:
                   if Path(rel).exists():
                       paths.append(rel)
           if paths:
-              subprocess.check_call(["git", "add", "--", *paths])
+              # Stubs are intentionally created outside the bootstrap sparse
+              # checkout. --sparse stages them without expanding the checkout.
+              subprocess.check_call(["git", "add", "--sparse", "--", *paths])
               print(f"staged {len(paths)} stub paths")
           else:
               print("no stub ticker paths to stage")

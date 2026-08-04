@@ -69,81 +69,24 @@ jobs:
           print(f"committee action={action}; ready={len(filtered)}; already_in_flight={len(tasks) - len(filtered)}")
           PY
 
-  isolated-tasks:
+  review-required:
     needs: prepare
     if: needs.prepare.outputs.action == 'advance'
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        include: ${{ fromJson(needs.prepare.outputs.tasks) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github/actions/llm-gate
-            _system/config/llm_usage_policy.json
-            _system/scripts/llm_call_gate.py
-            _system/scripts/committee_task_runner.mjs
-            _system/scripts/package.json
-            _system/scripts/package-lock.json
-            ${{ matrix.prompt_path }}
-      - name: Admit committee judgment call
-        id: llm_gate
-        uses: ./.github/actions/llm-gate
-        with:
-          consumer: investment_committee
-          subject: ${{ matrix.task_key }}
-          reason: ${{ matrix.task_id }}
-          evidence_hash: ${{ matrix.evidence_hash }}
-      - uses: actions/setup-node@v4
-        if: steps.llm_gate.outputs.approved == 'true'
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: _system/scripts/package-lock.json
-      - working-directory: _system/scripts
-        if: steps.llm_gate.outputs.approved == 'true'
-        run: npm ci --ignore-scripts
-      - name: Resolve model from ladder
-        id: model
-        if: steps.llm_gate.outputs.approved == 'true'
-        run: |
-          python _system/scripts/llm_call_gate.py model \
-            --consumer investment_committee --task-id "${{ matrix.task_id }}"
-      - name: Run isolated committee task
-        id: agent
-        if: steps.llm_gate.outputs.approved == 'true'
+      - name: Queue bounded human committee review
         env:
-          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-          CURSOR_MODEL_ID: ${{ steps.model.outputs.model }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          CURSOR_STARTING_REF: main
-          TICKER: ${{ matrix.ticker }}
-          COMMITTEE_DATE: ${{ matrix.as_of }}
-          TASK_KEY: ${{ matrix.task_key }}
-          PROMPT_PATH: ${{ matrix.prompt_path }}
-          OUTPUT_PATH: ${{ matrix.output_path }}
-        run: node _system/scripts/committee_task_runner.mjs
-      - name: Record committee call outcome
-        if: always() && steps.llm_gate.outputs.approved == 'true'
-        env:
-          STATUS: ${{ steps.agent.outcome == 'success' && 'completed' || 'failed' }}
+          TICKER: ${{ needs.prepare.outputs.ticker }}
+          COMMITTEE_DATE: ${{ needs.prepare.outputs.committee_date }}
+          TASKS: ${{ needs.prepare.outputs.tasks }}
         run: |
-          python _system/scripts/llm_call_gate.py record \
-            --consumer investment_committee --subject "${{ matrix.task_key }}" \
-            --reason "${{ matrix.task_id }}" --evidence-hash "${{ matrix.evidence_hash }}" \
-            --ledger "${{ steps.llm_gate.outputs.ledger }}" --status "$STATUS"
-      - name: Upload compact committee audit
-        if: always() && steps.llm_gate.outputs.approved == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: llm-audit-committee-${{ matrix.task_key }}-${{ github.run_id }}
-          path: ${{ steps.llm_gate.outputs.ledger }}
-          if-no-files-found: ignore
-          retention-days: 7
+          echo "### Committee review required" >> "$GITHUB_STEP_SUMMARY"
+          echo "No Cursor Background Agent is started by this workflow." >> "$GITHUB_STEP_SUMMARY"
+          echo "Ticker: **$TICKER** · packet date: **$COMMITTEE_DATE**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$TASKS" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
   assemble:
     needs: prepare
