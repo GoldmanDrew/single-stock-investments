@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04  
 **Agent:** Marvin (contract backfill)  
-**Marvin dive:** `AEHR/research/deep_dive_2026-07-27.md` (prior; refresh syncs valuation sections)  
+**Marvin dive:** `AEHR/research/deep_dive_2026-08-04.md`  
 **Source inventory:** `AEHR/third-party-analyses/source_inventory_2026-08-04.md` (pipeline)  
 **Framework:** `_system/frameworks/third_party_cross_reference.md`
 
