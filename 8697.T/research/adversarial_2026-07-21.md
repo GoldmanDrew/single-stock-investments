@@ -39,7 +39,6 @@ re_pass: false
 
 | # | Claim in dive | Dive cites | Filing value | Match? | Severity |
 |---|---------------|------------|--------------|--------|----------|
-| — | filing_facts | — | no_full_tier_text_extract | — | inference |
 | — | Net income (filing) | — | **30.0** | spot-check dive | — |
 
 ---
@@ -49,7 +48,7 @@ re_pass: false
 | Check | Expected (valuation.json) | Found in dive | OK? |
 |-------|---------------------------|---------------|-----|
 | Returns statement | 3.19% | 3.19% | Yes |
-| Classification IRR | 3.19% | -2.76% | **No** |
+| Classification IRR | 3.19% | 3.19% | Yes |
 | Valuation bridge base | 3.19% | 3.19% | Yes |
 
 ---

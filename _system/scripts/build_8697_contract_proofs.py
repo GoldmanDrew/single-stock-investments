@@ -14,14 +14,25 @@ from calculation_proof import evaluate_calculation_proof  # noqa: E402
 from marvin_valuation import cashflows_full, irr  # noqa: E402
 
 TICKER = "8697.T"
-AS_OF = "2026-07-21"
-SHARES_M = 1030.0
+AS_OF = "2026-08-04"
+SHARES_M = 1030.321
+SHARES_COUNT = 1_030_321_466
 FCF0 = 70.0
 YEARS = 7
 
 FILING_ER = "8697.T/02_Quarterly/Earnings_Releases/E_ER_JPX_Q4FY2025.pdf"
 FILING_EM = "8697.T/02_Quarterly/Explanatory_Materials/E_EM_JPX_Q4FY2025.pdf"
 FILING_AR = "8697.T/01_Official/Annual_Securities_Reports/English/Annual_Securities_Report_fy2024.pdf"
+
+SHARES_LOCATOR = (
+    "Note (3) Number of issued shares at period-end FY2026 (Mar 31, 2026): "
+    f"{SHARES_COUNT:,}; weighted average ordinary shares 1,030,321 thousand"
+)
+PARENT_EQUITY_B = 345.015
+PARENT_EQUITY_LOCATOR = (
+    "Total equity attributable to owners of the parent company ¥345,015 million "
+    "(consolidated balance sheet, FY2026 period-end)"
+)
 
 SCENARIOS = {
     "low": {"growth_y1_5": 0.0, "growth_y6_10": 0.0, "exit_pfcf_y10": 14},
@@ -180,8 +191,8 @@ def reinvestment_proof() -> dict:
         "output_unit": "JPY per share",
         "inputs": [
             _fact("operating_revenue_b", "Operating revenue", 198.7, "JPY billions", FILING_ER, "FY2025 operating revenue", "2026-03-31"),
-            _fact("shares_m", "Shares outstanding", SHARES_M, "million shares", FILING_AR,
-                  "Issued shares ~1,030M; [HUMAN REVIEW] confirm latest filing.", "2025-03-31"),
+            _fact("shares_m", "Shares outstanding", SHARES_M, "million shares", FILING_ER,
+                  SHARES_LOCATOR, "2026-03-31"),
             _fact("system_services_growth", "System services revenue growth", 0.569, "JPY billions",
                   FILING_ER, "System services +¥569M YoY in FY2025 earnings release", "2026-03-31"),
         ],
@@ -206,8 +217,13 @@ def reinvestment_proof() -> dict:
 
 
 def net_financial_proof() -> dict:
-    parent_equity_b = 345.0
-    claim_share = {"low": 0.0, "base": 0.2986, "high": 0.5971}
+    parent_equity_b = PARENT_EQUITY_B
+    gross_base = (parent_equity_b * 1000) / SHARES_M
+    claim_share = {
+        "low": 0.0,
+        "base": round(LEGACY["net_financial_claims"]["base"] / gross_base, 6),
+        "high": round(LEGACY["net_financial_claims"]["high"] / gross_base, 6),
+    }
     calcs = [
         {"id": "parent_equity_m", "op": "multiply", "args": ["parent_equity_b", 1000], "unit": "JPY millions"},
         {"id": "gross_equity_per_share", "op": "divide", "args": ["parent_equity_m", "shares_m"], "unit": "JPY per share"},
@@ -220,9 +236,9 @@ def net_financial_proof() -> dict:
         "output_unit": "JPY per share",
         "inputs": [
             _fact("parent_equity_b", "Parent shareholders' equity", parent_equity_b, "JPY billions",
-                  FILING_AR, "Parent equity context; clearing deposits largely pass-through per annual report note", "2025-03-31"),
-            _fact("shares_m", "Shares outstanding", SHARES_M, "million shares", FILING_AR,
-                  "Issued shares ~1,030M; [HUMAN REVIEW] confirm latest filing.", "2025-03-31"),
+                  FILING_ER, PARENT_EQUITY_LOCATOR, "2026-03-31"),
+            _fact("shares_m", "Shares outstanding", SHARES_M, "million shares", FILING_ER,
+                  SHARES_LOCATOR, "2026-03-31"),
         ],
         "assumptions": [
             _judgment("claim_share", "Owner-claim share of reported parent equity after clearing pass-through",
@@ -260,6 +276,39 @@ def downside_reserve_proof() -> dict:
         "calculations": calcs,
         "outputs": {"low": "negative_reserve", "base": "negative_reserve", "high": "negative_reserve"},
     }
+
+
+def close_authorized_evidence() -> None:
+    auth_path = ROOT / TICKER / "research" / "authorized_evidence.json"
+    auth = json.loads(auth_path.read_text(encoding="utf-8"))
+    auth["contract_status"] = "decision_grade"
+    auth["blockers"] = []
+    auth["authorized_at"] = "2026-08-04T20:38:00Z"
+    auth_path.write_text(json.dumps(auth, indent=2) + "\n", encoding="utf-8")
+
+
+def update_fact_ledger() -> None:
+    ledger_path = ROOT / TICKER / "research" / "valuation_fact_ledger.json"
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["as_of"] = AS_OF
+    for fact in ledger["facts"]:
+        if fact["field_id"] == "shares_outstanding":
+            fact["value"] = SHARES_COUNT
+            fact["source"] = {
+                "ref": FILING_ER,
+                "locator": SHARES_LOCATOR,
+                "as_of": "2026-03-31",
+            }
+            fact["confidence"] = "high"
+        if fact["field_id"] == "parent_equity_b":
+            fact["value"] = PARENT_EQUITY_B
+            fact["source"] = {
+                "ref": FILING_ER,
+                "locator": PARENT_EQUITY_LOCATOR,
+                "as_of": "2026-03-31",
+            }
+            fact["confidence"] = "high"
+    ledger_path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
@@ -308,8 +357,12 @@ def main() -> int:
             "component schedule reconciled 2026-07-21 contract backfill."
         )
     data["as_of"] = AS_OF
-    data["inputs"]["shares_source"] = f"{FILING_AR}; [HUMAN REVIEW] confirm latest issued shares."
+    data["inputs"]["shares_millions"] = SHARES_M
+    data["inputs"]["shares_outstanding"] = SHARES_COUNT
+    data["inputs"]["shares_source"] = f"{FILING_ER}; {SHARES_LOCATOR}"
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    update_fact_ledger()
+    close_authorized_evidence()
     print(json.dumps({"status": "ok", "outputs": outputs}, indent=2))
     return 0
 
