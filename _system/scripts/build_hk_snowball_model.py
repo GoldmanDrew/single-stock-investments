@@ -42,10 +42,99 @@ HALVINGS = [
     NEXT_HALVING,
 ]
 
-DISCLAIMER = (
-    "Research context only (HK snowball / power-law lens). Descriptive — not a trade signal "
-    "and does not auto-write Lawrence base IRR. Promotion requires human review."
-)
+DISCLAIMER = "Context only. Not a trade signal. Not in base IRR."
+
+SCRIPTS = Path(__file__).resolve().parent
+CRYPTO_CFG = SCRIPTS / "crypto_panel_config.json"
+
+# Subsidy BTC per block by post-halving epoch index
+SUBSIDY_BY_HALVING_INDEX = {
+    0: 50.0,
+    1: 25.0,
+    2: 12.5,
+    3: 6.25,
+    4: 3.125,
+    5: 1.5625,
+}
+
+
+def load_snowball_cfg() -> dict:
+    if not CRYPTO_CFG.exists():
+        return {}
+    try:
+        cfg = json.loads(CRYPTO_CFG.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return cfg.get("snowball") or {}
+
+
+def block_subsidy_on(d: date) -> float:
+    n = halvings_before(d)
+    if n <= 0:
+        return SUBSIDY_BY_HALVING_INDEX[0]
+    if n >= 5:
+        return SUBSIDY_BY_HALVING_INDEX[5]
+    return SUBSIDY_BY_HALVING_INDEX.get(n, 3.125)
+
+
+def all_in_cost_usd(
+    hash_eh: float,
+    *,
+    subsidy_btc: float,
+    efficiency_j_th: float,
+    electricity_usd_kwh: float,
+    power_share: float,
+) -> float | None:
+    """Network electricity cost per coin / power_share => all-in production cost."""
+    if hash_eh <= 0 or subsidy_btc <= 0 or power_share <= 0:
+        return None
+    power_w = hash_eh * 1e6 * efficiency_j_th
+    kwh_per_day = power_w * 24.0 / 1000.0
+    elec_per_day = kwh_per_day * electricity_usd_kwh
+    coins_per_day = 144.0 * subsidy_btc
+    elec_per_coin = elec_per_day / coins_per_day
+    return elec_per_coin / power_share
+
+
+def live_cost_path(
+    hash_eh: list[tuple[date, float]],
+    *,
+    efficiency_j_th: float,
+    electricity_usd_kwh: float,
+    power_share: float,
+    premium_multiple: float,
+) -> list[dict]:
+    out: list[dict] = []
+    for d, h in hash_eh:
+        cost = all_in_cost_usd(
+            h,
+            subsidy_btc=block_subsidy_on(d),
+            efficiency_j_th=efficiency_j_th,
+            electricity_usd_kwh=electricity_usd_kwh,
+            power_share=power_share,
+        )
+        if cost is None or cost <= 0:
+            continue
+        out.append(
+            {
+                "d": d.isoformat(),
+                "v": round(cost, 2),
+                "all_in_cost_usd": round(cost, 2),
+                "premium_band_usd": round(cost * premium_multiple, 2),
+            }
+        )
+    if out:
+        last_v = out[-1]["v"]
+        out.append(
+            {
+                "d": NEXT_HALVING.isoformat(),
+                "v": round(last_v * 2.0, 2),
+                "all_in_cost_usd": round(last_v * 2.0, 2),
+                "premium_band_usd": round(last_v * 2.0 * premium_multiple, 2),
+                "event": "halving_projection",
+            }
+        )
+    return out
 
 
 def _read_csv(path: Path) -> list[tuple[date, float]]:
@@ -206,25 +295,24 @@ def cost_curve(
     *,
     current_all_in: float = DEFAULT_CURRENT_ALL_IN,
     electricity_usd_kwh: float = DEFAULT_KWH,
+    power_share: float = POWER_SHARE,
+    premium_multiple: float = PREMIUM_ABOVE_COST,
+    efficiency_j_th: float = 30.0,
+    cost_path: list[dict] | None = None,
+    source: str = "hk_step",
 ) -> dict:
-    """Anchor all-in cost at as_of, walk ± halvings (each halves/doubles cost)."""
+    """Anchor all-in cost at as_of; walk ± halvings (each halves/doubles cost)."""
     n_now = halvings_before(as_of)
-    # Historical + forward anchors at each halving and as_of
     points: list[dict] = []
-    # Start from genesis-era relative: walk back from current
     for h in HALVINGS:
-        # cost just after this halving relative to today
-        # Each future halving doubles; each past halves.
         delta = halvings_before(h) - n_now
-        # At the moment of a halving, cost steps UP by 2x vs prior epoch.
-        # Represent post-halving cost level.
         cost = current_all_in * (2.0 ** delta)
         points.append(
             {
                 "date": h.isoformat(),
                 "event": "halving",
                 "all_in_cost_usd": round(cost, 2),
-                "premium_band_usd": round(cost * PREMIUM_ABOVE_COST, 2),
+                "premium_band_usd": round(cost * premium_multiple, 2),
             }
         )
     points.append(
@@ -232,30 +320,31 @@ def cost_curve(
             "date": as_of.isoformat(),
             "event": "as_of",
             "all_in_cost_usd": round(current_all_in, 2),
-            "premium_band_usd": round(current_all_in * PREMIUM_ABOVE_COST, 2),
+            "premium_band_usd": round(current_all_in * premium_multiple, 2),
         }
     )
     points.sort(key=lambda p: p["date"])
-
-    cost_2028 = current_all_in * 2.0  # next halving doubles (HK framing)
+    cost_2028 = current_all_in * 2.0
     return {
         "assumptions": {
             "electricity_usd_kwh": electricity_usd_kwh,
-            "power_share_of_cost": POWER_SHARE,
+            "power_share_of_cost": power_share,
+            "efficiency_j_th": efficiency_j_th,
             "current_all_in_usd": current_all_in,
-            "current_all_in_source": "[Assumption] HK Q2 2026 commentary illustrative all-in (~$65k)",
-            "premium_multiple": PREMIUM_ABOVE_COST,
+            "current_all_in_source": source,
+            "premium_multiple": premium_multiple,
             "next_halving": NEXT_HALVING.isoformat(),
             "note": (
-                "Simplified step model: cost doubles at each halving (all else equal). "
-                "Not a full Cambridge electricity-schedule reconstruction."
+                "Live path uses hashrate x efficiency x $/kWh / power_share. "
+                "Halving projection doubles cost. HK $65k step used when live inputs missing."
             ),
         },
         "as_of_cost_usd": round(current_all_in, 2),
         "halving_2028_cost_usd": round(cost_2028, 2),
-        "halving_2028_premium_band_usd": round(cost_2028 * PREMIUM_ABOVE_COST, 2),
+        "halving_2028_premium_band_usd": round(cost_2028 * premium_multiple, 2),
         "hk_commentary_band_usd": {"low": 150000, "high": 250000},
         "curve": points,
+        "cost_path": cost_path or [],
     }
 
 
@@ -272,29 +361,44 @@ def dial_label(spot: float, model: float | None, floor: float) -> str:
     return "on_schedule"
 
 
-def infer_current_all_in(manifest: dict | None) -> float:
-    """Prefer live-derived cost when possible; else HK illustrative $65k."""
-    if not manifest:
-        return DEFAULT_CURRENT_ALL_IN
-    themes = manifest.get("themes") or {}
-    series = (themes.get("btc_network_economics") or {}).get("series") or {}
-    # If breakeven power at 30 J/TH is near $0.05, all-in is near spot economics;
-    # without a full energy model, keep HK anchor but note live hashprice.
-    _ = series.get("btc_hashprice_usd_ph_day")
-    return DEFAULT_CURRENT_ALL_IN
+def resolve_current_all_in(
+    hash_eh: list[tuple[date, float]],
+    *,
+    efficiency_j_th: float,
+    electricity_usd_kwh: float,
+    power_share: float,
+    hk_fallback: float,
+) -> tuple[float, str]:
+    if not hash_eh:
+        return hk_fallback, "hk_step_fallback"
+    live = all_in_cost_usd(
+        hash_eh[-1][1],
+        subsidy_btc=block_subsidy_on(hash_eh[-1][0]),
+        efficiency_j_th=efficiency_j_th,
+        electricity_usd_kwh=electricity_usd_kwh,
+        power_share=power_share,
+    )
+    if live is None or live <= 0:
+        return hk_fallback, "hk_step_fallback"
+    return float(live), "live_hashrate_energy"
 
 
 def build(*, as_of: date | None = None) -> Path:
     btc = _read_csv(CRYPTO_DIR / "btc_spot_usd.csv")
+    # Merge committed pre-Yahoo seed even if fetch has not re-run yet
+    seed = _read_csv(CRYPTO_DIR / "btc_spot_usd_seed_pre_yahoo.csv")
+    if seed:
+        merged = {d: v for d, v in seed}
+        merged.update({d: v for d, v in btc})
+        btc = sorted(merged.items())
     amzn = _read_csv(EQUITY_DIR / "amzn_weekly_usd.csv")
     hash_eh = _read_csv(CRYPTO_DIR / "btc_hash_rate_eh.csv")
-    manifest = {}
-    man_path = CRYPTO_DIR / "manifest.json"
-    if man_path.exists():
-        try:
-            manifest = json.loads(man_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            manifest = {}
+    snow = load_snowball_cfg()
+    efficiency_j_th = float(snow.get("efficiency_j_th") or 30)
+    electricity_usd_kwh = float(snow.get("electricity_usd_kwh") or DEFAULT_KWH)
+    power_share = float(snow.get("power_share") or POWER_SHARE)
+    premium_multiple = float(snow.get("premium_multiple") or PREMIUM_ABOVE_COST)
+    hk_fallback = float(snow.get("hk_current_all_in_usd") or DEFAULT_CURRENT_ALL_IN)
 
     if not btc:
         raise SystemExit("missing btc_spot_usd.csv — run fetch_crypto_panel.py first")
@@ -342,14 +446,42 @@ def build(*, as_of: date | None = None) -> Path:
             mp = model_price(fit, cursor)
             if mp is not None:
                 theo.append({"d": cursor.isoformat(), "v": round(mp, 4)})
-            # advance ~1 month
             if cursor.month == 12:
                 cursor = date(cursor.year + 1, 1, 1)
             else:
                 cursor = date(cursor.year, cursor.month + 1, 1)
 
-    current_all_in = infer_current_all_in(manifest)
-    supply = cost_curve(as_of, current_all_in=current_all_in, electricity_usd_kwh=DEFAULT_KWH)
+    current_all_in, cost_source = resolve_current_all_in(
+        hash_eh,
+        efficiency_j_th=efficiency_j_th,
+        electricity_usd_kwh=electricity_usd_kwh,
+        power_share=power_share,
+        hk_fallback=hk_fallback,
+    )
+    path = live_cost_path(
+        hash_eh,
+        efficiency_j_th=efficiency_j_th,
+        electricity_usd_kwh=electricity_usd_kwh,
+        power_share=power_share,
+        premium_multiple=premium_multiple,
+    )
+    # Downsample dense cost path for JSON size
+    if len(path) > 400:
+        step = max(len(path) // 350, 1)
+        kept = path[::step]
+        if path[-1] not in kept:
+            kept.append(path[-1])
+        path = kept
+    supply = cost_curve(
+        as_of,
+        current_all_in=current_all_in,
+        electricity_usd_kwh=electricity_usd_kwh,
+        power_share=power_share,
+        premium_multiple=premium_multiple,
+        efficiency_j_th=efficiency_j_th,
+        cost_path=path,
+        source=cost_source,
+    )
 
     residual_pct = None
     if model_now and model_now > 0:
@@ -361,14 +493,20 @@ def build(*, as_of: date | None = None) -> Path:
     hash_points = downsample(hash_eh, max_points=200) if hash_eh else []
 
     payload = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "as_of": as_of.isoformat(),
         "disclaimer": DISCLAIMER,
         "source_commentary": (
-            "Horizon Kinetics Q2 2026 Commentary — "
-            "A Math Model of Compounding / What's With the Price of Bitcoin?"
+            "Horizon Kinetics Q2 2026 Commentary: "
+            "Math Model of Compounding / What's With the Price of Bitcoin?"
         ),
+        "hk_reference": {
+            "model_2028": HK_MODEL_2028,
+            "supply_low": 150000,
+            "supply_high": 250000,
+            "current_all_in_commentary": DEFAULT_CURRENT_ALL_IN,
+        },
         "spot": {
             "btc_usd": round(spot, 4),
             "source": "btc_spot_usd.csv",
@@ -385,7 +523,7 @@ def build(*, as_of: date | None = None) -> Path:
                 "terminal_date": amzn[-1][0].isoformat() if amzn else None,
                 "terminal_price": round(amzn[-1][1], 4) if amzn else None,
                 "stops": milestones(amzn) if amzn else [],
-                "note": "Weekly closes from IPO; snowball time-vs-value comparison only.",
+                "note": "Kept for research; not shown on dashboard panel.",
             },
         },
         "demand": {
@@ -399,10 +537,7 @@ def build(*, as_of: date | None = None) -> Path:
             "next_10x": next_10x_date(fit, spot, as_of),
             "actual_path": downsample(fit_series, max_points=450),
             "model_path": theo,
-            "interpretation": (
-                "Metcalfe network value (~t^2) times network-size expansion (~t^3) "
-                "implies a power law near t^6. Each successive 10x takes longer."
-            ),
+            "interpretation": "Demand ~ t^k near t^6. Each 10x takes longer.",
         },
         "supply": supply,
         "hashrate": {
@@ -420,26 +555,27 @@ def build(*, as_of: date | None = None) -> Path:
                 else None
             ),
             "plain_english": {
-                "on_schedule": "Spot is near the long-horizon power-law path; drawdowns along a rising cost floor are expected.",
-                "below_model": "Spot is below the fitted demand path — often mid-cycle consolidation in the HK framing.",
-                "above_model": "Spot is above the fitted demand path — premium to the long slope.",
-                "below_cost_floor": "Spot is near/under the illustrative production-cost floor — stressed miner economics.",
-                "insufficient_model": "Not enough history to fit the demand power law.",
+                "on_schedule": "Near the long demand path. Drawdowns along a rising cost floor are normal.",
+                "below_model": "Below the long demand path. Normal mid-cycle drawdown.",
+                "above_model": "Above the long demand path.",
+                "below_cost_floor": "Near or under the production-cost floor. Stressed miner economics.",
+                "insufficient_model": "Not enough history to fit the demand path.",
             }.get(label, ""),
         },
         "calibration_notes": {
             "hk_demand_2028_usd": HK_MODEL_2028,
             "hk_supply_band_2028_usd": [150000, 250000],
             "hk_current_all_in_usd": DEFAULT_CURRENT_ALL_IN,
-            "hk_kwh_assumption": DEFAULT_KWH,
+            "hk_kwh_assumption": electricity_usd_kwh,
             "our_demand_2028_usd": round(model_2028, 2) if model_2028 else None,
             "our_k": fit.get("k"),
             "our_k_unconstrained": fit_raw.get("k") if isinstance(fit_raw, dict) else None,
             "history_start_btc": fit_series[0][0].isoformat() if fit_series else None,
+            "cost_source": cost_source,
+            "live_cost_as_of": round(current_all_in, 2),
             "note": (
-                "Demand fit uses available daily BTC history (Yahoo BTC-USD; CoinGecko max backfill when reachable). "
-                "Origin fixed at 2011-01-01 per HK commentary. Supply uses HK illustrative $65k all-in stepped "
-                "by halvings — not a full Cambridge electricity reconstruction."
+                "Demand fit uses Yahoo BTC-USD plus pre-Yahoo seed/blockchain backfill. "
+                "Origin 2011-01-01. Live cost from hashrate energy model; HK markers are reference only."
             ),
         },
     }

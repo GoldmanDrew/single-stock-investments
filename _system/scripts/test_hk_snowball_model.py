@@ -19,7 +19,6 @@ def test_milestones_half_time_low_value():
     series = []
     for i in range(0, 101):
         d = origin + timedelta(days=i * 36)  # ~10 years
-        # roughly t^3 style growth in index space
         t = max(i / 100.0, 1e-6)
         series.append((d, 100.0 * (t**3)))
     stops = {s["time_frac"]: s for s in hk.milestones(series, origin=origin)}
@@ -31,12 +30,6 @@ def test_milestones_half_time_low_value():
 def test_power_law_fit_recovers_t6():
     origin = date(2011, 1, 1)
     A_true, k_true = 2.5, 6.0
-    series = []
-    for years in range(2, 16):
-        d = origin + timedelta(days=int(years * 365.25))
-        t = hk.years_since(origin, d)
-        series.append((d, A_true * (t**k_true)))
-    # densify
     dense = []
     for i in range(0, 400):
         d = origin + timedelta(days=800 + i * 12)
@@ -55,11 +48,43 @@ def test_halving_doubles_cost():
     assert supply["as_of_cost_usd"] == 65000.0
     assert supply["halving_2028_cost_usd"] == 130000.0
     assert supply["halving_2028_premium_band_usd"] == 227500.0
-    # post-2024 epoch vs post-2020: one halving back => half
     by_date = {p["date"]: p["all_in_cost_usd"] for p in supply["curve"] if p["event"] == "halving"}
-    assert by_date["2024-04-20"] == 65000.0  # same epoch as as_of (after 2024)
+    assert by_date["2024-04-20"] == 65000.0
     assert by_date["2020-05-11"] == 32500.0
     assert by_date["2028-04-15"] == 130000.0
+
+
+def test_live_cost_doubles_at_halving_projection():
+    hash_eh = [
+        (date(2026, 8, 1), 900.0),
+        (date(2026, 8, 4), 940.0),
+    ]
+    path = hk.live_cost_path(
+        hash_eh,
+        efficiency_j_th=30.0,
+        electricity_usd_kwh=0.05,
+        power_share=0.60,
+        premium_multiple=1.75,
+    )
+    assert len(path) >= 3
+    as_of_cost = path[-2]["v"]
+    halving_cost = path[-1]["v"]
+    assert abs(halving_cost / as_of_cost - 2.0) < 1e-6
+    live = hk.all_in_cost_usd(
+        940.0,
+        subsidy_btc=3.125,
+        efficiency_j_th=30.0,
+        electricity_usd_kwh=0.05,
+        power_share=0.60,
+    )
+    assert live is not None and live > 10000
+
+
+def test_seed_merge_extends_history():
+    seed = hk._read_csv(hk.CRYPTO_DIR / "btc_spot_usd_seed_pre_yahoo.csv")
+    assert seed, "missing pre-yahoo seed CSV"
+    assert seed[0][0] <= date(2011, 6, 1)
+    assert seed[-1][0] < date(2014, 9, 17)
 
 
 def test_dial_labels():
@@ -70,9 +95,7 @@ def test_dial_labels():
 
 
 def test_model_2028_order_of_magnitude_vs_hk():
-    """With a near-t^6 synthetic path, 2028 print should be same OOM as HK ~$270k."""
     origin = hk.BTC_ORIGIN
-    # Calibrate A so that at ~15.3 years (Apr 2028 from 2011) price ~270k with k=5.8
     k = 5.8
     t_2028 = hk.years_since(origin, hk.NEXT_HALVING)
     A = 270438.05 / (t_2028**k)
@@ -87,18 +110,25 @@ def test_model_2028_order_of_magnitude_vs_hk():
     assert fit["ok"]
     mp = hk.model_price(fit, hk.NEXT_HALVING)
     assert mp is not None
-    # Same order of magnitude as commentary $270,438
     assert 100_000 < mp < 700_000, mp
     ratio = mp / hk.HK_MODEL_2028
     assert 0.4 < ratio < 2.5, (mp, ratio)
+
+
+def test_disclaimer_short():
+    assert "Lawrence" not in hk.DISCLAIMER
+    assert "Context only" in hk.DISCLAIMER
 
 
 def main() -> int:
     test_milestones_half_time_low_value()
     test_power_law_fit_recovers_t6()
     test_halving_doubles_cost()
+    test_live_cost_doubles_at_halving_projection()
+    test_seed_merge_extends_history()
     test_dial_labels()
     test_model_2028_order_of_magnitude_vs_hk()
+    test_disclaimer_short()
     print("test_hk_snowball_model: ok")
     return 0
 

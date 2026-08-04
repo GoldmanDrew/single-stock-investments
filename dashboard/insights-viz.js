@@ -1980,22 +1980,55 @@
     return '$' + n.toLocaleString(undefined, { maximumFractionDigits: digits != null ? digits : 2 });
   }
 
-  function hkLogChart(actual, model, supplyCurve, spot, width, height) {
-    const w = width || 520;
-    const h = height || 200;
-    const pad = { t: 12, r: 12, b: 28, l: 52 };
+  function hkDialLabel(raw) {
+    const map = {
+      on_schedule: 'On schedule',
+      below_model: 'Below model',
+      above_model: 'Above model',
+      below_cost_floor: 'Below cost floor',
+      insufficient_model: 'No model yet',
+    };
+    return map[raw] || String(raw || 'n/a').replace(/_/g, ' ');
+  }
+
+  function hkLogChart(doc, width, height) {
+    const demand = (doc && doc.demand) || {};
+    const supply = (doc && doc.supply) || {};
+    const hkRef = (doc && doc.hk_reference) || {};
+    const actual = demand.actual_path || [];
+    const model = demand.model_path || [];
+    const costPath = supply.cost_path || [];
+    const supplyCurve = supply.curve || [];
+    const hashPts = ((doc && doc.hashrate) || {}).points || [];
+    const spot = ((doc && doc.spot) || {}).btc_usd;
+    const w = width || 900;
+    const h = height || 300;
+    const pad = { t: 16, r: 56, b: 32, l: 52 };
     const ptsA = (actual || []).filter((p) => p && p.v > 0 && p.d);
     const ptsM = (model || []).filter((p) => p && p.v > 0 && p.d);
     if (!ptsA.length && !ptsM.length) {
-      return '<p class="tier-sub">No price path yet. Run fetch_crypto_panel.py then build_hk_snowball_model.py.</p>';
+      return '<p class="tier-sub">No price path yet. Run fetch_crypto_panel.py.</p>';
     }
     const all = ptsA.concat(ptsM);
-    const parse = (d) => Date.parse(d + 'T00:00:00Z');
+    const parse = (d) => Date.parse(String(d) + 'T00:00:00Z');
     let tMin = Math.min(...all.map((p) => parse(p.d)));
     let tMax = Math.max(...all.map((p) => parse(p.d)));
-    const curve = (supplyCurve || []).filter((p) => p && p.all_in_cost_usd > 0);
-    curve.forEach((p) => {
-      const t = parse(p.date);
+    const halvingIso = ((supply.assumptions || {}).next_halving) || '2028-04-15';
+    const halvingT = parse(halvingIso);
+    if (Number.isFinite(halvingT)) tMax = Math.max(tMax, halvingT);
+    const floorSeries = (costPath.length
+      ? costPath.map((p) => ({ d: p.d || p.date, v: p.v || p.all_in_cost_usd }))
+      : supplyCurve.map((p) => ({ d: p.date, v: p.all_in_cost_usd }))
+    ).filter((p) => p.d && p.v > 0);
+    const premSeries = (costPath.length
+      ? costPath.map((p) => ({
+        d: p.d || p.date,
+        v: (p.v || p.all_in_cost_usd) * (Number((supply.assumptions || {}).premium_multiple) || 1.75),
+      }))
+      : supplyCurve.map((p) => ({ d: p.date, v: p.premium_band_usd || p.all_in_cost_usd }))
+    ).filter((p) => p.d && p.v > 0);
+    [...floorSeries, ...premSeries].forEach((p) => {
+      const t = parse(p.d);
       if (Number.isFinite(t)) {
         tMin = Math.min(tMin, t);
         tMax = Math.max(tMax, t);
@@ -2004,10 +2037,12 @@
     if (!(tMax > tMin)) tMax = tMin + 1;
     let vMin = Math.min(...all.map((p) => p.v));
     let vMax = Math.max(...all.map((p) => p.v));
-    curve.forEach((p) => {
-      vMin = Math.min(vMin, p.all_in_cost_usd, p.premium_band_usd || p.all_in_cost_usd);
-      vMax = Math.max(vMax, p.all_in_cost_usd, p.premium_band_usd || p.all_in_cost_usd);
+    [...floorSeries, ...premSeries].forEach((p) => {
+      vMin = Math.min(vMin, p.v);
+      vMax = Math.max(vMax, p.v);
     });
+    if (hkRef.model_2028) vMax = Math.max(vMax, Number(hkRef.model_2028));
+    if (hkRef.supply_high) vMax = Math.max(vMax, Number(hkRef.supply_high));
     if (spot && spot > 0) {
       vMin = Math.min(vMin, spot);
       vMax = Math.max(vMax, spot);
@@ -2025,20 +2060,44 @@
       const d = pts.map((p, i) => `${i ? 'L' : 'M'}${xScale(parse(p.d)).toFixed(1)},${yScale(p.v).toFixed(1)}`).join(' ');
       return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${widthPx}" ${dash ? `stroke-dasharray="${dash}"` : ''} />`;
     };
-    const floorPts = curve.map((p) => ({ d: p.date, v: p.all_in_cost_usd }));
-    const premPts = curve.map((p) => ({ d: p.date, v: p.premium_band_usd || p.all_in_cost_usd }));
+    // Hashrate overlay: normalize into log price band for shape comparison
+    let hashPoly = '';
+    if (hashPts.length >= 2) {
+      const hv = hashPts.map((p) => Number(p.v)).filter((v) => v > 0);
+      const hMin = Math.min(...hv);
+      const hMax = Math.max(...hv);
+      if (hMax > hMin) {
+        const mapped = hashPts.filter((p) => p.v > 0).map((p) => {
+          const frac = (Number(p.v) - hMin) / (hMax - hMin);
+          const vv = Math.pow(10, logMin + frac * (logMax - logMin) * 0.85);
+          return { d: p.d, v: vv };
+        });
+        hashPoly = poly(mapped, '#a78bfa', 1.1, '1 3');
+      }
+    }
     const years = [];
     const d0 = new Date(tMin);
     const d1 = new Date(tMax);
-    for (let y = d0.getUTCFullYear(); y <= d1.getUTCFullYear(); y += 2) {
-      years.push(y);
-    }
+    for (let y = d0.getUTCFullYear(); y <= d1.getUTCFullYear(); y += 2) years.push(y);
     const yTicks = [];
-    for (let e = Math.floor(logMin); e <= Math.ceil(logMax); e++) {
-      yTicks.push(Math.pow(10, e));
-    }
+    for (let e = Math.floor(logMin); e <= Math.ceil(logMax); e++) yTicks.push(Math.pow(10, e));
     const spotMark = spot && spot > 0
-      ? `<circle cx="${xScale(tMax).toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="3.5" fill="#60a5fa" />`
+      ? `<circle cx="${xScale(Math.min(tMax, Date.now())).toFixed(1)}" cy="${yScale(spot).toFixed(1)}" r="3.5" fill="#60a5fa" />
+         <text x="${(xScale(Math.min(tMax, Date.now())) + 6).toFixed(1)}" y="${(yScale(spot) - 4).toFixed(1)}" font-size="10" fill="#60a5fa">${hkFmtUsd(spot)}</text>`
+      : '';
+    const halvingGuide = Number.isFinite(halvingT)
+      ? `<line x1="${xScale(halvingT).toFixed(1)}" y1="${pad.t}" x2="${xScale(halvingT).toFixed(1)}" y2="${h - pad.b}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3 3" />
+         <text x="${xScale(halvingT).toFixed(1)}" y="${pad.t + 10}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.7">halving</text>`
+      : '';
+    const hkMarker = hkRef.model_2028 && Number.isFinite(halvingT)
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.model_2028)).toFixed(1)}" r="3.5" fill="#f472b6" />
+         <text x="${(xScale(halvingT) - 6).toFixed(1)}" y="${(yScale(Number(hkRef.model_2028)) - 6).toFixed(1)}" text-anchor="end" font-size="9" fill="#f472b6">HK ${hkFmtUsd(hkRef.model_2028)}</text>`
+      : '';
+    const bandLo = hkRef.supply_low && Number.isFinite(halvingT)
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_low)).toFixed(1)}" r="2.5" fill="#f87171" opacity="0.85" />`
+      : '';
+    const bandHi = hkRef.supply_high && Number.isFinite(halvingT)
+      ? `<circle cx="${xScale(halvingT).toFixed(1)}" cy="${yScale(Number(hkRef.supply_high)).toFixed(1)}" r="2.5" fill="#34d399" opacity="0.85" />`
       : '';
     return `<svg class="hk-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="BTC log price vs power-law model and cost floor">
       ${yTicks.map((v) => {
@@ -2052,44 +2111,32 @@
         const x = xScale(t);
         return `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.55">${y}</text>`;
       }).join('')}
-      ${poly(floorPts, '#f87171', 1.5, '4 3')}
-      ${poly(premPts, '#34d399', 1.25, '2 3')}
+      ${halvingGuide}
+      ${hashPoly}
+      ${poly(floorSeries, '#f87171', 1.5, '4 3')}
+      ${poly(premSeries, '#34d399', 1.25, '2 3')}
       ${poly(ptsM, '#fbbf24', 1.75, '6 4')}
       ${poly(ptsA, '#60a5fa', 1.8)}
       ${spotMark}
+      ${hkMarker}
+      ${bandLo}
+      ${bandHi}
     </svg>
     <div class="hk-legend">
-      <span><i class="actual"></i>BTC spot (log)</span>
-      <span><i class="model"></i>Demand power law</span>
+      <span><i class="actual"></i>BTC spot</span>
+      <span><i class="model"></i>Model</span>
       <span><i class="floor"></i>Cost floor</span>
-      <span><i class="premium"></i>Premium band</span>
+      <span><i class="premium"></i>Cost +75%</span>
+      <span><i class="hash"></i>Hashrate (shape)</span>
+      <span><i class="hkref"></i>HK 2028 ref</span>
     </div>`;
-  }
-
-  function hkMilestoneBars(btcStops, amznStops, escapeHtml) {
-    const rows = (btcStops || []).filter((s) => s.time_frac < 1).map((s) => {
-      const amzn = (amznStops || []).find((a) => Math.abs(a.time_frac - s.time_frac) < 0.001);
-      const btcPct = Math.max(0, Math.min(Number(s.pct_of_terminal) || 0, 100));
-      const amznPct = amzn ? Math.max(0, Math.min(Number(amzn.pct_of_terminal) || 0, 100)) : null;
-      return `<div class="hk-bar-row">
-        <span class="mono">${escapeHtml(String(Math.round(s.time_frac * 100)))}% time</span>
-        <div>
-          <div class="hk-bar-track" title="BTC % of terminal"><div class="hk-bar-fill" style="width:${btcPct}%"></div></div>
-          ${amznPct != null ? `<div class="hk-bar-track" title="AMZN % of terminal" style="margin-top:3px"><div class="hk-bar-fill amzn" style="width:${amznPct}%"></div></div>` : ''}
-        </div>
-        <span class="mono tier-sub">${escapeHtml(String(Math.round(btcPct)))}%${amznPct != null ? ' / ' + Math.round(amznPct) + '%' : ''}</span>
-      </div>`;
-    }).join('');
-    return `${rows || '<p class="tier-sub">No milestones.</p>'}
-      <div class="hk-legend" style="margin-top:8px"><span><i class="actual"></i>BTC % of recent</span><span><i class="model"></i>AMZN % of recent</span></div>
-      <p class="tier-sub">At halfway through time, most of the dollar gain is still ahead — the snowball lesson.</p>`;
   }
 
   function renderHkSnowballPanel(doc, escapeHtml) {
     if (!doc || !doc.demand) {
       return `<details class="wm-panel hk-snowball">
-        <summary>Compounding snowball (HK lens)</summary>
-        <p class="tier-sub">No model JSON yet. Run: <code>python _system/scripts/fetch_crypto_panel.py</code></p>
+        <summary>BTC snowball (HK)</summary>
+        <p class="tier-sub">No model yet. Run: <code>python _system/scripts/fetch_crypto_panel.py</code></p>
       </details>`;
     }
     const dial = doc.dial || {};
@@ -2098,37 +2145,37 @@
     const fit = demand.fit || {};
     const dialCls = dial.label === 'on_schedule' ? 'badge-ok'
       : (dial.label === 'below_cost_floor' ? 'badge-bad' : 'badge-warn');
-    const chart = hkLogChart(
-      demand.actual_path,
-      demand.model_path,
-      supply.curve,
-      (doc.spot || {}).btc_usd,
-    );
-    const btcStops = ((doc.milestones || {}).btc || {}).stops || [];
-    const amznStops = ((doc.milestones || {}).amzn || {}).stops || [];
+    const residual = dial.spot_vs_model_pct;
+    const residualTxt = residual != null && Number.isFinite(Number(residual))
+      ? `${Number(residual) > 0 ? '+' : ''}${Number(residual).toFixed(0)}% vs model`
+      : '';
+    const nextHalving = ((supply.assumptions || {}).next_halving) || '2028-04-15';
+    let daysToHalving = '';
+    try {
+      const ms = Date.parse(nextHalving + 'T00:00:00Z') - Date.now();
+      if (Number.isFinite(ms)) daysToHalving = `${Math.max(0, Math.round(ms / 86400000))}d to halving`;
+    } catch (_) { /* ignore */ }
     return `<details class="wm-panel hk-snowball" open>
-      <summary>Compounding snowball (HK lens) <span class="tier-sub">BTC power law · cost floor</span></summary>
+      <summary>BTC snowball (HK) <span class="tier-sub">Demand path · cost floor</span></summary>
       <div class="hk-snowball-glance">
-        <span class="badge ${dialCls}">${escapeHtml(dial.label || 'n/a')}</span>
+        <span class="badge ${dialCls}">${escapeHtml(hkDialLabel(dial.label))}</span>
         <span class="mono">spot ${escapeHtml(hkFmtUsd((doc.spot || {}).btc_usd))}</span>
         <span class="mono">model ${escapeHtml(hkFmtUsd(demand.model_price_as_of))}</span>
+        ${residualTxt ? `<span class="mono tier-sub">${escapeHtml(residualTxt)}</span>` : ''}
         <span class="mono">2028 model ${escapeHtml(hkFmtUsd(demand.model_price_2028_04_15))}</span>
-        <span class="mono">2028 floor ${escapeHtml(hkFmtUsd(supply.halving_2028_cost_usd))} → band ${escapeHtml(hkFmtUsd(supply.halving_2028_premium_band_usd))}</span>
-        ${fit.k != null ? `<span class="tier-sub">k=${escapeHtml(String(fit.k))}${fit.r2_log != null ? ' · R²(log)=' + Number(fit.r2_log).toFixed(3) : ''}</span>` : ''}
+        <span class="mono">2028 floor ${escapeHtml(hkFmtUsd(supply.halving_2028_cost_usd))} → ${escapeHtml(hkFmtUsd(supply.halving_2028_premium_band_usd))}</span>
+        ${fit.k != null ? `<span class="tier-sub">k=${escapeHtml(Number(fit.k).toFixed(2))}${fit.r2_log != null ? ' · R²=' + Number(fit.r2_log).toFixed(2) : ''}</span>` : ''}
+        ${daysToHalving ? `<span class="tier-sub">${escapeHtml(daysToHalving)}</span>` : ''}
         ${doc.as_of ? `<span class="mono tier-sub">${escapeHtml(String(doc.as_of))}</span>` : ''}
       </div>
-      <p class="tier-sub">${escapeHtml(dial.plain_english || demand.interpretation || '')}</p>
+      <p class="tier-sub">${escapeHtml(dial.plain_english || '')}</p>
       <div class="hk-snowball-grid">
         <div class="hk-snowball-card">
-          <h4>Log price vs demand path + supply band</h4>
-          ${chart}
-        </div>
-        <div class="hk-snowball-card">
-          <h4>Time vs value milestones (BTC / AMZN)</h4>
-          ${hkMilestoneBars(btcStops, amznStops, escapeHtml)}
+          <h4>BTC log path</h4>
+          ${hkLogChart(doc)}
         </div>
       </div>
-      <p class="tier-sub" style="margin-top:10px">${escapeHtml(doc.disclaimer || '')}</p>
+      <p class="tier-sub" style="margin-top:10px">${escapeHtml(doc.disclaimer || 'Context only. Not a trade signal. Not in base IRR.')}</p>
     </details>`;
   }
 
@@ -2180,7 +2227,7 @@
       counts.unchecked ? `${counts.unchecked} unchecked` : '',
     ].filter(Boolean);
     const exceptionSummary = exceptionBits.length ? exceptionBits.join(' · ') : 'no exceptions';
-    const stance = wmTrimStance(strip.ev_stance || '', 120);
+    const stance = wmTrimStance(strip.ev_stance || '', 90);
 
     const attentionRows = [
       ...(strip.broken || []).map(r => ({ ...r, _kind: 'hard' })),
@@ -2378,7 +2425,7 @@
             <span class="badge ${labelCls}">${escapeHtml(label)}</span>
             <span class="badge badge-us" title="${escapeHtml(bounds.reason || 'Magis claim ceiling')}">claim ${escapeHtml(ceilingShort)}</span>
             ${strip.as_of ? `<span class="mono tier-sub">${escapeHtml(String(strip.as_of))}</span>` : ''}
-            <span class="tier-sub" title="About: Courtenay foresight + Magis claim gate. Context only — does not set capital stance. Engines: ${escapeHtml(enginesTooltip)}">ⓘ</span>
+            <span class="tier-sub" title="Context only. Does not set capital stance.">ⓘ</span>
           </div>
           <div class="wm-glance-meta">
             <span>${escapeHtml(exceptionSummary)}</span>
@@ -2414,7 +2461,7 @@
             <thead><tr><th>Domain</th><th>Trend</th><th>Years</th><th>Speaker</th></tr></thead>
             <tbody>${horizonRows}</tbody>
           </table>
-          <p class="tier-sub wm-claim-line">Quotes are P0 observations — not Magis forecasts</p>` : '<p class="tier-sub">None.</p>'}
+          <p class="tier-sub wm-claim-line">P0 quotes only. Not forecasts.</p>` : '<p class="tier-sub">None.</p>'}
         </details>
 
         <details class="wm-panel">
@@ -2429,7 +2476,7 @@
             <table class="darwin-table wm-table">
               <thead><tr><th>Ticker</th><th>KPI</th><th>Status</th></tr></thead>
               <tbody>${goodhartFailRows}</tbody>
-            </table>` : '<p class="tier-sub">No Goodhart fails (soft gates that are passing are hidden).</p>'}
+            </table>` : '<p class="tier-sub">No Goodhart fails.</p>'}
         </details>
 
         <details class="wm-panel">
@@ -2445,7 +2492,7 @@
           <div class="wm-kpi-toolbar">
             <button type="button" class="filter-btn wm-kpi-mode active" data-wm-kpi-mode="outliers">Outliers (|z|≥2)</button>
             <button type="button" class="filter-btn wm-kpi-mode" data-wm-kpi-mode="all">Show all passing</button>
-            <span class="tier-sub">Click Actual / Hist / vs hist for history. Vs hist is descriptive only — not a capital gate.</span>
+            <span class="tier-sub">Click a KPI for history. Z-scores are descriptive only.</span>
           </div>
           <div class="wm-kpi-panels">
             <div class="wm-kpi-panel" data-wm-kpi-panel="outliers">${renderKpiGroups(groupsDefault, 5)}</div>

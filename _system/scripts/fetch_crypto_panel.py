@@ -14,11 +14,13 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = Path(__file__).resolve().parent
 CONFIG = SCRIPTS / "crypto_panel_config.json"
 CRYPTO_DIR = ROOT / "_system" / "reference" / "market-data" / "crypto"
+BTC_SEED_PRE_YAHOO = CRYPTO_DIR / "btc_spot_usd_seed_pre_yahoo.csv"
 UA = "MarvinResearch/1.0 (crypto-panel)"
 TODAY = date.today().isoformat()
 YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 MEMPOOL = "https://mempool.space/api"
 COINGECKO = "https://api.coingecko.com/api/v3"
+BLOCKCHAIN_CHARTS = "https://api.blockchain.info/charts"
 
 
 def load_config() -> dict:
@@ -125,6 +127,64 @@ def fetch_coingecko_btc_history() -> tuple[list[tuple[str, float]], str | None]:
         by_day[d] = v
     out = sorted(by_day.items())
     return out, (None if out else "empty")
+
+
+def fetch_blockchain_btc_history(*, before: str = "2014-09-17") -> tuple[list[tuple[str, float]], str | None]:
+    """Long BTC USD history from blockchain.info charts (sampled)."""
+    data = _get_json(f"{BLOCKCHAIN_CHARTS}/market-price?timespan=all&format=json")
+    if not data or not isinstance(data, dict):
+        return [], "network"
+    by_day: dict[str, float] = {}
+    for rec in data.get("values") or []:
+        if not isinstance(rec, dict):
+            continue
+        try:
+            ts = int(rec["x"])
+            px = float(rec["y"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if px <= 0:
+            continue
+        d = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        if d >= before:
+            continue
+        by_day[d] = px
+    out = sorted(by_day.items())
+    return out, (None if out else "empty")
+
+
+def load_btc_seed_pre_yahoo() -> list[tuple[str, float]]:
+    return read_csv_series(BTC_SEED_PRE_YAHOO)
+
+
+def merge_btc_backfill(
+    live_rows: list[tuple[str, float]],
+    *,
+    mode: str | None,
+) -> tuple[list[tuple[str, float]], str]:
+    """Merge Yahoo/live rows with seed and optional remote backfill."""
+    merged: dict[str, float] = {}
+    tags: list[str] = []
+    seed = load_btc_seed_pre_yahoo()
+    if seed:
+        merged.update(seed)
+        tags.append("seed_pre_yahoo")
+    if mode in ("coingecko_btc", "seed_pre_yahoo", "blockchain_btc"):
+        # Prefer live remote backfill when reachable; seed already applied
+        if mode == "coingecko_btc":
+            remote, _err = fetch_coingecko_btc_history()
+            if remote:
+                merged.update({d: v for d, v in remote if d < "2014-09-17"})
+                tags.append("coingecko")
+        remote_bc, _err_bc = fetch_blockchain_btc_history()
+        if remote_bc:
+            # Fill gaps only; do not overwrite denser seed/remote
+            for d, v in remote_bc:
+                merged.setdefault(d, v)
+            tags.append("blockchain.info")
+    merged.update({d: v for d, v in live_rows})
+    label = "+".join(tags) if tags else "none"
+    return sorted(merged.items()), label
 
 
 def fetch_amzn_weekly() -> tuple[list[tuple[str, float]], str | None]:
@@ -291,7 +351,11 @@ def process_series(spec: dict, ctx: dict, offline: bool) -> dict:
             interval=str(spec.get("interval") or "1d"),
         )
         source_label = f"yahoo:{spec.get('yahoo_symbol')}"
-        if spec.get("backfill") == "coingecko_btc" and not offline:
+        backfill_mode = spec.get("backfill")
+        if sid == "btc_spot_usd" and backfill_mode and not offline:
+            rows, bf_tag = merge_btc_backfill(rows, mode=str(backfill_mode))
+            source_label = f"yahoo:{spec.get('yahoo_symbol')}+{bf_tag}"
+        elif backfill_mode == "coingecko_btc" and not offline:
             cg_rows, cg_err = fetch_coingecko_btc_history()
             if cg_rows:
                 merged_bf = {d: v for d, v in cg_rows}
