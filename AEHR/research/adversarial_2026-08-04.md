@@ -11,11 +11,11 @@ re_pass: false
 
 # AEHR — Adversarial review
 
-**Date:** 2026-07-27  
+**Date:** 2026-08-04  
 **Agent:** Milly (batch pass)  
-**Dive reviewed:** `AEHR/research/deep_dive_2026-07-27.md`  
+**Dive reviewed:** `AEHR/research/deep_dive_2026-08-04.md`  
 **Valuation reviewed:** `AEHR/research/valuation.json`  
-**Filings used:** `AEHR/research/evidence/filing_facts_2026-07-27.json`
+**Filings used:** `AEHR/research/evidence/filing_facts_2026-08-04.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.
 
@@ -55,8 +55,8 @@ re_pass: false
 | Valuation bridge base | -36.67% | -36.67% | Yes |
 
 **Lint notes:**
-- AEHR/research/deep_dive_2026-07-27.md: executive_summary_first_pct -33.31% vs valuation.json base -36.67% (tol 0.25pp)
-- AEHR/research/deep_dive_2026-07-27.md: header missing **Adversarial review:** link
+- AEHR/research/deep_dive_2026-08-04.md: executive_summary_first_pct -33.31% vs valuation.json base -36.67% (tol 0.25pp)
+- AEHR/research: adversarial date adversarial_2026-07-27.md != dive 2026-08-04
 
 ---
 
