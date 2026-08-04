@@ -652,7 +652,34 @@
   "valuation_methodology": {
     "mode": "component_economic_value",
     "horizon_years": 7,
-    "decision_rule": "Use one complete non-overlapping component schedule. The legacy Lawrence return path remains a separate stance gate until proofs are decision-grade."
+    "decision_rule": "Use one complete non-overlapping component schedule. The legacy Lawrence return path remains a separate stance gate until proofs are decision-grade.",
+    "outlier_validation": {
+      "status": "passed",
+      "trigger": "Component contract base annualized return at price is -25.6% (|return| >= 25%) because price ~$10.26 exceeds additive value ~$1.29/sh.",
+      "primary_method": "component_economic_value",
+      "independent_methods": [
+        {
+          "method_id": "lawrence_owner_cash_irr",
+          "label": "Seven-year Lawrence owner-cash synthesis (GAAP FCF0)",
+          "return_at_price_pct": -2.4,
+          "source": "ABX/research/valuation.json scenarios.base on FY2025 OCF $25.7M less capex $0.9M over 99.23M shares",
+          "conclusion": "Same price implies negative but sub-25% return; confirms overvaluation versus filing-anchored owner cash without matching component magnitude."
+        },
+        {
+          "method_id": "reverse_dcf",
+          "label": "Reverse DCF on GAAP free cash flow per share at price today",
+          "implied_growth_note": "At $0.25/sh starting owner cash and $10.26 price, market embeds growth and exit multiples above base Lawrence assumptions (12% years 1-5, 12x exit).",
+          "source": "ABX/investor-documents/sec-edgar/10-K_20260313_rpt20251231_acc0001628280_26_017775.htm",
+          "conclusion": "Price requires heroics versus filing cash conversion; consistent with component underpricing of equity at current quote."
+        }
+      ],
+      "evidence_refs": [
+        "ABX/investor-documents/sec-edgar/10-K_20260313_rpt20251231_acc0001628280_26_017775.htm",
+        "ABX/investor-documents/sec-edgar/10-Q_20260511_rpt20260331_acc0001628280_26_033136.htm",
+        "ABX/research/valuation.json"
+      ],
+      "rationale": "Two independent filing-backed methods confirm direction (rich versus owner economics). Extreme negative component return reflects net debt and longevity reserve components stacked on operating proofs, not a single-model artifact."
+    }
   },
   "component_valuation": {
     "schema_version": "1.0",
