@@ -1079,7 +1079,6 @@
 
   <nav class="view-tabs" id="view-tabs" aria-label="Primary" role="tablist">
     <button type="button" class="view-tab active" data-view="holdings" role="tab" aria-selected="true">Holdings</button>
-
     <button type="button" class="view-tab" data-view="risk" role="tab" aria-selected="false">Risk</button>
     <button type="button" class="view-tab" data-view="short-alpha" role="tab" aria-selected="false">Short Alpha</button>
     <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
@@ -1146,6 +1145,7 @@
     <div class="loading" id="short-alpha-loading">Loading hypothesis ledger…</div>
     <div id="short-alpha-content" style="display:none"></div>
   </section>
+
   <section class="insights-panel" id="insights-panel">
     <div class="loading" id="insights-loading">Loading insights…</div>
     <div id="insights-content" style="display:none"></div>
@@ -2361,7 +2361,6 @@ async function loadOperationalData() {
   }
   if (data) {
     renderSummary();
-
     if (activeView === 'risk') renderMarketRiskView();
   }
 }
@@ -2480,11 +2479,11 @@ function renderMarketRiskView() {
     content.innerHTML = '<div class="risk-empty">Market-risk visualization is unavailable.</div>';
     return;
   }
-  content.innerHTML = CriticalityViz.renderRiskView(
+  content.innerHTML = `${renderMarketFearTape()}${CriticalityViz.renderRiskView(
     data.market_risk,
     data.market_risk_details || {},
     { escapeHtml, marketContext: data.technical_signals_ref?.market_context || {} },
-  );
+  )}`;
 }
 
 async function loadShortAlpha() {
@@ -2523,6 +2522,7 @@ function renderShortAlpha() {
   content.innerHTML = ShortAlphaViz.render(shortAlphaData);
   ShortAlphaViz.attach(content, shortAlphaData, rerender);
 }
+
 function setView(view, opts = {}) {
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
@@ -3862,11 +3862,6 @@ function renderSummary() {
     { label: 'PDF store', value: Number(catalog?.uploaded_count || 0).toLocaleString(), sub: `${Number(catalog?.pending_upload_count || 0).toLocaleString()} pending` },
   ];
   document.getElementById('summary').innerHTML = `
-    ${renderMarketFearTape()}
-    ${window.CriticalityViz ? CriticalityViz.render(data.market_risk, {
-      escapeHtml,
-      marketContext: data.technical_signals_ref?.market_context || {},
-    }) : ''}
     ${cards.map((c, index) => `
       <div class="summary-card decision-stage ${c.cls || ''}">
         <div class="label">${escapeHtml(c.label)}<span class="stage-index">0${index + 1}</span></div>

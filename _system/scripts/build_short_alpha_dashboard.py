@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "_system" / "research" / "short-alpha" / "ideas.json"
 OUTPUT = ROOT / "dashboard" / "data" / "short_alpha.json"
+BORROW = ROOT / "dashboard" / "data" / "short_alpha_borrow.json"
+EXCLUDED_TICKERS = {"ECHX"}  # Managed in the ls-algo universe, not this standalone sleeve.
 
 
 class LedgerError(ValueError):
@@ -43,11 +45,13 @@ def _validate(raw: dict) -> None:
         if not ticker or ticker in seen:
             raise LedgerError(f"Ticker must be present and unique: {ticker or '<blank>'}")
         seen.add(ticker)
+        if ticker in EXCLUDED_TICKERS:
+            continue
         shares = float((idea.get("position") or {}).get("shares") or 0)
-        exposure = float((idea.get("position") or {}).get("initial_exposure_usd") or 0)
-        baseline = float((idea.get("position") or {}).get("baseline_price") or 0)
-        if shares >= 0 or exposure <= 0 or baseline <= 0:
-            raise LedgerError(f"{ticker}: shares must be negative and exposure/baseline positive")
+        opened = float((idea.get("position") or {}).get("opened_price") or 0)
+        split_factor = float((idea.get("position") or {}).get("split_adjustment_factor") or 1)
+        if shares >= 0 or opened <= 0 or split_factor <= 0:
+            raise LedgerError(f"{ticker}: shares must be negative and opened price/split factor positive")
         tags = idea.get("frameworks") or []
         unknown_tags = sorted(set(tags) - set(framework_ids))
         if unknown_tags:
@@ -101,29 +105,31 @@ def build(source: Path = SOURCE) -> dict:
     _validate(raw)
     ideas: list[dict] = []
     framework_counts: Counter[str] = Counter()
-    gross = 0.0
-    pnl = 0.0
+    borrow_rows = _read_json(BORROW).get("rates") or {} if BORROW.exists() else {}
     complete = 0
     for source_idea in raw.get("ideas") or []:
         idea = json.loads(json.dumps(source_idea))
         idea["ticker"] = str(idea["ticker"]).upper()
+        if idea["ticker"] in EXCLUDED_TICKERS:
+            continue
         idea["artifact_status"] = _artifact_status(idea)
         check_ins = sorted(idea.get("check_ins") or [], key=lambda row: str(row.get("date") or ""))
         latest = check_ins[-1]
         position = idea["position"]
-        baseline = float(position["baseline_price"])
-        latest_price = float(latest["price"])
-        absolute_shares = abs(float(position["shares"]))
+        opened_price = float(position["opened_price"])
+        split_factor = float(position.get("split_adjustment_factor") or 1)
         idea["outcome"] = {
             "latest_date": latest["date"],
-            "latest_price": latest_price,
+            "latest_price": float(latest["price"]),
             "hypothesis_state": latest.get("hypothesis_state") or "open",
-            "short_return_pct": round(((baseline - latest_price) / baseline) * 100, 2),
-            "pnl_usd": round((baseline - latest_price) * absolute_shares, 2),
             "check_in_count": len(check_ins),
         }
-        gross += float(position["initial_exposure_usd"])
-        pnl += float(idea["outcome"]["pnl_usd"])
+        idea["position"]["split_adjusted_open_price"] = round(opened_price / split_factor, 6)
+        idea["borrow"] = borrow_rows.get(idea["ticker"], {
+            "status": "pending",
+            "source": "IBKR borrow feed",
+            "message": "Awaiting the next IBKR borrow refresh.",
+        })
         for tag in idea.get("frameworks") or []:
             framework_counts[tag] += 1
         if idea["artifact_status"]["completion_pct"] >= 85:
@@ -137,8 +143,6 @@ def build(source: Path = SOURCE) -> dict:
         "currency": raw.get("currency", "USD"),
         "summary": {
             "position_count": len(ideas),
-            "gross_short_exposure_usd": round(gross, 2),
-            "tracked_pnl_usd": round(pnl, 2),
             "research_complete_count": complete,
             "framework_counts": dict(sorted(framework_counts.items())),
         },
@@ -146,9 +150,8 @@ def build(source: Path = SOURCE) -> dict:
         "source_types": raw.get("source_types") or [],
         "ideas": ideas,
         "methodology": {
-            "short_return": "(baseline_price - latest_price) / baseline_price",
-            "pnl": "(baseline_price - latest_price) * abs(shares)",
-            "warning": "Borrow fees, dividends, financing costs, taxes, locate availability, slippage, and corporate actions are not included unless recorded in a check-in note.",
+            "entry_price": "Opened price is adjusted by the cumulative split factor so it stays comparable to the current share basis.",
+            "borrow": "Borrow is supplied by the IBKR refresh feed; unavailable is not a zero rate.",
         },
     }
 
