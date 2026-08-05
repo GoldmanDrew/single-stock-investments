@@ -1,10 +1,14 @@
 {
   "ticker": "AXON",
-  "as_of": "2026-07-30",
+  "as_of": "2026-08-05",
   "schema_version": "3.0",
   "method": "proof_first_automated",
   "classification_inputs": {
-    "archetype": "compounder"
+    "archetype": "compounder",
+    "payoff_lens": "operating",
+    "moat": "stable",
+    "dhando": "partial",
+    "cycle": "expansion"
   },
   "inputs": {
     "price": 527.48,
@@ -15,8 +19,32 @@
     "total_debt_m": 1730.9869999999999
   },
   "valuation_methodology": {
+    "mode": "component_economic_value",
     "horizon_years": 7,
-    "automation": "source_locked_first_pass"
+    "automation": "source_locked_first_pass",
+    "decision_rule": "Use one complete non-overlapping component schedule. The legacy Lawrence return path remains a separate stance gate.",
+    "outlier_validation": {
+      "status": "passed",
+      "independent_methods": [
+        "lawrence_owner_cash_irr",
+        "component_economic_value",
+        "reverse_dcf"
+      ],
+      "evidence_refs": [
+        "AXON/research/valuation.json",
+        "AXON/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001628280_26_011360.htm",
+        "AXON/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001628280_26_031542.htm",
+        "AXON/research/evidence/sec_companyfacts.json"
+      ],
+      "notes": "Contract base annualized return -51.63% cross-checked against Lawrence 7-year owner-cash IRR -37.9% on FY2025 normalized owner cash $0.93/sh (OCF $211.3M minus capex $136.3M) at price $527.48. Reverse DCF at 18x exit implies >40% perpetual owner-cash growth. Both independent methods confirm the extreme negative return is filing-consistent (net debt ~$1.26B, not a proof error)."
+    }
+  },
+  "reverse_expectations": {
+    "price": 527.48,
+    "normalized_owner_cash_per_share": 0.9315,
+    "exit_multiple": 18,
+    "constant_owner_cash_growth_required_pct": 42.0,
+    "warning": "Required growth is a diagnostic, not a forecast."
   },
   "component_valuation_results": {
     "status": "compiled",
