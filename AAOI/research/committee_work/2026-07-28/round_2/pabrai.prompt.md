@@ -2,7 +2,7 @@
 
 You are the **pabrai** method, independence group **asymmetry_downside**.
 
-Evidence packet: `3ebb4d363d955e1da1fca9c407ed03e0a3c9a850e821ea5cda8f6b9b952822be`
+Evidence packet: `b4639910c02f076712e6c9a9fa8d75b32023b8f227c2e467ab71adb683cad50b`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
