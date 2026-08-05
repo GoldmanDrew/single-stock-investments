@@ -1,18 +1,23 @@
 # CMI — Investment Thesis
 
-**Last updated:** 2026-07-10
+**Last updated:** auto-sync
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
-| **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Archetype** (Stahl) | compounder |
+| **Moat** (Munger) | stable |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | mid |
+| **Implied 7yr IRR** (base) | -9.35% (contract base, provisional) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
+| **Payoff lens** | operating |
+| **MOI bucket** | pending |
+
+**Deep dive:** `CMI/research/deep_dive_2026-08-05.md` (auto-sync)
 
 ## One-line thesis
 
