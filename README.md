@@ -44,6 +44,55 @@ https://single-stock-investments.pages.dev/
 
 - [`_system/agents/MARVIN.md`](_system/agents/MARVIN.md) — research + downloads
 - [`_system/agents/VICKI.md`](_system/agents/VICKI.md) — browser / IR harvest
+- [`_system/agents/MILLY.md`](_system/agents/MILLY.md) — adversarial reviewer that stress-tests Marvin's deep dives against primary filings and bear cases; re-passes via `milly_repass.py`
+- [`_system/agents/PODCAST.md`](_system/agents/PODCAST.md) — discovers watchlist/officer podcast episodes, transcribes, resolves guest/company/ticker, and publishes gated highlights (`resolve_podcast_entities.py`, `build_podcast_insights.py`)
+
+## Investment Committee
+
+Deterministic, multi-persona review that gates a Power Zone valuation before any stance becomes actionable. Each persona is a specialist error-checking lens (Marathon capital-cycle, Marks credit-cycle, Klarman asset-value, Pabrai asymmetry/downside, Greenblatt event) that must abstain unless its required inputs are measurable. A mandatory pre-mortem artifact precedes round-1 votes; the committee's evidence set is **frozen** (locked to a `packet_hash`) for the duration of a round so votes stay comparable — a refresh restarts the round. Dissent is preserved; agents never size capital, they only route a recommendation toward `human_decision.json`.
+
+Driven by [`investment-committee.yml`](.github/workflows/investment-committee.yml): `select_committee_work.py` → `committee_task_queue.py` (materializes deterministic stages, writes `proposer.json`) → `investment_committee_pipeline.py validate/assemble` → commits `{TICKER}/research/committee_{date}.json`. See [`investment_committee_personas.md`](_system/frameworks/investment_committee_personas.md) and [`investment_process.md`](_system/frameworks/investment_process.md) §5.
+
+## Contract backfill
+
+`universal_valuation_contract.json` per holding must clear all `evidence.blockers[]` to move from `evidence_blocked` to **decision_grade** (the status gating IC/human review). `python _system/scripts/build_contract_backfill_queue.py` writes the priority queue ([`contract_backfill_queue.json`](_system/data/contract_backfill_queue.json)), ranking near-complete contracts first, then remaining evidence-blocked holdings by stance. `zero_value_policy` (in [`universal_valuation_contract.py`](_system/scripts/universal_valuation_contract.py)) lets a component be valued at zero only with explicit `evidence_refs` and `allowed: true` — never a silent default. Authority precedence — `human_decision → investment_committee → universal_valuation_contract → legacy` — is resolved solely by [`decision_authority.py`](_system/scripts/decision_authority.py); legacy Marvin/Lawrence IRR fields are non-actionable once a contract exists. Runs continuously via [`contract-backfill-continue.yml`](.github/workflows/contract-backfill-continue.yml).
+
+## Short Alpha
+
+Systematic short-idea research ledger. Each filing is partitioned into five falsifiable, source-addressable claim types (identity/instrument, financial oxygen/liquidity runway, earnings quality, operating failure mode, market mechanics — borrow, days-to-cover, catalyst window) per [`short_alpha_filing_furnace.md`](_system/frameworks/short_alpha_filing_furnace.md). Build/refresh:
+
+```powershell
+python _system/scripts/build_short_alpha_dashboard.py   # reads short_alpha_research_queue.json → dashboard/data/short_alpha.json (--check to validate only)
+python _system/scripts/refresh_short_alpha_borrow.py     # borrow / split-aware entry data → dashboard/data/short_alpha_borrow.json
+```
+
+Rendered via [`dashboard/short-alpha-viz.js`](dashboard/short-alpha-viz.js).
+
+## LS-Algo systematic flows
+
+Nightly Power Zone valuation pipeline for the Darwin portfolio's systematic/volatility-flow ("LS-Algo") sleeve: build power zones → route method → valuation workbench → entry pricing (10/12/15/20% hurdles) → gated IC review (only on a decision-grade/price/live-flag trigger, never the whole sleeve) → dashboard refresh.
+
+```powershell
+python _system/scripts/darwin/run_ls_algo_equity_onboard_all.py   # onboard new underlyings
+python _system/scripts/darwin/build_ls_algo_underlying_gap.py     # find coverage gaps
+python _system/scripts/darwin/run_ls_algo_valuation_pipeline.py   # nightly valuation run (wired into ci_rebuild_profile.py --full)
+```
+
+Plan: [`ls_algo_power_zone_valuation_plan_2026-07-17.md`](_system/proposals/ls_algo_power_zone_valuation_plan_2026-07-17.md). Scheduled via [`ls-algo-universe.yml`](.github/workflows/ls-algo-universe.yml).
+
+## Market risk / criticality-flow monitor
+
+Daily LPPLS (log-periodic power law singularity) ensemble bubble/crash-risk snapshots for major US/global risk proxies, rates/credit proxies, and 11 sector ETFs, plus an optional live intraday Databento minute-bar feed. Research-only — no trading authority.
+
+```powershell
+python _system/scripts/build_criticality_signals.py --workers 4   # daily build; --symbols to subset
+```
+
+Runs after the daily fear/capitulation refresh via [`market-risk-components.yml`](.github/workflows/market-risk-components.yml); data ships to Cloudflare D1 over HMAC-signed ingestion and serves through `/api/v1/market-risk/*` as a dashboard risk rail + sector heatmap. Local always-on install (Windows Scheduled Task, every 30 min during market hours + EOD): `_system/scripts/install_market_risk_component_task.ps1`. Runbook: [`docs/criticality-flow-monitor-runbook.md`](docs/criticality-flow-monitor-runbook.md), [`docs/market-risk-component-pipeline.md`](docs/market-risk-component-pipeline.md).
+
+## BTC snowball / World Model panel
+
+Dashboard panel presenting a Bitcoin power-law/snowball demand-and-cost-floor model in plain English with a supporting chart. Implemented directly in [`dashboard/insights-viz.js`](dashboard/insights-viz.js) (search `hk-snowball`) — no separate framework doc.
 
 ## GitHub integration
 
