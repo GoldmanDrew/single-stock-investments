@@ -1,6 +1,6 @@
 # ARE — Investment Thesis
 
-**Last updated:** 2026-07-10
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,8 +11,13 @@
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
 | **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
+| **Implied 7yr IRR** (base) | — |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
 | **Payoff lens** | pending |
+| **MOI bucket** | pending |
+
+**Deep dive:** `ARE/research/deep_dive_2026-08-04.md` (auto-sync)
 
 ## One-line thesis
 
