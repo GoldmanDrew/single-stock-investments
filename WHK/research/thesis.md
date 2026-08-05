@@ -6,7 +6,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | compounder |
+| **Archetype** (Stahl) | croupier |
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
@@ -14,22 +14,25 @@
 | **Implied 7yr IRR** (base) | — |
 | **IRR method** | quality_reinvestment |
 | **Lawrence bucket** | other |
-| **Payoff lens** | pending |
+| **Payoff lens** | operating |
 | **MOI bucket** | pending |
 
-**Deep dive:** `WHK/research/deep_dive_2026-08-04.md` (auto-sync)
+**Deep dive:** `WHK/research/deep_dive_2026-08-05.md` (auto-sync)
 
 ## One-line thesis
 
-WhiteHawk Minerals Corp. is a newly public (2026-06-10), internally managed mineral/royalty income company organized as an Up-C; no financial statements have been filed yet, so no thesis or valuation exists beyond the IPO and Internalization mechanics disclosed in its closing 8-K. See `WHK/research/deep_dive_2026-08-04.md`.
+WhiteHawk Minerals Corp. is a newly public (2026-06-10), internally managed natural gas mineral and royalty company (Marcellus and Haynesville Shales) organized as an Up-C. The 424B4 prospectus now locks share count, pro forma cash/debt, revenue, Adjusted EBITDA, and Cash Available for Distribution, but no dividend policy has been declared and the company restated its FY2025 financials seven weeks before the IPO for material accounting errors. See `WHK/research/deep_dive_2026-08-05.md`.
 
 ## Key questions
 
-- [ ] Pull the 424B4 prospectus (filed 2026-06-09) to learn what mineral/royalty assets WhiteHawk actually owns
-- [ ] Read the first 10-Q or Internalization pro forma financial statements once filed
-- [ ] Apply `_system/frameworks/mental_models.md` Tier 1 lenses once a business description exists
+- [x] Pull the 424B4 prospectus (filed 2026-06-09) to learn what mineral/royalty assets WhiteHawk actually owns
+- [ ] Read the first 10-Q once filed (not yet filed as of 2026-08-05)
+- [ ] Apply `_system/frameworks/mental_models.md` Tier 1 lenses using the now-available business description
+- [ ] Build a reserve-life / decline-curve model from the 424B4 "Summary Reserve Data" section
+- [ ] Track the first dividend/distribution declaration to lock a payout ratio
 
 ## [HUMAN REVIEW]
 
-- Reconcile the `compounder` archetype default in `valuation_route.json`/`security_identity.json` against `unknown` in `_system/portfolio/holdings.md` once the business is understood.
-- See `WHK/research/deep_dive_2026-08-04.md` → [HUMAN REVIEW] for the full evidence-gap list.
+- Archetype corrected from `compounder` to `croupier` (2026-08-05 refresh) based on the 424B4's confirmation that WhiteHawk is a non-operated royalty aggregator; re-routed the valuation method to "Scarce assets, royalties, and optionality."
+- FY2025 restatement (2026-04-22) for material accounting errors and identified material weaknesses in internal control over financial reporting; not yet independently cross-checked beyond the prospectus's own disclosure.
+- See `WHK/research/deep_dive_2026-08-05.md` → [HUMAN REVIEW] for the full evidence-gap list.

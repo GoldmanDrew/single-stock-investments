@@ -1,6 +1,6 @@
 # WHK — Pending third-party sources
 
-**Updated:** 2026-08-04
+**Updated:** 2026-08-05
 
 Approve in `_system/frameworks/third_party_sources.md` before using in base IRR.
 
