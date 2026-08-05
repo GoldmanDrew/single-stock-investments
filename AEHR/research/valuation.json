@@ -1,6 +1,6 @@
 {
   "ticker": "AEHR",
-  "as_of": "2026-07-24",
+  "as_of": "2026-08-04",
   "method": "full",
   "irr_method": "full",
   "valuation_mode": "economic_value",
@@ -16,9 +16,9 @@
     "predictive_attribute": "sic_burn_in_recovery_at_rich_price"
   },
   "inputs": {
-    "price": 77.36,
-    "price_source": "Yahoo AEHR close 2026-07-20",
-    "price_as_of": "2026-07-20",
+    "price": 109.89,
+    "price_source": "Yahoo AEHR close 2026-08-04",
+    "price_as_of": "2026-08-04",
     "shares_millions": 31.453,
     "shares_outstanding": 31453000,
     "shares_source": "EntityCommonStockSharesOutstanding per AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
@@ -126,8 +126,8 @@
       "exit_pfcf_y10": 14.0,
       "adjustments": [],
       "triggered": [],
-      "filing_revenue_yoy": -0.1095,
-      "as_of_filing_facts": "evidence/_text/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm.txt"
+      "filing_revenue_yoy": -0.1521,
+      "as_of_filing_facts": "evidence/_text/10-K_20260727_rpt20260529_acc0001654954_26_006919.htm.txt"
     },
     "status": "partial"
   },
@@ -469,12 +469,12 @@
           "method": "risk_adjusted_milestone_value",
           "basis": "per_share",
           "low": 0.0,
-          "base": 1.2,
-          "high": 4.0,
+          "base": 12.19,
+          "high": 36.24,
           "evidence_tier": "primary_derived",
-          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
-          "assumption_summary": "Proof outputs {'low': 0.0, 'base': 1.2, 'high': 4.0}; see calculation_proof graph.",
-          "cross_check": "Reconcile to FY2025 10-K and Q3 FY2026 10-Q (AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm) before decision use.",
+          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
+          "assumption_summary": "Proof outputs {'low': 0.0, 'base': 12.19, 'high': 36.24}; see calculation_proof graph.",
+          "cross_check": "Reconcile effective backlog and deferred revenue to AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm and AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm before decision use.",
           "falsifier": "Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case.",
           "valuation_status": "bounded_estimate",
           "calculation_proof": {
@@ -484,41 +484,54 @@
             "output_unit": "USD_per_share",
             "inputs": [
               {
-                "id": "systems_backlog_m",
-                "label": "Systems backlog including deferred systems revenue",
+                "id": "effective_backlog_m",
+                "label": "Effective backlog including post quarter-end bookings",
                 "kind": "fact",
-                "value": 457.0,
+                "value": 100.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29"
                 },
                 "locked": true
               },
               {
-                "id": "prior_systems_backlog_m",
-                "label": "Prior-year systems backlog",
+                "id": "reported_backlog_m",
+                "label": "Reported backlog at fiscal year-end",
                 "kind": "fact",
-                "value": 645.8,
+                "value": 80.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems backlog $645.8M at December 31, 2024",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29"
+                },
+                "locked": true
+              },
+              {
+                "id": "deferred_revenue_m",
+                "label": "Deferred revenue (current plus noncurrent)",
+                "kind": "fact",
+                "value": 1.91,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+                  "as_of": "2026-02-27"
                 },
                 "locked": true
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01"
                 },
                 "locked": true
               }
@@ -526,25 +539,25 @@
             "assumptions": [
               {
                 "id": "backlog_milestone_m",
-                "label": "Risk-adjusted incremental value from backlog conversion beyond normalized owner cash",
+                "label": "Risk-adjusted incremental value from backlog and deferred revenue conversion beyond mid-cycle owner cash",
                 "kind": "judgment",
                 "values": {
                   "low": 0.0,
-                  "base": 696.7,
-                  "high": 1520.1
+                  "base": 383.41206999999997,
+                  "high": 1139.85672
                 },
                 "unit": "USD_m",
-                "rationale": "Non-overlapping claim on $457M systems backlog and deferred revenue not fully embedded in mid-cycle owner-cash engine; haircut for cancellation and mix shift.",
+                "rationale": "Non-overlapping claim on $100.6M effective backlog and $1.9M deferred revenue not fully embedded in normalized owner-cash engine; haircut for cancellation, customer concentration, and execution risk.",
                 "allowed_range": {
                   "min": 0.0,
-                  "max": 1800.0
+                  "max": 1200.0
                 }
               }
             ],
             "calculations": [
               {
                 "id": "value_per_share",
-                "label": "Systems backlog conversion option per share",
+                "label": "Backlog and deferred-revenue conversion option per share",
                 "op": "divide",
                 "args": [
                   "backlog_milestone_m",
@@ -562,8 +575,8 @@
           "risk_and_timing": {
             "success_probability": 0.55,
             "remaining_capital_m": 0.0,
-            "timing_basis": "Typical 12-24 month implant system delivery from backlog disclosure (10-K); base realization ~2 years",
-            "probability_basis": "Backlog conversion history and FY2025 deferred revenue recognition pace (10-K backlog note)",
+            "timing_basis": "FY2027 revenue guidance $130\u2013$150M implies 12\u201324 month backlog conversion",
+            "probability_basis": "Effective backlog $100.6M vs FY2026 revenue $50.0M per FY2026 results exhibit",
             "remaining_capital_basis": "Incremental capex for backlog conversion already in normalized owner-cash path"
           },
           "driver_model": {
@@ -732,9 +745,9 @@
           "base": -6.0,
           "high": -2.0,
           "evidence_tier": "primary_derived",
-          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
           "assumption_summary": "Proof outputs {'low': -12.0, 'base': -6.0, 'high': -2.0}; see calculation_proof graph.",
-          "cross_check": "Reconcile to FY2025 10-K and Q3 FY2026 10-Q (AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm) before decision use.",
+          "cross_check": "Reconcile customer concentration and ATM dilution to AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm and AEHR/investor-documents/sec-edgar/8-K_20260408_rpt20260408_acc0001654954_26_003355.htm.",
           "falsifier": "Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case.",
           "valuation_status": "bounded_estimate",
           "calculation_proof": {
@@ -747,38 +760,51 @@
                 "id": "operating_income_m",
                 "label": "FY2025 operating income",
                 "kind": "fact",
-                "value": 119.3,
+                "value": 5.677,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "OperatingIncomeLoss $5.677M FY2025",
+                  "as_of": "2025-05-30"
                 },
                 "locked": true
               },
               {
-                "id": "systems_revenue_m",
-                "label": "FY2025 systems revenue",
+                "id": "total_revenue_m",
+                "label": "FY2025 total revenue",
                 "kind": "fact",
-                "value": 571.0,
+                "value": 58.968,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Revenues $58,968 thousand FY2025",
+                  "as_of": "2025-05-30"
+                },
+                "locked": true
+              },
+              {
+                "id": "top5_customer_pct",
+                "label": "Revenue from five largest customers",
+                "kind": "fact",
+                "value": 77.0,
+                "unit": "percent",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+                  "as_of": "2025-05-30"
                 },
                 "locked": true
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01"
                 },
                 "locked": true
               }
@@ -786,18 +812,18 @@
             "assumptions": [
               {
                 "id": "reserve_m",
-                "label": "Capital-cycle trough, China exposure, and backlog-decline reserve",
+                "label": "Cycle trough, customer concentration, and dilution reserve",
                 "kind": "judgment",
                 "values": {
-                  "low": -1330.1,
-                  "base": -633.4,
-                  "high": -253.3
+                  "low": -377.436,
+                  "base": -188.718,
+                  "high": -62.906
                 },
                 "unit": "USD_m",
-                "rationale": "Negative reserve for WFE downcycle persistence, 84% international/China mix, and backlog falling from $646M to $457M not fully captured in core multiple.",
+                "rationale": "Negative reserve for 77% top-five customer concentration, SiC order lumpiness, and April 2026 $60M ATM dilution overhang not fully captured in mid-cycle multiple.",
                 "allowed_range": {
                   "min": -1500.0,
-                  "max": -200.0
+                  "max": -50.0
                 }
               }
             ],
@@ -824,7 +850,7 @@
     ]
   },
   "context_overlay": {
-    "as_of": "2026-08-04",
+    "as_of": "2026-08-05",
     "disclaimer": "Context only. Tailwinds inform stance and overlay sizing; they do not auto-inflate Lawrence base IRR. Promotion to base case requires [HUMAN REVIEW].",
     "themes": [
       {
@@ -834,9 +860,9 @@
           {
             "id": "hy_oas",
             "label": "High-yield OAS credit spread (%)",
-            "latest": 1.48,
+            "latest": 1.36,
             "as_of": "2026-08-04",
-            "yoy_pct": 274.1,
+            "yoy_pct": 260.0,
             "direction": "up",
             "good_for": "risk_regime",
             "source": "spread:HYG-LQD:21d (HYG-LQD 1m spread proxy, not OAS)",
@@ -846,9 +872,9 @@
           {
             "id": "ust_10y",
             "label": "US Treasury 10Y yield (%)",
-            "latest": 4.638999938964844,
+            "latest": 4.626999855041504,
             "as_of": "2026-08-04",
-            "yoy_pct": 10.5,
+            "yoy_pct": 10.2,
             "direction": "up",
             "good_for": "rates_regime",
             "source": "yahoo:^TNX",
@@ -858,9 +884,9 @@
           {
             "id": "ust_2y",
             "label": "US Treasury 2Y yield (%)",
-            "latest": 4.341000080108643,
+            "latest": 4.333000183105469,
             "as_of": "2026-08-04",
-            "yoy_pct": 16.0,
+            "yoy_pct": 15.8,
             "direction": "up",
             "good_for": "rates_regime",
             "source": "yahoo:^FVX",
@@ -870,10 +896,10 @@
           {
             "id": "dxy_broad",
             "label": "Trade-weighted USD index (broad)",
-            "latest": 99.89199829101562,
-            "as_of": "2026-08-04",
-            "yoy_pct": 1.1,
-            "direction": "up",
+            "latest": 99.69400024414062,
+            "as_of": "2026-08-05",
+            "yoy_pct": 0.9,
+            "direction": "flat",
             "good_for": "dollar_regime",
             "source": "yahoo:DX-Y.NYB",
             "stale": false,
@@ -882,9 +908,9 @@
           {
             "id": "vix_level",
             "label": "VIX index level",
-            "latest": 15.779999732971191,
-            "as_of": "2026-08-04",
-            "yoy_pct": -9.9,
+            "latest": 16.65999984741211,
+            "as_of": "2026-08-05",
+            "yoy_pct": -6.7,
             "direction": "down",
             "good_for": "vol_regime",
             "source": "yahoo:^VIX",
@@ -894,9 +920,9 @@
           {
             "id": "credit_impulse_1m",
             "label": "HYG vs TLT 1-month return spread (%)",
-            "latest": 2.85,
+            "latest": 2.68,
             "as_of": "2026-08-04",
-            "yoy_pct": 303.6,
+            "yoy_pct": 291.4,
             "direction": "up",
             "good_for": "credit_impulse",
             "source": "spread:HYG-TLT:21d",
@@ -906,9 +932,9 @@
           {
             "id": "spy_20d_realized_vol",
             "label": "SPY 20-day realized vol (annualized %)",
-            "latest": 13.43,
+            "latest": 14.36,
             "as_of": "2026-08-04",
-            "yoy_pct": 38.7,
+            "yoy_pct": 48.3,
             "direction": "up",
             "good_for": "equity_vol",
             "source": "realized_vol:SPY:20d",
@@ -944,7 +970,7 @@
     ]
   },
   "insider_signal": {
-    "as_of": "2026-08-04",
+    "as_of": "2026-08-05",
     "disclaimer": "Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].",
     "in_base_irr": false,
     "window_days": 365,
@@ -967,12 +993,12 @@
       "note": "Scenario weights are qualitative confidence only; Lawrence base IRR unchanged."
     },
     "factors": {
-      "buy_score": 12.912,
+      "buy_score": 12.879,
       "sell_score": -1.0,
       "cluster_bonus": 0.0,
       "net_buy_usd": 319229.57,
-      "net_sell_usd": 51417525.08,
-      "price_today": 77.36
+      "net_sell_usd": 53557445.33,
+      "price_today": 109.89
     },
     "top_buys": [
       {
@@ -982,7 +1008,7 @@
         "price": 1.635,
         "value_usd": 34662.0,
         "shares_owned_after": 174785,
-        "contrib": 1.597
+        "contrib": 1.583
       },
       {
         "insider": "ROGERS VERNON",
@@ -991,7 +1017,7 @@
         "price": 1.635,
         "value_usd": 24953.37,
         "shares_owned_after": 190047,
-        "contrib": 1.433
+        "contrib": 1.421
       },
       {
         "insider": "ENGINEER ADIL",
@@ -1023,13 +1049,31 @@
     ],
     "top_sells": [
       {
+        "insider": "SLAYEN HOWARD T",
+        "date": "2026-08-04",
+        "shares": 20000,
+        "price": 108.2961,
+        "value_usd": 2165922.0,
+        "is_10b5_1": false,
+        "contrib": -0.198
+      },
+      {
+        "insider": "OLIPHANT LAURA",
+        "date": "2026-08-04",
+        "shares": 500,
+        "price": 0.0,
+        "value_usd": 0.0,
+        "is_10b5_1": false,
+        "contrib": -0.198
+      },
+      {
         "insider": "SALAMONE ALBERTO",
         "date": "2026-08-03",
         "shares": 204,
         "price": 79.98,
         "value_usd": 16315.92,
         "is_10b5_1": false,
-        "contrib": -0.198
+        "contrib": -0.197
       },
       {
         "insider": "SLAYEN HOWARD T",
@@ -1038,7 +1082,7 @@
         "price": 0.0,
         "value_usd": 0.0,
         "is_10b5_1": false,
-        "contrib": -0.192
+        "contrib": -0.19
       },
       {
         "insider": "SPORCK ALISTAIR N",
@@ -1047,25 +1091,7 @@
         "price": 77.48,
         "value_usd": 10304.84,
         "is_10b5_1": false,
-        "contrib": -0.187
-      },
-      {
-        "insider": "ROGERS VERNON",
-        "date": "2026-07-27",
-        "shares": 198,
-        "price": 77.48,
-        "value_usd": 15341.04,
-        "is_10b5_1": false,
-        "contrib": -0.187
-      },
-      {
-        "insider": "RICHMOND DONALD P. II",
-        "date": "2026-07-27",
-        "shares": 102,
-        "price": 77.48,
-        "value_usd": 7902.96,
-        "is_10b5_1": false,
-        "contrib": -0.187
+        "contrib": -0.186
       }
     ],
     "narrative_hooks": [],
@@ -1074,41 +1100,41 @@
   "lawrence_horizon_years": 7,
   "results_lawrence_legacy": {
     "bear": {
-      "return_pct": -44.4
+      "return_pct": -47.2
     },
     "base": {
-      "return_pct": -35.1
+      "return_pct": -38.3
     },
     "bull": {
-      "return_pct": -27.5
+      "return_pct": -31.2
     }
   },
   "results": {
     "bear": {
-      "return_pct": -44.4
+      "return_pct": -47.2
     },
     "base": {
-      "return_pct": -35.1
+      "return_pct": -38.3
     },
     "bull": {
-      "return_pct": -27.5
+      "return_pct": -31.2
     }
   },
   "results_growth_theory": {
     "theory_implied": {
-      "return_pct": -35.1
+      "return_pct": -38.3
     },
     "falsifier_adjusted": {
-      "return_pct": -35.1
+      "return_pct": -38.3
     }
   },
   "implied_return": {
-    "base_pct": -33.31,
+    "base_pct": -36.67,
     "label": "7yr IRR (total synthesis)",
-    "display": "-33.31% (total synthesis)",
-    "lawrence_stance_gate_pct": -35.1,
-    "falsifier_adjusted_pct": -35.1,
-    "synthesis_pct": -33.31
+    "display": "-36.67% (total synthesis)",
+    "lawrence_stance_gate_pct": -38.3,
+    "falsifier_adjusted_pct": -38.3,
+    "synthesis_pct": -36.67
   },
   "stance_proposal": {
     "suggested": "watch",
@@ -1465,41 +1491,54 @@
           "output_unit": "USD_per_share",
           "inputs": [
             {
-              "id": "systems_backlog_m",
-              "label": "Systems backlog including deferred systems revenue",
+              "id": "effective_backlog_m",
+              "label": "Effective backlog including post quarter-end bookings",
               "kind": "fact",
-              "value": 457.0,
+              "value": 100.6,
               "unit": "USD_m",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+                "as_of": "2026-05-29"
               },
               "locked": true
             },
             {
-              "id": "prior_systems_backlog_m",
-              "label": "Prior-year systems backlog",
+              "id": "reported_backlog_m",
+              "label": "Reported backlog at fiscal year-end",
               "kind": "fact",
-              "value": 645.8,
+              "value": 80.6,
               "unit": "USD_m",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "Systems backlog $645.8M at December 31, 2024",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+                "as_of": "2026-05-29"
+              },
+              "locked": true
+            },
+            {
+              "id": "deferred_revenue_m",
+              "label": "Deferred revenue (current plus noncurrent)",
+              "kind": "fact",
+              "value": 1.91,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+                "as_of": "2026-02-27"
               },
               "locked": true
             },
             {
               "id": "shares_m",
-              "label": "FY2025 diluted shares",
+              "label": "Diluted shares outstanding",
               "kind": "fact",
-              "value": 31.668,
+              "value": 31.453,
               "unit": "million_shares",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                "as_of": "2026-04-01"
               },
               "locked": true
             }
@@ -1507,25 +1546,25 @@
           "assumptions": [
             {
               "id": "backlog_milestone_m",
-              "label": "Risk-adjusted incremental value from backlog conversion beyond normalized owner cash",
+              "label": "Risk-adjusted incremental value from backlog and deferred revenue conversion beyond mid-cycle owner cash",
               "kind": "judgment",
               "values": {
                 "low": 0.0,
-                "base": 696.7,
-                "high": 1520.1
+                "base": 383.41206999999997,
+                "high": 1139.85672
               },
               "unit": "USD_m",
-              "rationale": "Non-overlapping claim on $457M systems backlog and deferred revenue not fully embedded in mid-cycle owner-cash engine; haircut for cancellation and mix shift.",
+              "rationale": "Non-overlapping claim on $100.6M effective backlog and $1.9M deferred revenue not fully embedded in normalized owner-cash engine; haircut for cancellation, customer concentration, and execution risk.",
               "allowed_range": {
                 "min": 0.0,
-                "max": 1800.0
+                "max": 1200.0
               }
             }
           ],
           "calculations": [
             {
               "id": "value_per_share",
-              "label": "Systems backlog conversion option per share",
+              "label": "Backlog and deferred-revenue conversion option per share",
               "op": "divide",
               "args": [
                 "backlog_milestone_m",
@@ -1541,8 +1580,8 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
-        "cross_check": "Reconcile to FY2025 10-K and Q3 FY2026 10-Q (AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm) before decision use.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
+        "cross_check": "Reconcile effective backlog and deferred revenue to AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm and AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm before decision use.",
         "driver_model_type": "milestone_project_option",
         "driver_model": {
           "type": "milestone_project_option",
@@ -1568,7 +1607,7 @@
             }
           }
         },
-        "assumption_summary": "Proof outputs {'low': 0.0, 'base': 1.2, 'high': 4.0}; see calculation_proof graph.",
+        "assumption_summary": "Proof outputs {'low': 0.0, 'base': 12.19, 'high': 36.24}; see calculation_proof graph.",
         "falsifier": "Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case.",
         "scenario_assumptions": {
           "low": {
@@ -1716,38 +1755,51 @@
               "id": "operating_income_m",
               "label": "FY2025 operating income",
               "kind": "fact",
-              "value": 119.3,
+              "value": 5.677,
               "unit": "USD_m",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                "locator": "OperatingIncomeLoss $5.677M FY2025",
+                "as_of": "2025-05-30"
               },
               "locked": true
             },
             {
-              "id": "systems_revenue_m",
-              "label": "FY2025 systems revenue",
+              "id": "total_revenue_m",
+              "label": "FY2025 total revenue",
               "kind": "fact",
-              "value": 571.0,
+              "value": 58.968,
               "unit": "USD_m",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                "locator": "Revenues $58,968 thousand FY2025",
+                "as_of": "2025-05-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "top5_customer_pct",
+              "label": "Revenue from five largest customers",
+              "kind": "fact",
+              "value": 77.0,
+              "unit": "percent",
+              "source": {
+                "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+                "as_of": "2025-05-30"
               },
               "locked": true
             },
             {
               "id": "shares_m",
-              "label": "FY2025 diluted shares",
+              "label": "Diluted shares outstanding",
               "kind": "fact",
-              "value": 31.668,
+              "value": 31.453,
               "unit": "million_shares",
               "source": {
-                "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                "as_of": "2025-12-31"
+                "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                "as_of": "2026-04-01"
               },
               "locked": true
             }
@@ -1755,18 +1807,18 @@
           "assumptions": [
             {
               "id": "reserve_m",
-              "label": "Capital-cycle trough, China exposure, and backlog-decline reserve",
+              "label": "Cycle trough, customer concentration, and dilution reserve",
               "kind": "judgment",
               "values": {
-                "low": -1330.1,
-                "base": -633.4,
-                "high": -253.3
+                "low": -377.436,
+                "base": -188.718,
+                "high": -62.906
               },
               "unit": "USD_m",
-              "rationale": "Negative reserve for WFE downcycle persistence, 84% international/China mix, and backlog falling from $646M to $457M not fully captured in core multiple.",
+              "rationale": "Negative reserve for 77% top-five customer concentration, SiC order lumpiness, and April 2026 $60M ATM dilution overhang not fully captured in mid-cycle multiple.",
               "allowed_range": {
                 "min": -1500.0,
-                "max": -200.0
+                "max": -50.0
               }
             }
           ],
@@ -1789,8 +1841,8 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
-        "cross_check": "Reconcile to FY2025 10-K and Q3 FY2026 10-Q (AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm) before decision use.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
+        "cross_check": "Reconcile customer concentration and ATM dilution to AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm and AEHR/investor-documents/sec-edgar/8-K_20260408_rpt20260408_acc0001654954_26_003355.htm.",
         "driver_model_type": null,
         "driver_model": null,
         "assumption_summary": "Proof outputs {'low': -12.0, 'base': -6.0, 'high': -2.0}; see calculation_proof graph.",
@@ -1816,11 +1868,11 @@
       "high": 49.96
     },
     "equity_liability_floor": 0.0,
-    "market_price_per_share": 77.36,
+    "market_price_per_share": 109.89,
     "upside_downside_pct": {
       "low": -100.0,
-      "base": -87.3,
-      "high": -35.4
+      "base": -91.1,
+      "high": -54.5
     }
   },
   "economic_value_analysis": {
@@ -1956,7 +2008,7 @@
         },
         "method": "risk_adjusted_milestone_value",
         "evidence_tier": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
         "comparable_role": "not_applicable",
         "comparable_ids": [],
         "adjustment": "Success probability and timing reflect typical 12\u201324 month system delivery from backlog disclosure.",
@@ -2010,7 +2062,7 @@
         },
         "method": "net_asset_value",
         "evidence_tier": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
         "comparable_role": "not_applicable",
         "comparable_ids": [],
         "adjustment": "Customer concentration risk disclosed in FY2025 10-K; April 2026 ATM 8-K sets dilution ceiling.",
@@ -2260,7 +2312,7 @@
     "schema_version": "2.0",
     "status": "decision_grade",
     "ticker": "AEHR",
-    "as_of": "2026-07-24",
+    "as_of": "2026-08-04",
     "economic_ownership_map": [
       {
         "component_id": "midcycle_burn_in_operations",
@@ -2325,7 +2377,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "Revenues $58,968 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "15402e2fe283c1802d4ea1481381a463d1e30dc29ec2573f7ee5b76e4a4d4624"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
                 },
                 "rationale": null
               },
@@ -2339,7 +2392,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "NetCashProvidedByUsedInOperatingActivities sign=- scale=3 \u2192 ($7.4M) FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "f3786a92f8c2512974b5fdb88cf2421f43aa7e556e8bb62e663fb86faa711f93"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d915f80e8d6826ebfb779d2673dc55da584be1c564ac6606db3ba6c06478a1fd"
                 },
                 "rationale": null
               },
@@ -2353,7 +2407,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "PaymentsToAcquirePropertyPlantAndEquipment $4,992 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "84bbd6be87f26fd7eda987955c05d2977ae2ff15af2e91865006030fc52dcf26"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "62fc230ee902deef26523c320343632c0d7028b867a3402562188b10fa740024"
                 },
                 "rationale": null
               },
@@ -2367,7 +2422,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 29,581 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "88e7186f771e8229cabe525c7d02e454683c1db0bc75bce26076ba320266f760"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "3a48dd0c6d57e4c3c15c03d945d4da5f6e3ee1a52779ee8bb28c9595c25ca2b6"
                 },
                 "rationale": null
               },
@@ -2645,7 +2701,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "Revenues $58,968 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "15402e2fe283c1802d4ea1481381a463d1e30dc29ec2573f7ee5b76e4a4d4624"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
                 },
                 "rationale": null
               },
@@ -2659,7 +2716,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "NetCashProvidedByUsedInOperatingActivities sign=- scale=3 \u2192 ($7.4M) FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "f3786a92f8c2512974b5fdb88cf2421f43aa7e556e8bb62e663fb86faa711f93"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d915f80e8d6826ebfb779d2673dc55da584be1c564ac6606db3ba6c06478a1fd"
                 },
                 "rationale": null
               },
@@ -2673,7 +2731,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "PaymentsToAcquirePropertyPlantAndEquipment $4,992 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "84bbd6be87f26fd7eda987955c05d2977ae2ff15af2e91865006030fc52dcf26"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "62fc230ee902deef26523c320343632c0d7028b867a3402562188b10fa740024"
                 },
                 "rationale": null
               },
@@ -2687,7 +2746,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 29,581 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "88e7186f771e8229cabe525c7d02e454683c1db0bc75bce26076ba320266f760"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "3a48dd0c6d57e4c3c15c03d945d4da5f6e3ee1a52779ee8bb28c9595c25ca2b6"
                 },
                 "rationale": null
               },
@@ -2965,7 +3025,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "Revenues $58,968 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "15402e2fe283c1802d4ea1481381a463d1e30dc29ec2573f7ee5b76e4a4d4624"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
                 },
                 "rationale": null
               },
@@ -2979,7 +3040,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "NetCashProvidedByUsedInOperatingActivities sign=- scale=3 \u2192 ($7.4M) FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "f3786a92f8c2512974b5fdb88cf2421f43aa7e556e8bb62e663fb86faa711f93"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d915f80e8d6826ebfb779d2673dc55da584be1c564ac6606db3ba6c06478a1fd"
                 },
                 "rationale": null
               },
@@ -2993,7 +3055,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "PaymentsToAcquirePropertyPlantAndEquipment $4,992 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "84bbd6be87f26fd7eda987955c05d2977ae2ff15af2e91865006030fc52dcf26"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "62fc230ee902deef26523c320343632c0d7028b867a3402562188b10fa740024"
                 },
                 "rationale": null
               },
@@ -3007,7 +3070,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 29,581 thousand FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "88e7186f771e8229cabe525c7d02e454683c1db0bc75bce26076ba320266f760"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "3a48dd0c6d57e4c3c15c03d945d4da5f6e3ee1a52779ee8bb28c9595c25ca2b6"
                 },
                 "rationale": null
               },
@@ -3281,35 +3345,39 @@
               "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
               "locator": "Revenues $58,968 thousand FY2025",
               "as_of": "2025-05-30",
-              "source_id": "15402e2fe283c1802d4ea1481381a463d1e30dc29ec2573f7ee5b76e4a4d4624"
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
             },
             {
               "node_id": "operating_cash_flow_m",
               "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
               "locator": "NetCashProvidedByUsedInOperatingActivities sign=- scale=3 \u2192 ($7.4M) FY2025",
               "as_of": "2025-05-30",
-              "source_id": "f3786a92f8c2512974b5fdb88cf2421f43aa7e556e8bb62e663fb86faa711f93"
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "d915f80e8d6826ebfb779d2673dc55da584be1c564ac6606db3ba6c06478a1fd"
             },
             {
               "node_id": "capex_m",
               "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
               "locator": "PaymentsToAcquirePropertyPlantAndEquipment $4,992 thousand FY2025",
               "as_of": "2025-05-30",
-              "source_id": "84bbd6be87f26fd7eda987955c05d2977ae2ff15af2e91865006030fc52dcf26"
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "62fc230ee902deef26523c320343632c0d7028b867a3402562188b10fa740024"
             },
             {
               "node_id": "shares_m",
               "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
               "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 29,581 thousand FY2025",
               "as_of": "2025-05-30",
-              "source_id": "88e7186f771e8229cabe525c7d02e454683c1db0bc75bce26076ba320266f760"
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "3a48dd0c6d57e4c3c15c03d945d4da5f6e3ee1a52779ee8bb28c9595c25ca2b6"
             }
           ],
           "checks": {
             "passed": true,
             "errors": []
           },
-          "proof_hash": "8e5bbfbe7c737fe688774f6e66dc334d22129cb2231c237babdb10826899ad80"
+          "proof_hash": "cbf57cd07e5f34432700145eaaa3e0c441cc868e8396d9e15603d2ded760e63c"
         },
         "evidence_tier": "primary_derived",
         "evidence_level": "primary_derived",
@@ -3353,8 +3421,8 @@
         "comparable_ids": [],
         "range_per_share": {
           "low": 0.0,
-          "base": 22.0001,
-          "high": 48.0011
+          "base": 12.19,
+          "high": 36.24
         },
         "legacy_range_per_share": {
           "low": 0.0,
@@ -3368,72 +3436,90 @@
           "method_version": "1.0",
           "outputs": {
             "low": 0.0,
-            "base": 22.0001,
-            "high": 48.0011
+            "base": 12.19,
+            "high": 36.24
           },
           "output_unit": "USD_per_share",
           "traces": {
             "low": [
               {
-                "id": "systems_backlog_m",
-                "label": "Systems backlog including deferred systems revenue",
+                "id": "effective_backlog_m",
+                "label": "Effective backlog including post quarter-end bookings",
                 "kind": "fact",
-                "value": 457.0,
+                "value": 100.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-                  "as_of": "2025-12-31",
-                  "source_id": "23d9a4de2abe047b7077653a9931314f13b9f337c11c32980a30e71fa4889e72"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "1e74612019040ac58cb780487ebc5c05bbbb6e7666dbf0a0758e28ceea273550"
                 },
                 "rationale": null
               },
               {
-                "id": "prior_systems_backlog_m",
-                "label": "Prior-year systems backlog",
+                "id": "reported_backlog_m",
+                "label": "Reported backlog at fiscal year-end",
                 "kind": "fact",
-                "value": 645.8,
+                "value": 80.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems backlog $645.8M at December 31, 2024",
-                  "as_of": "2025-12-31",
-                  "source_id": "897254a9d5999ae499f422e2e966b3b9a4084e4939acbcfab27d371504739ce3"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "615bf154bf839ccc4cc8cd208551e68dbab118dc17556d5faf3d6540d5d658ed"
+                },
+                "rationale": null
+              },
+              {
+                "id": "deferred_revenue_m",
+                "label": "Deferred revenue (current plus noncurrent)",
+                "kind": "fact",
+                "value": 1.91,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+                  "as_of": "2026-02-27",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "e58c24673262d42ba224ced1be00f7a739dd8b1351173187b2bffd2302712b0a"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "backlog_milestone_m",
-                "label": "Risk-adjusted incremental value from backlog conversion beyond normalized owner cash",
+                "label": "Risk-adjusted incremental value from backlog and deferred revenue conversion beyond mid-cycle owner cash",
                 "kind": "judgment",
                 "value": 0.0,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Non-overlapping claim on $457M systems backlog and deferred revenue not fully embedded in mid-cycle owner-cash engine; haircut for cancellation and mix shift."
+                "rationale": "Non-overlapping claim on $100.6M effective backlog and $1.9M deferred revenue not fully embedded in normalized owner-cash engine; haircut for cancellation, customer concentration, and execution risk."
               },
               {
                 "id": "value_per_share",
-                "label": "Systems backlog conversion option per share",
+                "label": "Backlog and deferred-revenue conversion option per share",
                 "kind": "calculation",
                 "value": 0.0,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "backlog_milestone_m \u00f7 shares_m",
-                "substituted_formula": "0 \u00f7 31.668",
+                "substituted_formula": "0 \u00f7 31.453",
                 "dependencies": [
                   "backlog_milestone_m",
                   "shares_m"
@@ -3442,65 +3528,83 @@
             ],
             "base": [
               {
-                "id": "systems_backlog_m",
-                "label": "Systems backlog including deferred systems revenue",
+                "id": "effective_backlog_m",
+                "label": "Effective backlog including post quarter-end bookings",
                 "kind": "fact",
-                "value": 457.0,
+                "value": 100.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-                  "as_of": "2025-12-31",
-                  "source_id": "23d9a4de2abe047b7077653a9931314f13b9f337c11c32980a30e71fa4889e72"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "1e74612019040ac58cb780487ebc5c05bbbb6e7666dbf0a0758e28ceea273550"
                 },
                 "rationale": null
               },
               {
-                "id": "prior_systems_backlog_m",
-                "label": "Prior-year systems backlog",
+                "id": "reported_backlog_m",
+                "label": "Reported backlog at fiscal year-end",
                 "kind": "fact",
-                "value": 645.8,
+                "value": 80.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems backlog $645.8M at December 31, 2024",
-                  "as_of": "2025-12-31",
-                  "source_id": "897254a9d5999ae499f422e2e966b3b9a4084e4939acbcfab27d371504739ce3"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "615bf154bf839ccc4cc8cd208551e68dbab118dc17556d5faf3d6540d5d658ed"
+                },
+                "rationale": null
+              },
+              {
+                "id": "deferred_revenue_m",
+                "label": "Deferred revenue (current plus noncurrent)",
+                "kind": "fact",
+                "value": 1.91,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+                  "as_of": "2026-02-27",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "e58c24673262d42ba224ced1be00f7a739dd8b1351173187b2bffd2302712b0a"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "backlog_milestone_m",
-                "label": "Risk-adjusted incremental value from backlog conversion beyond normalized owner cash",
+                "label": "Risk-adjusted incremental value from backlog and deferred revenue conversion beyond mid-cycle owner cash",
                 "kind": "judgment",
-                "value": 696.7,
+                "value": 383.41207,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Non-overlapping claim on $457M systems backlog and deferred revenue not fully embedded in mid-cycle owner-cash engine; haircut for cancellation and mix shift."
+                "rationale": "Non-overlapping claim on $100.6M effective backlog and $1.9M deferred revenue not fully embedded in normalized owner-cash engine; haircut for cancellation, customer concentration, and execution risk."
               },
               {
                 "id": "value_per_share",
-                "label": "Systems backlog conversion option per share",
+                "label": "Backlog and deferred-revenue conversion option per share",
                 "kind": "calculation",
-                "value": 22.00012631,
+                "value": 12.19,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "backlog_milestone_m \u00f7 shares_m",
-                "substituted_formula": "696.7 \u00f7 31.668",
+                "substituted_formula": "383.41207 \u00f7 31.453",
                 "dependencies": [
                   "backlog_milestone_m",
                   "shares_m"
@@ -3509,65 +3613,83 @@
             ],
             "high": [
               {
-                "id": "systems_backlog_m",
-                "label": "Systems backlog including deferred systems revenue",
+                "id": "effective_backlog_m",
+                "label": "Effective backlog including post quarter-end bookings",
                 "kind": "fact",
-                "value": 457.0,
+                "value": 100.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-                  "as_of": "2025-12-31",
-                  "source_id": "23d9a4de2abe047b7077653a9931314f13b9f337c11c32980a30e71fa4889e72"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "1e74612019040ac58cb780487ebc5c05bbbb6e7666dbf0a0758e28ceea273550"
                 },
                 "rationale": null
               },
               {
-                "id": "prior_systems_backlog_m",
-                "label": "Prior-year systems backlog",
+                "id": "reported_backlog_m",
+                "label": "Reported backlog at fiscal year-end",
                 "kind": "fact",
-                "value": 645.8,
+                "value": 80.6,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems backlog $645.8M at December 31, 2024",
-                  "as_of": "2025-12-31",
-                  "source_id": "897254a9d5999ae499f422e2e966b3b9a4084e4939acbcfab27d371504739ce3"
+                  "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+                  "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+                  "as_of": "2026-05-29",
+                  "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+                  "source_id": "615bf154bf839ccc4cc8cd208551e68dbab118dc17556d5faf3d6540d5d658ed"
+                },
+                "rationale": null
+              },
+              {
+                "id": "deferred_revenue_m",
+                "label": "Deferred revenue (current plus noncurrent)",
+                "kind": "fact",
+                "value": 1.91,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+                  "as_of": "2026-02-27",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "e58c24673262d42ba224ced1be00f7a739dd8b1351173187b2bffd2302712b0a"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "backlog_milestone_m",
-                "label": "Risk-adjusted incremental value from backlog conversion beyond normalized owner cash",
+                "label": "Risk-adjusted incremental value from backlog and deferred revenue conversion beyond mid-cycle owner cash",
                 "kind": "judgment",
-                "value": 1520.1,
+                "value": 1139.85672,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Non-overlapping claim on $457M systems backlog and deferred revenue not fully embedded in mid-cycle owner-cash engine; haircut for cancellation and mix shift."
+                "rationale": "Non-overlapping claim on $100.6M effective backlog and $1.9M deferred revenue not fully embedded in normalized owner-cash engine; haircut for cancellation, customer concentration, and execution risk."
               },
               {
                 "id": "value_per_share",
-                "label": "Systems backlog conversion option per share",
+                "label": "Backlog and deferred-revenue conversion option per share",
                 "kind": "calculation",
-                "value": 48.00113679,
+                "value": 36.24,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "backlog_milestone_m \u00f7 shares_m",
-                "substituted_formula": "1520.1 \u00f7 31.668",
+                "substituted_formula": "1139.8567 \u00f7 31.453",
                 "dependencies": [
                   "backlog_milestone_m",
                   "shares_m"
@@ -3577,36 +3699,47 @@
           },
           "source_lineage": [
             {
-              "node_id": "systems_backlog_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-              "as_of": "2025-12-31",
-              "source_id": "23d9a4de2abe047b7077653a9931314f13b9f337c11c32980a30e71fa4889e72"
+              "node_id": "effective_backlog_m",
+              "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+              "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+              "as_of": "2026-05-29",
+              "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+              "source_id": "1e74612019040ac58cb780487ebc5c05bbbb6e7666dbf0a0758e28ceea273550"
             },
             {
-              "node_id": "prior_systems_backlog_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "Systems backlog $645.8M at December 31, 2024",
-              "as_of": "2025-12-31",
-              "source_id": "897254a9d5999ae499f422e2e966b3b9a4084e4939acbcfab27d371504739ce3"
+              "node_id": "reported_backlog_m",
+              "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+              "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+              "as_of": "2026-05-29",
+              "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+              "source_id": "615bf154bf839ccc4cc8cd208551e68dbab118dc17556d5faf3d6540d5d658ed"
+            },
+            {
+              "node_id": "deferred_revenue_m",
+              "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+              "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+              "as_of": "2026-02-27",
+              "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+              "source_id": "e58c24673262d42ba224ced1be00f7a739dd8b1351173187b2bffd2302712b0a"
             },
             {
               "node_id": "shares_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-              "as_of": "2025-12-31",
-              "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+              "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+              "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+              "as_of": "2026-04-01",
+              "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+              "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
             }
           ],
           "checks": {
             "passed": true,
             "errors": []
           },
-          "proof_hash": "fd1b187c03a4ccd84a5a411f4c57ce78888c9c497e431494e5dc5f15961fe719"
+          "proof_hash": "535bf159a44e0e07fbf4383db5d49d3b965eb6cda49afa13751cd9d279a92c89"
         },
         "evidence_tier": "primary_derived",
         "evidence_level": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
         "scenario_assumptions": {
           "low": {
             "success_probability": 0.0,
@@ -3704,7 +3837,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "CashAndCashEquivalentsAtCarryingValue $36,911 thousand as of 2026-02-27",
                   "as_of": "2026-02-27",
-                  "source_id": "e682ea5bd724663f153dce68ce70054ecbebb678d885f9ca67de0b8fd59fe296"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "ffc5985e69d562a3973a4ebf3cc84692bff75b39a21b9af4a45f53b40ef2761d"
                 },
                 "rationale": null
               },
@@ -3718,7 +3852,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "No term debt disclosed FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "057f5bdf54aa79815f5c46bd3feffcfff252852af478b174bea3024e9b106662"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d996f79f44620433de105b1e0f4a9f78de71d498ce6a9c8cbdc9a19059d0fabe"
                 },
                 "rationale": null
               },
@@ -3732,7 +3867,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
                   "as_of": "2026-04-01",
-                  "source_id": "a3686a610e7a67aef12d6622495b2decbb194cfd0f2afc613b62bf08e21cae57"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
@@ -3771,7 +3907,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "CashAndCashEquivalentsAtCarryingValue $36,911 thousand as of 2026-02-27",
                   "as_of": "2026-02-27",
-                  "source_id": "e682ea5bd724663f153dce68ce70054ecbebb678d885f9ca67de0b8fd59fe296"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "ffc5985e69d562a3973a4ebf3cc84692bff75b39a21b9af4a45f53b40ef2761d"
                 },
                 "rationale": null
               },
@@ -3785,7 +3922,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "No term debt disclosed FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "057f5bdf54aa79815f5c46bd3feffcfff252852af478b174bea3024e9b106662"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d996f79f44620433de105b1e0f4a9f78de71d498ce6a9c8cbdc9a19059d0fabe"
                 },
                 "rationale": null
               },
@@ -3799,7 +3937,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
                   "as_of": "2026-04-01",
-                  "source_id": "a3686a610e7a67aef12d6622495b2decbb194cfd0f2afc613b62bf08e21cae57"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
@@ -3838,7 +3977,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "CashAndCashEquivalentsAtCarryingValue $36,911 thousand as of 2026-02-27",
                   "as_of": "2026-02-27",
-                  "source_id": "e682ea5bd724663f153dce68ce70054ecbebb678d885f9ca67de0b8fd59fe296"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "ffc5985e69d562a3973a4ebf3cc84692bff75b39a21b9af4a45f53b40ef2761d"
                 },
                 "rationale": null
               },
@@ -3852,7 +3992,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
                   "locator": "No term debt disclosed FY2025",
                   "as_of": "2025-05-30",
-                  "source_id": "057f5bdf54aa79815f5c46bd3feffcfff252852af478b174bea3024e9b106662"
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "d996f79f44620433de105b1e0f4a9f78de71d498ce6a9c8cbdc9a19059d0fabe"
                 },
                 "rationale": null
               },
@@ -3866,7 +4007,8 @@
                   "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
                   "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
                   "as_of": "2026-04-01",
-                  "source_id": "a3686a610e7a67aef12d6622495b2decbb194cfd0f2afc613b62bf08e21cae57"
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
@@ -3901,28 +4043,31 @@
               "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
               "locator": "CashAndCashEquivalentsAtCarryingValue $36,911 thousand as of 2026-02-27",
               "as_of": "2026-02-27",
-              "source_id": "e682ea5bd724663f153dce68ce70054ecbebb678d885f9ca67de0b8fd59fe296"
+              "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+              "source_id": "ffc5985e69d562a3973a4ebf3cc84692bff75b39a21b9af4a45f53b40ef2761d"
             },
             {
               "node_id": "debt_m",
               "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
               "locator": "No term debt disclosed FY2025",
               "as_of": "2025-05-30",
-              "source_id": "057f5bdf54aa79815f5c46bd3feffcfff252852af478b174bea3024e9b106662"
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "d996f79f44620433de105b1e0f4a9f78de71d498ce6a9c8cbdc9a19059d0fabe"
             },
             {
               "node_id": "shares_m",
               "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
               "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
               "as_of": "2026-04-01",
-              "source_id": "a3686a610e7a67aef12d6622495b2decbb194cfd0f2afc613b62bf08e21cae57"
+              "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+              "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
             }
           ],
           "checks": {
             "passed": true,
             "errors": []
           },
-          "proof_hash": "3378a3351d84d7025c0ac8ba1a5bd950186be484407e964e1a6239d09be21ce6"
+          "proof_hash": "ca102acdc6f95c412d0dbcee3d2cb9cd471842c5900ebd28266d080eecfe51d3"
         },
         "evidence_tier": "primary_derived",
         "evidence_level": "primary_derived",
@@ -3967,9 +4112,9 @@
         },
         "comparable_ids": [],
         "range_per_share": {
-          "low": -42.0014,
-          "base": -20.0013,
-          "high": -7.9986
+          "low": -12.0,
+          "base": -6.0,
+          "high": -2.0
         },
         "legacy_range_per_share": {
           "low": -12.0,
@@ -3982,9 +4127,9 @@
           "method_id": "net_asset_value",
           "method_version": "1.0",
           "outputs": {
-            "low": -42.0014,
-            "base": -20.0013,
-            "high": -7.9986
+            "low": -12.0,
+            "base": -6.0,
+            "high": -2.0
           },
           "output_unit": "USD_per_share",
           "traces": {
@@ -3993,62 +4138,80 @@
                 "id": "operating_income_m",
                 "label": "FY2025 operating income",
                 "kind": "fact",
-                "value": 119.3,
+                "value": 5.677,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-                  "as_of": "2025-12-31",
-                  "source_id": "c4c195ae0f39c09fadc1a8124ea4ae5c7d77adcea2728bfad9b7a6827a914ef1"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "OperatingIncomeLoss $5.677M FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "b817a476c606a3430107e90a9bc22b9f7dad3f3052defcb0edf5fa9be9ae9b75"
                 },
                 "rationale": null
               },
               {
-                "id": "systems_revenue_m",
-                "label": "FY2025 systems revenue",
+                "id": "total_revenue_m",
+                "label": "FY2025 total revenue",
                 "kind": "fact",
-                "value": 571.0,
+                "value": 58.968,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-                  "as_of": "2025-12-31",
-                  "source_id": "bbb5bd4c87f1eb0f97c270c66d6f0f9771f1d720fe3d045841430191874b6fdf"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Revenues $58,968 thousand FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
+                },
+                "rationale": null
+              },
+              {
+                "id": "top5_customer_pct",
+                "label": "Revenue from five largest customers",
+                "kind": "fact",
+                "value": 77.0,
+                "unit": "percent",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "97ed3de3c964bdb257be9ff44f19612838de34b3999f604bb7f39cf30a5583a2"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "reserve_m",
-                "label": "Capital-cycle trough, China exposure, and backlog-decline reserve",
+                "label": "Cycle trough, customer concentration, and dilution reserve",
                 "kind": "judgment",
-                "value": -1330.1,
+                "value": -377.436,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Negative reserve for WFE downcycle persistence, 84% international/China mix, and backlog falling from $646M to $457M not fully captured in core multiple."
+                "rationale": "Negative reserve for 77% top-five customer concentration, SiC order lumpiness, and April 2026 $60M ATM dilution overhang not fully captured in mid-cycle multiple."
               },
               {
                 "id": "value_per_share",
                 "label": "Cycle and concentration reserve per share",
                 "kind": "calculation",
-                "value": -42.00138942,
+                "value": -12.0,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "reserve_m \u00f7 shares_m",
-                "substituted_formula": "-1330.1 \u00f7 31.668",
+                "substituted_formula": "-377.436 \u00f7 31.453",
                 "dependencies": [
                   "reserve_m",
                   "shares_m"
@@ -4060,62 +4223,80 @@
                 "id": "operating_income_m",
                 "label": "FY2025 operating income",
                 "kind": "fact",
-                "value": 119.3,
+                "value": 5.677,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-                  "as_of": "2025-12-31",
-                  "source_id": "c4c195ae0f39c09fadc1a8124ea4ae5c7d77adcea2728bfad9b7a6827a914ef1"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "OperatingIncomeLoss $5.677M FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "b817a476c606a3430107e90a9bc22b9f7dad3f3052defcb0edf5fa9be9ae9b75"
                 },
                 "rationale": null
               },
               {
-                "id": "systems_revenue_m",
-                "label": "FY2025 systems revenue",
+                "id": "total_revenue_m",
+                "label": "FY2025 total revenue",
                 "kind": "fact",
-                "value": 571.0,
+                "value": 58.968,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-                  "as_of": "2025-12-31",
-                  "source_id": "bbb5bd4c87f1eb0f97c270c66d6f0f9771f1d720fe3d045841430191874b6fdf"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Revenues $58,968 thousand FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
+                },
+                "rationale": null
+              },
+              {
+                "id": "top5_customer_pct",
+                "label": "Revenue from five largest customers",
+                "kind": "fact",
+                "value": 77.0,
+                "unit": "percent",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "97ed3de3c964bdb257be9ff44f19612838de34b3999f604bb7f39cf30a5583a2"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "reserve_m",
-                "label": "Capital-cycle trough, China exposure, and backlog-decline reserve",
+                "label": "Cycle trough, customer concentration, and dilution reserve",
                 "kind": "judgment",
-                "value": -633.4,
+                "value": -188.718,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Negative reserve for WFE downcycle persistence, 84% international/China mix, and backlog falling from $646M to $457M not fully captured in core multiple."
+                "rationale": "Negative reserve for 77% top-five customer concentration, SiC order lumpiness, and April 2026 $60M ATM dilution overhang not fully captured in mid-cycle multiple."
               },
               {
                 "id": "value_per_share",
                 "label": "Cycle and concentration reserve per share",
                 "kind": "calculation",
-                "value": -20.0012631,
+                "value": -6.0,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "reserve_m \u00f7 shares_m",
-                "substituted_formula": "-633.4 \u00f7 31.668",
+                "substituted_formula": "-188.718 \u00f7 31.453",
                 "dependencies": [
                   "reserve_m",
                   "shares_m"
@@ -4127,62 +4308,80 @@
                 "id": "operating_income_m",
                 "label": "FY2025 operating income",
                 "kind": "fact",
-                "value": 119.3,
+                "value": 5.677,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-                  "as_of": "2025-12-31",
-                  "source_id": "c4c195ae0f39c09fadc1a8124ea4ae5c7d77adcea2728bfad9b7a6827a914ef1"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "OperatingIncomeLoss $5.677M FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "b817a476c606a3430107e90a9bc22b9f7dad3f3052defcb0edf5fa9be9ae9b75"
                 },
                 "rationale": null
               },
               {
-                "id": "systems_revenue_m",
-                "label": "FY2025 systems revenue",
+                "id": "total_revenue_m",
+                "label": "FY2025 total revenue",
                 "kind": "fact",
-                "value": 571.0,
+                "value": 58.968,
                 "unit": "USD_m",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-                  "as_of": "2025-12-31",
-                  "source_id": "bbb5bd4c87f1eb0f97c270c66d6f0f9771f1d720fe3d045841430191874b6fdf"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Revenues $58,968 thousand FY2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
+                },
+                "rationale": null
+              },
+              {
+                "id": "top5_customer_pct",
+                "label": "Revenue from five largest customers",
+                "kind": "fact",
+                "value": 77.0,
+                "unit": "percent",
+                "source": {
+                  "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+                  "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+                  "as_of": "2025-05-30",
+                  "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+                  "source_id": "97ed3de3c964bdb257be9ff44f19612838de34b3999f604bb7f39cf30a5583a2"
                 },
                 "rationale": null
               },
               {
                 "id": "shares_m",
-                "label": "FY2025 diluted shares",
+                "label": "Diluted shares outstanding",
                 "kind": "fact",
-                "value": 31.668,
+                "value": 31.453,
                 "unit": "million_shares",
                 "source": {
-                  "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-                  "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-                  "as_of": "2025-12-31",
-                  "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+                  "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+                  "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+                  "as_of": "2026-04-01",
+                  "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+                  "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
                 },
                 "rationale": null
               },
               {
                 "id": "reserve_m",
-                "label": "Capital-cycle trough, China exposure, and backlog-decline reserve",
+                "label": "Cycle trough, customer concentration, and dilution reserve",
                 "kind": "judgment",
-                "value": -253.3,
+                "value": -62.906,
                 "unit": "USD_m",
                 "source": null,
-                "rationale": "Negative reserve for WFE downcycle persistence, 84% international/China mix, and backlog falling from $646M to $457M not fully captured in core multiple."
+                "rationale": "Negative reserve for 77% top-five customer concentration, SiC order lumpiness, and April 2026 $60M ATM dilution overhang not fully captured in mid-cycle multiple."
               },
               {
                 "id": "value_per_share",
                 "label": "Cycle and concentration reserve per share",
                 "kind": "calculation",
-                "value": -7.99861058,
+                "value": -2.0,
                 "unit": "USD_per_share",
                 "operation": "divide",
                 "formula": "reserve_m \u00f7 shares_m",
-                "substituted_formula": "-253.3 \u00f7 31.668",
+                "substituted_formula": "-62.906 \u00f7 31.453",
                 "dependencies": [
                   "reserve_m",
                   "shares_m"
@@ -4193,35 +4392,46 @@
           "source_lineage": [
             {
               "node_id": "operating_income_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-              "as_of": "2025-12-31",
-              "source_id": "c4c195ae0f39c09fadc1a8124ea4ae5c7d77adcea2728bfad9b7a6827a914ef1"
+              "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+              "locator": "OperatingIncomeLoss $5.677M FY2025",
+              "as_of": "2025-05-30",
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "b817a476c606a3430107e90a9bc22b9f7dad3f3052defcb0edf5fa9be9ae9b75"
             },
             {
-              "node_id": "systems_revenue_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-              "as_of": "2025-12-31",
-              "source_id": "bbb5bd4c87f1eb0f97c270c66d6f0f9771f1d720fe3d045841430191874b6fdf"
+              "node_id": "total_revenue_m",
+              "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+              "locator": "Revenues $58,968 thousand FY2025",
+              "as_of": "2025-05-30",
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
+            },
+            {
+              "node_id": "top5_customer_pct",
+              "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+              "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+              "as_of": "2025-05-30",
+              "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+              "source_id": "97ed3de3c964bdb257be9ff44f19612838de34b3999f604bb7f39cf30a5583a2"
             },
             {
               "node_id": "shares_m",
-              "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-              "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-              "as_of": "2025-12-31",
-              "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+              "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+              "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+              "as_of": "2026-04-01",
+              "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+              "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
             }
           ],
           "checks": {
             "passed": true,
             "errors": []
           },
-          "proof_hash": "3d1fbab2498f1f5d27cd469f8b5888c04610cc6779b7a21a988db3dea3fff620"
+          "proof_hash": "96c217dc5218f7d24201ce08a92c1321efcbcfdc4d1b9ff3b65ba4ddccf815f2"
         },
         "evidence_tier": "primary_derived",
         "evidence_level": "primary_derived",
-        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+        "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
         "scenario_assumptions": "Proof outputs {'low': -12.0, 'base': -6.0, 'high': -2.0}; see calculation_proof graph.",
         "probability_and_timing": null,
         "tax_and_realization_adjustments": "Customer concentration risk disclosed in FY2025 10-K; April 2026 ATM 8-K sets dilution ceiling.",
@@ -4256,7 +4466,7 @@
           "label": "Deferred revenue and customer deposit conversion option",
           "kind": "judgment",
           "evidence_tier": "primary_derived",
-          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
           "method": "risk_adjusted_milestone_value",
           "valuation_status": "bounded_estimate"
         },
@@ -4274,7 +4484,7 @@
           "label": "Cycle, customer concentration, and dilution reserve",
           "kind": "judgment",
           "evidence_tier": "primary_derived",
-          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm: FY2025 revenue $58.968M, OCF $-7.4M, capex $4.992M, cash $24.529M; contract backfill 2026-07-23.",
+          "evidence": "Primary bridge from AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm, AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm, and AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm; component schedule reconciled 2026-08-04 contract backfill.",
           "method": "net_asset_value",
           "valuation_status": "bounded_estimate"
         }
@@ -4392,33 +4602,33 @@
       "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
     },
     "market": {
-      "price_per_share": 77.36,
+      "price_per_share": 109.89,
       "fully_diluted_shares": 31453000,
-      "market_cap_m": 2433.2,
-      "enterprise_value_m": 2396.29
+      "market_cap_m": 3456.37,
+      "enterprise_value_m": 3419.46
     },
     "valuation": {
       "value_per_share": {
         "low": 0.0,
-        "base": 9.1821,
-        "high": 60.2624
+        "base": 13.3733,
+        "high": 54.4999
       },
       "priced_components_per_share": {
-        "low": -38.1925,
-        "base": 9.1821,
-        "high": 60.2624
+        "low": -8.1911,
+        "base": 13.3733,
+        "high": 54.4999
       },
       "legacy_value_per_share": {
         "low": 0.0,
         "base": 9.79,
         "high": 49.96
       },
-      "probability_weighted_value_per_share": 9.1821,
+      "probability_weighted_value_per_share": 13.3733,
       "expected_distributions_per_share": 0.0,
       "annualized_return_at_price_pct": {
         "low": null,
-        "base": -26.25,
-        "high": -3.51
+        "base": -25.98,
+        "high": -9.53
       },
       "downside_to_low_pct": -100.0,
       "horizon_years": 7,
@@ -4432,9 +4642,9 @@
           "component_id": "deferred_revenue_milestone_option",
           "label": "Deferred revenue and customer deposit conversion option",
           "valuation_status": "bounded_estimate",
-          "base_per_share": 22.0001,
+          "base_per_share": 12.19,
           "legacy_base_per_share": 12.19,
-          "range_width_per_share": 48.0011,
+          "range_width_per_share": 36.24,
           "scenario_assumptions": {
             "low": {
               "success_probability": 0.0,
@@ -4457,15 +4667,6 @@
           }
         },
         {
-          "component_id": "cycle_customer_concentration_reserve",
-          "label": "Cycle, customer concentration, and dilution reserve",
-          "valuation_status": "bounded_estimate",
-          "base_per_share": -20.0013,
-          "legacy_base_per_share": -6.0,
-          "range_width_per_share": 34.0028,
-          "scenario_assumptions": "Proof outputs {'low': -12.0, 'base': -6.0, 'high': -2.0}; see calculation_proof graph."
-        },
-        {
           "component_id": "midcycle_burn_in_operations",
           "label": "Mid-cycle burn-in / test systems owner-cash engine",
           "valuation_status": "bounded_estimate",
@@ -4473,6 +4674,15 @@
           "legacy_base_per_share": 2.55,
           "range_width_per_share": 13.8312,
           "scenario_assumptions": "Proof outputs {'low': 4.5, 'base': 9.8, 'high': 18.0}; see calculation_proof graph."
+        },
+        {
+          "component_id": "cycle_customer_concentration_reserve",
+          "label": "Cycle, customer concentration, and dilution reserve",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": -6.0,
+          "legacy_base_per_share": -6.0,
+          "range_width_per_share": 10.0,
+          "scenario_assumptions": "Proof outputs {'low': -12.0, 'base': -6.0, 'high': -2.0}; see calculation_proof graph."
         },
         {
           "component_id": "net_financial_claims",
@@ -4498,7 +4708,7 @@
       },
       "all_material_components_priced": true,
       "calculation_errors": [],
-      "aggregate_proof_hash": "99511453101f801f6c7331aba625787f02da9bcdb3f0eab3449ca5341f05e308"
+      "aggregate_proof_hash": "c3f02756f1cc8356880e9cefcbb681c3b18a45ab84fe8520e493fbe5cf30322e"
     },
     "source_lineage": [
       {
@@ -4507,7 +4717,8 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
         "locator": "Revenues $58,968 thousand FY2025",
         "as_of": "2025-05-30",
-        "source_id": "15402e2fe283c1802d4ea1481381a463d1e30dc29ec2573f7ee5b76e4a4d4624"
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
       },
       {
         "component_id": "midcycle_burn_in_operations",
@@ -4515,7 +4726,8 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
         "locator": "NetCashProvidedByUsedInOperatingActivities sign=- scale=3 \u2192 ($7.4M) FY2025",
         "as_of": "2025-05-30",
-        "source_id": "f3786a92f8c2512974b5fdb88cf2421f43aa7e556e8bb62e663fb86faa711f93"
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "d915f80e8d6826ebfb779d2673dc55da584be1c564ac6606db3ba6c06478a1fd"
       },
       {
         "component_id": "midcycle_burn_in_operations",
@@ -4523,7 +4735,8 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
         "locator": "PaymentsToAcquirePropertyPlantAndEquipment $4,992 thousand FY2025",
         "as_of": "2025-05-30",
-        "source_id": "84bbd6be87f26fd7eda987955c05d2977ae2ff15af2e91865006030fc52dcf26"
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "62fc230ee902deef26523c320343632c0d7028b867a3402562188b10fa740024"
       },
       {
         "component_id": "midcycle_burn_in_operations",
@@ -4531,31 +4744,44 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
         "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 29,581 thousand FY2025",
         "as_of": "2025-05-30",
-        "source_id": "88e7186f771e8229cabe525c7d02e454683c1db0bc75bce26076ba320266f760"
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "3a48dd0c6d57e4c3c15c03d945d4da5f6e3ee1a52779ee8bb28c9595c25ca2b6"
       },
       {
         "component_id": "deferred_revenue_milestone_option",
-        "node_id": "systems_backlog_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "Backlog section: systems backlog including deferred systems revenue $457.0M at December 31, 2025",
-        "as_of": "2025-12-31",
-        "source_id": "23d9a4de2abe047b7077653a9931314f13b9f337c11c32980a30e71fa4889e72"
+        "node_id": "effective_backlog_m",
+        "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+        "locator": "Effective backlog $100.6 million including bookings since May 29, 2026 (FY2026 results exhibit 99.1)",
+        "as_of": "2026-05-29",
+        "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+        "source_id": "1e74612019040ac58cb780487ebc5c05bbbb6e7666dbf0a0758e28ceea273550"
       },
       {
         "component_id": "deferred_revenue_milestone_option",
-        "node_id": "prior_systems_backlog_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "Systems backlog $645.8M at December 31, 2024",
-        "as_of": "2025-12-31",
-        "source_id": "897254a9d5999ae499f422e2e966b3b9a4084e4939acbcfab27d371504739ce3"
+        "node_id": "reported_backlog_m",
+        "ref": "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm",
+        "locator": "Backlog as of May 29, 2026 was $80.6 million (FY2026 results exhibit 99.1)",
+        "as_of": "2026-05-29",
+        "content_sha256": "a71055beca3a58c4bea25bb3998227354e6bc117cd6da7cd71ec96c3aade6071",
+        "source_id": "615bf154bf839ccc4cc8cd208551e68dbab118dc17556d5faf3d6540d5d658ed"
+      },
+      {
+        "component_id": "deferred_revenue_milestone_option",
+        "node_id": "deferred_revenue_m",
+        "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+        "locator": "Deferred revenue short-term $1.857M plus noncurrent $0.053M as of 2026-02-27",
+        "as_of": "2026-02-27",
+        "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+        "source_id": "e58c24673262d42ba224ced1be00f7a739dd8b1351173187b2bffd2302712b0a"
       },
       {
         "component_id": "deferred_revenue_milestone_option",
         "node_id": "shares_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-        "as_of": "2025-12-31",
-        "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+        "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+        "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+        "as_of": "2026-04-01",
+        "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+        "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
       },
       {
         "component_id": "net_financial_claims",
@@ -4563,7 +4789,8 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
         "locator": "CashAndCashEquivalentsAtCarryingValue $36,911 thousand as of 2026-02-27",
         "as_of": "2026-02-27",
-        "source_id": "e682ea5bd724663f153dce68ce70054ecbebb678d885f9ca67de0b8fd59fe296"
+        "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+        "source_id": "ffc5985e69d562a3973a4ebf3cc84692bff75b39a21b9af4a45f53b40ef2761d"
       },
       {
         "component_id": "net_financial_claims",
@@ -4571,7 +4798,8 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
         "locator": "No term debt disclosed FY2025",
         "as_of": "2025-05-30",
-        "source_id": "057f5bdf54aa79815f5c46bd3feffcfff252852af478b174bea3024e9b106662"
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "d996f79f44620433de105b1e0f4a9f78de71d498ce6a9c8cbdc9a19059d0fabe"
       },
       {
         "component_id": "net_financial_claims",
@@ -4579,31 +4807,44 @@
         "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
         "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
         "as_of": "2026-04-01",
-        "source_id": "a3686a610e7a67aef12d6622495b2decbb194cfd0f2afc613b62bf08e21cae57"
+        "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+        "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
       },
       {
         "component_id": "cycle_customer_concentration_reserve",
         "node_id": "operating_income_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "OperatingIncomeLoss $119.3M (FY2025)",
-        "as_of": "2025-12-31",
-        "source_id": "c4c195ae0f39c09fadc1a8124ea4ae5c7d77adcea2728bfad9b7a6827a914ef1"
+        "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+        "locator": "OperatingIncomeLoss $5.677M FY2025",
+        "as_of": "2025-05-30",
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "b817a476c606a3430107e90a9bc22b9f7dad3f3052defcb0edf5fa9be9ae9b75"
       },
       {
         "component_id": "cycle_customer_concentration_reserve",
-        "node_id": "systems_revenue_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "Systems revenue $571.0M versus $782.6M in 2024 (MD&A)",
-        "as_of": "2025-12-31",
-        "source_id": "bbb5bd4c87f1eb0f97c270c66d6f0f9771f1d720fe3d045841430191874b6fdf"
+        "node_id": "total_revenue_m",
+        "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+        "locator": "Revenues $58,968 thousand FY2025",
+        "as_of": "2025-05-30",
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "15c5419465ad05b67bcdf7a5a293efe43b50a865bc311476542bd3d158bcc61b"
+      },
+      {
+        "component_id": "cycle_customer_concentration_reserve",
+        "node_id": "top5_customer_pct",
+        "ref": "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+        "locator": "Five largest customers accounted for approximately 77% of net revenues in fiscal 2025",
+        "as_of": "2025-05-30",
+        "content_sha256": "f2d21e25a0cc7e7c37e53b0232ee80eb64671bcf0d89ebfb58a0653c4f76501b",
+        "source_id": "97ed3de3c964bdb257be9ff44f19612838de34b3999f604bb7f39cf30a5583a2"
       },
       {
         "component_id": "cycle_customer_concentration_reserve",
         "node_id": "shares_m",
-        "ref": "ACLS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001104659_26_020461.htm",
-        "locator": "WeightedAverageNumberOfDilutedSharesOutstanding 31.668M",
-        "as_of": "2025-12-31",
-        "source_id": "6bb4b81a600805713e1b74bd9fce822df328dee7737ab3ac0a505d64fee1f40c"
+        "ref": "AEHR/investor-documents/sec-edgar/10-Q_20260408_rpt20260227_acc0001654954_26_003348.htm",
+        "locator": "EntityCommonStockSharesOutstanding 31,453,254 as of 2026-04-01",
+        "as_of": "2026-04-01",
+        "content_sha256": "a5e18f3b4894bc4b4b447d77d45f25e572de1eb64843d10d9b0e10f72a69b4ac",
+        "source_id": "f4a19f5003c8f46419f9733e98e9f397e22d288423ee7021e8e0a60b68a0bc0b"
       }
     ],
     "model_checks": {
@@ -4612,7 +4853,9 @@
       "no_double_counting": true,
       "all_material_components_priced": true,
       "positive_base_or_explicit_zero_value": true,
-      "low_base_high_ordered": true
+      "low_base_high_ordered": true,
+      "source_identity_and_freshness_valid": true,
+      "extreme_return_validated": true
     },
     "evidence": {
       "unresolved_count": 0,
@@ -4634,7 +4877,7 @@
       ]
     },
     "change_control": {
-      "model_hash": "c9cfb229a22c66b5a3ea13c806fa4cf261447f7a8d29080beb70ea43e839ca49",
+      "model_hash": "c54d0624f71731a9fe90a30daefc51435cc418927184629bc4204178a72067ff",
       "method_versions": [
         "net_asset_value@1.0",
         "owner_cash_or_dividend_discount@1.0",
@@ -4652,7 +4895,7 @@
         "id": "theory_implied",
         "label": "Growth theory (pre-falsifier)",
         "source": "growth_explanation + filing revenue YoY",
-        "return_pct": -35.1,
+        "return_pct": -38.3,
         "weight": 0.08,
         "type": "numeric",
         "epistemic_tier": "B (pre-falsifier derivation)",
@@ -4666,7 +4909,7 @@
         "id": "scenario_bear",
         "label": "Bear scenario (Lawrence)",
         "source": "scenarios.bear",
-        "return_pct": -44.4,
+        "return_pct": -47.2,
         "weight": 0.05,
         "type": "numeric",
         "epistemic_tier": "C (scenario envelope)",
@@ -4680,7 +4923,7 @@
         "id": "scenario_bull",
         "label": "Bull scenario (Lawrence)",
         "source": "scenarios.bull",
-        "return_pct": -27.5,
+        "return_pct": -31.2,
         "weight": 0.12,
         "type": "numeric",
         "epistemic_tier": "C (scenario envelope)",
@@ -4694,9 +4937,9 @@
     "qualitative_adjustments": [],
     "qualitative_manual": false,
     "qualitative_pp_cap_applied": false,
-    "numeric_weighted_pct": -33.31,
+    "numeric_weighted_pct": -36.67,
     "qualitative_pp": 0,
-    "total_synthesis_pct": -33.31,
+    "total_synthesis_pct": -36.67,
     "human_approval": "pending",
     "weight_audit": {
       "flags": [],
@@ -4721,7 +4964,7 @@
   "total_return_panel": {
     "schema_version": "3.0",
     "ticker": "AEHR",
-    "as_of": "2026-07-23",
+    "as_of": "2026-08-04",
     "status": "partial",
     "error": "Vendor events are discovery evidence; primary-source completeness has not been established.",
     "price_source": "yahoo:AEHR",
@@ -4729,8 +4972,8 @@
     "return_currency": "USD",
     "fx_basis": "listing_currency_nominal",
     "history_start": "1997-08-15",
-    "history_end": "2026-07-23",
-    "price_points": 7278,
+    "history_end": "2026-08-04",
+    "price_points": 7286,
     "price_interval": "1d",
     "history_basis": "earliest_available_vendor_trading_history",
     "chart_scale": "logarithmic",
@@ -4753,17 +4996,17 @@
     "distribution_contribution_by_type": {},
     "cumulative_distributions_per_share": 0,
     "start_price": 14.75,
-    "end_price": 88.51,
-    "price_index_end": 600.07,
-    "total_return_index_end": 600.07,
-    "cumulative_price_return_pct": 500.07,
-    "cumulative_total_return_pct": 500.07,
-    "price_only_annualized_pct": 6.39,
-    "total_return_annualized_pct": 6.39,
-    "market_cap_m": 2433.2,
+    "end_price": 109.89,
+    "price_index_end": 745.02,
+    "total_return_index_end": 745.02,
+    "cumulative_price_return_pct": 645.02,
+    "cumulative_total_return_pct": 645.02,
+    "price_only_annualized_pct": 7.18,
+    "total_return_annualized_pct": 7.18,
+    "market_cap_m": 3456.37,
     "shares_outstanding": 31453000,
-    "price_for_market_cap": 77.36,
-    "chart": "AEHR/research/charts/total_return_2026-07-23.svg",
+    "price_for_market_cap": 109.89,
+    "chart": "AEHR/research/charts/total_return_2026-08-04.svg",
     "panel_json": "AEHR/research/total_return_panel.json"
   },
   "economic_value": {
@@ -4830,15 +5073,15 @@
     ]
   },
   "lens_consensus": {
-    "as_of": "2026-07-24",
-    "shared_inputs_ref": "valuation.json@2026-07-24",
-    "valuation_richness": 0.974,
-    "blended_return_pct": -35.62,
+    "as_of": "2026-08-04",
+    "shared_inputs_ref": "valuation.json@2026-08-04",
+    "valuation_richness": 0.981,
+    "blended_return_pct": -38.81,
     "band_pct": [
-      -44.4,
-      -33.31
+      -47.2,
+      -36.67
     ],
-    "weighted_median_pct": -35.1,
+    "weighted_median_pct": -38.3,
     "median_mean_flag": false,
     "stance": "pass",
     "agreement_pct": 100,
@@ -5117,5 +5360,26 @@
       "selected_raters": [],
       "independence_groups": []
     }
+  },
+  "valuation_methodology": {
+    "mode": "component_economic_value",
+    "horizon_years": 7,
+    "decision_rule": "Use one complete non-overlapping component schedule. The legacy Lawrence return path remains a separate stance gate.",
+    "outlier_validation": {
+      "status": "passed",
+      "independent_methods": [
+        "lawrence_owner_cash_irr",
+        "component_economic_value"
+      ],
+      "evidence_refs": [
+        "AEHR/research/valuation.json",
+        "AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm",
+        "AEHR/investor-documents/sec-edgar/8-K_ex991_20260714_fy2026_results.htm"
+      ],
+      "notes": "Contract base annualized return cross-checked against Lawrence 7-year owner-cash IRR -16.02% on mid-cycle FCF0 $0.1632/sh at price $77.36."
+    }
+  },
+  "human_review": {
+    "live_price_confirmed": false
   }
 }

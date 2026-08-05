@@ -15,9 +15,9 @@
 
 **Routine / planned sales (context):**
 
-- Cummins Wes: 314800 @ $45.2 on 2026-06-22
-- Mohmand Mohammad Saidal LaVanway: 192815 @ $45.2 on 2026-06-22
-- Cummins Wes: 39350 @ $26.26 on 2026-04-10
+- Cummins Wes: 714685 @ $0.0 on 2026-08-04
+- Cummins Wes: 629600 @ $27.39 on 2026-07-31
+- Mohmand Mohammad Saidal LaVanway: 96408 @ $27.39 on 2026-07-31
 
 Source: `_system/reference/market-data/insider/APLD_transactions.csv`.
 Lawrence base IRR unchanged (`in_base_irr: False`).

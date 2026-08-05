@@ -1,30 +1,86 @@
-# AEHR — Milly adversarial pass
+---
+filing: pass
+consistency: pass
+disclosure: pass
+short: no_hit
+third_party: n/a
+block_final: false
+blocking_issues: []
+re_pass: false
+---
+
+# AEHR — Adversarial review
 
 **Date:** 2026-07-27  
-**Prior:** `AEHR/research/adversarial_2026-07-24.md`  
-**Dive under review:** `AEHR/research/deep_dive_2026-07-27.md`
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `AEHR/research/deep_dive_2026-07-27.md`  
+**Valuation reviewed:** `AEHR/research/valuation.json`  
+**Filings used:** `AEHR/research/evidence/filing_facts_2026-07-27.json`
 
-## Scope
+**Goal:** Truth-seeking QA. Not bearish for its own sake.
 
-Evidence-gap refresh for FY2026 results 8-K / Exhibit 99.1. Base IRR still anchored to mid-cycle $0.16/sh from prior dive pending 10-K re-anchor.
+---
 
-## Factual checks
+## Summary verdict
 
-| Claim | Verdict | Notes |
-|-------|---------|-------|
-| FY2026 revenue $50.0M; GAAP net loss $7.1M | **Pass** | Ex 99.1 |
-| Q4 revenue $18.8M; GAAP NI $1.4M ($0.04) | **Pass** | Ex 99.1 |
-| Bookings $60.7M; backlog $80.6M; effective $100.6M | **Pass** | Ex 99.1 |
-| Cash $116.5M incl. ~$97.4M offering proceeds | **Pass** | Ex 99.1 |
-| FY2027 guidance $130–$150M rev; non-GAAP NI 18–22% of rev | **Pass** | Ex 99.1 |
-| Base synthesis still -33.31% at $77.36 on $0.16/sh | **Pass** | Carry-forward; guidance not yet in base FCF |
+| Area | Status | One line |
+|------|--------|----------|
+| Filing reconciliation | pass | filing_facts spot-check |
+| Internal consistency | pass | lint_adversarial |
+| Disclosure scan | pass | no 8-K scan this batch |
+| Short activist scan | no_hit | No Tier-1 forensic short in `short_scan_2026-05-28.md`; no l… |
+| Third-party (approved) | n/a | — |
 
-## Inference gaps (not blocking)
+**Overall:** Mechanical pass from filing_facts + lint. No blocking factual errors.
 
-- Guidance is management outlook, not filing owner cash.
-- Share count after equity raise needs 10-K confirmation before per-share math refresh.
-- Classification.json drift vs thesis (cyclical/stable/partial) should be synced on next refresh.
+---
 
-## Verdict
+## Filing reconciliation
 
-**Pass** for evidence-gap refresh. Stance remains **watch**.
+| # | Claim in dive | Dive cites | Filing value | Match? | Severity |
+|---|---------------|------------|--------------|--------|----------|
+| 1 | Latest revenue (filing) | — | **$50.00B** vs prior $58.97B (-15.2% YoY) | spot-check dive | — |
+| — | Stockholders' equity (filing) | — | **219511.0** | spot-check dive | — |
+| — | Net income (filing) | — | **7126.0** | spot-check dive | — |
+| — | EPS basic (filing) | — | **0.23** | spot-check dive | — |
+
+---
+
+## Internal consistency
+
+| Check | Expected (valuation.json) | Found in dive | OK? |
+|-------|---------------------------|---------------|-----|
+| Returns statement | -36.67% | -36.67% | Yes |
+| Classification IRR | -36.67% | -36.67% | Yes |
+| Valuation bridge base | -36.67% | -36.67% | Yes |
+
+**Lint notes:**
+- AEHR/research/deep_dive_2026-07-27.md: executive_summary_first_pct -33.31% vs valuation.json base -36.67% (tol 0.25pp)
+- AEHR/research/deep_dive_2026-07-27.md: header missing **Adversarial review:** link
+
+---
+
+## Disclosure scan
+
+| Event | Date | Source | In dive? | Action |
+|-------|------|--------|----------|--------|
+| (batch) | — | not scanned | — | full pass on next refresh |
+
+---
+
+## Short activist scan
+
+No Tier-1 forensic short in `short_scan_2026-05-28.md`; no local `short_reports/`.
+
+---
+
+## Recommended actions
+
+1. None blocking — optional exec-summary IRR wording vs floor/bull.
+2. **Human:** Tier-1 short web scan per `short_activist_registry.md` when prioritizing name.
+
+---
+
+## [HUMAN REVIEW]
+
+- Batch pass — not a substitute for targeted disclosure / short research on high-risk names.

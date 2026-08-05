@@ -39,7 +39,6 @@ re_pass: false
 
 | # | Claim in dive | Dive cites | Filing value | Match? | Severity |
 |---|---------------|------------|--------------|--------|----------|
-| — | filing_facts | — | no_full_tier_text_extract | — | inference |
 | — | No filing_facts metrics | — | — | run build_filing_evidence | — |
 
 ---
