@@ -3114,6 +3114,17 @@ def build_research_memory() -> dict | None:
     return _load_json(RESEARCH_MEMORY_PATH)
 
 
+def build_short_alpha() -> dict | None:
+    """Compile the separately loaded Short Alpha hypothesis ledger."""
+    script = ROOT / "_system" / "scripts" / "build_short_alpha_dashboard.py"
+    path = DATA_DIR / "short_alpha.json"
+    if script.exists():
+        import subprocess
+
+        subprocess.run([sys.executable, str(script)], cwd=str(ROOT), check=True, timeout=60)
+    return _load_json(path)
+
+
 def build_learning_loop_summary() -> dict | None:
     return _load_json(ROOT / "_system" / "reviews" / "pending" /
                       "memory_triage_summary.json")
@@ -3163,10 +3174,9 @@ def load_prior_rows() -> dict[str, dict]:
             file=sys.stderr,
         )
     return merged
-
-
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    short_alpha = build_short_alpha()
     equity_payload = build_equity_models()
     prior_by_ticker = load_prior_rows()
     document_registry = build_document_registry()
@@ -3179,6 +3189,15 @@ def main() -> None:
         RESEARCH_MEMORY_PATH.write_text(
             json.dumps(memory_doc, separators=(",", ":")), encoding="utf-8")
     payload = build()
+    if short_alpha:
+        payload["short_alpha_ref"] = {
+            "path": "dashboard/data/short_alpha.json",
+            "generated_at": short_alpha.get("generated_at"),
+            "summary": short_alpha.get("summary") or {},
+        }
+        payload["summary"]["short_alpha_count"] = (short_alpha.get("summary") or {}).get(
+            "position_count", 0
+        )
     refuse_infra_collapse(payload, prior_by_ticker)
     refuse_valuation_collapse(payload, prior_by_ticker)
     attach_pdf_store_rows(payload["tickers"], document_catalog)

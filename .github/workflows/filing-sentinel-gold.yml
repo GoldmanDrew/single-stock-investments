@@ -1,0 +1,44 @@
+name: Filing Sentinel gold set
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "_system/data/filing_sentinel_*.json"
+      - "_system/frameworks/filing_sentinel_gold_set.md"
+      - "_system/scripts/_eval/filing_sentinel_gold.jsonl"
+      - "_system/scripts/filing_sentinel_gold.py"
+      - "_system/scripts/filing_sentinel_workflow.py"
+      - "_system/scripts/filing_sentinel_raw_discovery.py"
+      - "_system/scripts/fixtures/filing_sentinel_*.jsonl"
+      - "_system/scripts/test_filing_sentinel_gold.py"
+      - "_system/scripts/test_filing_sentinel_workflow.py"
+      - "_system/scripts/test_filing_sentinel_raw_discovery.py"
+      - ".github/workflows/filing-sentinel-gold.yml"
+      - "Makefile"
+  push:
+    branches: [main]
+    paths:
+      - "_system/data/filing_sentinel_*.json"
+      - "_system/scripts/_eval/filing_sentinel_gold.jsonl"
+      - "_system/scripts/filing_sentinel_gold.py"
+      - "_system/scripts/filing_sentinel_workflow.py"
+      - "_system/scripts/filing_sentinel_raw_discovery.py"
+      - "_system/scripts/test_filing_sentinel_gold.py"
+      - "_system/scripts/test_filing_sentinel_workflow.py"
+      - "_system/scripts/test_filing_sentinel_raw_discovery.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate benchmark and evaluator
+        run: make filing-sentinel-gold-check filing-sentinel-workflow-check PYTHON=python
