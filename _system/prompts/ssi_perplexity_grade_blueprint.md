@@ -108,6 +108,18 @@ capability.
 - Prose is written **last**, from resolved claims.
 
 ### Phase 3 — Skeptic verification & gatekeeper routing
+
+> **Implemented:** `python _system/scripts/verify_ssi_claims.py TICKER [--date D] [--check]`
+> → `{TICKER}/research/evidence/ssi_verified_claims_{date}.json` +
+> `ssi_time_zero_{date}.json`. Blind Skeptic recheck of every claim from raw
+> sources (pack-hash + per-filing sha256 integrity, locator re-parse,
+> direction re-derivation, section-diff and revenue-definition re-runs);
+> failures are deleted and appended as issuer-keyed gold cases to
+> `_eval/ssi_skeptic_gold.jsonl`. Gatekeeper routing reuses
+> `decision_authority.resolve_authority` — reporting only, committee dispatch
+> stays with `investment-committee.yml`. Time-zero snapshot records pack hash,
+> claims-file sha256, verified claim ids, and authority state for the
+> Decision Auditor. Tests: `_system/scripts/tests/test_verify_ssi_claims.py`.
 - Blind Skeptic pass verifies every citation and locator against original filing hashes; any
   unverifiable claim is deleted, not softened.
 - Check valuation content against `universal_valuation_contract.json` bounds and
