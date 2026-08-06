@@ -189,5 +189,48 @@ class QdelModelTests(unittest.TestCase):
         self.assertLess(model, bench)
 
 
+class DashboardPayloadTests(unittest.TestCase):
+    """The panel reads dashboard/data/respiratory_model.json; it must stay chartable."""
+
+    PAYLOAD = ROOT / "dashboard" / "data" / "respiratory_model.json"
+
+    def setUp(self) -> None:
+        if not self.PAYLOAD.exists():
+            self.skipTest("dashboard payload not built")
+        self.doc = json.loads(self.PAYLOAD.read_text(encoding="utf-8"))
+
+    def test_carries_every_field_the_panel_reads(self) -> None:
+        for key in ("baseline", "history", "forward_view", "candidate_ladder",
+                    "finding", "demand_driver", "benchmarks",
+                    "baseline_on_comparable_subset", "sample", "n_observations"):
+            self.assertIn(key, self.doc, f"panel reads doc.{key}")
+
+    def test_history_rows_are_chartable(self) -> None:
+        self.assertGreaterEqual(len(self.doc["history"]), 8)
+        for row in self.doc["history"]:
+            self.assertIsInstance(row["actual_usd_m"], (int, float))
+            self.assertIsInstance(row["fitted_usd_m"], (int, float))
+            self.assertGreater(row["fitted_usd_m"], 0, "log model must never fit <= 0")
+
+    def test_forward_band_is_ordered_and_non_negative(self) -> None:
+        self.assertTrue(self.doc["forward_view"])
+        for row in self.doc["forward_view"]:
+            self.assertLessEqual(row["low_usd_m"], row["point_estimate_usd_m"])
+            self.assertLessEqual(row["point_estimate_usd_m"], row["high_usd_m"])
+            self.assertGreaterEqual(row["low_usd_m"], 0)
+
+    def test_demand_driver_is_flagged_as_outside_the_model(self) -> None:
+        driver = self.doc["demand_driver"]
+        self.assertFalse(driver["in_baseline_model"],
+                         "the panel labels this 'not in the model' — keep the data honest")
+
+    def test_payload_matches_research_copy(self) -> None:
+        research = json.loads((ROOT / "QDEL" / "research" / "respiratory_model.json")
+                              .read_text(encoding="utf-8"))
+        self.assertEqual(self.doc["baseline"]["specification"],
+                         research["baseline"]["specification"])
+        self.assertEqual(self.doc["history"], research["history"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -11,8 +11,24 @@ US respiratory-virus testing volume as a tracked KPI, and why it is carried as
 | Fetcher | [`fetch_respiratory_panel.py`](../_system/scripts/fetch_respiratory_panel.py) |
 | Disclosed quarterly respiratory revenue | [`respiratory_revenue_quarterly.json`](../QDEL/research/evidence/respiratory_revenue_quarterly.json) |
 | Baseline model + diagnostics | [`build_qdel_respiratory_model.py`](../_system/scripts/build_qdel_respiratory_model.py) → [`QDEL/research/respiratory_model.json`](../QDEL/research/respiratory_model.json) |
+| Dashboard payload | `dashboard/data/respiratory_model.json` (same doc, written by the same script) |
+| **Dashboard panel** | `renderRespiratoryPanel` in [`insights-viz.js`](../dashboard/insights-viz.js) — **Insights → Inflections**, above the signal table |
 | KPI tab row | `respiratory_test_volume` metric in [`build_kpi_trends.py`](../_system/scripts/build_kpi_trends.py) |
 | Theme tag | `respiratory_diagnostics` in [`holdings_themes.json`](../_system/portfolio/holdings_themes.json) |
+
+## Where to see it
+
+**Insights → Inflections.** The panel sits above the inflection table and carries:
+
+- a metric strip (last reported vs what the model said, next-quarter estimate,
+  secular trend, out-of-sample error, current US testing volume, sample size);
+- an actual-vs-fitted chart with the forward view and its ±1 LOOCV error band;
+- the **candidate ladder**, with the shipped baseline highlighted and every
+  testing-augmented specification flagged in amber so the negative result is
+  visible rather than buried in a JSON file.
+
+The one-line `respiratory_test_volume` context row also appears in the inflection
+table below, and on QDEL's ticker detail under **KPI trend**.
 
 Refresh:
 

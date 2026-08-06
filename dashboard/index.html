@@ -682,40 +682,70 @@
   .wm-theme-rein { font-size: 11px; }
   .hk-snowball { margin: 10px 0 18px; max-width: none; width: 100%; }
   .hk-snowball > summary { font-size: 14px; }
-  .hk-snowball-lede { margin: 4px 0 12px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
-  .hk-metric-grid {
+  .hk-snowball-lede, .resp-lede { margin: 4px 0 12px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
+  .hk-metric-grid, .resp-metric-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
     margin: 0 0 14px;
   }
-  .hk-metric {
+  .hk-metric, .resp-metric {
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
     background: rgba(255,255,255,0.03);
     min-height: 64px;
   }
-  .hk-metric .hk-metric-label {
+  .hk-metric .hk-metric-label, .resp-metric .resp-metric-label {
     display: block;
     font-size: 11px;
     color: var(--text-muted);
     margin-bottom: 4px;
     letter-spacing: 0.02em;
   }
-  .hk-metric .hk-metric-value {
+  .hk-metric .hk-metric-value, .resp-metric .resp-metric-value {
     display: block;
     font-size: 16px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     line-height: 1.2;
   }
-  .hk-metric .hk-metric-sub {
+  .hk-metric .hk-metric-sub, .resp-metric .resp-metric-sub {
     display: block;
     margin-top: 3px;
     font-size: 11px;
     color: var(--text-muted);
   }
+  .resp-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px 12px;
+    background: rgba(255,255,255,0.02);
+    margin-bottom: 12px;
+  }
+  .resp-card h4 { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+  .resp-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+  .resp-legend i { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 2px; }
+  .resp-legend i.actual { background: #60a5fa; }
+  .resp-legend i.fitted { background-image: repeating-linear-gradient(90deg, #fbbf24 0 6px, transparent 6px 10px); height: 3px; }
+  .resp-legend i.forecast { background-image: repeating-linear-gradient(90deg, #a78bfa 0 4px, transparent 4px 8px); height: 3px; }
+  .resp-legend i.band { background: rgba(167,139,250,0.22); height: 10px; border: 1px solid rgba(167,139,250,0.5); }
+  .resp-ladder { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .resp-ladder th, .resp-ladder td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+  .resp-ladder th { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); font-weight: 600; }
+  .resp-ladder td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .resp-ladder tr.is-baseline { background: rgba(96,165,250,0.10); }
+  .resp-ladder tr.is-baseline td { font-weight: 600; }
+  .resp-ladder tr.has-driver td:first-child { color: #fbbf24; }
+  .resp-finding {
+    border-left: 3px solid #fbbf24;
+    padding: 8px 12px;
+    margin: 4px 0 12px;
+    background: rgba(251,191,36,0.06);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .resp-finding strong { display: block; margin-bottom: 4px; font-size: 12px; }
   .hk-metric.hk-metric-status { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
   .hk-snowball-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
   .hk-snowball-card {
@@ -2374,6 +2404,7 @@ function loadLazyFile(key) {
     technical_signals: () => loadShardOnce('file:technical_signals', 'data/technical_signals.json', (doc) => { data.technical_signals = doc; }),
     world_model: () => loadShardOnce('file:world_model', 'data/world_model.json', (doc) => { data.world_model = doc; }),
     hk_snowball: () => loadShardOnce('file:hk_snowball', 'data/hk_snowball_model.json', (doc) => { data.hk_snowball_model = doc; }),
+    respiratory_model: () => loadShardOnce('file:respiratory_model', 'data/respiratory_model.json', (doc) => { data.respiratory_model = doc; }),
     document_catalog: () => loadShardOnce('file:document_catalog', 'data/document_catalog.json', (doc) => { data.document_catalog = doc; }),
     activist_feed: () => loadShardOnce('file:activist_feed', 'data/activist_feed.json', (doc) => { data.activist_feed = doc; }),
     darwin_bundle: () => loadShardOnce('file:darwin_bundle', 'data/darwin_bundle.json', (doc) => {
@@ -2397,7 +2428,7 @@ const INSIGHTS_SECTION_SHARDS = {
 };
 // Insights section -> standalone lazy files it needs.
 const INSIGHTS_SECTION_FILES = {
-  inflections: ['kpi_trends'],
+  inflections: ['kpi_trends', 'respiratory_model'],
   index_watch: ['index_membership'],
   documents: ['document_catalog'],
   memory: ['research_memory'],
@@ -2901,6 +2932,7 @@ function renderInsights(opts = {}) {
     tickerInsiderTier: insightsTickerInsiderTier,
     tickerSelectedTicker: tickerInsightsSelectedTicker,
     kpiTrends: data.kpi_trends || null,
+    respiratoryModel: data.respiratory_model || null,
     indexMembership: data.index_membership || null,
     inflectionTier: insightsInflectionTier,
     eventTier: insightsEventTier,

@@ -40,6 +40,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / "QDEL" / "research" / "evidence" / "respiratory_revenue_quarterly.json"
 PANEL_DIR = ROOT / "_system" / "reference" / "market-data" / "respiratory"
 OUTPUT = ROOT / "QDEL" / "research" / "respiratory_model.json"
+DASHBOARD_OUTPUT = ROOT / "dashboard" / "data" / "respiratory_model.json"
 
 DRIVER_SERIES = ("flu_clinical_specimens", "flu_positives", "ili_visits",
                  "rsv_naat_tests", "sars_cov2_naat_tests")
@@ -200,6 +201,35 @@ def seasonal_naive_benchmarks(labels, revenue):
     }
 
 
+def demand_driver_reading(drivers: dict[str, dict[str, float]], labels: list[str]) -> dict | None:
+    """Latest combined respiratory testing volume and its YoY change.
+
+    Reported alongside the model so the panel can show the driver everyone reaches
+    for next to the evidence that it does not improve the forecast.
+    """
+    combined = {q: v.get("all_respiratory_tests") for q, v in drivers.items()
+                if v.get("all_respiratory_tests")}
+    if not combined:
+        return None
+    ordered = sorted(combined)
+    latest = ordered[-1]
+    year, quarter = latest[:4], latest[4:]
+    prior = f"{int(year) - 1}{quarter}"
+    if prior not in combined or combined[prior] <= 0:
+        return None
+    growth = combined[latest] / combined[prior] - 1
+    return {
+        "fiscal_quarter": latest,
+        "mean_weekly_tests": round(combined[latest]),
+        "prior_year_mean_weekly_tests": round(combined[prior]),
+        "yoy_pct": round(growth * 100, 1),
+        "series": "influenza + RSV + SARS-CoV-2 NAAT volume, US, weekly average",
+        "in_baseline_model": False,
+        "note": "Shown as demand context. Adding this series to the baseline degrades "
+                "out-of-sample accuracy; see candidate_ladder.",
+    }
+
+
 def build() -> dict:
     evidence = load_json(EVIDENCE)
     drivers = bucket_drivers(evidence)
@@ -245,8 +275,19 @@ def build() -> dict:
         sub_errors.append(y[i] - (math.exp(fitted) if log_best else fitted))
 
     trend_coef = coefs[4] if len(coefs) > 4 else None
-    resid = [y[i] - (math.exp(predict(coefs, X_best[i])) if log_best else predict(coefs, X_best[i]))
-             for i in range(len(labels))]
+    fitted = [math.exp(predict(coefs, X_best[i])) if log_best else predict(coefs, X_best[i])
+              for i in range(len(labels))]
+    resid = [y[i] - fitted[i] for i in range(len(labels))]
+    history = [
+        {
+            "fiscal_quarter": label,
+            "period_end": obs[i]["period_end"],
+            "actual_usd_m": round(y[i], 1),
+            "fitted_usd_m": round(fitted[i], 1),
+            "residual_usd_m": round(resid[i], 1),
+        }
+        for i, label in enumerate(labels)
+    ]
 
     forward = []
     for fq in evidence.get("future_quarter_ends", [])[:FORWARD_QUARTERS]:
@@ -301,6 +342,8 @@ def build() -> dict:
             "n": len(sub_errors),
             "note": "Same quarters as the seasonal benchmarks, so the comparison is like-for-like.",
         },
+        "history": history,
+        "demand_driver": demand_driver_reading(drivers, labels),
         "candidate_ladder": ladder,
         "finding": {
             "headline": "Respiratory-testing volume adds no out-of-sample forecasting value at this sample size.",
@@ -362,9 +405,11 @@ def main() -> int:
     if args.check:
         print("\n--check: no file written")
         return 0
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"\nWrote {args.output.relative_to(ROOT)}")
+    body = json.dumps(payload, indent=2) + "\n"
+    for target in (args.output, DASHBOARD_OUTPUT):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+        print(f"\nWrote {target.relative_to(ROOT)}")
     return 0
 
 
