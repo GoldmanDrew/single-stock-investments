@@ -175,6 +175,44 @@ class ValuationAutomationTests(unittest.TestCase):
         self.assertEqual(contract["status"], "decision_grade", contract.get("evidence", {}).get("blockers"))
         self.assertEqual(strict_contract_errors(valuation), [])
 
+    def test_owner_earnings_growth_is_charged_its_reinvestment_cost(self):
+        """Regression: c72fe6094e6 dropped the retention haircut, so the full
+        owner-earnings figure was discounted as distributable cash while growth
+        was still driven by the reinvestment rate. That is the method card's
+        "growth without capital cost" failure mode and it inflated every
+        automation-compiled valuation."""
+        identity = {"primary_method": "owner_earnings_reinvestment_dcf", "archetype": "compounder"}
+        ledger = {"facts": [
+            fact("normalized_owner_earnings_m", 100, "USD millions"),
+            fact("shares_outstanding", 10_000_000, "shares"),
+            fact("cash_m", 20, "USD millions"), fact("debt_m", 5, "USD millions"),
+        ]}
+        valuation = automation.compile_owner_earnings("TEST", "2026-07-19", identity, ledger)
+        proof = valuation["component_valuation_results"]["additive_components"][0]["calculation_proof"]
+        nodes = {node["id"]: node for node in proof["calculations"]}
+
+        # Distributable cash must be owner earnings net of the reinvestment
+        # that buys the growth, never the full owner-earnings figure.
+        self.assertEqual(nodes["distribution_rate"]["op"], "subtract")
+        self.assertEqual(nodes["distribution_rate"]["args"], [1, "reinvestment"])
+        for year in range(1, 8):
+            cash = nodes[f"owner_cash_y{year}"]
+            self.assertEqual(cash["args"], [f"owner_earnings_y{year}", "distribution_rate"],
+                             f"owner_cash_y{year} must charge growth its capital cost")
+
+        # And it has to bite numerically: re-evaluating the same proof with the
+        # haircut removed is exactly the pre-fix graph, which must value higher.
+        inflated = copy.deepcopy(proof)
+        for node in inflated["calculations"]:
+            if node["id"].startswith("owner_cash_y"):
+                node["args"] = [node["args"][0], 1]
+        corrected = evaluate_calculation_proof(proof)
+        uncorrected = evaluate_calculation_proof(inflated)
+        self.assertEqual(corrected["status"], "valid", corrected["checks"]["errors"])
+        for case in ("low", "base", "high"):
+            self.assertLess(corrected["outputs"][case], uncorrected["outputs"][case],
+                            f"{case} case must fall once reinvestment is charged")
+
     def test_negative_owner_earnings_cannot_clear_model_gate(self):
         identity = {"primary_method": "owner_earnings_reinvestment_dcf"}
         ledger = {"facts": [

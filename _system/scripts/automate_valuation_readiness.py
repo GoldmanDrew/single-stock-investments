@@ -651,6 +651,7 @@ def compile_owner_earnings(ticker: str, as_of: str, identity: dict, ledger: dict
     calculations = [
         {"id": "growth", "label": "Growth from reinvestment", "op": "multiply", "args": ["reinvestment", "incremental_roic"], "unit": "ratio"},
         {"id": "growth_factor", "op": "add", "args": [1, "growth"], "unit": "ratio"},
+        {"id": "distribution_rate", "op": "subtract", "args": [1, "reinvestment"], "unit": "ratio"},
     ]
     cash_nodes = []
     prior = "owner_earnings"
@@ -659,9 +660,10 @@ def compile_owner_earnings(ticker: str, as_of: str, identity: dict, ledger: dict
         cash = f"owner_cash_y{year}"
         calculations.extend([
             {"id": earn, "op": "multiply", "args": [prior, "growth_factor"], "unit": "USD millions"},
-            # Starting owner earnings are already after total capital spending.
-            # Applying a second retention haircut here double-counts reinvestment.
-            {"id": cash, "op": "multiply", "args": [earn, 1], "unit": "USD millions"},
+            # Growth here is bought with reinvestment, so only the unretained
+            # share is distributable. Discounting the full owner-earnings figure
+            # is the method card's "growth without capital cost" failure mode.
+            {"id": cash, "op": "multiply", "args": [earn, "distribution_rate"], "unit": "USD millions"},
         ])
         cash_nodes.extend([cash, year])
         prior = earn
