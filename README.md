@@ -92,7 +92,7 @@ Runs after the daily fear/capitulation refresh via [`market-risk-components.yml`
 
 ## Respiratory demand KPI (QDEL)
 
-Weekly US respiratory-virus testing volumes (influenza, RSV, SARS-CoV-2 — CDC FluView via Delphi Epidata, plus CDC NAAT panel `rgnm-fkqb`; both keyless) surfaced on the dashboard **Insights → Inflections** tab as an exogenous demand driver for diagnostics holdings tagged `respiratory_diagnostics`.
+Weekly US respiratory-virus testing volumes (influenza, RSV, SARS-CoV-2 — CDC FluView via Delphi Epidata, plus CDC NAAT panel `rgnm-fkqb`; both keyless) plus a validated revenue model, rendered as a full panel on the dashboard **Insights → Inflections** tab: metric strip, actual-vs-fitted chart with forward band, and the candidate ladder that shows the negative result rather than hiding it.
 
 Carried as **labelled context, not a revenue driver**. Out-of-sample testing found no incremental forecasting value: every specification carrying a flu/RSV/COVID term scored worse under leave-one-out CV than the same model without it, and the one variant that beat the naive baseline failed a permutation test (p=0.24). The shipped baseline for QuidelOrtho respiratory revenue is `log(revenue) ~ seasonal dummies + trend` — 38% better than a seasonal-naive benchmark, with no testing term at all. The candidate ladder stays in the output so the conclusion is falsifiable as the sample grows.
 

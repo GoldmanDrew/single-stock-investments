@@ -2980,6 +2980,206 @@
       </p>`;
   }
 
+  function respFmtUsd(value) {
+    if (value == null || !Number.isFinite(Number(value))) return '—';
+    return `$${Number(value).toFixed(1)}M`;
+  }
+
+  function respFmtPct(value, { sign = true } = {}) {
+    if (value == null || !Number.isFinite(Number(value))) return '—';
+    const n = Number(value);
+    return `${sign && n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+  }
+
+  /** Actual vs fitted respiratory revenue, with the forward view and its error band. */
+  function respRevenueChart(doc) {
+    const history = Array.isArray(doc.history) ? doc.history : [];
+    const forward = Array.isArray(doc.forward_view) ? doc.forward_view : [];
+    if (history.length < 2) return '<p class="tier-sub">Not enough history to chart.</p>';
+
+    const W = 720, H = 260, L = 46, R = 14, T = 14, B = 36;
+    const points = history.length + forward.length;
+    const maxY = Math.max(
+      ...history.map(h => Math.max(h.actual_usd_m || 0, h.fitted_usd_m || 0)),
+      ...forward.map(f => f.high_usd_m || 0),
+      1,
+    ) * 1.08;
+    const x = (i) => L + (points === 1 ? 0 : (i * (W - L - R)) / (points - 1));
+    const y = (v) => H - B - ((Number(v) || 0) / maxY) * (H - T - B);
+    const poly = (pts, color, width, dash, opacity) => pts.length < 2 ? '' :
+      `<polyline points="${pts.map(p => `${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')}" `
+      + `fill="none" stroke="${color}" stroke-width="${width}" opacity="${opacity != null ? opacity : 1}"`
+      + `${dash ? ` stroke-dasharray="${dash}"` : ''} stroke-linejoin="round" />`;
+
+    const actual = history.map((h, i) => ({ i, v: h.actual_usd_m }));
+    const fitted = history.map((h, i) => ({ i, v: h.fitted_usd_m }));
+    const lastIdx = history.length - 1;
+    const fwdLine = [{ i: lastIdx, v: history[lastIdx].actual_usd_m }]
+      .concat(forward.map((f, k) => ({ i: history.length + k, v: f.point_estimate_usd_m })));
+
+    let band = '';
+    if (forward.length) {
+      const top = forward.map((f, k) => `${x(history.length + k).toFixed(1)},${y(f.high_usd_m).toFixed(1)}`);
+      const bottom = forward.map((f, k) => `${x(history.length + k).toFixed(1)},${y(f.low_usd_m).toFixed(1)}`).reverse();
+      const anchor = `${x(lastIdx).toFixed(1)},${y(history[lastIdx].actual_usd_m).toFixed(1)}`;
+      band = `<polygon points="${[anchor].concat(top, bottom).join(' ')}" fill="rgba(167,139,250,0.16)" `
+        + `stroke="rgba(167,139,250,0.4)" stroke-width="1" />`;
+    }
+
+    const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+      const v = maxY * f;
+      return `<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}" `
+        + `stroke="currentColor" stroke-width="1" opacity="0.12" />`
+        + `<text x="${L - 6}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" `
+        + `fill="currentColor" opacity="0.6">${Math.round(v)}</text>`;
+    }).join('');
+
+    const labels = history.concat(forward).map((row, i) => {
+      if (i % 2 !== 0 && i !== points - 1) return '';
+      const q = String(row.fiscal_quarter || '');
+      return `<text x="${x(i).toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="10" `
+        + `fill="currentColor" opacity="0.6">${q.replace(/^20/, "'")}</text>`;
+    }).join('');
+
+    const dots = actual.map(p =>
+      `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" fill="#60a5fa" />`).join('')
+      + forward.map((f, k) =>
+        `<circle cx="${x(history.length + k).toFixed(1)}" cy="${y(f.point_estimate_usd_m).toFixed(1)}" `
+        + `r="3" fill="#a78bfa" />`).join('');
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Respiratory revenue actual versus model">
+      ${ticks}
+      ${band}
+      ${poly(fitted, '#fbbf24', 2, '6 4', 0.9)}
+      ${poly(actual, '#60a5fa', 2.6)}
+      ${poly(fwdLine, '#a78bfa', 2.4, '5 4', 0.95)}
+      ${dots}
+      ${labels}
+      <text x="${L - 6}" y="${T + 2}" text-anchor="end" font-size="9" fill="currentColor" opacity="0.5">$M</text>
+    </svg>
+    <div class="resp-legend">
+      <span><i class="actual"></i>Actual</span>
+      <span><i class="fitted"></i>Model fit</span>
+      <span><i class="forecast"></i>Forward estimate</span>
+      <span><i class="band"></i>±1 LOOCV error</span>
+    </div>`;
+  }
+
+  function respLadderTable(doc, escapeHtml) {
+    const ladder = Array.isArray(doc.candidate_ladder) ? doc.candidate_ladder : [];
+    if (!ladder.length) return '';
+    const baselineSpec = (doc.baseline || {}).specification;
+    const rows = ladder.map((row) => {
+      const spec = String(row.specification || '');
+      const isBaseline = spec === baselineSpec;
+      const hasDriver = /_plus_/.test(spec);
+      const cls = [isBaseline ? 'is-baseline' : '', hasDriver ? 'has-driver' : ''].filter(Boolean).join(' ');
+      const note = isBaseline ? 'shipped baseline' : (hasDriver ? 'adds testing volume' : '');
+      return `<tr class="${cls}">
+        <td>${escapeHtml(spec.replace(/_/g, ' '))}</td>
+        <td class="num">${row.params != null ? row.params : '—'}</td>
+        <td class="num">${row.r_squared != null ? Number(row.r_squared).toFixed(3) : '—'}</td>
+        <td class="num">${row.loocv_rmse_usd_m != null ? respFmtUsd(row.loocv_rmse_usd_m) : '—'}</td>
+        <td class="tier-sub">${escapeHtml(note)}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="resp-card">
+      <h4>Candidate ladder — every testing-augmented spec ranks below the baseline</h4>
+      <div style="overflow-x:auto">
+        <table class="resp-ladder">
+          <thead><tr><th>Specification</th><th class="num">Params</th><th class="num">R²</th>
+            <th class="num">LOOCV RMSE</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="tier-sub" style="margin-top:8px">Ranked by leave-one-out cross-validated error (lower is better).
+        Rows in amber add a flu / RSV / COVID testing term.</p>
+    </div>`;
+  }
+
+  function renderRespiratoryPanel(doc, escapeHtml) {
+    if (!doc || !doc.baseline) {
+      return `<details class="wm-panel">
+        <summary>Respiratory demand model (QDEL)</summary>
+        <p class="tier-sub">No model yet. Run:
+          <code>python _system/scripts/fetch_respiratory_panel.py</code> then
+          <code>python _system/scripts/build_qdel_respiratory_model.py</code></p>
+      </details>`;
+    }
+    const base = doc.baseline || {};
+    const finding = doc.finding || {};
+    const driver = doc.demand_driver || null;
+    const bench = (doc.benchmarks || {}).seasonal_naive_with_drift || {};
+    const sub = doc.baseline_on_comparable_subset || {};
+    const next = (doc.forward_view || [])[0] || null;
+    const latest = (doc.history || [])[(doc.history || []).length - 1] || null;
+    const gain = (bench.rmse_usd_m && sub.rmse_usd_m)
+      ? (1 - sub.rmse_usd_m / bench.rmse_usd_m) * 100 : null;
+    const driverCls = driver && driver.yoy_pct <= -10 ? 'badge-bad'
+      : (driver && driver.yoy_pct >= 10 ? 'badge-ok' : 'badge-warn');
+
+    return `<details class="wm-panel" open>
+      <summary>Respiratory demand model (QDEL)
+        <span class="tier-sub">Trend + seasonality baseline · flu tested and rejected</span></summary>
+      <p class="resp-lede">${escapeHtml(doc.target || '')} —
+        modelled as <code>log(revenue) ~ seasonal dummies + trend</code>.
+        ${escapeHtml(finding.headline || '')}</p>
+
+      <div class="resp-metric-grid">
+        <div class="resp-metric">
+          <span class="resp-metric-label">Last reported</span>
+          <span class="resp-metric-value">${escapeHtml(respFmtUsd(latest && latest.actual_usd_m))}</span>
+          <span class="resp-metric-sub">${escapeHtml(String((latest && latest.fiscal_quarter) || ''))}
+            · model said ${escapeHtml(respFmtUsd(latest && latest.fitted_usd_m))}</span>
+        </div>
+        <div class="resp-metric">
+          <span class="resp-metric-label">Next quarter estimate</span>
+          <span class="resp-metric-value">${escapeHtml(respFmtUsd(next && next.point_estimate_usd_m))}</span>
+          <span class="resp-metric-sub">${escapeHtml(String((next && next.fiscal_quarter) || ''))}
+            · ${escapeHtml(respFmtPct(next && next.implied_yoy_pct))} y/y</span>
+        </div>
+        <div class="resp-metric">
+          <span class="resp-metric-label">Secular trend</span>
+          <span class="resp-metric-value">${escapeHtml(respFmtPct(base.implied_trend_pct_per_quarter))}</span>
+          <span class="resp-metric-sub">per quarter · COVID normalisation</span>
+        </div>
+        <div class="resp-metric">
+          <span class="resp-metric-label">Out-of-sample error</span>
+          <span class="resp-metric-value">${escapeHtml(respFmtUsd(base.loocv_rmse_usd_m))}</span>
+          <span class="resp-metric-sub">${gain != null
+            ? `${gain.toFixed(0)}% better than seasonal naive` : 'LOOCV RMSE'}</span>
+        </div>
+        <div class="resp-metric resp-metric-status">
+          <span class="resp-metric-label">US testing volume</span>
+          <span class="badge ${driverCls}">${escapeHtml(driver ? respFmtPct(driver.yoy_pct) : '—')} y/y</span>
+          <span class="resp-metric-sub">${escapeHtml(String((driver && driver.fiscal_quarter) || ''))}
+            · not in the model</span>
+        </div>
+        <div class="resp-metric">
+          <span class="resp-metric-label">Sample</span>
+          <span class="resp-metric-value">${escapeHtml(String(doc.n_observations || '—'))}</span>
+          <span class="resp-metric-sub">quarters · ${escapeHtml(String((doc.sample || {}).first || ''))}–${escapeHtml(String((doc.sample || {}).last || ''))}</span>
+        </div>
+      </div>
+
+      <div class="resp-card">
+        <h4>Respiratory revenue: actual vs model</h4>
+        ${respRevenueChart(doc)}
+      </div>
+
+      <div class="resp-finding">
+        <strong>Why there is no flu term in the baseline</strong>
+        ${escapeHtml(finding.detail || '')}
+        ${finding.power_note ? ` ${escapeHtml(finding.power_note)}` : ''}
+      </div>
+
+      ${respLadderTable(doc, escapeHtml)}
+
+      <p class="tier-sub">${escapeHtml((doc.caveats || [])[0] || '')}</p>
+      <p class="tier-sub" style="margin-top:6px">Falsification: ${escapeHtml(finding.how_to_falsify || '')}</p>
+    </details>`;
+  }
+
   function renderInflections(kpiTrends, escapeHtml, opts) {
     const byTicker = (kpiTrends && kpiTrends.by_ticker) || {};
     const search = ((opts && opts.search) || '').trim().toLowerCase();
@@ -4774,7 +4974,8 @@
 
     let body = '';
     if (activeSection === 'inflections') {
-      body = renderInflections(kpiTrends, escapeHtml, { search: fundSearch, bookOnly, inflectionTier });
+      body = renderRespiratoryPanel(options?.respiratoryModel || null, escapeHtml)
+        + renderInflections(kpiTrends, escapeHtml, { search: fundSearch, bookOnly, inflectionTier });
     } else if (activeSection === 'events') {
       body = renderDecisionEventQueue(insights?.events || [], escapeHtml, linkHtml, ghRepo, {
         search: fundSearch,
@@ -4962,6 +5163,7 @@
     renderLetterDiscussants,
     renderTickerTrendBadges,
     renderInflections,
+    renderRespiratoryPanel,
     filterInsights,
     attachFilingVerifyHandlers,
     attachEventHandlers,
