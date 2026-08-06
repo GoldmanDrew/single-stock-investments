@@ -90,6 +90,20 @@ python _system/scripts/build_criticality_signals.py --workers 4   # daily build;
 
 Runs after the daily fear/capitulation refresh via [`market-risk-components.yml`](.github/workflows/market-risk-components.yml); data ships to Cloudflare D1 over HMAC-signed ingestion and serves through `/api/v1/market-risk/*` as a dashboard risk rail + sector heatmap. Local always-on install (Windows Scheduled Task, every 30 min during market hours + EOD): `_system/scripts/install_market_risk_component_task.ps1`. Runbook: [`docs/criticality-flow-monitor-runbook.md`](docs/criticality-flow-monitor-runbook.md), [`docs/market-risk-component-pipeline.md`](docs/market-risk-component-pipeline.md).
 
+## Respiratory demand KPI (QDEL)
+
+Weekly US respiratory-virus testing volumes (influenza, RSV, SARS-CoV-2 — CDC FluView via Delphi Epidata, plus CDC NAAT panel `rgnm-fkqb`; both keyless) surfaced on the dashboard **Insights → Inflections** tab as an exogenous demand driver for diagnostics holdings tagged `respiratory_diagnostics`.
+
+Carried as **labelled context, not a revenue driver**. Out-of-sample testing found no incremental forecasting value: every specification carrying a flu/RSV/COVID term scored worse under leave-one-out CV than the same model without it, and the one variant that beat the naive baseline failed a permutation test (p=0.24). The shipped baseline for QuidelOrtho respiratory revenue is `log(revenue) ~ seasonal dummies + trend` — 38% better than a seasonal-naive benchmark, with no testing term at all. The candidate ladder stays in the output so the conclusion is falsifiable as the sample grows.
+
+```powershell
+python _system/scripts/fetch_respiratory_panel.py        # weekly panel -> _system/reference/market-data/respiratory/
+python _system/scripts/build_qdel_respiratory_model.py   # baseline + diagnostics -> QDEL/research/respiratory_model.json
+python _system/scripts/build_kpi_trends.py               # context row on the KPI tab
+```
+
+Method, guardrails, and what would actually raise predictability: [`docs/respiratory-kpi.md`](docs/respiratory-kpi.md).
+
 ## BTC snowball / World Model panel
 
 Dashboard panel presenting a Bitcoin power-law/snowball demand-and-cost-floor model in plain English with a supporting chart. Implemented directly in [`dashboard/insights-viz.js`](dashboard/insights-viz.js) (search `hk-snowball`) — no separate framework doc.

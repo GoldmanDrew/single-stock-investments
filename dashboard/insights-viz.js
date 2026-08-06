@@ -2865,6 +2865,7 @@
     news_flow: { label: 'News flow', title: 'Monthly news item counts (accumulated history)' },
     peer_relative: { label: 'Peer rel.', title: 'YoY growth vs investment-sleeve peers' },
     earnings_revision: { label: 'EPS rev.', title: 'Consensus EPS surprise / revision streak' },
+    respiratory_panel: { label: 'Resp. demand', title: 'US respiratory testing volume (CDC FluView + NAAT panel) — exogenous demand context, not a revenue estimate' },
   };
 
   function trendSourceBadge(source, escapeHtml) {
