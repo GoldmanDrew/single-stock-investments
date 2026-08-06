@@ -1,0 +1,138 @@
+{
+  "ticker": "QDEL",
+  "generated_at": "2026-08-06T02:07:55Z",
+  "as_of": "2026-08-05",
+  "target": "Company-disclosed total respiratory revenue (USD millions)",
+  "evidence_ref": "QDEL/research/evidence/respiratory_revenue_quarterly.json",
+  "driver_panel_ref": "_system/reference/market-data/respiratory/manifest.json",
+  "n_observations": 13,
+  "sample": {
+    "first": "2023Q1",
+    "last": "2026Q1"
+  },
+  "baseline": {
+    "specification": "seasonal_trend_log",
+    "form": "log(respiratory revenue) ~ intercept + Q2 + Q3 + Q4 + linear trend",
+    "coefficients": {
+      "intercept": 5.369,
+      "q2": -0.8281,
+      "q3": 0.1403,
+      "q4": 0.1855,
+      "trend_per_quarter": -0.082
+    },
+    "implied_trend_pct_per_quarter": -7.87,
+    "r_squared_log": 0.9414,
+    "loocv_rmse_usd_m": 33.57,
+    "in_sample_residual_rmse_usd_m": 19.72
+  },
+  "benchmarks": {
+    "seasonal_naive": {
+      "rmse_usd_m": 52.86,
+      "n": 9
+    },
+    "seasonal_naive_with_drift": {
+      "rmse_usd_m": 28.44,
+      "n": 9
+    }
+  },
+  "baseline_on_comparable_subset": {
+    "rmse_usd_m": 17.57,
+    "n": 9,
+    "note": "Same quarters as the seasonal benchmarks, so the comparison is like-for-like."
+  },
+  "candidate_ladder": [
+    {
+      "specification": "seasonal_trend_log",
+      "params": 5,
+      "log_space": true,
+      "r_squared": 0.9414,
+      "loocv_rmse_usd_m": 33.57
+    },
+    {
+      "specification": "seasonal_trend_linear",
+      "params": 5,
+      "log_space": false,
+      "r_squared": 0.8594,
+      "loocv_rmse_usd_m": 37.22
+    },
+    {
+      "specification": "seasonal_trend_log_plus_flu",
+      "params": 6,
+      "log_space": true,
+      "r_squared": 0.9435,
+      "loocv_rmse_usd_m": 37.79
+    },
+    {
+      "specification": "seasonal_trend_log_plus_allresp",
+      "params": 6,
+      "log_space": true,
+      "r_squared": 0.9434,
+      "loocv_rmse_usd_m": 37.85
+    },
+    {
+      "specification": "trend_only",
+      "params": 2,
+      "log_space": false,
+      "r_squared": 0.3435,
+      "loocv_rmse_usd_m": 57.37
+    },
+    {
+      "specification": "seasonal_only",
+      "params": 4,
+      "log_space": false,
+      "r_squared": 0.3889,
+      "loocv_rmse_usd_m": 61.52
+    },
+    {
+      "specification": "naive_mean",
+      "params": 1,
+      "log_space": false,
+      "r_squared": 0.0,
+      "loocv_rmse_usd_m": 62.34
+    }
+  ],
+  "finding": {
+    "headline": "Respiratory-testing volume adds no out-of-sample forecasting value at this sample size.",
+    "detail": "Every specification carrying a flu / RSV / SARS-CoV-2 term scored worse under leave-one-out CV than the same model without it. A 13-variant search found flu specimens at a two-quarter lag beating the naive baseline by 20%, but a permutation test re-running the full search on shuffled outcomes reproduces a gain that large 24% of the time (p=0.24).",
+    "power_note": "With 9 year-over-year observations and a true R^2 near 0.15, out-of-sample detection power is about 40%. Roughly 20-40 quarters would be needed. The binding constraint is sample size, not model form.",
+    "how_to_falsify": "Re-run this script as quarters accumulate. If a seasonal_trend_log_plus_* specification overtakes seasonal_trend_log in the candidate ladder, the testing panel has started to earn its place."
+  },
+  "forward_view": [
+    {
+      "fiscal_quarter": "2026Q2",
+      "period_end": "2026-06-28",
+      "point_estimate_usd_m": 32.3,
+      "low_usd_m": 0.0,
+      "high_usd_m": 65.9,
+      "prior_year_quarter": "2025Q2",
+      "prior_year_usd_m": 46.7,
+      "implied_yoy_pct": -30.8
+    },
+    {
+      "fiscal_quarter": "2026Q3",
+      "period_end": "2026-09-27",
+      "point_estimate_usd_m": 78.4,
+      "low_usd_m": 44.8,
+      "high_usd_m": 111.9,
+      "prior_year_quarter": "2025Q3",
+      "prior_year_usd_m": 112.3,
+      "implied_yoy_pct": -30.2
+    },
+    {
+      "fiscal_quarter": "2026Q4",
+      "period_end": "2026-12-27",
+      "point_estimate_usd_m": 75.5,
+      "low_usd_m": 42.0,
+      "high_usd_m": 109.1,
+      "prior_year_quarter": "2025Q4",
+      "prior_year_usd_m": 123.3,
+      "implied_yoy_pct": -38.8
+    }
+  ],
+  "caveats": [
+    "The linear trend compounds; a -8%/quarter decay approaches zero and cannot hold indefinitely. Trust the forward view one to two quarters out, not for terminal value.",
+    "Target is company-wide respiratory revenue including COVID-19, not Point of Care only.",
+    "US testing panel only. China and Middle East softness are separate drivers.",
+    "Context and research only. Never an input to base-case IRR without [HUMAN REVIEW]."
+  ]
+}

@@ -22,6 +22,7 @@ snapshots + quarterly/annual mixing).
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import statistics
 from datetime import datetime, timezone
@@ -51,6 +52,8 @@ EARNINGS_CALENDAR_PATH = ROOT / "_system" / "data" / "earnings_calendar.json"
 NEWS_PATH = ROOT / "dashboard" / "data" / "portfolio_news.json"
 NEWS_HISTORY_PATH = ROOT / "_system" / "reference" / "market-data" / "news_flow_history.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
+RESPIRATORY_DIR = ROOT / "_system" / "reference" / "market-data" / "respiratory"
+HOLDINGS_THEMES_PATH = ROOT / "_system" / "portfolio" / "holdings_themes.json"
 
 MIN_POINTS = 4
 MAX_POINTS = 8
@@ -73,6 +76,8 @@ MAX_SECONDARY_DISPLAY = 1
 METRIC_TIER_PRIMARY = frozenset({"revenues", "revenue", "operating_income", "cfo", "op_margin", "cfo_margin"})
 METRIC_TIER_SECONDARY = frozenset({"net_income", "eps_basic", "news_flow", "burn_rate", "eps_revision"})
 METRIC_TIER_EXCLUDED = frozenset({"cash", "total_assets", "stockholders_equity", "long_term_debt"})
+# Exogenous demand drivers: shown as context, never scored as company fundamentals.
+METRIC_TIER_CONTEXT = frozenset({"respiratory_test_volume"})
 CORE_COLLAPSE_METRICS = frozenset({"revenues", "revenue", "operating_income", "cfo"})
 REGIME_METRICS = frozenset({"revenues", "revenue", "operating_income", "cfo", "net_income", "eps_basic"})
 
@@ -111,6 +116,7 @@ METRIC_LABELS = {
     "op_margin": "Operating margin",
     "cfo_margin": "Cash conversion (CFO/revenue)",
     "core_business": "Core business",
+    "respiratory_test_volume": "US respiratory testing volume",
     "growth_regime.revenues": "Revenue growth regime",
     "growth_regime.revenue": "Revenue growth regime",
     "growth_regime.operating_income": "Operating income growth regime",
@@ -155,6 +161,8 @@ def metric_tier(metric: str) -> str:
         return "secondary"
     if base in METRIC_TIER_EXCLUDED:
         return "excluded"
+    if base in METRIC_TIER_CONTEXT:
+        return "context"
     return "primary"
 
 
@@ -736,6 +744,10 @@ def apply_display_cap(metrics: list[dict]) -> None:
         if m.get("stale"):
             m["display"] = False
             continue
+        # Exogenous demand drivers keep the display flag their builder set and are
+        # excluded from the fundamentals display budget below.
+        if m.get("tier") == "context":
+            continue
         if m.get("tier") == "excluded":
             m["display"] = False
             continue
@@ -787,11 +799,12 @@ def apply_display_cap(metrics: list[dict]) -> None:
     primary = sorted([m for m in candidates if m.get("tier") == "primary"], key=strength, reverse=True)
     secondary = sorted([m for m in candidates if m.get("tier") == "secondary"], key=strength, reverse=True)
 
-    shown = sum(1 for m in metrics if m.get("display"))
+    shown = sum(1 for m in metrics if m.get("display") and m.get("tier") != "context")
     for m in primary[: max(0, MAX_PRIMARY_DISPLAY - shown)]:
         m["display"] = True
         shown += 1
-    for m in secondary[: max(0, MAX_SECONDARY_DISPLAY - (shown - sum(1 for x in metrics if x.get("display"))))]:
+    displayed_now = sum(1 for x in metrics if x.get("display") and x.get("tier") != "context")
+    for m in secondary[: max(0, MAX_SECONDARY_DISPLAY - (shown - displayed_now))]:
         if not m.get("display"):
             m["display"] = True
 
@@ -907,6 +920,148 @@ def derive_burn_rate_series(cfo: list[dict], cash: list[dict]) -> list[dict]:
             continue
         out.append({"period": period, "value": abs(value)})
     return out
+
+
+RESPIRATORY_DRIVER_SERIES = ("flu_clinical_specimens", "rsv_naat_tests", "sars_cov2_naat_tests")
+RESPIRATORY_MIN_WEEKS = 12
+# Materiality is measured against the series' own recent volatility rather than a
+# magic number. The window is deliberately short: 2021-2023 YoY swings (+388% to
+# -60%) are COVID unwind, and including them inflates the threshold to ~25pp and
+# suppresses everything. Post-COVID robust vol runs ~12pp.
+RESPIRATORY_VOL_WINDOW = 8
+RESPIRATORY_MIN_THRESHOLD = 0.10
+
+
+def _read_weekly_csv(path: Path) -> dict[str, float]:
+    if not path.exists():
+        return {}
+    out: dict[str, float] = {}
+    try:
+        with path.open(encoding="utf-8", newline="") as handle:
+            for row in csv.DictReader(handle):
+                value = to_float(row.get("value"))
+                day = str(row.get("date") or "")[:10]
+                if value is not None and day:
+                    out[day] = value
+    except OSError:
+        return {}
+    return out
+
+
+def respiratory_quarterly_volume() -> dict[str, dict]:
+    """Total US respiratory NAAT volume, averaged weekly, by calendar quarter.
+
+    Calendar quarters are deliberate: this is an exogenous driver read, not a
+    revenue estimate, so it does not need any issuer's fiscal calendar.
+    """
+    weekly: dict[str, float] = {}
+    counts: dict[str, int] = {}
+    for series_id in RESPIRATORY_DRIVER_SERIES:
+        for day, value in _read_weekly_csv(RESPIRATORY_DIR / f"{series_id}.csv").items():
+            weekly[day] = weekly.get(day, 0.0) + value
+            counts[day] = counts.get(day, 0) + 1
+    if not weekly:
+        return {}
+    # Only weeks where every series reported, so the sum is comparable across time.
+    full = {d: v for d, v in weekly.items() if counts.get(d) == len(RESPIRATORY_DRIVER_SERIES)}
+    buckets: dict[str, list[float]] = {}
+    for day, value in full.items():
+        parsed = parse_date(day)
+        if not parsed:
+            continue
+        buckets.setdefault(f"{parsed.year}-Q{(parsed.month - 1) // 3 + 1}", []).append(value)
+    return {
+        q: {"mean_weekly": sum(v) / len(v), "weeks": len(v)}
+        for q, v in buckets.items()
+        if len(v) >= RESPIRATORY_MIN_WEEKS
+    }
+
+
+def respiratory_context_metric() -> dict | None:
+    """Latest complete quarter's YoY change in US respiratory testing volume.
+
+    Reported on the *level* of YoY change, not its second derivative: a demand
+    base that is persistently 25% below last year matters to a diagnostics issuer
+    even when the rate of decline is unchanged, which an inflection test reads as
+    'steady'. Emitted as context - excluded from business momentum and from the
+    primary/secondary display competition.
+    """
+    quarters = respiratory_quarterly_volume()
+    if len(quarters) < 5:
+        return None
+    ordered = sorted(quarters)
+
+    def yoy_at(label: str) -> float | None:
+        year, q = label.split("-Q")
+        prior = f"{int(year) - 1}-Q{q}"
+        if prior not in quarters or quarters[prior]["mean_weekly"] <= 0:
+            return None
+        return quarters[label]["mean_weekly"] / quarters[prior]["mean_weekly"] - 1
+
+    history = [(label, yoy_at(label)) for label in ordered]
+    history = [(label, g) for label, g in history if g is not None]
+    if not history:
+        return None
+    latest, growth = history[-1]
+    prior_growth = history[-2][1] if len(history) >= 2 else None
+
+    window = [g for _label, g in history[-RESPIRATORY_VOL_WINDOW:]]
+    threshold = max(RESPIRATORY_MIN_THRESHOLD, robust_vol(window))
+
+    if growth <= -threshold:
+        direction = "decelerating"
+        phrase = f"ran {abs(growth) * 100:.0f}% below"
+    elif growth >= threshold:
+        direction = "accelerating"
+        phrase = f"ran {growth * 100:.0f}% above"
+    else:
+        direction = "steady"
+        phrase = f"was within {threshold * 100:.0f}% of"
+
+    quarter_ends = {"1": "03-31", "2": "06-30", "3": "09-30", "4": "12-31"}
+    points = []
+    for label in ordered[-MAX_POINTS:]:
+        py, pq = label.split("-Q")
+        points.append({
+            "period": f"{py}-{quarter_ends[pq]}",
+            "value": round(quarters[label]["mean_weekly"], 1),
+        })
+    return {
+        "metric": "respiratory_test_volume",
+        "label": METRIC_LABELS["respiratory_test_volume"],
+        "source": "respiratory_panel",
+        "evidence_ref": "_system/reference/market-data/respiratory/manifest.json",
+        "signal_type": "demand_driver",
+        "direction": direction,
+        "signal_tier": "context",
+        "tier": "context",
+        "basis": "yoy",
+        "mode": "pct",
+        "growth_latest": round(growth, 4),
+        "growth_prior": round(prior_growth, 4) if prior_growth is not None else None,
+        "accel": None,
+        "threshold": round(threshold, 4),
+        "material": abs(growth) >= threshold,
+        "strength": round(abs(growth) / threshold, 3),
+        "confidence": "high",
+        "ttm_agrees": None,
+        "artifact": False,
+        "composite": False,
+        "stale": False,
+        "display": direction != "steady",
+        "latest_period": latest,
+        "points": points,
+        "human_summary": (
+            f"US respiratory testing volume {phrase} the year-ago quarter in {latest} "
+            f"(flu + RSV + COVID NAAT). Demand context, not a revenue estimate."
+        ),
+    }
+
+
+def respiratory_context_tickers() -> list[str]:
+    themes = (load_json(HOLDINGS_THEMES_PATH, {}).get("themes") or {})
+    block = themes.get("respiratory_diagnostics") or {}
+    return [str(t).upper() for t in (block.get("tickers") or [])]
 
 
 def resolve_data_tier(
@@ -1278,6 +1433,14 @@ def build_trends() -> dict:
     earnings_by_ticker = load_earnings_by_ticker()
     peer_overlay_count = apply_peer_relative_overlays(by_ticker, registry)
     earnings_revision_count = apply_earnings_revision_signals(by_ticker, earnings_by_ticker)
+
+    respiratory_metric = respiratory_context_metric()
+    respiratory_count = 0
+    if respiratory_metric:
+        for ticker in respiratory_context_tickers():
+            entry = by_ticker.setdefault(ticker, {"metrics": []})
+            entry.setdefault("metrics", []).append(dict(respiratory_metric))
+            respiratory_count += 1
     ensure_universe_coverage(
         by_ticker,
         universe,
@@ -1351,6 +1514,7 @@ def build_trends() -> dict:
             "regime_downshift_count": regime_count,
             "peer_relative_count": peer_relative_count,
             "earnings_revision_count": earnings_revision_count,
+            "respiratory_context_count": respiratory_count,
             "stale_suppressed_count": stale_suppressed,
             "leadership_risk_watch": leadership_elevated,
             "avg_strength": round(statistics.mean(strength_values), 3) if strength_values else 0.0,
