@@ -257,6 +257,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test dependencies
+        # The job had no install step, so it failed with "No module named pytest"
+        # the first time it ever ran. The SSI import chain is otherwise pure
+        # stdlib plus repo-local modules; pypdf is only reached through
+        # pdf_ocr's function-local import, and pytesseract/pdf2image are guarded
+        # by try/except ImportError, so neither is required here.
+        run: python -m pip install --disable-pip-version-check pytest pypdf
       - name: SSI pipeline unit tests
         run: |
           python -m pytest -q \
