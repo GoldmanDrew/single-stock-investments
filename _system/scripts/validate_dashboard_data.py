@@ -17,7 +17,9 @@ DATA_PATH = ROOT / "dashboard" / "data" / "dashboard_data.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 
 
-def extreme_return_corroborated(ticker: str, root: Path | None = None) -> bool:
+def extreme_return_corroborated(
+    ticker: str, root: Path | None = None, decision: dict | None = None
+) -> bool:
     """Has this outlier passed the contract's own outlier validation?
 
     The IRR check is named for *uncorroborated* returns, but it used to flag
@@ -32,6 +34,17 @@ def extreme_return_corroborated(ticker: str, root: Path | None = None) -> bool:
     independent method, and evidence refs. Read that rather than re-deriving it,
     so there is exactly one definition of a corroborated outlier.
     """
+    # This validator normally runs in the sparse "pages" checkout, which has no
+    # ticker trees, so the payload field is authoritative when present and the
+    # contract file is only a fallback for full-checkout runs.
+    # NB: model_checks.extreme_return_validated means "not extreme OR validated",
+    # so it is only meaningful here because universal_valuation_contract's
+    # EXTREME_RETURN_PCT and this module's EXTREME_PUBLISHED_IRR_PCT are both
+    # 25.0. If they ever diverge, a return could be extreme by this module's
+    # threshold, non-extreme by the contract's, and get cleared without any
+    # corroboration. test_thresholds_agree pins them together.
+    if decision is not None and "extreme_return_validated" in decision:
+        return bool(decision.get("extreme_return_validated"))
     base = root or ROOT
     if not ticker:
         return False
@@ -230,7 +243,7 @@ def main() -> int:
             blocked_with_published_irr.append(ticker)
         elif abs(float(base_return)) >= EXTREME_PUBLISHED_IRR_PCT:
             entry = f"{ticker}={float(base_return):.2f}%"
-            if extreme_return_corroborated(ticker):
+            if extreme_return_corroborated(ticker, decision=decision):
                 corroborated_outliers.append(entry)
             else:
                 extreme_decision_grade.append(entry)

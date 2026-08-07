@@ -1194,6 +1194,25 @@ def _sane_upside_pct(upside: dict | None) -> dict | None:
     return upside
 
 
+def _extreme_return_validated(ticker_dir: Path) -> bool:
+    """Read model_checks.extreme_return_validated from the ticker's contract.
+
+    universal_valuation_contract sets this only when
+    valuation_methodology.outlier_validation passed with at least one
+    independent method and evidence refs, so it is the single definition of a
+    corroborated outlier. Surfaced into the dashboard row so the validator can
+    apply the IRR gate without needing the ticker tree.
+    """
+    path = ticker_dir / "research" / "valuation_contract.json"
+    if not path.exists():
+        return False
+    try:
+        contract = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, ValueError):
+        return False
+    return bool((contract.get("model_checks") or {}).get("extreme_return_validated"))
+
+
 def valuation_decision_summary(
     ticker: str,
     ticker_dir: Path,
@@ -1261,6 +1280,12 @@ def valuation_decision_summary(
         # Keep diagnostic returns inside the workbench, but never publish an
         # unvalidated IRR into the front-page ranking or D1 valuation table.
         "annualized_return_at_price_pct": diagnostic_returns if status == "decision_grade" else None,
+        # Whether an extreme IRR has been corroborated by outlier_validation.
+        # Carried in the payload because validate_dashboard_data.py runs in the
+        # sparse "pages" checkout, which has no ticker trees to read the
+        # contract from -- reading it there silently treats every outlier as
+        # uncorroborated and fails the deploy.
+        "extreme_return_validated": _extreme_return_validated(ticker_dir),
         "horizon_years": (
             decision.get("horizon_years")
             or ((wb or {}).get("valuation") or {}).get("horizon_years")

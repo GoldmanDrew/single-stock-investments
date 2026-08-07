@@ -79,5 +79,48 @@ class LiveOutlierTests(unittest.TestCase):
             )
 
 
+
+
+class PayloadFieldTests(unittest.TestCase):
+    """The deploy job runs a sparse checkout with no ticker trees, so the row
+    field must be authoritative and must not fall back to a missing file."""
+
+    def test_row_field_wins_over_absent_tree(self):
+        with tempfile.TemporaryDirectory() as td:
+            self.assertTrue(extreme_return_corroborated(
+                "ABX", Path(td), decision={"extreme_return_validated": True}))
+
+    def test_row_field_false_is_respected(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _write(root, "ABX", json.dumps(
+                {"model_checks": {"extreme_return_validated": True}}))
+            self.assertFalse(extreme_return_corroborated(
+                "ABX", root, decision={"extreme_return_validated": False}))
+
+    def test_absent_row_field_falls_back_to_contract(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _write(root, "ABX", json.dumps(
+                {"model_checks": {"extreme_return_validated": True}}))
+            self.assertTrue(extreme_return_corroborated("ABX", root, decision={}))
+
+
+class ThresholdCouplingTests(unittest.TestCase):
+    """extreme_return_validated means "not extreme OR validated", so the two
+    modules' thresholds must agree or an extreme return could be cleared
+    without ever having been corroborated."""
+
+    def test_thresholds_agree(self):
+        from validate_dashboard_data import EXTREME_PUBLISHED_IRR_PCT
+        from universal_valuation_contract import EXTREME_RETURN_PCT
+        self.assertEqual(
+            float(EXTREME_RETURN_PCT), float(EXTREME_PUBLISHED_IRR_PCT),
+            "contract and dashboard extreme-return thresholds diverged; the "
+            "corroboration check in extreme_return_corroborated is only sound "
+            "while they match",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
