@@ -38,7 +38,12 @@ Insufficient XBRL revenue history for a structural read; see §5 table.
 
 ## 4. Market expectations reconciliation
 
-**Gap (blocking §5 gate):** no consensus-estimate feed is connected, so beat/miss and guide-vs-consensus tables cannot be built. Required: an estimates source keyed to the issuer's operating-revenue definition.
+| Period | Reported | EPS actual | EPS est. | Surprise | Revenue actual | Revenue est. | Surprise |
+|---|---|---|---|---|---|---|---|
+| 2027 Q1 | 2026-05-20 | 1.87 | 1.76 | +6.3% | 81,615,000,000 | 79,042,567,736 | +3.3% |
+| 2026 Q4 | 2026-02-25 | 1.62 | 1.50 | +8.0% | 68,127,000,000 | 65,898,615,057 | +3.4% |
+
+Source: `evidence/earnings_calendar.json` (`polygon_benzinga`), 2 reconcilable period(s). Estimates are the consensus as carried by the feed at the time of fetch, not a point-in-time snapshot taken before the print — treat the surprise column as directional.
 
 ## 5. Historical KPIs (XBRL, per-accession locators) — with honesty flags
 
@@ -211,7 +216,7 @@ Every tripwire is a re-derivation procedure against hashed sources — a reader 
 |---|---|---|
 | locator_resolution | PASS | 285 claims Skeptic-verified, 0 failed; report renders verified claims only |
 | comparability_gate | PASS | 2 cross-filing gated comparisons; 0 intra-filing fallbacks (flagged per-row) |
-| consensus_reconciliation | BLOCKED | no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style |
+| consensus_reconciliation | PASS | 2 period(s) with both an actual and an estimate; beat/miss rendered in §4 |
 | valuation_contract_only | PASS | authority=valuation_contract; value arithmetic rendered: False; figures sourced via decision_authority only, legacy IRR/stance fields never  |
 | valuation_contract_decision_grade | BLOCKED | contract status=evidence_blocked — upstream valuation work outstanding; renderer correctly quoted no value figures |
 | falsification_quantified | PASS | 105 severity≥3 tripwires, each a re-derivation procedure on hashed sources |
@@ -221,5 +226,5 @@ Every tripwire is a re-derivation procedure against hashed sources — a reader 
 | gold_conversion | PASS | 0 gold cases appended for 0 failures |
 | no_dynamic_memory | PASS | renderer writes only research/ artifacts; never MEMORY.md |
 
-**Gate result: DRAFT (blocked)** — 9 pass / 0 fail / 2 blocked (blocked = missing external feed or outstanding upstream valuation work, not a defect in this run)
+**Gate result: DRAFT (blocked)** — 10 pass / 0 fail / 1 blocked (blocked = missing external feed or outstanding upstream valuation work, not a defect in this run)
 

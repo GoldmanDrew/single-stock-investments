@@ -38,7 +38,7 @@ Insufficient XBRL revenue history for a structural read; see §5 table.
 
 ## 4. Market expectations reconciliation
 
-**Gap (blocking §5 gate):** no consensus-estimate feed is connected, so beat/miss and guide-vs-consensus tables cannot be built. Required: an estimates source keyed to the issuer's operating-revenue definition.
+**Gap (blocks the §5 consensus check):** no reconcilable period for this issuer — the earnings calendar has no event carrying both an actual and an estimate. Estimates arrive with the Polygon/Benzinga earnings fetch; run `polygon_earnings.py` for this ticker, or check it is in the holdings config the fetch iterates.
 
 ## 5. Historical KPIs (XBRL, per-accession locators) — with honesty flags
 
@@ -119,7 +119,7 @@ No **quantitative** commitments resolvable from filings. Guidance-style promises
 |---|---|---|
 | locator_resolution | FAIL | 0 claims Skeptic-verified, 0 failed; report renders verified claims only |
 | comparability_gate | PASS | 1 cross-filing gated comparisons; 0 intra-filing fallbacks (flagged per-row) |
-| consensus_reconciliation | BLOCKED | no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style |
+| consensus_reconciliation | BLOCKED | no reconcilable period for this issuer — earnings calendar carries no event with both an actual and an estimate |
 | valuation_contract_only | PASS | authority=valuation_contract; value arithmetic rendered: False; figures sourced via decision_authority only, legacy IRR/stance fields never  |
 | valuation_contract_decision_grade | BLOCKED | contract status=evidence_blocked — upstream valuation work outstanding; renderer correctly quoted no value figures |
 | falsification_quantified | FAIL | 0 severity≥3 tripwires, each a re-derivation procedure on hashed sources |

@@ -38,7 +38,7 @@ Revenue (us-gaap:Revenues): $1.65B (FY 2017-12-31) → $2.13B (FY 2025-12-31), +
 
 ## 4. Market expectations reconciliation
 
-**Gap (blocking §5 gate):** no consensus-estimate feed is connected, so beat/miss and guide-vs-consensus tables cannot be built. Required: an estimates source keyed to the issuer's operating-revenue definition.
+**Gap (blocks the §5 consensus check):** no reconcilable period for this issuer — the earnings calendar has no event carrying both an actual and an estimate. Estimates arrive with the Polygon/Benzinga earnings fetch; run `polygon_earnings.py` for this ticker, or check it is in the holdings config the fetch iterates.
 
 ## 5. Historical KPIs (XBRL, per-accession locators) — with honesty flags
 
@@ -196,7 +196,7 @@ Observed repurchase spend (latest_fy): $1.14B (`us-gaap:PaymentsForRepurchaseOfC
 |---|---|---|
 | locator_resolution | PASS | 186 claims Skeptic-verified, 0 failed; report renders verified claims only |
 | comparability_gate | PASS | 2 cross-filing gated comparisons; 0 intra-filing fallbacks (flagged per-row) |
-| consensus_reconciliation | BLOCKED | no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style |
+| consensus_reconciliation | BLOCKED | no reconcilable period for this issuer — earnings calendar carries no event with both an actual and an estimate |
 | valuation_contract_only | PASS | authority=valuation_contract; value arithmetic rendered: False; figures sourced via decision_authority only, legacy IRR/stance fields never  |
 | valuation_contract_decision_grade | BLOCKED | contract status=evidence_blocked — upstream valuation work outstanding; renderer correctly quoted no value figures |
 | falsification_quantified | PASS | 51 severity≥3 tripwires, each a re-derivation procedure on hashed sources |
