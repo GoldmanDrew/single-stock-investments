@@ -1,9 +1,27 @@
-name: Research quality (PR)
+name: Research quality
 
 on:
+  # The SSI pipeline job is self-contained and must also validate direct pushes
+  # to main, which bypass pull_request entirely. The other jobs in this file
+  # need a PR base ref and stay gated to pull_request below.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/research-quality.yml"
+      - "_system/scripts/build_ssi_evidence_pack.py"
+      - "_system/scripts/build_ssi_claims.py"
+      - "_system/scripts/verify_ssi_claims.py"
+      - "_system/scripts/build_ssi_report.py"
+      - "_system/scripts/run_ssi_pipeline.py"
+      - "_system/scripts/calibrate_ssi.py"
+      - "_system/scripts/ssi_coverage_report.py"
+      - "_system/scripts/build_filing_evidence.py"
+      - "_system/scripts/tests/test_ssi_pipeline_v2.py"
+      - "_eval/**"
   pull_request:
     branches: [main]
     paths:
+      - ".github/workflows/research-quality.yml"
       - "**/research/**"
       - "_system/scripts/ci_checkout_workspace.sh"
       - "_system/scripts/ci_resolve_checkout_ref.sh"
@@ -38,7 +56,9 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: research-quality-${{ github.event.pull_request.number }}
+  # On push there is no PR number; keying on the sha gives each push its own
+  # group so frequent automated commits to main don't cancel each other's run.
+  group: research-quality-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -55,13 +75,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              per_page: 100,
-            });
-            const names = files.map(file => file.filename);
+            const isPush = context.eventName === 'push';
+            let names = [];
+            if (!isPush) {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                per_page: 100,
+              });
+              names = files.map(file => file.filename);
+            }
+            // On push we deliberately do not diff before..after: the compare API
+            // returns at most 300 files, and a batch push here routinely changes
+            // thousands, so an SSI script change could be missed. `on.push.paths`
+            // already lists only SSI paths, so the workflow having triggered at
+            // all is itself the signal.
             const has = predicate => names.some(predicate);
             const promptSync = has(name =>
               name === '_system/prompts/cloud_marvin_runbook.md' ||
@@ -89,7 +118,7 @@ jobs:
                 'dashboard/data/insights.json',
               ].includes(name)
             );
-            const ssiPipeline = has(name =>
+            const ssiPipeline = isPush || has(name =>
               /^_eval\//.test(name) ||
               /^_system\/scripts\/(build_ssi_|verify_ssi_|run_ssi_|calibrate_ssi|ssi_coverage)/.test(name) ||
               name === '_system/scripts/build_filing_evidence.py' ||
@@ -106,12 +135,15 @@ jobs:
                 ['cloud-prompt-sync', String(promptSync)],
                 ['research-lint', String(researchLint)],
                 ['dashboard-integrity', String(dashboardIntegrity)],
+                ['ssi-pipeline', String(ssiPipeline)],
               ])
               .write();
 
   cloud-prompt-sync:
     needs: changes
-    if: needs.changes.outputs.prompt_sync == 'true'
+    # PR-only: needs github.base_ref and the PR head ref, neither of
+    # which exists on a push event.
+    if: github.event_name == 'pull_request' && needs.changes.outputs.prompt_sync == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -141,7 +173,9 @@ jobs:
 
   research-lint:
     needs: changes
-    if: needs.changes.outputs.research_lint == 'true'
+    # PR-only: needs github.base_ref and the PR head ref, neither of
+    # which exists on a push event.
+    if: github.event_name == 'pull_request' && needs.changes.outputs.research_lint == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -235,7 +269,9 @@ jobs:
 
   dashboard-integrity:
     needs: changes
-    if: needs.changes.outputs.dashboard_integrity == 'true'
+    # PR-only: needs github.base_ref and the PR head ref, neither of
+    # which exists on a push event.
+    if: github.event_name == 'pull_request' && needs.changes.outputs.dashboard_integrity == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
