@@ -15,6 +15,34 @@ from vault_paths import letters_root  # noqa: E402
 from activist_common import classify_publisher_page  # noqa: E402
 DATA_PATH = ROOT / "dashboard" / "data" / "dashboard_data.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
+
+
+def extreme_return_corroborated(ticker: str, root: Path | None = None) -> bool:
+    """Has this outlier passed the contract's own outlier validation?
+
+    The IRR check is named for *uncorroborated* returns, but it used to flag
+    every extreme return whether or not it had been corroborated, so the escape
+    hatch the contract layer defines was unreachable from here -- and because
+    the resulting error fails the build step, it skipped the Cloudflare deploy
+    entirely.
+
+    universal_valuation_contract already computes the verdict:
+    model_checks.extreme_return_validated is true only when
+    valuation_methodology.outlier_validation has status "passed", at least one
+    independent method, and evidence refs. Read that rather than re-deriving it,
+    so there is exactly one definition of a corroborated outlier.
+    """
+    base = root or ROOT
+    if not ticker:
+        return False
+    path = base / ticker / "research" / "valuation_contract.json"
+    if not path.exists():
+        return False
+    try:
+        contract = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return False
+    return bool((contract.get("model_checks") or {}).get("extreme_return_validated"))
 INSIGHTS_PATH = ROOT / "dashboard" / "data" / "insights.json"
 ACTIVIST_FEED_PATH = ROOT / "dashboard" / "data" / "activist_feed.json"
 INDEX_MEMBERSHIP_PATH = ROOT / "dashboard" / "data" / "index_membership.json"
@@ -188,19 +216,24 @@ def main() -> int:
     rows = payload.get("tickers") or []
     dash_tickers = [r.get("ticker") for r in rows]
     extreme_decision_grade = []
+    corroborated_outliers = []
     blocked_with_published_irr = []
+
     for row in rows:
         decision = row.get("valuation_decision") or {}
         returns = decision.get("annualized_return_at_price_pct") or {}
         base_return = returns.get("base")
         if base_return is None:
             continue
+        ticker = str(row.get("ticker") or "")
         if decision.get("status") != "decision_grade":
-            blocked_with_published_irr.append(str(row.get("ticker") or ""))
+            blocked_with_published_irr.append(ticker)
         elif abs(float(base_return)) >= EXTREME_PUBLISHED_IRR_PCT:
-            extreme_decision_grade.append(
-                f"{row.get('ticker')}={float(base_return):.2f}%"
-            )
+            entry = f"{ticker}={float(base_return):.2f}%"
+            if extreme_return_corroborated(ticker):
+                corroborated_outliers.append(entry)
+            else:
+                extreme_decision_grade.append(entry)
     if blocked_with_published_irr:
         errors.append(
             "Blocked valuations publish front-page IRRs: "
@@ -210,6 +243,13 @@ def main() -> int:
         errors.append(
             "Decision-grade valuations exceed the uncorroborated IRR limit: "
             + ", ".join(extreme_decision_grade[:20])
+        )
+    if corroborated_outliers:
+        # Still surfaced: these are outliers a human should keep an eye on, they
+        # just are not defects, so they must not fail the build and block deploys.
+        warnings.append(
+            "Extreme IRRs cleared by outlier_validation (human review advised): "
+            + ", ".join(corroborated_outliers[:20])
         )
     summary = payload.get("summary") or {}
     ticker_count = int(summary.get("ticker_count") or len(rows) or 0)
