@@ -1,7 +1,24 @@
 # Corrections Log
 
-Agent errors and human corrections. Reference before cross-check reports.
+Agent errors and human corrections. **Read before any pipeline or valuation work**
+(step 3b of `_system/prompts/_prefix.md`) and before cross-check reports.
+
+These are mistakes already made once. Repeating one is the most expensive kind of
+error, because it means the loop is not compounding. When a correction here
+contradicts a prompt, a README or your own reasoning, the correction wins — or
+supersede it with a new row and say why.
+
+Append a row whenever a run hits a pipeline or tooling error a future run could
+repeat: a silent overwrite, a config that shadows another, a file regenerated from
+somewhere unexpected. A fix recorded only in a chat transcript is lost.
 
 | Date | Ticker | Error | Correction | Source |
 |------|--------|-------|------------|--------|
-| — | — | — | — | — |
+| 2026-08-07 | — | Edited `{TICKER}/research/security_identity.json` directly to fix an archetype or valuation profile. It reverts on the next readiness run. | `automate_valuation_readiness.py` **regenerates** that file from `_system/reference/security_identity_overrides.json` (`resolve_identity`). Write the durable entry there, then re-run and confirm the identity survives. `_system/reference/valuation_followups.json` `tickers.<T>.method_profile` is a *second*, separate file that `power_zone_router` reads for the explicit profile — set both. | `_system/scripts/automate_valuation_readiness.py:65,1114` |
+| 2026-08-07 | — | Fixed a missing `cik` in `_system/portfolio/registry.json` and the SEC download still reported `SEC=0`. | `_system/scripts/us_ticker_config.json` is read **first**; the registry is only consulted when the ticker is absent from it, so an entry with `"cik": null` beats a correct registry value. Update both, and verify with a non-zero `SEC=` count rather than by re-reading the registry. | `_system/scripts/download_us_investor_docs.py` |
+| 2026-08-07 | — | Ran `automate_valuation_readiness.py` over a ticker with accumulated analysis and silently lost it. | It can collapse a rich `research/valuation.json` to a compiler skeleton (observed 34 keys → 9, dropping `scenarios`, `synthesis`, `stance_proposal`, `human_review`) while still reporting `decision_grade`. Snapshot `valuation.json` first and diff the top-level key set after. Losses limited to `context_overlay` / `human_review` / `insider_signal` / `notes` are fine — the daily refresh regenerates those. | observed on STHO 2026-08-06; TBBK 2026-08-07 |
+| 2026-08-07 | WHK | Treated Cash Available for Distribution as a pre-interest cash flow and subtracted net debt from a CAFD-derived value. | CAFD is defined and reconciled **after** cash interest expense, cash taxes and cash preferred dividends, so it is already an equity-level cash flow. Subtracting net debt or preferred again double-counts them — the `scarce_asset_optionality` profile's second listed failure mode, "operating cash flow and NAV counted twice". Always read the issuer's own non-GAAP definition before using the measure. | WHK 424B4, "Non-GAAP Financial Measures" |
+| 2026-08-07 | WHK | Valued an Up-C issuer on consolidated cash flow without applying the public company's economic interest. | In an Up-C the listed company owns a *fraction* of the operating LLC (WHK: 86.0% of WhiteHawk OpCo; Continuing Equity Owners hold 14.0% exchangeable 1:1 into Class A). Apply the economic interest **before** dividing per share, or the minority's share is counted as shareholder value — the profile's first failure mode, "gross asset value mistaken for shareholder value". Class B carries votes and no economic rights and is not a claim on value. | WHK 424B4, "Our Organizational Structure" |
+| 2026-08-07 | — | Added a validator check that read `{ticker}/research/*.json` and it silently failed for every ticker in CI. | `validate_dashboard_data.py` runs in the sparse `pages` checkout, which has **no ticker trees**. Anything the validator needs must be carried in the payload it validates (see `valuation_decision.extreme_return_validated`, stamped by `build_dashboard_data`). | `_system/scripts/ci_dashboard_deploy_mode.sh` |
+| 2026-08-07 | — | Assumed committing research changes updates the live Cloudflare dashboard. | Every deploy path resolves to `deploy-only`: Pages publishes the committed `dashboard/` verbatim and never rebuilds. The SPA boots from `core.json` plus per-ticker shards, not `dashboard_data.json`. A validator ERROR fails the build step and the deploy step is **skipped silently**. Rebuild and commit the artifacts, and check the deploy actually ran. | `_system/scripts/ci_dashboard_deploy_mode.sh`, run 31198948792 |
+| 2026-08-07 | — | Read a green calibration bar as evidence the capability worked. | `locator_accuracy` returned exactly `1.000 MEETS BAR` on **zero** adjudicated cases, and `severity5_recall` returned 100% on a single event. Both now report INSUFFICIENT DATA. A bar with no adjudications behind it is not a measurement — check the detail line, not the verdict. | `_system/scripts/calibrate_ssi.py` |

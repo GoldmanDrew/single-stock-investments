@@ -69,7 +69,12 @@ def test_source_drift_fails_claims_and_writes_gold(tmp_path):
     assert len(lines) == result["failed_count"]
     case = json.loads(lines[0])
     assert case["issuer"] == "TEST"
-    assert case["adjudication"] == "pending"
+    # Drift means the claim was never re-checked, so it is neither a generator
+    # nor a skeptic error. It is logged for the record but auto-labelled, not
+    # queued for a human, and excluded from locator accuracy by calibrate_ssi.
+    assert case["failure_reason"] == "source_drift"
+    assert case["adjudication"] == "infrastructure"
+    assert case["adjudicable"] is False
 
 
 def test_fabricated_locator_is_deleted_not_softened(tmp_path):

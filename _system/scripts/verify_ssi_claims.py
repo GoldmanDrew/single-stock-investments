@@ -336,22 +336,73 @@ def time_zero_snapshot(
 # Stage 5 — error-driven gold set
 # ---------------------------------------------------------------------------
 
+# Failures that say nothing about claim quality. The sources moved underneath
+# the pack, so the claim was never actually re-checked: it is neither a
+# generator error (Phase 2 emitting a bad claim) nor a skeptic error (Phase 3
+# killing a good one). They are unadjudicable in those terms, and left as
+# "pending" they swamp the queue -- one NVDA run contributed 258 of 261 cases.
+# Auto-labelled here so the pending queue stays a list of real, answerable
+# questions, and excluded from locator accuracy by calibrate_ssi.
+INFRASTRUCTURE_REASONS = frozenset({
+    "source_drift",
+    "pack_hash_mismatch",
+    "pack_integrity_failed",
+})
+
+
+def _existing_gold_keys(gold_path: Path) -> set[tuple]:
+    """(issuer, claim_id, as_of) already logged, so re-runs do not duplicate.
+
+    Phase 3 is re-run routinely -- after a claims rebuild, a compaction pass, a
+    scoring change -- and each run re-appends the same failures. NVDA's 129
+    failures had been written four times, so the file read as 516 cases when it
+    held 129. An append-only log is right; an append-*duplicates* log just
+    inflates the corpus and makes the queue look busier than it is.
+    """
+    keys: set[tuple] = set()
+    if not gold_path.exists():
+        return keys
+    for line in gold_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if row.get("claim_id"):
+            keys.add((row.get("issuer"), row.get("claim_id"), row.get("as_of")))
+    return keys
+
+
 def append_gold_cases(ticker: str, as_of: str, failures: list[dict], gold_path: Path) -> int:
     if not failures:
         return 0
     gold_path.parent.mkdir(parents=True, exist_ok=True)
+    seen = _existing_gold_keys(gold_path)
+    failures = [
+        f for f in failures
+        if not f.get("claim_id") or (ticker, f.get("claim_id"), as_of) not in seen
+    ]
+    if not failures:
+        return 0
     with gold_path.open("a", encoding="utf-8") as fh:
         for failure in failures:
+            reason = failure.get("failure_reason")
+            infra = reason in INFRASTRUCTURE_REASONS
             fh.write(json.dumps({
                 "issuer": ticker,  # split train/dev/test by issuer, not filing
                 "as_of": as_of,
                 "claim_id": failure.get("claim_id"),
                 "source": failure.get("source"),
                 "taxonomy": failure.get("taxonomy"),
-                "failure_reason": failure.get("failure_reason"),
+                "failure_reason": reason,
                 "statement": failure.get("statement"),
                 "evidence_ref": failure.get("evidence_ref"),
-                "adjudication": "pending",
+                # "infrastructure" is a terminal label, not a verdict awaiting a
+                # human: re-run the pipeline on a stable pack to get a real answer.
+                "adjudication": "infrastructure" if infra else "pending",
+                "adjudicable": not infra,
             }, ensure_ascii=True) + "\n")
     return len(failures)
 
