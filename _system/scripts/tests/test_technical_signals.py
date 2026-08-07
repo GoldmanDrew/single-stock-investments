@@ -44,7 +44,11 @@ class TechnicalSignalsTest(unittest.TestCase):
             source="synthetic:test",
         )
         self.assertEqual(snapshot["data_quality"], "ready")
-        self.assertEqual(snapshot["model_version"], "technical-z-v1")
+        # Assert against the module's own constant rather than a literal: the
+        # module was renamed to build_technical_signals.py and bumped to
+        # technical-fear-v2 while this literal stayed at technical-z-v1, so the
+        # test failed on main for a rename it should not have been tracking.
+        self.assertEqual(snapshot["model_version"], MODULE.MODEL_VERSION)
         self.assertEqual(len(snapshot["history"]), 260)
         for value in snapshot["scores"].values():
             if value is not None:

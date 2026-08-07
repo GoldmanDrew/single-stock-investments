@@ -716,3 +716,78 @@ def test_coverage_blockers_ordered_and_named(tmp_path, monkeypatch):
     row2 = cov.assess("SOLO", "2026-08-06", run_gate=False)
     assert row2["has_pair"] is True
     assert "single_period_only" not in row2["blockers"]
+
+
+# ---------------------------------------------------------------------------
+# Consensus reconciliation (§4 + the §5 check)
+# ---------------------------------------------------------------------------
+
+def _cal(*events) -> dict:
+    return {"ticker": "T", "events": list(events)}
+
+
+def test_consensus_needs_both_sides_of_a_period():
+    """A forward estimate with no actual is not a beat/miss."""
+    forward = {"date": "2026-11-01", "estimated_eps": 1.0, "actual_eps": None}
+    reported = {"date": "2026-05-07", "estimated_eps": 1.0, "actual_eps": 1.2}
+    got = report_mod.consensus_events(_cal(forward, reported))
+    assert [e["date"] for e in got] == ["2026-05-07"]
+
+
+def test_consensus_accepts_a_revenue_only_pair():
+    ev = {"date": "2026-05-07", "actual_revenue": 100, "estimated_revenue": 90}
+    assert len(report_mod.consensus_events(_cal(ev))) == 1
+
+
+def test_consensus_events_are_newest_first():
+    old = {"date": "2025-05-07", "actual_eps": 1.0, "estimated_eps": 1.0}
+    new = {"date": "2026-05-07", "actual_eps": 1.0, "estimated_eps": 1.0}
+    assert [e["date"] for e in report_mod.consensus_events(_cal(old, new))][0] == "2026-05-07"
+
+
+def test_no_calendar_is_handled():
+    assert report_mod.consensus_events(None) == []
+    assert report_mod.consensus_events({}) == []
+
+
+def test_surprise_is_signed_and_zero_safe():
+    assert report_mod._surprise_pct(1.2, 1.0) == pytest.approx(20.0)
+    assert report_mod._surprise_pct(0.8, 1.0) == pytest.approx(-20.0)
+    # a negative estimate must not flip the sign of the surprise
+    assert report_mod._surprise_pct(-0.5, -1.0) == pytest.approx(50.0)
+    assert report_mod._surprise_pct(1.0, 0) is None
+    assert report_mod._surprise_pct(1.0, None) is None
+
+
+def test_consensus_check_passes_when_reconcilable(tmp_path):
+    ev = {"date": "2026-05-07", "actual_eps": 1.2, "estimated_eps": 1.0,
+          "fiscal_year": 2026, "fiscal_period": "Q1", "source": "polygon_benzinga"}
+    gate = _gate({"authority_level": "contract", "contract_status": "decision_grade"},
+                 body="Contract value/share 10.00", tmp_path=tmp_path)
+    # the helper builds a gate without a calendar -> BLOCKED
+    assert _verdict(gate, "consensus_reconciliation") == "BLOCKED"
+
+    as_of = "2026-08-06"
+    pack = {"comparisons": [{"gate": {"matched": True}}], "pack_hash": "h" * 64}
+    verified = {"verified_count": 6, "failed_count": 0, "gold_cases_appended": 0,
+                "verified_claims": [{"severity": 4, "falsifier": "x"} for _ in range(6)]}
+    with_cal = report_mod.shipping_gate(
+        pack, verified, {"authority_level": "contract", "contract_status": "decision_grade"},
+        tmp_path, as_of, report_body="Contract value/share 10.00", calendar=_cal(ev))
+    assert _verdict(with_cal, "consensus_reconciliation") == "PASS"
+    # with every check satisfied a report can finally reach SHIPPABLE
+    assert with_cal["result"] == "SHIPPABLE"
+
+
+def test_section_renders_the_table_and_names_its_source():
+    ev = {"date": "2026-05-07", "actual_eps": 1.2, "estimated_eps": 1.0,
+          "actual_revenue": 100, "estimated_revenue": 90,
+          "fiscal_year": 2026, "fiscal_period": "Q1", "source": "polygon_benzinga"}
+    text = chr(10).join(report_mod.expectations_section({}, _cal(ev)))
+    assert "polygon_benzinga" in text
+    assert "+20.0%" in text and "+11.1%" in text
+
+
+def test_section_states_the_gap_when_nothing_reconciles():
+    text = chr(10).join(report_mod.expectations_section({}, None))
+    assert "Gap" in text and "polygon_earnings.py" in text

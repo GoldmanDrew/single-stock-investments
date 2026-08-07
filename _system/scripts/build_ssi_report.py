@@ -305,15 +305,73 @@ def business_model_section(pack: dict, concepts: dict) -> list[str]:
     return lines
 
 
-def expectations_section(pack: dict) -> list[str]:
+def consensus_events(calendar: dict | None) -> list[dict]:
+    """Reported periods carrying both an actual and an estimate.
+
+    polygon_earnings.py already normalises `estimated_eps` / `estimated_revenue`
+    from the Benzinga feed, so consensus is available wherever the calendar was
+    fetched. A beat/miss needs both sides, so periods with only a forward
+    estimate and no actual are not reconcilable and are excluded here.
+    """
+    out = []
+    for event in ((calendar or {}).get("events") or []):
+        has_pair = (
+            (event.get("actual_eps") is not None and event.get("estimated_eps") is not None)
+            or (event.get("actual_revenue") is not None
+                and event.get("estimated_revenue") is not None)
+        )
+        if has_pair:
+            out.append(event)
+    return sorted(out, key=lambda e: str(e.get("date") or ""), reverse=True)
+
+
+def _surprise_pct(actual, estimate) -> float | None:
+    try:
+        actual, estimate = float(actual), float(estimate)
+    except (TypeError, ValueError):
+        return None
+    if estimate == 0:
+        return None
+    return (actual - estimate) / abs(estimate) * 100.0
+
+
+def expectations_section(pack: dict, calendar: dict | None = None) -> list[str]:
     lines = ["## 4. Market expectations reconciliation", ""]
     bank = any("bank_style_revenue" in (r.get("flags") or []) for r in pack.get("revenue_definition", []))
-    lines += [
-        "**Gap (blocking §5 gate):** no consensus-estimate feed is connected, so beat/miss and "
-        "guide-vs-consensus tables cannot be built. Required: an estimates source keyed to the "
-        "issuer's operating-revenue definition.",
-        "",
-    ]
+    events = consensus_events(calendar)
+    if events:
+        lines += [
+            "| Period | Reported | EPS actual | EPS est. | Surprise | Revenue actual | Revenue est. | Surprise |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
+        for event in events[:8]:
+            eps_s = _surprise_pct(event.get("actual_eps"), event.get("estimated_eps"))
+            rev_s = _surprise_pct(event.get("actual_revenue"), event.get("estimated_revenue"))
+            period = f"{event.get('fiscal_year') or '—'} {event.get('fiscal_period') or ''}".strip()
+            lines.append(
+                f"| {period} | {event.get('date') or '—'} | "
+                f"{_fmt_num(event.get('actual_eps'))} | {_fmt_num(event.get('estimated_eps'))} | "
+                f"{_fmt_pct(eps_s)} | {_fmt_num(event.get('actual_revenue'), 0)} | "
+                f"{_fmt_num(event.get('estimated_revenue'), 0)} | {_fmt_pct(rev_s)} |"
+            )
+        source = events[0].get("source") or "earnings_calendar"
+        lines += [
+            "",
+            f"Source: `evidence/earnings_calendar.json` (`{source}`), "
+            f"{len(events)} reconcilable period(s). Estimates are the consensus as "
+            "carried by the feed at the time of fetch, not a point-in-time snapshot "
+            "taken before the print — treat the surprise column as directional.",
+            "",
+        ]
+    else:
+        lines += [
+            "**Gap (blocks the §5 consensus check):** no reconcilable period for this issuer — "
+            "the earnings calendar has no event carrying both an actual and an estimate. "
+            "Estimates arrive with the Polygon/Benzinga earnings fetch; run "
+            "`polygon_earnings.py` for this ticker, or check it is in the holdings "
+            "config the fetch iterates.",
+            "",
+        ]
     if bank:
         lines += [
             "**Definitional artifact callout (mechanical):** the issuer's reported revenue tag is "
@@ -652,7 +710,8 @@ def audit_trail(pack: dict, verified_doc: dict, claims_path: Path | None,
 # ---------------------------------------------------------------------------
 
 def shipping_gate(pack: dict, verified_doc: dict, authority: dict,
-                  evidence_dir: Path, as_of: str, report_body: str = "") -> dict:
+                  evidence_dir: Path, as_of: str, report_body: str = "",
+                  calendar: dict | None = None) -> dict:
     checks: list[dict] = []
 
     def add(name: str, ok: bool | None, detail: str) -> None:
@@ -686,8 +745,18 @@ def shipping_gate(pack: dict, verified_doc: dict, authority: dict,
         f"{cross} cross-filing gated comparisons; {intra} intra-filing fallbacks (flagged per-row)"
         + ("; issuer has no prior-period filing of a comparable form" if no_comparable_filing else ""))
 
-    add("consensus_reconciliation", None,
-        "no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style")
+    # Was hardcoded BLOCKED, which capped every report in the repo at
+    # DRAFT (blocked) -- SHIPPABLE requires zero blocked as well as zero failed,
+    # so no ticker could ever ship. The estimates were already on disk:
+    # polygon_earnings.py normalises estimated_eps/estimated_revenue from the
+    # Benzinga feed. This now reflects whether this issuer actually has a
+    # reconcilable period, rather than asserting the feed does not exist.
+    reconcilable = consensus_events(calendar)
+    add("consensus_reconciliation", True if reconcilable else None,
+        f"{len(reconcilable)} period(s) with both an actual and an estimate; beat/miss "
+        "rendered in §4" if reconcilable else
+        "no reconcilable period for this issuer — earnings calendar carries no event with "
+        "both an actual and an estimate")
 
     # Two distinct questions used to share one check, which made every ticker
     # with an upstream non-decision-grade contract read as a defect in this run.
@@ -789,7 +858,7 @@ def build_report(ticker_dir: Path, as_of: str) -> tuple[str, dict] | None:
     lines += header_stat_block(ticker, market, concepts, calendar, authority)
     lines += executive_summary(claims, spawner, authority, thesis_card, calendar, pack)
     lines += business_model_section(pack, concepts)
-    lines += expectations_section(pack)
+    lines += expectations_section(pack, calendar)
     lines += kpi_table(concepts, bank_style=bank_style)
     lines += driver_table(claims)
     lines += valuation_section(authority, contract)
@@ -865,7 +934,7 @@ def build_report(ticker_dir: Path, as_of: str) -> tuple[str, dict] | None:
         lines.append("")
 
     gate = shipping_gate(pack, verified_doc, authority, evidence_dir, as_of,
-                         report_body="\n".join(lines))
+                         report_body="\n".join(lines), calendar=calendar)
     header = [
         f"# SSI deep dive — {ticker} ({as_of})",
         "",

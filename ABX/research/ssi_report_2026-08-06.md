@@ -38,7 +38,12 @@ Insufficient XBRL revenue history for a structural read; see §5 table.
 
 ## 4. Market expectations reconciliation
 
-**Gap (blocking §5 gate):** no consensus-estimate feed is connected, so beat/miss and guide-vs-consensus tables cannot be built. Required: an estimates source keyed to the issuer's operating-revenue definition.
+| Period | Reported | EPS actual | EPS est. | Surprise | Revenue actual | Revenue est. | Surprise |
+|---|---|---|---|---|---|---|---|
+| 2026 Q1 | 2026-05-07 | 0.21 | 0.21 | +0.0% | 59,390,288 | 65,125,400 | -8.8% |
+| 2025 Q4 | 2026-03-12 | 0.23 | 0.20 | +15.0% | 71,899,000 | 54,974,850 | +30.8% |
+
+Source: `evidence/earnings_calendar.json` (`polygon_benzinga`), 2 reconcilable period(s). Estimates are the consensus as carried by the feed at the time of fetch, not a point-in-time snapshot taken before the print — treat the surprise column as directional.
 
 ## 5. Historical KPIs (XBRL, per-accession locators) — with honesty flags
 
@@ -87,8 +92,8 @@ Price reference: 10.86 (contract `market.price_per_share`, as of 2026-08-04). Sc
 
 | Proxy | Latest artifact | Read cadence |
 |---|---|---|
-| Insider (Form 4) signal | `research/evidence/insider_signal_2026-08-06.md` | daily |
-| Thematic context sweep | `research/evidence/thematic_context_2026-08-06.md` | daily |
+| Insider (Form 4) signal | `research/evidence/insider_signal_2026-08-07.md` | daily |
+| Thematic context sweep | `research/evidence/thematic_context_2026-08-07.md` | daily |
 
 ## 11. Variant perception (mechanical draft)
 
@@ -188,7 +193,7 @@ Every tripwire is a re-derivation procedure against hashed sources — a reader 
 |---|---|---|
 | locator_resolution | FAIL | 299 claims Skeptic-verified, 1 failed; report renders verified claims only |
 | comparability_gate | PASS | 2 cross-filing gated comparisons; 0 intra-filing fallbacks (flagged per-row) |
-| consensus_reconciliation | BLOCKED | no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style |
+| consensus_reconciliation | PASS | 2 period(s) with both an actual and an estimate; beat/miss rendered in §4 |
 | valuation_contract_only | PASS | authority=valuation_contract; value arithmetic rendered: True; figures sourced via decision_authority only, legacy IRR/stance fields never r |
 | valuation_contract_decision_grade | PASS | contract status=decision_grade |
 | falsification_quantified | PASS | 86 severity≥3 tripwires, each a re-derivation procedure on hashed sources |
@@ -198,5 +203,5 @@ Every tripwire is a re-derivation procedure against hashed sources — a reader 
 | gold_conversion | PASS | 1 gold cases appended for 1 failures |
 | no_dynamic_memory | PASS | renderer writes only research/ artifacts; never MEMORY.md |
 
-**Gate result: NOT SHIPPABLE** — 9 pass / 1 fail / 1 blocked (blocked = missing external feed or outstanding upstream valuation work, not a defect in this run)
+**Gate result: NOT SHIPPABLE** — 10 pass / 1 fail / 0 blocked (blocked = missing external feed or outstanding upstream valuation work, not a defect in this run)
 
