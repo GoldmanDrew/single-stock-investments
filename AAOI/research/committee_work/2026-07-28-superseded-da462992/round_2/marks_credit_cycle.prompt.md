@@ -2,7 +2,7 @@
 
 You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `7530c20e1969e4ce4fed2440405ccc549856f0cf5829ec97098bc3e07e18e6f3`
+Evidence packet: `da462992b79c32a5eb11ee2bd3be08d8ef5e5336bd82fe79377a146f53270b6a`
 
 - `AAOI/research/deep_dive_2026-07-17.md`
 - `AAOI/research/adversarial_2026-07-17.md`
@@ -11,7 +11,7 @@ Evidence packet: `7530c20e1969e4ce4fed2440405ccc549856f0cf5829ec97098bc3e07e18e6
 - `AAOI/research/valuation.json`
 - `AAOI/research/thesis.md`
 - `AAOI/research/cross_check_third_party_2026-07-17.md`
-- `AAOI/research/evidence/filing_facts_2026-08-06.json`
+- `AAOI/research/evidence/filing_facts_2026-07-17.json`
 - `AAOI/research/evidence/management_facts_2026-07-17.json`
 
 Rules:
