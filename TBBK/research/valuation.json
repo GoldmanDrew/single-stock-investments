@@ -1,7 +1,7 @@
 {
   "ticker": "TBBK",
-  "as_of": "2026-07-03",
-  "method": "full",
+  "as_of": "2026-08-06",
+  "method": "proof_first_automated",
   "lawrence_bucket": "multi_sided",
   "classification_inputs": {
     "archetype": "platform",
@@ -11,13 +11,16 @@
     "payoff_lens": "operating"
   },
   "inputs": {
-    "price": 63.89,
-    "price_source": "Yahoo TBBK close 2026-07-02",
+    "price": 72.095,
+    "price_source": "Yahoo TBBK close 2026-08-06",
     "fcf_per_share": 4.92,
     "fcf_source": "FY2025 diluted EPS per `tbbk-investor-presentation-q4-2025.pdf` slide 7; corroborated by H1 2025 diluted EPS $2.46 in `TBBK-Q2-2025-10Q.pdf`",
     "shares_millions": 46.6,
     "normalization_note": "Owner cash proxied by diluted EPS. Fintech credit sponsorship provisions ($43.2M Q2 2025) offset in non-interest income with no net income impact per 10-Q footnote.",
-    "price_as_of": "2026-07-02"
+    "price_as_of": "2026-08-06",
+    "shares_outstanding": 41634439.0,
+    "cash_m": 67.18299999999999,
+    "total_debt_m": 14.1
   },
   "scenarios": {
     "bear": {
@@ -591,5 +594,1085 @@
     ],
     "narrative_hooks": [],
     "transaction_count": 66
+  },
+  "component_valuation_results": {
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "fintech_solutions_franchise",
+        "label": "Fintech Solutions sponsorship, payments and sponsored lending franchise",
+        "category": "operating_business",
+        "treatment": "additive",
+        "overlap_key": "segment_fintech",
+        "method": "owner_earnings_reinvestment_dcf",
+        "evidence_tier": "primary_derived",
+        "evidence": "Segment net income partitioned from the audited consolidated result; fee revenue, GDV and operating leverage from the non-GAAP reconciliation in the Q2 2026 deck.",
+        "falsifier": "Adjusted fintech fee revenue growth falls below 5% for two consecutive quarters, or a top-five partner programme terminates.",
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_earnings_reinvestment_dcf",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "fintech_h1_2026_net_income_m",
+              "label": "Fintech Solutions segment net income, six months ended 2026-06-30",
+              "kind": "fact",
+              "value": 71.322,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, six months ended Jun 30 2026: Fintech net income $71,322 thousand",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "fintech_fy2025_net_income_m",
+              "label": "Fintech Solutions segment net income FY2025",
+              "kind": "fact",
+              "value": 115.835,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, year ended Dec 31 2025: Fintech net income $115,835 thousand",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "fintech_fee_revenue_adjusted_fy2025_m",
+              "label": "Fintech fee revenue excluding credit enhancement, FY2025",
+              "kind": "fact",
+              "value": 141.261,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Non-GAAP reconciliation: FTS fee revenue, adjusted $141,261 thousand FY2025",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "gross_dollar_volume_fy2025_m",
+              "label": "Prepaid, debit and credit card gross dollar volume FY2025",
+              "kind": "fact",
+              "value": 178211.647,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Non-GAAP reconciliation: GDV $178,211,647 thousand FY2025",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 41.634439,
+              "unit": "million_shares",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-Q_20260506_rpt20260331_acc0001295401_26_000004.htm",
+                "locator": "dei:EntityCommonStockSharesOutstanding 41,634,439; Form 10-Q cover page",
+                "as_of": "2026-04-27"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "annualization",
+              "label": "Half-year to annual run-rate factor",
+              "kind": "judgment",
+              "values": {
+                "low": 2.0,
+                "base": 2.0,
+                "high": 2.0
+              },
+              "unit": "ratio",
+              "rationale": "The two 2026 half-years are of comparable seasonality; Q1 2026 diluted EPS $1.41 and Q2 2026 $1.45 differ by 3%, so doubling the half is a fair annualisation.",
+              "allowed_range": {
+                "min": 2.0,
+                "max": 2.0
+              }
+            },
+            {
+              "id": "growth_rate",
+              "label": "Fintech owner-earnings growth, years 1 to 7",
+              "kind": "judgment",
+              "values": {
+                "low": 0.03,
+                "base": 0.09,
+                "high": 0.15
+              },
+              "unit": "ratio",
+              "rationale": "Adjusted fintech fee revenue compounded 14.4% a year from $82.3m in 2021 to $141.3m in 2025 and GDV compounded 14.3% over the same span, with positive operating leverage in every year (expense per $1,000 of GDV fell from $0.67 to $0.45). The base case fades that to 9% because the $10bn asset cap limits deposit-funded spread growth. The low case assumes partner attrition and interchange compression; the high case assumes Apex 2030 embedded finance delivers.",
+              "allowed_range": {
+                "min": -0.1,
+                "max": 0.25
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Cost of equity",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.105,
+                "high": 0.095
+              },
+              "unit": "ratio",
+              "rationale": "Small-cap bank cost of equity with a premium for fintech partner concentration and sponsor-bank regulatory risk.",
+              "allowed_range": {
+                "min": 0.06,
+                "max": 0.2
+              }
+            },
+            {
+              "id": "terminal_multiple",
+              "label": "Terminal multiple on year-7 owner earnings",
+              "kind": "judgment",
+              "values": {
+                "low": 10.0,
+                "base": 14.0,
+                "high": 17.0
+              },
+              "unit": "multiple",
+              "rationale": "A fee-based payments franchise supports a higher exit multiple than a balance sheet lender. TBBK trades at 13.6x trailing earnings today; the base case assumes the fee mix earns a modest premium to that, the low case a discount to bank-like economics.",
+              "allowed_range": {
+                "min": 6.0,
+                "max": 22.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "owner_earnings_base_m",
+              "op": "multiply",
+              "args": [
+                "fintech_h1_2026_net_income_m",
+                "annualization"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "growth_factor",
+              "op": "add",
+              "args": [
+                1,
+                "growth_rate"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "owner_earnings_y1",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_base_m",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y2",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y1",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y3",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y2",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y4",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y3",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y5",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y4",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y6",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y5",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y7",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y6",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "cash_pv_m",
+              "op": "present_value",
+              "args": [
+                "owner_earnings_y1",
+                1,
+                "owner_earnings_y2",
+                2,
+                "owner_earnings_y3",
+                3,
+                "owner_earnings_y4",
+                4,
+                "owner_earnings_y5",
+                5,
+                "owner_earnings_y6",
+                6,
+                "owner_earnings_y7",
+                7,
+                "discount_rate"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_value_m",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y7",
+                "terminal_multiple"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_pv_m",
+              "op": "discount",
+              "args": [
+                "terminal_value_m",
+                "discount_rate",
+                7
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "equity_value_m",
+              "op": "add",
+              "args": [
+                "cash_pv_m",
+                "terminal_pv_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "equity_value_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        }
+      },
+      {
+        "id": "credit_solutions_lending_book",
+        "label": "Credit Solutions lending book: real estate bridge, institutional and commercial",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "overlap_key": "segment_credit_solutions",
+        "method": "capital_structure_and_excess_return",
+        "evidence_tier": "primary_derived",
+        "evidence": "Segment net income partitioned from the audited consolidated result; loan balances and yields from the Q2 2026 deck; equity and assets from the FY2025 10-K.",
+        "falsifier": "Charge-offs excluding fintech exceed 0.35% of loans, or Credit Solutions balances fall below $5.0bn.",
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "capital_structure_and_excess_return",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "rebl_h1_2026_net_income_m",
+              "label": "Real estate bridge lending net income, six months ended 2026-06-30",
+              "kind": "fact",
+              "value": 29.275,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, six months ended Jun 30 2026: REBL net income $29,275 thousand",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "institutional_h1_2026_net_income_m",
+              "label": "Institutional banking net income, six months ended 2026-06-30",
+              "kind": "fact",
+              "value": 6.994,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, six months ended Jun 30 2026: Institutional Banking net income $6,994 thousand",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "commercial_h1_2026_net_income_m",
+              "label": "Commercial lending net income, six months ended 2026-06-30",
+              "kind": "fact",
+              "value": 8.077,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, six months ended Jun 30 2026: Commercial net income $8,077 thousand",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "stockholders_equity_fy2025_m",
+              "label": "Total shareholders' equity at 2025-12-31",
+              "kind": "fact",
+              "value": 689.796,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001295401_26_000002.htm",
+                "locator": "us-gaap:StockholdersEquity $689,796 thousand",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "total_assets_fy2025_m",
+              "label": "Total assets at 2025-12-31",
+              "kind": "fact",
+              "value": 9352.425,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001295401_26_000002.htm",
+                "locator": "us-gaap:Assets $9,352,425 thousand",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 41.634439,
+              "unit": "million_shares",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-Q_20260506_rpt20260331_acc0001295401_26_000004.htm",
+                "locator": "dei:EntityCommonStockSharesOutstanding 41,634,439; Form 10-Q cover page",
+                "as_of": "2026-04-27"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "annualization",
+              "label": "Half-year to annual run-rate factor",
+              "kind": "judgment",
+              "values": {
+                "low": 2.0,
+                "base": 2.0,
+                "high": 2.0
+              },
+              "unit": "ratio",
+              "rationale": "Consistent with the fintech component annualisation.",
+              "allowed_range": {
+                "min": 2.0,
+                "max": 2.0
+              }
+            },
+            {
+              "id": "growth_rate",
+              "label": "Credit Solutions owner-earnings growth, years 1 to 7",
+              "kind": "judgment",
+              "values": {
+                "low": -0.06,
+                "base": 0.0,
+                "high": 0.04
+              },
+              "unit": "ratio",
+              "rationale": "Credit Solutions loans were flat at $6.2bn through 2024 and 2025 and fell to $5.8bn by Q2 2026 while management shifts the balance sheet toward a fintech-dominated mix inside the $10bn cap. The base case therefore holds this book flat rather than growing it. The low case prices multifamily bridge runoff plus credit normalisation from the 2025 leasing charge-offs.",
+              "allowed_range": {
+                "min": -0.15,
+                "max": 0.1
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Cost of equity for the lending book",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.11,
+                "high": 0.1
+              },
+              "unit": "ratio",
+              "rationale": "Balance sheet credit risk carries a higher required return than the fee franchise.",
+              "allowed_range": {
+                "min": 0.06,
+                "max": 0.2
+              }
+            },
+            {
+              "id": "terminal_multiple",
+              "label": "Terminal multiple on year-7 owner earnings",
+              "kind": "judgment",
+              "values": {
+                "low": 7.0,
+                "base": 9.0,
+                "high": 11.0
+              },
+              "unit": "multiple",
+              "rationale": "Bank-like exit economics for a spread lending book: below the KBW regional bank median in the low case, at it in the base case.",
+              "allowed_range": {
+                "min": 4.0,
+                "max": 14.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "credit_h1_subtotal_a_m",
+              "op": "add",
+              "args": [
+                "rebl_h1_2026_net_income_m",
+                "institutional_h1_2026_net_income_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "credit_h1_total_m",
+              "op": "add",
+              "args": [
+                "credit_h1_subtotal_a_m",
+                "commercial_h1_2026_net_income_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_base_m",
+              "op": "multiply",
+              "args": [
+                "credit_h1_total_m",
+                "annualization"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "growth_factor",
+              "op": "add",
+              "args": [
+                1,
+                "growth_rate"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "owner_earnings_y1",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_base_m",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y2",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y1",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y3",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y2",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y4",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y3",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y5",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y4",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y6",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y5",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y7",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y6",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "cash_pv_m",
+              "op": "present_value",
+              "args": [
+                "owner_earnings_y1",
+                1,
+                "owner_earnings_y2",
+                2,
+                "owner_earnings_y3",
+                3,
+                "owner_earnings_y4",
+                4,
+                "owner_earnings_y5",
+                5,
+                "owner_earnings_y6",
+                6,
+                "owner_earnings_y7",
+                7,
+                "discount_rate"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_value_m",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y7",
+                "terminal_multiple"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_pv_m",
+              "op": "discount",
+              "args": [
+                "terminal_value_m",
+                "discount_rate",
+                7
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "equity_value_m",
+              "op": "add",
+              "args": [
+                "cash_pv_m",
+                "terminal_pv_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "equity_value_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        }
+      },
+      {
+        "id": "corporate_and_securities",
+        "label": "Corporate result and securities portfolio",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "overlap_key": "segment_corporate",
+        "method": "capital_structure_and_excess_return",
+        "evidence_tier": "primary_derived",
+        "evidence": "Residual corporate segment net income; securities fair value and duration from the Q2 2026 deck.",
+        "falsifier": "Corporate segment net income turns negative for a full year.",
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "capital_structure_and_excess_return",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "corporate_h1_2026_net_income_m",
+              "label": "Corporate segment net income, six months ended 2026-06-30",
+              "kind": "fact",
+              "value": 5.057,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, six months ended Jun 30 2026: Corporate net income $5,057 thousand",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "corporate_fy2025_net_income_m",
+              "label": "Corporate segment net income FY2025",
+              "kind": "fact",
+              "value": 22.854,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Segment results table, year ended Dec 31 2025: Corporate net income $22,854 thousand",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "securities_fair_value_q2_2026_m",
+              "label": "Securities portfolio fair value at 2026-06-30",
+              "kind": "fact",
+              "value": 1615.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Securities portfolio page: fair value $1,615 million at Jun-26, 4.3 year modified duration",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 41.634439,
+              "unit": "million_shares",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-Q_20260506_rpt20260331_acc0001295401_26_000004.htm",
+                "locator": "dei:EntityCommonStockSharesOutstanding 41,634,439; Form 10-Q cover page",
+                "as_of": "2026-04-27"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "annualization",
+              "label": "Half-year to annual run-rate factor",
+              "kind": "judgment",
+              "values": {
+                "low": 2.0,
+                "base": 2.0,
+                "high": 2.0
+              },
+              "unit": "ratio",
+              "rationale": "Consistent with the other components.",
+              "allowed_range": {
+                "min": 2.0,
+                "max": 2.0
+              }
+            },
+            {
+              "id": "growth_rate",
+              "label": "Corporate and securities owner-earnings growth, years 1 to 7",
+              "kind": "judgment",
+              "values": {
+                "low": -0.05,
+                "base": 0.0,
+                "high": 0.03
+              },
+              "unit": "ratio",
+              "rationale": "The corporate result more than halved from $22.9m in FY2025 to a $10.1m run rate in 2026 as interest allocation shifted toward the fintech segment. The base case holds the reduced level flat; roughly $160m of securities principal rolls off annually for three years, so reinvestment yield is the swing factor rather than volume.",
+              "allowed_range": {
+                "min": -0.12,
+                "max": 0.08
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Cost of equity",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.11,
+                "high": 0.1
+              },
+              "unit": "ratio",
+              "rationale": "Same required return as the lending book.",
+              "allowed_range": {
+                "min": 0.06,
+                "max": 0.2
+              }
+            },
+            {
+              "id": "terminal_multiple",
+              "label": "Terminal multiple on year-7 owner earnings",
+              "kind": "judgment",
+              "values": {
+                "low": 6.0,
+                "base": 8.0,
+                "high": 10.0
+              },
+              "unit": "multiple",
+              "rationale": "Residual treasury earnings deserve the lowest exit multiple in the map.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 12.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "owner_earnings_base_m",
+              "op": "multiply",
+              "args": [
+                "corporate_h1_2026_net_income_m",
+                "annualization"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "growth_factor",
+              "op": "add",
+              "args": [
+                1,
+                "growth_rate"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "owner_earnings_y1",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_base_m",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y2",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y1",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y3",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y2",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y4",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y3",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y5",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y4",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y6",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y5",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "owner_earnings_y7",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y6",
+                "growth_factor"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "cash_pv_m",
+              "op": "present_value",
+              "args": [
+                "owner_earnings_y1",
+                1,
+                "owner_earnings_y2",
+                2,
+                "owner_earnings_y3",
+                3,
+                "owner_earnings_y4",
+                4,
+                "owner_earnings_y5",
+                5,
+                "owner_earnings_y6",
+                6,
+                "owner_earnings_y7",
+                7,
+                "discount_rate"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_value_m",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y7",
+                "terminal_multiple"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "terminal_pv_m",
+              "op": "discount",
+              "args": [
+                "terminal_value_m",
+                "discount_rate",
+                7
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "equity_value_m",
+              "op": "add",
+              "args": [
+                "cash_pv_m",
+                "terminal_pv_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "equity_value_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        }
+      },
+      {
+        "id": "fintech_credit_enhancement_reserve",
+        "label": "Reserve against failure of the fintech loan credit enhancement",
+        "category": "liability_or_reserve",
+        "treatment": "additive",
+        "overlap_key": "fintech_enhancement_counterparty",
+        "method": "net_asset_value",
+        "evidence_tier": "primary_derived",
+        "evidence": "Credit enhancement income, fintech charge-offs and average covered balances disclosed in the Q2 2026 deck non-GAAP reconciliation and Credit Solutions footnote.",
+        "falsifier": "The company discloses the identity and credit standing of the enhancement counterparties, or collateralises the receivable.",
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "fintech_charge_offs_ytd_2026_m",
+              "label": "Fintech net charge-offs, 2026 year to date",
+              "kind": "fact",
+              "value": 55.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Credit Solutions page footnote: fintech net charge-offs of $55.0mm Q2 YTD 2026, fully offset by credit enhancement income",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "credit_enhancement_income_fy2025_m",
+              "label": "Fintech loan credit enhancement income FY2025",
+              "kind": "fact",
+              "value": 169.294,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Non-GAAP reconciliation: fintech loan credit enhancement $169,294 thousand FY2025",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "average_fintech_balances_ytd_2026_m",
+              "label": "Average fintech loan balances, 2026 year to date",
+              "kind": "fact",
+              "value": 1254.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "TBBK/investor-documents/ir-tbbk/tbbk-investor-presentation-q2-2026.pdf",
+                "locator": "Credit Solutions page footnote: average fintech balances $1,254mm Q2 YTD 2026",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 41.634439,
+              "unit": "million_shares",
+              "source": {
+                "ref": "TBBK/investor-documents/sec-edgar/10-Q_20260506_rpt20260331_acc0001295401_26_000004.htm",
+                "locator": "dei:EntityCommonStockSharesOutstanding 41,634,439; Form 10-Q cover page",
+                "as_of": "2026-04-27"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "annualization",
+              "label": "Half-year to annual run-rate factor",
+              "kind": "judgment",
+              "values": {
+                "low": 2.0,
+                "base": 2.0,
+                "high": 2.0
+              },
+              "unit": "ratio",
+              "rationale": "Consistent with the other components.",
+              "allowed_range": {
+                "min": 2.0,
+                "max": 2.0
+              }
+            },
+            {
+              "id": "enhancement_failure_probability",
+              "label": "Probability the credit enhancement fails to absorb one year of fintech losses",
+              "kind": "judgment",
+              "values": {
+                "low": 0.6,
+                "base": 0.25,
+                "high": 0.05
+              },
+              "unit": "ratio",
+              "rationale": "The enhancement is an unsecured contractual claim on fintech partners whose own credit standing is not disclosed. Covered balances grew from $138m average in 2024 to $1,254m in 2026, so the concentration is rising faster than the bank's equity. The base case prices a one-in-four chance of a single unabsorbed year over the seven-year horizon.",
+              "allowed_range": {
+                "min": 0.0,
+                "max": 1.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "annual_fintech_losses_m",
+              "op": "multiply",
+              "args": [
+                "fintech_charge_offs_ytd_2026_m",
+                "annualization"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "expected_unabsorbed_loss_m",
+              "op": "multiply",
+              "args": [
+                "annual_fintech_losses_m",
+                "enhancement_failure_probability"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "reserve_m",
+              "op": "negative",
+              "args": [
+                "expected_unabsorbed_loss_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "reserve_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        }
+      }
+    ],
+    "embedded_components": [],
+    "partition_note": "Components partition consolidated net income by reportable segment. H1 2026 segment net income of $71.322m fintech, $29.275m REBL, $6.994m institutional, $8.077m commercial and $5.057m corporate sums to the reported $120.725m consolidated result, so no economic claim is valued twice or omitted. The credit enhancement reserve prices a counterparty exposure that the segment results net to zero and therefore do not capture.",
+    "source": "_system/scripts/build_tbbk_contract_proofs.py",
+    "as_of": "2026-08-06"
+  },
+  "economic_value_analysis": {
+    "status": "compiled",
+    "validation_errors": []
+  },
+  "schema_version": "3.0",
+  "valuation_methodology": {
+    "horizon_years": 7,
+    "automation": "issuer_specific_approved_proof",
+    "capital_return_treatment": "Distributable cash is valued in full and divided by the current share count. Returning it through repurchase rather than dividend is value neutral at fair value, so buybacks are not counted as a separate source of value. Their earnings-per-share effect is mapped in TBBK/research/buyback_eps_model.json.",
+    "asset_cap_note": "Total assets were $9.352bn at 2025-12-31 against the $10bn FRB Reg II threshold, leaving roughly 7% of headroom. Balance sheet growth is therefore not available as a value driver and no reinvestment charge is deducted from distributable cash."
   }
 }

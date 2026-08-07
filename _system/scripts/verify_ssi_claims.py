@@ -203,9 +203,40 @@ def _verify_revenue_claim(claim: dict, filings_by_path: dict) -> str | None:
     return None
 
 
+def compact_claims_file(claims_path: Path, claims_doc: dict, as_of: str) -> bool:
+    """Drop the `claims` array once it has been consumed by the Skeptic pass.
+
+    Every claim body survives verbatim in ssi_verified_claims (same claim_ids,
+    same fields, plus a `verification` block), so persisting both doubles the
+    artifact footprint for no added information. The rest of this file —
+    management_ledger, spawner, and the tier/severity histograms — is unique to
+    Phase 2 and is kept.
+
+    Compaction runs before the time-zero snapshot and the Phase 4 audit trail
+    hash the file, so both record the hash of what is actually on disk. Phase 2
+    is deterministic and cheap: re-run build_ssi_claims.py to restore the array.
+    """
+    if not claims_doc.get("claims"):
+        return False
+    compacted = {k: v for k, v in claims_doc.items() if k != "claims"}
+    compacted["claims_compacted"] = True
+    compacted["claims_verified_into"] = f"ssi_verified_claims_{as_of}.json"
+    compacted["claims_compaction_note"] = (
+        "Claim bodies live in ssi_verified_claims (superset: adds `verification`). "
+        "Re-run build_ssi_claims.py to rebuild this array."
+    )
+    claims_path.write_text(json.dumps(compacted, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
 def skeptic_pass(claims_doc: dict, pack: dict, ticker_dir: Path, integrity: dict) -> tuple[list[dict], list[dict]]:
     """Return (verified_claims, failures). Failures carry a reason and are
     dropped from the verified set — deleted, not softened."""
+    if claims_doc.get("claims_compacted") and not claims_doc.get("claims"):
+        raise ValueError(
+            "claims array was compacted away after a previous verification; "
+            "re-run build_ssi_claims.py for this ticker/date before verifying"
+        )
     filings = discover_filings(ticker_dir)
     filings_by_path = {f.rel_path: f for f in filings}
     texts = {f.rel_path: f.text.splitlines() for f in filings}
@@ -329,7 +360,8 @@ def append_gold_cases(ticker: str, as_of: str, failures: list[dict], gold_path: 
 # Assembly
 # ---------------------------------------------------------------------------
 
-def verify_ticker(ticker_dir: Path, as_of: str, gold_path: Path | None = None) -> dict | None:
+def verify_ticker(ticker_dir: Path, as_of: str, gold_path: Path | None = None,
+                  compact: bool = True) -> dict | None:
     evidence_dir = ticker_dir / "research" / "evidence"
     claims_path = _latest_json_path(evidence_dir, "ssi_claims")
     pack_path = _latest_json_path(evidence_dir, "ssi_evidence_pack")
@@ -343,6 +375,10 @@ def verify_ticker(ticker_dir: Path, as_of: str, gold_path: Path | None = None) -
     integrity = verify_pack_integrity(pack, ticker_dir)
     verified, failures = skeptic_pass(claims_doc, pack, ticker_dir, integrity)
     routing = gatekeeper_routing(ticker_dir, verified)
+    # Compact before hashing: the snapshot and the Phase 4 audit trail must
+    # record the sha256 of the file that actually remains on disk.
+    if compact:
+        compact_claims_file(claims_path, claims_doc, as_of)
     snapshot = time_zero_snapshot(
         ticker_dir.name, as_of, pack, claims_path, verified, routing,
     )
@@ -367,8 +403,8 @@ def verify_ticker(ticker_dir: Path, as_of: str, gold_path: Path | None = None) -
     }
 
 
-def write_verification(ticker_dir: Path, as_of: str) -> tuple[Path, Path] | None:
-    result = verify_ticker(ticker_dir, as_of)
+def write_verification(ticker_dir: Path, as_of: str, compact: bool = True) -> tuple[Path, Path] | None:
+    result = verify_ticker(ticker_dir, as_of, compact=compact)
     if result is None:
         return None
     evidence_dir = ticker_dir / "research" / "evidence"
@@ -385,6 +421,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("tickers", nargs="*", help="Ticker folders (default: all with ssi_claims files)")
     parser.add_argument("--date", default=datetime.now().date().isoformat())
     parser.add_argument("--check", action="store_true", help="Verify in memory and report, do not write")
+    parser.add_argument("--no-compact", action="store_true",
+                        help="keep the claims array in ssi_claims after verification "
+                             "(default: drop it, since ssi_verified_claims is a superset)")
     args = parser.parse_args(argv)
 
     if args.tickers:
@@ -397,7 +436,8 @@ def main(argv: list[str] | None = None) -> int:
     failures = 0
     for ticker_dir in ticker_dirs:
         if args.check:
-            result = verify_ticker(ticker_dir, args.date)
+            # --check must not touch disk, so never compact on this path.
+            result = verify_ticker(ticker_dir, args.date, compact=False)
             if result is None:
                 print(f"[skip] {ticker_dir.name}: no claims/pack (run Phases 1-2 first)")
                 failures += 1
@@ -408,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"{result['routing']['committee_eligible']}"
             )
         else:
-            outs = write_verification(ticker_dir, args.date)
+            outs = write_verification(ticker_dir, args.date, compact=not args.no_compact)
             if outs is None:
                 print(f"[skip] {ticker_dir.name}: no claims/pack (run Phases 1-2 first)")
                 failures += 1

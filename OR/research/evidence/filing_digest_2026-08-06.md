@@ -1,0 +1,202 @@
+# Filing digest — OR
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `OR/research/evidence/document_inventory.json`  
+
+Documents in folder: **38** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | annual | 2026-03-30 | `investor-documents/sec-edgar/40-F_20260330_exhibit99-2.htm` | 185733 |
+| full | md&a | 2026-03-30 | `investor-documents/sec-edgar/40-F_20260330_exhibit99-3.htm` | 172342 |
+| partial | 40-F-cover | 2024-03-28 | `investor-documents/sec-edgar/40-F_20240328_rpt20231231_acc0001062993_24_007371.htm` | 21839 |
+| partial | 40-F-cover | 2025-03-28 | `investor-documents/sec-edgar/40-F_20250328_rpt20241231_acc0001062993_25_006504.htm` | 20622 |
+| partial | 40-F-cover | 2026-03-30 | `investor-documents/sec-edgar/40-F_20260330_rpt20251231_acc0001062993_26_001696.htm` | 25085 |
+| partial | 40-F-exhibit | 2026-03-30 | `investor-documents/sec-edgar/40-F_20260330_exhibit99-1.htm` | 30000 |
+| partial | 40-F-exhibit | 2026-03-30 | `investor-documents/sec-edgar/40-F_20260330_exhibit99-4.htm` | 3235 |
+| inventory | other | 2021-07-07 | `third-party-analyses/activist_reports/long/SC-13D/A_20210707_acc0001140361_21_023625.htm` | 0 |
+| inventory | other | 2021-07-16 | `third-party-analyses/activist_reports/long/SC-13D/A_20210716_acc0001140361_21_024617.htm` | 0 |
+| inventory | other | 2022-11-14 | `third-party-analyses/activist_reports/long/SC-13D/A_20221114_acc0001140361_22_041145.htm` | 0 |
+| inventory | other | 2022-11-25 | `third-party-analyses/activist_reports/long/SC-13D/A_20221125_acc0001140361_22_043139.htm` | 0 |
+| inventory | other | 2022-12-12 | `third-party-analyses/activist_reports/long/SC-13D/A_20221212_acc0001140361_22_045275.htm` | 0 |
+| inventory | other | 2023-01-05 | `third-party-analyses/activist_reports/long/SC-13D/A_20230105_acc0001140361_23_000703.htm` | 0 |
+| inventory | other | 2018-02-02 | `third-party-analyses/activist_reports/long/SC-13G/A_20180202_acc0001193125_18_030223.htm` | 0 |
+| inventory | other | 2018-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20180208_acc0000950142_18_000346.htm` | 0 |
+| inventory | other | 2018-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20180212_acc0000869178_18_000076.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0000869178_19_000008.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0001193125_19_031663.htm` | 0 |
+| inventory | other | 2019-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20190211_acc0000950142_19_000208.htm` | 0 |
+| inventory | other | 2020-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20200211_acc0000950142_20_000386.htm` | 0 |
+| inventory | other | 2020-07-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20200709_acc0000905148_20_000792.htm` | 0 |
+| inventory | other | 2021-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20210211_acc0000869178_21_000096.htm` | 0 |
+| inventory | other | 2021-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20210212_acc0000950142_21_000501.htm` | 0 |
+| inventory | other | 2021-05-05 | `third-party-analyses/activist_reports/long/SC-13G/A_20210505_acc0001481669_21_000015.htm` | 0 |
+| inventory | other | 2021-05-05 | `third-party-analyses/activist_reports/long/SC-13G/A_20210505_acc0001481669_21_000016.htm` | 0 |
+| inventory | other | 2022-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20220210_acc0000869178_22_000016.htm` | 0 |
+| inventory | other | 2022-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20220211_acc0001481669_22_000007.htm` | 0 |
+| inventory | other | 2022-04-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20220408_acc0001481669_22_000014.htm` | 0 |
+| inventory | other | 2023-02-13 | `third-party-analyses/activist_reports/long/SC-13G/A_20230213_acc0001481669_23_000011.htm` | 0 |
+| inventory | other | 2023-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20230214_acc0000869178_23_000028.htm` | 0 |
+| inventory | other | 2024-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20240214_acc0000869178_24_000011.htm` | 0 |
+| inventory | other | 2024-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20240214_acc0001172661_24_001510.htm` | 0 |
+| inventory | other | 2024-11-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20241114_acc0000869178_24_000032.htm` | 0 |
+| inventory | other | 2019-02-06 | `third-party-analyses/activist_reports/long/SC-13G_20190206_acc0001193125_19_029086.htm` | 0 |
+| inventory | other | 2020-04-09 | `third-party-analyses/activist_reports/long/SC-13G_20200409_acc0001062993_20_001714.htm` | 0 |
+| inventory | other | 2021-05-05 | `third-party-analyses/activist_reports/long/SC-13G_20210505_acc0001481669_21_000014.htm` | 0 |
+| inventory | other | 2023-01-25 | `third-party-analyses/activist_reports/long/SC-13G_20230125_acc0001062993_23_001346.htm` | 0 |
+| inventory | other | 2024-11-13 | `third-party-analyses/activist_reports/long/SC-13G_20241113_acc0001085146_24_005576.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/40-F_20260330_exhibit99-3.htm`
+**Keyword snippets (related party, financials, segments):**
+- OR Royalties Inc.: Exhibit 99.3 - Filed by newsfilecorp.com
+- OR Royalties Inc.
+- Guidance for 2026 and 5-Year Outlook
+- Portfolio of Royalty, Stream and Other Interests
+- Segment Disclosure
+- Related Party Transactions
+- Cautionary Note to U.S. Investors Regarding the Use of Mineral Reserve and Mineral Resource Estimates
+- Record revenues from royalties and streams of $277.4 million ($191.2 million in 2024);
+- First payment received from Cardinal Namdini Mining Ltd. under the Namdini Gold Mine ("Namdini") 1.0% NSR royalty;
+- First payment received from Talisker Resources Ltd. under the Bralorne 1.7% NSR royalty;
+- Acquisition of a 1.5% NSR royalty from Japan Gold Corp. ("Japan Gold") on Japan Gold's wholly-controlled properties in Japan for cash consideration of $5.0 million;
+- Second payment of $10.0 million made by OR Royalties International on the Cascabel gold stream;
+- Receipt of $49.0 million from Harmony Gold Mining Company Limited ("Harmony") for shares held by OR Royalties International upon closing of Harmony's transaction to acquire MAC Copper Limited;
+- Publication of the fifth edition of the Company's sustainability report, Growing Responsibly , in addition to the OR Royalties 2025 Asset Handbook; and
+- 2026 Guidance
+- 5-Year Outlook
+- The following table details the GEOs earned by the Company's producing royalty, stream and other interests:
+- Canadian Malartic Complex royalty
+- &#201;l&#233;onore royalty
+- Island Gold District royalty
+- Seabee royalty
+- Ermita&#241;o royalty
+- Lamaque Complex royalty
+- Namdini royalty (i)
+- Tocantinzinho royalty (i i )
+- Bald Mountain royalty
+- Fruta del Norte royalty
+- Eagle Gold royalty ( ii i)
+- (ii) G Mining Ventures Corp. announced its first gold production on July 9, 2024. Commercial production was declared on September 3, 2024, and the first royalty payment was received in the fourth quarter of 2024.
+- 2025 Actual Results vs Guidance
+- The following table compares the actual results with the guidance released in February 2025:
+- Royalties and streams
+- Royalty, Stream and Other Interests Portfolio Overview
+- As at February 18, 2026, OR Royalties owned a portfolio of 179 royalties, 15 streams and 3 offtakes, as well as 7 royalty options. Currently, the Company has 22 producing assets.
+- 2.5% NSR royalty
+
+### `investor-documents/sec-edgar/40-F_20260330_exhibit99-2.htm`
+**Keyword snippets (related party, financials, segments):**
+- CurrentLeaseLiabilities: 1,207
+- CurrentLeaseLiabilities: 852
+- NoncurrentLeaseLiabilities: 3,795
+- NoncurrentLeaseLiabilities: 3,931
+- Revenue: 277,370
+- Revenue: 191,157
+- RevenuesReceivableFromRoyaltyStreamAndOtherInterests: 2,283
+- RevenuesReceivableFromRoyaltyStreamAndOtherInterests: 2,110
+- Revenue: 8,421
+- PercentageOfGrossRevenueRoyaltyAcquired: 1.8
+- PercentageOfGrossRevenueRoyaltyAcquiredOnAdditionalRegionalExplorationLicenses: 1.35
+- LeaseLiabilities: 4,783
+- LeaseLiabilities: 6,050
+- NewLeaseLiabilities: 1,008
+- NewLeaseLiabilities: -
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 1,024
+- PaymentsOfLeaseLiabilitiesClassifiedAsFinancingActivities: 817
+- LeaseLiabilities: 5,002
+- DeferredTaxLiabilitiesRoyaltyInterestsAndExplorationAndEvaluationAssets: 97,631
+- DeferredTaxLiabilitiesRoyaltyInterestsAndExplorationAndEvaluationAssets: 85,089
+- Revenue: 177,264
+- Revenue: 130,375
+- Revenue: 100,106
+- Revenue: 60,782
+- LeaseLiabilitiesWithInterestPayable: 5,790
+- LeaseLiabilitiesWithInterestPayable: 1,548
+- LeaseLiabilitiesWithInterestPayable: 1,544
+- LeaseLiabilitiesWithInterestPayable: 1,388
+- LeaseLiabilitiesWithInterestPayable: 1,310
+- LeaseLiabilitiesWithInterestPayable: -
+- Revenue: 165,738
+- Revenue: 5,765
+- Revenue: 347
+- Revenue: 5,414
+- Revenue: 11,883
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/40-F_20260330_rpt20251231_acc0001062993_26_001696.htm`
+**Keyword snippets (related party, financials, segments):**
+- OR Royalties Inc.: Form 40-F - Filed by newsfilecorp.com
+- OR ROYALTIES INC.
+- (Address and telephone number of registrant's principal executive offices)
+- the 2026 guidance (and cash margin) and the 5-year outlook and and other guidance based on disclosure from operators;
+- timely developments of mining properties over which the Registrant has royalties, streams, offtakes and investments;
+- future demand for and fluctuation of prices of commodities (including outlook on gold, silver, copper and other commodities), currency markets and general market conditions.
+- with respect to properties in which the Registrant holds a royalty, stream or other interest, risks related to:
+- differences in conversion rate from mineral resources to mineral reserves and ability to replace resources,
+- fluctuations in the prices of the commodities that drive royalties, streams, offtakes and investments held by the Registrant,
+- the determination of the Registrant's Passive Foreign Investment Company (" PFIC ") status;
+- The Registrant was not required by Rule 104 of Regulation BTR to send any notices to any of its directors or executive officers during the fiscal year ended December 31, 2025.
+- The Registrant has adopted a written Code of Ethics (the " Code ") that is applicable to all employees, contractors, consultants, officers and directors of the Registrant.
+- RECOVERY OF ERRONEOUSLY AWARDED COMPENSATION
+- The Registrant's Policy on Recovery of Incentive Compensation is filed as Exhibit 97 to this Annual Report on Form 40-F.
+- Policy on Recovery of Incentive Compensation (incorporated by reference to the Registrant Form 40-F, filed with the Commission on March 28, 2025)
+- Certification of Chief Executive Officer pursuant to Rule 13a-14 or 15d-14 of the Securities Exchange Act of 1934
+- Certification of Chief Executive Officer pursuant to 18 U.S.C. Section 1350, as adopted pursuant to Section 906 of the Sarbanes-Oxley Act of 2002
+
+### `investor-documents/sec-edgar/40-F_20250328_rpt20241231_acc0001062993_25_006504.htm`
+**Keyword snippets (related party, financials, segments):**
+- Osisko Gold Royalties Ltd.: Form 40-F - Filed by newsfilecorp.com
+- OSISKO GOLD ROYALTIES LTD
+- (Address and telephone number of registrant's principal executive offices)
+- The Registrant was not required by Rule 104 of Regulation BTR to send any notices to any of its directors or executive officers during the fiscal year ended December 31, 2024.
+- The Registrant has adopted a written Code of Ethics (the " Code ") that is applicable to all employees, contractors, consultants, officers and directors of the Registrant.
+- RECOVERY OF ERRONEOUSLY AWARDED COMPENSATION
+- Osisko Gold Royalties Ltd Policy on Recovery of Incentive Compensation
+- Certifications of Chief Executive Officer pursuant to Rule 13a-14 or 15d-14 of the Securities Exchange Act of 1934
+- Certification of Chief Executive Officer pursuant to 18 U.S.C. Section 1350, as adopted pursuant to Section 906 of the Sarbanes-Oxley Act of 2002
+
+### `investor-documents/sec-edgar/40-F_20240328_rpt20231231_acc0001062993_24_007371.htm`
+**Keyword snippets (related party, financials, segments):**
+- Osisko Gold Royalties Ltd.: Form 40-F - Filed by newsfilecorp.com
+- OSISKO GOLD ROYALTIES LTD
+- (Address and telephone number of registrant's principal executive offices)
+- The Registrant was not required by Rule 104 of Regulation BTR to send any notices to any of its directors or executive officers during the fiscal year ended December 31, 2023.
+- The Registrant has adopted a written Code of Ethics (the " Code ") that is applicable to all employees, contractors, consultants, officers and directors of the Registrant.
+- Osisko Gold Royalties Ltd Policy on Recovery of Incentive Compensation
+- Certifications of Chief Executive Officer pursuant to Rule 13a-14 or 15d-14 of the Securities Exchange Act of 1934
+- Certifications of Chief Executive Officer pursuant to 18 U.S.C. Section 1350, as adopted pursuant to Section 906 of the Sarbanes-Oxley Act of 2002
+
+### `investor-documents/sec-edgar/40-F_20260330_exhibit99-4.htm`
+**Keyword snippets (related party, financials, segments):**
+- OR Royalties Inc.: Exhibit 99.4 - Filed by newsfilecorp.com
+- 1. I have reviewed this annual report on Form 40-F of OR Royalties Inc.;
+- President and Chief Executive Officer
+
+### `investor-documents/sec-edgar/40-F_20260330_exhibit99-1.htm`
+**Keyword snippets (related party, financials, segments):**
+- OR Royalties Inc.: Exhibit 99.1 - Filed by newsfilecorp.com
+- CAUTIONARY NOTE TO U.S. INVESTORS REGARDING THE USE OF MINERAL RESERVE AND MINERAL RESOURCE ESTIMATES
+- GENERAL DEVELOPMENT OF OR ROYALTIES' BUSINESS
+- RISK FACTORS
+- MATERIAL MINERAL PROJECT
+- DIRECTORS AND OFFICERS
+- Unless otherwise noted or the context otherwise indicates, the term "OR Royalties" or "Corporation" refers to OR Royalties Inc. and its subsidiaries.
+- &#8226; production estimates of OR Royalties' assets (including any estimate of gold equivalent ounces to be received for any future period);
+- &#8226; the 2026 guidance on GEOs and cash margin and the 5-year outlook on GEOs included under "2026 Guidance and 5-Year Outlook" and other guidance based on disclosure from operators;
+- &#8226; timely developments of mining properties over which OR Royalties has royalties, streams, offtakes and investments;
+- &#8226; future demand for and fluctuation of prices of commodities (including outlook on gold, silver and other commodities), currency markets and general market conditions.
+- with respect to properties in which OR Royalties holds a royalty, stream or other interest, risks related to:
+- differences in conversion rate from Mineral Resources to Mineral Reserves and ability to replace resources;
+- fluctuations in the prices of the commodities that drive royalties, streams, offtakes and investments held by OR Royalties;
+- that business opportunities that may or may not become available to, or be pursued by OR Royalties;
+- the determination of OR Royalties' Passive Foreign Investment Company (" PFIC ") status; o OR Royalties' ability to deliver on its climate strategy,
+- THE USE OF MINERAL RESERVE AND MINERAL RESOURCE ESTIMATES
+- Cash margin (in dollars and in percentage of revenues)
+- " Canadian Malartic Royalty " has the meaning ascribed under the heading "Material Mineral Project - The Canadian Malartic Royalty".
+- " Canadian Malartic Royalty Agreement " means the amended and restated net smelter return royalty agreement dated June 16, 2014 between OR Royalties and Agnico, as successor to Canadian Malartic GP.

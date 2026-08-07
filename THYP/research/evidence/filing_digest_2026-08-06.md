@@ -1,0 +1,53 @@
+# Filing digest — THYP
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `THYP/research/evidence/document_inventory.json`  
+
+Documents in folder: **1** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | 10-Q | 2026-06-24 | `investor-documents/sec-edgar/10-Q_20260624_rpt20260331_acc0001213900_26_071556.htm` | 62329 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/10-Q_20260624_rpt20260331_acc0001213900_26_071556.htm`
+**Keyword snippets (related party, financials, segments):**
+- StockholdersEquity:
+- NumberOfOperatingSegments: one
+- http://fasb.org/srt/2026#ChiefExecutiveOfficerMember
+- thyp:Segments
+- code, of registrant's principal executive offices)
+- one or more of these risks discussed in "Risk Factors" or other uncertainties materialize, or should underlying assumptions
+- revenues, (ii) the date on which the Trust is deemed to be a "large accelerated filer," (iii) it issuing more than $1.0 billion
+- Total assets -
+- Distributions for Shares redeemed ( 100 )
+- Investment Valuation
+- Level 3: Unobservable inputs, including the Trust's assumptions used in determining the fair value of investments, where there is little or no market activity for the asset or liability at the measurement date.
+- Investment Transactions
+- Distributions to Shareholders
+- Segment Reporting
+- The Trust pays the unitary Sponsor fee of 0.30 % of the Trust's NAV (the "Sponsor Fee"). The Sponsor Fee is paid by the Trust to the Sponsor as compensation for services performed under the Trust Agreement.
+- 5. Related Parties
+- The Sponsor is a related party to the Trust. The Trust's operations are supported by its Sponsor, who is in turn supported by its parent company and affiliated companies and external service providers.
+- CSC Delaware Trust Company, a Delaware trust company, is the trustee of the Trust (the "Trustee"). The Trust is managed and
+- The Trust's investment objective is to seek to track the performance
+- of HYPE in U.S. dollars. In seeking to achieve its investment objective, the Trust holds HYPE and the Administrator values the Shares
+- Trust pays the unitary Sponsor Fee of 0.30% of the Trust's NAV. The Sponsor Fee is paid by the Trust to the Sponsor as compensation
+- Staking Services Provider that generates staking rewards will be entitled to compensation determined as a portion of the staking rewards
+- Trust intends to pay cash distributions at least quarterly to Shareholders to distribute staking rewards earned by the Trust. The amount
+- of any distribution, if any, will depend on the staking rewards actually earned by the Trust during each quarter and cannot be predicted
+- the Hyperliquid Network, and network conditions. Accordingly, there can be no assurance as to the amount of distributions that will be
+- paid in any quarter, and it is possible that no distributions will be paid in a given quarter if insufficient staking rewards are earned.
+- is identical to the calculation of NAV and NAV per Share, respectively, except that the value of HYPE is determined using the fair value
+- affect the Trust's application of accounting policies. Below is a summary of accounting policies on cash and investment valuation.
+- a material impact on the Trust's financial condition used in the preparation of the financial statements. In addition, please refer
+- Trust's policy is to value investments held at fair value. The Trust follows the provisions of ASC 820, Fair Value Measurements
+- ("ASC 820"). ASC 820 provides guidance for determining fair value and requires increased disclosure regarding the inputs
+- to valuation techniques used to measure fair value. ASC 820 determines fair value to be the price that would be received for HYPE in
+- the Transfer Agent and the Trustee, the Marketing Fee, the Exchange's listing fees, typical maintenance and transaction fees of
+- duly authorized officers of the Sponsor performing functions equivalent to those a principal executive officer and principal financial
+- to those a principal executive officer and principal financial officer of the Trust would perform if the Trust had any officers, as appropriate

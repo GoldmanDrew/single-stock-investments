@@ -5,7 +5,10 @@ Outputs:
   {TICKER}/research/evidence/document_inventory.json
   {TICKER}/research/evidence/filing_digest_{date}.md
 
-Tier 1 (full extract): latest annual, latest quarterly, latest 10-K, latest 10-Q, proxy/DEF 14A
+Tier 1 (full extract): latest annual, latest quarterly, latest 10-K, latest 10-Q, proxy/DEF 14A,
+        plus each filing's comparable prior period (300-430 days back, chained
+        twice) so the SSI comparability gate can diff YoY instead of falling
+        back to intra-filing pairing
 Tier 2 (partial): prior 2 periodicals, earnings releases, 8-K
 Tier 3 (inventory + keyword scan): all other PDFs/HTML in INDEX
 
@@ -50,6 +53,19 @@ TYPE_SCORE = {
 SKIP_PATH = re.compile(
     r"(?:^|/)(?:4_\d{8}|SC\s*13|DOWNLOAD_MANIFEST|_download_log|\.cursor)",
     re.I,
+)
+
+# Comparability promotion: the SSI evidence pack diffs each filing against its
+# prior-year counterpart (same form class, 300-430 days earlier). Those prior
+# filings must exist as full-tier `_text` extracts or every ticker falls back
+# to intra-filing pairing. Mirrors COMPARABLE_MIN/MAX_DAYS in
+# build_ssi_evidence_pack.py.
+COMPARABLE_MIN_DAYS = 300
+COMPARABLE_MAX_DAYS = 430
+COMPARABLE_CHAIN_DEPTH = 2  # latest + 2 prior years → 3-point annual series
+COMPARABILITY_CLASSES: tuple[tuple[str, frozenset[str]], ...] = (
+    ("annual", frozenset({"10-K", "10-k", "20-F", "20-f", "40-F", "40-f", "annual", "otcqx"})),
+    ("quarterly", frozenset({"10-Q", "10-q", "quarterly"})),
 )
 
 KEYWORD_LINES = re.compile(
@@ -164,6 +180,30 @@ def list_docs(ticker_dir: Path) -> list[dict]:
     return rows
 
 
+# Block-level closers become newlines so the narrative stays line-addressable:
+# the SSI section-diff engine matches headings and diffs paragraphs per line,
+# which is impossible if the whole document collapses to one line.
+BLOCK_BREAK = re.compile(r"</(?:p|div|tr|li|h[1-6]|table|section|article)\s*>|<br\s*/?>", re.I)
+
+
+_ENTITIES = (
+    ("&nbsp;", " "), ("&#160;", " "), ("&amp;", "&"), ("&#38;", "&"),
+    ("&#8217;", "'"), ("&#8216;", "'"), ("&#8220;", '"'), ("&#8221;", '"'),
+    ("&#8211;", "-"), ("&#8212;", "--"), ("&#8203;", ""),
+)
+
+
+def _strip_html_keep_lines(text: str) -> str:
+    clean = BLOCK_BREAK.sub("\n", text)
+    clean = re.sub(r"<[^>]+>", " ", clean)
+    for entity, char in _ENTITIES:
+        clean = clean.replace(entity, char)
+    clean = re.sub(r"[ \t ]+", " ", clean)
+    lines = [ln.strip() for ln in clean.splitlines()]
+    clean = "\n".join(ln for ln in lines if ln)
+    return clean
+
+
 def extract_html(path: Path, max_chars: int = 120_000) -> str:
     text = path.read_text(encoding="utf-8", errors="ignore")
     if "<ix:nonFraction" in text or "xmlns:ix=" in text:
@@ -181,13 +221,10 @@ def extract_html(path: Path, max_chars: int = 120_000) -> str:
             ):
                 if "Member" not in name and "Axis" not in name:
                     snippets.append(f"{name.split(':')[-1]}: {val}")
-        ix_block = "\n".join(snippets[:400])
-        clean = re.sub(r"<[^>]+>", " ", text)
-        clean = re.sub(r"\s+", " ", clean)
+        ix_block = "\n".join(snippets[:2000])
+        clean = _strip_html_keep_lines(text)
         return (ix_block + "\n\n" + clean[:max_chars])[:max_chars]
-    clean = re.sub(r"<[^>]+>", " ", text)
-    clean = re.sub(r"\s+", " ", clean)
-    return clean[:max_chars]
+    return _strip_html_keep_lines(text)[:max_chars]
 
 
 def extract_pdf(path: Path, max_pages: int) -> str:
@@ -224,7 +261,10 @@ def process_doc(ticker_dir: Path, doc: dict, tier: str) -> dict:
             pages = 120 if tier == "full" else (15 if tier == "partial" else 3)
             text = extract_pdf(path, pages)
         else:
-            cap = 120_000 if tier == "full" else (30_000 if tier == "partial" else 8_000)
+            # Full tier needs to reach MD&A / Liquidity / Controls, which sit
+            # deep in a 10-K; 120K chars cut them off and silently starved the
+            # SSI section-diff engine.
+            cap = 300_000 if tier == "full" else (30_000 if tier == "partial" else 8_000)
             text = extract_html(path, cap)
         result["chars"] = len(text)
         result["snippets"] = keyword_snippets(text, 50 if tier == "full" else 20)
@@ -232,10 +272,64 @@ def process_doc(ticker_dir: Path, doc: dict, tier: str) -> dict:
             cache = ticker_dir / "research" / "evidence" / "_text"
             cache.mkdir(parents=True, exist_ok=True)
             safe = re.sub(r"[^\w.-]", "_", doc["filename"])[:80]
-            (cache / f"{safe}.txt").write_text(text[:200_000], encoding="utf-8")
+            (cache / f"{safe}.txt").write_text(text[:320_000], encoding="utf-8")
     except Exception as e:
         result["error"] = str(e)
     return result
+
+
+def _doc_date(doc: dict) -> date | None:
+    try:
+        return date.fromisoformat(doc.get("file_date") or "")
+    except ValueError:
+        return None
+
+
+def promote_comparables(docs: list[dict]) -> list[dict]:
+    """Promote each full-tier filing's comparable prior period to full tier.
+
+    For every form class (annual, quarterly) with a full-tier anchor, walk
+    back COMPARABLE_CHAIN_DEPTH steps promoting the candidate whose file date
+    sits 300-430 days behind the previous anchor (closest to 365 wins). This
+    runs unconditionally — unlike the depth-gate promotions above, which only
+    fire when fewer than two documents are full — because domestic filers
+    always have 3+ full docs and were structurally locked out of YoY diffs.
+    """
+    promoted: list[dict] = []
+    for _cls, kinds in COMPARABILITY_CLASSES:
+        members = [
+            d for d in docs
+            if d.get("kind") in kinds and d.get("score", 0) > 0 and _doc_date(d)
+        ]
+        if not members:
+            continue
+        anchor = max(
+            (d for d in members if d.get("tier") == "full"),
+            key=_doc_date,
+            default=None,
+        )
+        if anchor is None:
+            continue
+        for _ in range(COMPARABLE_CHAIN_DEPTH):
+            anchor_date = _doc_date(anchor)
+            candidates = [
+                d for d in members
+                if d is not anchor
+                and COMPARABLE_MIN_DAYS
+                <= (anchor_date - _doc_date(d)).days
+                <= COMPARABLE_MAX_DAYS
+            ]
+            if not candidates:
+                break
+            best = min(
+                candidates,
+                key=lambda d: abs((anchor_date - _doc_date(d)).days - 365),
+            )
+            if best.get("tier") != "full":
+                best["tier"] = "full"
+                promoted.append(best)
+            anchor = best
+    return promoted
 
 
 def build_ticker(ticker: str) -> int:
@@ -308,6 +402,10 @@ def build_ticker(ticker: str) -> int:
                 break
             if d.get("tier") == "partial":
                 d["tier"] = "full"
+
+    promoted = promote_comparables(docs)
+    if promoted:
+        print(f"  comparability: promoted {len(promoted)} prior-period filing(s) to full")
 
     transcript_latest.sort(
         key=lambda d: (d.get("file_date") or "", d.get("filename") or ""), reverse=True

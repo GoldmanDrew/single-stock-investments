@@ -1152,6 +1152,21 @@ def run_ticker(ticker: str, as_of: str, collect: bool, full_rerun: bool) -> dict
     contract = read_json(research / "valuation_contract.json")
     state.update({"updated_at": now(), "full_rerun": full_rerun, "status": "decision_grade" if contract.get("status") == "decision_grade" else "evidence_blocked"})
     state["stages"]["decision_contract"] = {"status": "complete" if decision["returncode"] == 0 else "failed", "at": now(), "result": decision}
+
+    # SSI Perplexity-grade chain (Phases 1-4): deterministic, additive-only
+    # artifacts; safe to run on every readiness pass. Requires _text extracts
+    # (created by build_filing_evidence above when --collect ran).
+    ssi_results = []
+    for script in ("build_ssi_evidence_pack.py", "build_ssi_claims.py",
+                   "verify_ssi_claims.py", "build_ssi_report.py"):
+        ssi_results.append(run_command([str(SCRIPTS / script), ticker, "--date", as_of]))
+        if ssi_results[-1]["returncode"]:
+            break
+    state["stages"]["ssi_report"] = {
+        "status": "complete" if not any(r["returncode"] for r in ssi_results) else "partial",
+        "at": now(),
+        "results": ssi_results,
+    }
     write_json(state_path, state)
     return {"ticker": ticker, "status": state["status"], "method": identity["primary_method"], "ready": plan["ready_count"], "tasks": plan["task_count"]}
 

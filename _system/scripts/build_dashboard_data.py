@@ -1481,6 +1481,44 @@ def _research_links(ticker: str, ticker_dir: Path) -> dict:
     return links
 
 
+def latest_ssi_report(ticker_dir: Path) -> dict | None:
+    """Pointer block for the Perplexity-grade SSI report (Phase 4 renderer):
+    path + date + shipping-gate verdict + verified-claim stats."""
+    research = ticker_dir / "research"
+    if not research.is_dir():
+        return None
+    path = latest_dated_md(research, "ssi_report")
+    if not path:
+        return None
+    date_m = re.search(r"ssi_report_(\d{4}-\d{2}-\d{2})\.md$", path.name)
+    report_date = date_m.group(1) if date_m else None
+    rel = str(path.relative_to(ROOT)).replace("\\", "/")
+    block: dict = {
+        "date": report_date,
+        "path": rel,
+        "url": github_blob_url(rel),
+    }
+    if report_date:
+        gate_path = research / "evidence" / f"ssi_report_gate_{report_date}.json"
+        try:
+            gate = json.loads(gate_path.read_text(encoding="utf-8"))
+            block["gate_result"] = gate.get("result")
+            block["gate_summary"] = gate.get("summary")
+        except (OSError, json.JSONDecodeError):
+            pass
+        verified_path = research / "evidence" / f"ssi_verified_claims_{report_date}.json"
+        try:
+            verified = json.loads(verified_path.read_text(encoding="utf-8"))
+            block["verified_claims"] = verified.get("verified_count")
+            block["failed_claims"] = verified.get("failed_count")
+            block["severity5"] = sum(
+                1 for c in verified.get("verified_claims", []) if c.get("severity") == 5
+            )
+        except (OSError, json.JSONDecodeError):
+            pass
+    return block
+
+
 def latest_deep_dive(ticker_dir: Path, classification: dict) -> dict | None:
     research = ticker_dir / "research"
     if not research.exists():
@@ -2518,6 +2556,7 @@ def build_ticker_row(
         "one_line_thesis": display_one_line_thesis(ticker_dir, deep_dive),
         "links": _research_links(ticker, ticker_dir),
         "deep_dive": deep_dive,
+        "ssi_report": latest_ssi_report(ticker_dir),
         "human_review": valuation_human_review(ticker_dir),
         "pricing_analysis": pricing_analysis_summary(ticker_dir),
         "investment_committee": investment_committee_summary(ticker_dir),

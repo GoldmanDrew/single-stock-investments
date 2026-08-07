@@ -1,0 +1,536 @@
+# Filing digest — HL
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `HL/research/evidence/document_inventory.json`  
+
+Documents in folder: **90** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | 424B | 2021-02-18 | `investor-documents/sec-edgar/424B5_20210218_rpt_acc0001193125_21_047621.htm` | 30000 |
+| partial | 424B | 2022-02-24 | `investor-documents/sec-edgar/424B5_20220224_rpt_acc0001193125_22_050365.htm` | 30000 |
+| partial | 424B | 2024-02-15 | `investor-documents/sec-edgar/424B5_20240215_rpt_acc0001193125_24_037468.htm` | 7220 |
+| full | 424B | 2025-02-14 | `investor-documents/sec-edgar/424B5_20250214_rpt_acc0001193125_25_027352.htm` | 123364 |
+| partial | 10-K | 2020-02-13 | `investor-documents/sec-edgar/10-K-A_20200213_rpt20191231_acc0001437749_20_002531.htm` | 17612 |
+| partial | 10-K | 2022-02-23 | `investor-documents/sec-edgar/10-K_20220223_rpt20211231_acc0001437749_22_004164.htm` | 30000 |
+| partial | 10-K | 2023-02-17 | `investor-documents/sec-edgar/10-K_20230217_rpt20221231_acc0000950170_23_003174.htm` | 30000 |
+| full | 10-K | 2024-02-15 | `investor-documents/sec-edgar/10-K_20240215_rpt20231231_acc0000950170_24_015673.htm` | 300000 |
+| full | 10-K | 2025-02-13 | `investor-documents/sec-edgar/10-K_20250213_rpt20241231_acc0000950170_25_019955.htm` | 300000 |
+| full | 10-K | 2026-02-17 | `investor-documents/sec-edgar/10-K_20260217_rpt20251231_acc0001193125_26_055059.htm` | 300000 |
+| scan | 10-Q | 2021-11-05 | `investor-documents/sec-edgar/10-Q_20211105_rpt20210930_acc0001437749_21_025360.htm` | 8000 |
+| scan | 10-Q | 2022-05-10 | `investor-documents/sec-edgar/10-Q_20220510_rpt20220331_acc0001437749_22_011641.htm` | 8000 |
+| scan | 10-Q | 2022-08-05 | `investor-documents/sec-edgar/10-Q_20220805_rpt20220630_acc0001437749_22_018972.htm` | 8000 |
+| scan | 10-Q | 2022-11-09 | `investor-documents/sec-edgar/10-Q_20221109_rpt20220930_acc0001193125_22_281241.htm` | 8000 |
+| scan | 10-Q | 2023-05-10 | `investor-documents/sec-edgar/10-Q_20230510_rpt20230331_acc0000950170_23_019998.htm` | 8000 |
+| scan | 10-Q | 2023-08-09 | `investor-documents/sec-edgar/10-Q_20230809_rpt20230630_acc0000950170_23_040271.htm` | 8000 |
+| scan | 10-Q | 2023-11-07 | `investor-documents/sec-edgar/10-Q_20231107_rpt20230930_acc0000950170_23_059922.htm` | 8000 |
+| full | 10-Q | 2024-05-09 | `investor-documents/sec-edgar/10-Q_20240509_rpt20240331_acc0000950170_24_056495.htm` | 176542 |
+| scan | 10-Q | 2024-08-07 | `investor-documents/sec-edgar/10-Q_20240807_rpt20240630_acc0000950170_24_092450.htm` | 8000 |
+| scan | 10-Q | 2024-11-07 | `investor-documents/sec-edgar/10-Q_20241107_rpt20240930_acc0000950170_24_123004.htm` | 8000 |
+| full | 10-Q | 2025-05-01 | `investor-documents/sec-edgar/10-Q_20250501_rpt20250331_acc0000950170_25_062012.htm` | 199735 |
+| scan | 10-Q | 2025-08-06 | `investor-documents/sec-edgar/10-Q_20250806_rpt20250630_acc0000950170_25_104199.htm` | 8000 |
+| partial | 10-Q | 2025-11-05 | `investor-documents/sec-edgar/10-Q_20251105_rpt20250930_acc0001193125_25_267093.htm` | 30000 |
+| full | 10-Q | 2026-05-05 | `investor-documents/sec-edgar/10-Q_20260505_rpt20260331_acc0001193125_26_206810.htm` | 203647 |
+| scan | proxy | 2023-04-11 | `investor-documents/sec-edgar/DEF 14A_20230411_rpt_acc0001193125_23_097284.htm` | 8000 |
+| scan | proxy | 2024-04-04 | `investor-documents/sec-edgar/DEF 14A_20240404_rpt20240517_acc0001193125_24_087295.htm` | 8000 |
+| scan | proxy | 2025-04-10 | `investor-documents/sec-edgar/DEF 14A_20250410_rpt20250521_acc0001193125_25_077486.htm` | 8000 |
+| full | proxy | 2026-04-10 | `investor-documents/sec-edgar/DEF 14A_20260410_rpt20260521_acc0001193125_26_151210.htm` | 300000 |
+| scan | 8-K | 2024-07-11 | `investor-documents/sec-edgar/8-K_20240711_rpt20240710_acc0001437749_24_022513.htm` | 4365 |
+| scan | 8-K | 2024-08-07 | `investor-documents/sec-edgar/8-K_20240807_rpt20240806_acc0001437749_24_025011.htm` | 4203 |
+| scan | 8-K | 2024-10-03 | `investor-documents/sec-edgar/8-K_20241003_rpt20240705_acc0001437749_24_030602.htm` | 3342 |
+| scan | 8-K | 2024-10-16 | `investor-documents/sec-edgar/8-K_20241016_rpt20241016_acc0001437749_24_031354.htm` | 4597 |
+| scan | 8-K | 2024-11-04 | `investor-documents/sec-edgar/8-K_20241104_rpt20241104_acc0001437749_24_033143.htm` | 8000 |
+| scan | 8-K | 2024-11-07 | `investor-documents/sec-edgar/8-K_20241107_rpt20241106_acc0001437749_24_033735.htm` | 4232 |
+| scan | 8-K | 2025-02-12 | `investor-documents/sec-edgar/8-K_20250212_rpt20250212_acc0001437749_25_003591.htm` | 3835 |
+| scan | 8-K | 2025-02-13 | `investor-documents/sec-edgar/8-K_20250213_rpt20250213_acc0001437749_25_003775.htm` | 4216 |
+| scan | 8-K | 2025-02-14 | `investor-documents/sec-edgar/8-K_20250214_rpt20250214_acc0001437749_25_004045.htm` | 4561 |
+| scan | 8-K | 2025-05-01 | `investor-documents/sec-edgar/8-K_20250501_rpt20250501_acc0000950170_25_061987.htm` | 4136 |
+| scan | 8-K | 2025-05-22 | `investor-documents/sec-edgar/8-K_20250522_rpt20250521_acc0001437749_25_018167.htm` | 8000 |
+| scan | 8-K | 2025-08-06 | `investor-documents/sec-edgar/8-K_20250806_rpt20250804_acc0000950170_25_104148.htm` | 5392 |
+| scan | 8-K | 2025-08-20 | `investor-documents/sec-edgar/8-K_20250820_rpt20250820_acc0001437749_25_027446.htm` | 3241 |
+| scan | 8-K | 2025-09-11 | `investor-documents/sec-edgar/8-K_20250911_rpt20250911_acc0001437749_25_028853.htm` | 4130 |
+| scan | 8-K | 2025-11-05 | `investor-documents/sec-edgar/8-K_20251105_rpt20251105_acc0001193125_25_267085.htm` | 4175 |
+| scan | 8-K | 2025-12-31 | `investor-documents/sec-edgar/8-K_20251231_rpt20251229_acc0001437749_25_039070.htm` | 3856 |
+| scan | 8-K | 2026-01-26 | `investor-documents/sec-edgar/8-K_20260126_rpt20260126_acc0001437749_26_002003.htm` | 5178 |
+| scan | 8-K | 2026-01-28 | `investor-documents/sec-edgar/8-K_20260128_rpt20260126_acc0001437749_26_002243.htm` | 5439 |
+| scan | 8-K | 2026-02-13 | `investor-documents/sec-edgar/8-K_20260213_rpt20260213_acc0001437749_26_004103.htm` | 3838 |
+| scan | 8-K | 2026-02-17 | `investor-documents/sec-edgar/8-K_20260217_rpt20260217_acc0001193125_26_054862.htm` | 4169 |
+| scan | 8-K | 2026-02-20 | `investor-documents/sec-edgar/8-K_20260220_rpt20260218_acc0001437749_26_004900.htm` | 4241 |
+| scan | 8-K | 2026-03-25 | `investor-documents/sec-edgar/8-K_20260325_rpt20260325_acc0001437749_26_009820.htm` | 5897 |
+| scan | 8-K | 2026-04-10 | `investor-documents/sec-edgar/8-K_20260410_rpt20260409_acc0001437749_26_011930.htm` | 4099 |
+| scan | 8-K | 2026-05-05 | `investor-documents/sec-edgar/8-K_20260505_rpt20260505_acc0001193125_26_206729.htm` | 4144 |
+| scan | 8-K | 2026-05-22 | `investor-documents/sec-edgar/8-K_20260522_rpt20260521_acc0001437749_26_018228.htm` | 6162 |
+| inventory | other | — | `investor-documents/ir-hl/HMC_2025_ACO_041426.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-hl/Hecla-Mining_June2026-Update.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-hl/Hecla-Web-Privacy-Policy.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-hl/Hecla-Web-Terms-of-Use.pdf` | 0 |
+| inventory | other | — | `investor-documents/ir-hl/S-K-1300-TRS-on-the-Hecla-Keno-Hill-Mine-Yukon-Canada-Final.pdf` | 0 |
+| inventory | other | 2018-03-16 | `investor-documents/sec-edgar/PRE 14A_20180316_rpt20180524_acc0001206774_18_000858.htm` | 0 |
+| inventory | other | 2019-03-21 | `investor-documents/sec-edgar/PRE 14A_20190321_rpt20190523_acc0001206774_19_000973.htm` | 0 |
+| inventory | other | 2025-03-21 | `investor-documents/sec-edgar/PRE 14A_20250321_rpt20250521_acc0001193125_25_060274.htm` | 0 |
+| inventory | other | 2024-05-20 | `investor-documents/sec-edgar/S-3ASR_20240520_rpt_acc0001193125_24_142994.htm` | 0 |
+| inventory | other | 2024-11-07 | `investor-documents/sec-edgar/S-3ASR_20241107_rpt_acc0001193125_24_253133.htm` | 0 |
+| inventory | other | 2025-02-14 | `investor-documents/sec-edgar/S-3ASR_20250214_rpt_acc0001193125_25_026298.htm` | 0 |
+| inventory | other | 2018-03-23 | `third-party-analyses/activist_reports/long/SC-13D_20180323_acc0001437749_18_005348.htm` | 0 |
+| inventory | other | 2022-07-19 | `third-party-analyses/activist_reports/long/SC-13D_20220719_acc0001193125_22_196990.htm` | 0 |
+| inventory | other | 2018-01-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20180108_acc0000869178_18_000002.htm` | 0 |
+| inventory | other | 2018-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20180209_acc0000932471_18_003941.htm` | 0 |
+| inventory | other | 2018-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20180209_acc0001258897_18_001068.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0001258897_19_001074.htm` | 0 |
+| inventory | other | 2019-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20190211_acc0000869178_19_000082.htm` | 0 |
+| inventory | other | 2019-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20190211_acc0000932471_19_005524.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0000869178_20_000094.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0001104659_20_017872.htm` | 0 |
+| inventory | other | 2020-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20200212_acc0001258897_20_001045.htm` | 0 |
+| inventory | other | 2021-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20210210_acc0001104659_21_018258.htm` | 0 |
+| inventory | other | 2021-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20210211_acc0000869178_21_000058.htm` | 0 |
+| inventory | other | 2021-02-12 | `third-party-analyses/activist_reports/long/SC-13G/A_20210212_acc0000354204_21_000432.htm` | 0 |
+| inventory | other | 2022-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20220208_acc0000354204_22_001776.htm` | 0 |
+| inventory | other | 2022-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20220210_acc0001104659_22_017726.htm` | 0 |
+| inventory | other | 2022-02-11 | `third-party-analyses/activist_reports/long/SC-13G/A_20220211_acc0000869178_22_000042.htm` | 0 |
+| inventory | other | 2023-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20230209_acc0001104659_23_016111.htm` | 0 |
+| inventory | other | 2023-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20230210_acc0000354204_23_001597.htm` | 0 |
+| inventory | other | 2023-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20230214_acc0000869178_23_000022.htm` | 0 |
+| inventory | other | 2023-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20230214_acc0000869178_23_000040.htm` | 0 |
+| inventory | other | 2024-02-09 | `third-party-analyses/activist_reports/long/SC-13G/A_20240209_acc0000354204_24_003212.htm` | 0 |
+| inventory | other | 2024-02-13 | `third-party-analyses/activist_reports/long/SC-13G/A_20240213_acc0000950142_24_000370.htm` | 0 |
+| inventory | other | 2024-02-13 | `third-party-analyses/activist_reports/long/SC-13G/A_20240213_acc0001104659_24_021100.htm` | 0 |
+| inventory | other | 2024-04-15 | `third-party-analyses/activist_reports/long/SC-13G/A_20240415_acc0000950142_24_001048.htm` | 0 |
+| inventory | other | 2022-09-13 | `third-party-analyses/activist_reports/long/SC-13G_20220913_acc0000950142_22_002695.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/424B5_20250214_rpt_acc0001193125_25_027352.htm`
+**Keyword snippets (related party, financials, segments):**
+- UBS Investment Bank
+- RISK FACTORS
+- PLAN OF DISTRIBUTION
+- other mineralization, to differ materially from those expressed in, or implied by, these forward-looking statements.
+- Commodity and currency risk management activities could prevent us from realizing possible revenues or lower
+- We derive a significant amount of revenue from a relatively small number of customers and occasionally enter into
+- Issues we have faced at certain segments could require us to write-down the carrying value associated long-lived
+- Our principal executive offices are located at 6500 N. Mineral Drive, Suite 200, Coeur d&#146;Alene, Idaho 83815-9408. Our telephone number is
+- There are risks associated with this offering and our business. You should consider carefully the risk factors beginning on page S-3 of this prospectus supplement and the other risks identified in the
+- An investment in our common stock involves a significant degree of risk. You should carefully consider the risk factors described below,
+- together with the other information included or incorporated by reference in this prospectus supplement and the accompanying prospectus, including the risk factors included in our Annual Report on Form 10-K
+- shares we will issue under the equity distribution agreement, at any one time or in total, is uncertain.
+- issued and sold under the equity distribution agreement.
+- Distributions
+- We occasionally pay distributions on our common stock, however there is no assurance that we will do so in the future. If we do make any
+- eligible, at a reduced rate provided by an applicable income tax treaty, on any distributions treated as dividends received in respect of our common stock. In order to obtain a reduced rate of
+- tax treaty, are treated as attributable to a permanent establishment maintained by the Non-U.S. Holder in the United States) generally will be taxed on a net income basis at the rates and in the manner
+- Any distributions paid on our common stock, and the tax withheld with respect thereto, are subject to information reporting requirements. These
+- Sections 1471 through 1474 of the Code, and the Treasury Regulations and administrative guidance promulgated thereunder (&#147;FATCA&#148;)
+- On February 18, 2021, we entered into an equity distribution agreement with BMO Capital Markets Corp., Scotia Capital (USA) Inc., BofA
+- LLC, RBC Capital Markets, LLC and Roth Capital Partners, LLC as sales agents (as amended, the &#147;equity distribution agreement&#148;).
+- net proceeds to us of $132.3 million, and 36,156,316 shares of common stock remain available for issuance and sale under the equity distribution agreement.
+- Pursuant to the equity distribution agreement, sales of common stock will be made by means of ordinary brokers&#146; transactions through the
+- stock sold through it as our agent under the equity distribution agreement. We have agreed to reimburse the sales agents for certain of their expenses.
+- The offering of our common stock pursuant to the equity distribution agreement will
+- Mineral Drive, Suite 200
+- Information relating to Hecla Mining Company and its subsidiaries&#146; mineral properties contained in the documents incorporated by
+- carefully before you make your investment decision.
+- The prospectus supplement for each offering of securities will describe the plan of distribution for that offering. Our common stock is
+- Investing in our common stock involves risks. See &#147; Risk Factors &#148; beginning on page 7 of
+- Our mineral reserve and resource estimates may be imprecise.
+- Investment in our securities involves risks. You should carefully consider the risk factors incorporated by reference to our most recent
+- and (iii) in the event of our liquidation or dissolution, share ratably in any distribution of our assets.
+- Series B preferred stockholders are entitled to receive, when, as and if declared by the Board of Directors out of our assets legally available
+- the classification of our Board of Directors into three classes serving staggered three-year terms, which makes
+
+### `investor-documents/sec-edgar/10-K_20260217_rpt20251231_acc0001193125_26_055059.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 1,423,019
+- RevenueFromContractWithCustomerIncludingAssessedTax: 929,925
+- RevenueFromContractWithCustomerIncludingAssessedTax: 720,227
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 1,382
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: &#8212;
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 203
+- OperatingLeaseRightOfUseAsset: 8,859
+- OperatingLeaseRightOfUseAsset: 7,544
+- FinanceAndOperatingLeaseLiabilityCurrent: 7,173
+- FinanceAndOperatingLeaseLiabilityCurrent: 8,169
+- StockholdersEquity: 2,591,646
+- StockholdersEquity: 2,039,514
+- LiabilitiesAndStockholdersEquity: 3,560,645
+- LiabilitiesAndStockholdersEquity: 2,981,060
+- StockholdersEquity: 39
+- StockholdersEquity: 151,819
+- StockholdersEquity: 2,260,290
+- StockholdersEquity: 403,931
+- StockholdersEquity: 2,448
+- StockholdersEquity: 31,698
+- StockholdersEquity: 1,978,967
+- StockholdersEquity: 156,076
+- StockholdersEquity: 2,343,747
+- StockholdersEquity: 503,861
+- StockholdersEquity: 5,837
+- StockholdersEquity: 33,734
+- StockholdersEquity: 1,968,104
+- StockholdersEquity: 160,052
+- StockholdersEquity: 2,418,149
+- StockholdersEquity: 493,529
+- StockholdersEquity: 10,266
+- StockholdersEquity: 34,931
+- StockholdersEquity: 169,689
+- StockholdersEquity: 2,643,211
+- StockholdersEquity: 182,143
+
+### `investor-documents/sec-edgar/10-K_20250213_rpt20241231_acc0000950170_25_019955.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 929,925
+- RevenueFromContractWithCustomerIncludingAssessedTax: 720,227
+- RevenueFromContractWithCustomerIncludingAssessedTax: 718,905
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: &#8212;
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 203
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 6,842
+- OperatingLeaseRightOfUseAsset: 7,544
+- OperatingLeaseRightOfUseAsset: 8,349
+- FinanceAndOperatingLeaseLiabilityCurrent: 8,169
+- FinanceAndOperatingLeaseLiabilityCurrent: 9,752
+- StockholdersEquity: 2,039,514
+- StockholdersEquity: 1,968,104
+- LiabilitiesAndStockholdersEquity: 2,981,060
+- LiabilitiesAndStockholdersEquity: 3,011,104
+- StockholdersEquity: 39
+- StockholdersEquity: 136,391
+- StockholdersEquity: 2,034,485
+- StockholdersEquity: 353,651
+- StockholdersEquity: 28,456
+- StockholdersEquity: 28,021
+- StockholdersEquity: 1,760,787
+- StockholdersEquity: 151,819
+- StockholdersEquity: 2,260,290
+- StockholdersEquity: 403,931
+- StockholdersEquity: 2,448
+- StockholdersEquity: 31,698
+- StockholdersEquity: 1,978,967
+- StockholdersEquity: 156,076
+- StockholdersEquity: 2,343,747
+- StockholdersEquity: 503,861
+- StockholdersEquity: 5,837
+- StockholdersEquity: 33,734
+- StockholdersEquity: 160,052
+- StockholdersEquity: 2,418,149
+- StockholdersEquity: 493,529
+
+### `investor-documents/sec-edgar/10-K_20240215_rpt20231231_acc0000950170_24_015673.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 720,227
+- RevenueFromContractWithCustomerIncludingAssessedTax: 718,905
+- RevenueFromContractWithCustomerIncludingAssessedTax: 807,473
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 203
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 6,842
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 4,874
+- OperatingLeaseRightOfUseAsset: 8,349
+- OperatingLeaseRightOfUseAsset: 11,064
+- FinanceAndOperatingLeaseLiabilityCurrent: 9,752
+- FinanceAndOperatingLeaseLiabilityCurrent: 9,483
+- StockholdersEquity: 1,968,104
+- StockholdersEquity: 1,978,967
+- LiabilitiesAndStockholdersEquity: 3,011,104
+- LiabilitiesAndStockholdersEquity: 2,927,172
+- StockholdersEquity: 39
+- StockholdersEquity: 134,629
+- StockholdersEquity: 2,003,576
+- StockholdersEquity: 368,074
+- StockholdersEquity: 32,889
+- StockholdersEquity: 23,496
+- StockholdersEquity: 1,713,785
+- StockholdersEquity: 136,391
+- StockholdersEquity: 2,034,485
+- StockholdersEquity: 353,651
+- StockholdersEquity: 28,456
+- StockholdersEquity: 28,021
+- StockholdersEquity: 1,760,787
+- StockholdersEquity: 151,819
+- StockholdersEquity: 2,260,290
+- StockholdersEquity: 403,931
+- StockholdersEquity: 2,448
+- StockholdersEquity: 31,698
+- StockholdersEquity: 156,076
+- StockholdersEquity: 2,343,747
+- StockholdersEquity: 503,861
+
+### `investor-documents/sec-edgar/10-Q_20260505_rpt20260331_acc0001193125_26_206810.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 411,433
+- RevenueFromContractWithCustomerIncludingAssessedTax: 205,334
+- OperatingLeaseRightOfUseAsset: 18,435
+- OperatingLeaseRightOfUseAsset: 8,859
+- FinanceAndOperatingLeaseLiabilityCurrent: 3,601
+- FinanceAndOperatingLeaseLiabilityCurrent: 4,262
+- StockholdersEquity: 2,570,813
+- StockholdersEquity: 2,591,646
+- LiabilitiesAndStockholdersEquity: 3,376,293
+- LiabilitiesAndStockholdersEquity: 3,560,645
+- StockholdersEquity: 39
+- StockholdersEquity: 169,689
+- StockholdersEquity: 2,643,211
+- StockholdersEquity: 182,143
+- StockholdersEquity: 3,334
+- StockholdersEquity: 35,816
+- StockholdersEquity: 169,779
+- StockholdersEquity: 2,647,282
+- StockholdersEquity: 203,819
+- StockholdersEquity: 5,491
+- StockholdersEquity: 36,977
+- StockholdersEquity: 160,052
+- StockholdersEquity: 2,418,149
+- StockholdersEquity: 493,529
+- StockholdersEquity: 10,266
+- StockholdersEquity: 34,931
+- StockholdersEquity: 2,039,514
+- StockholdersEquity: 160,228
+- StockholdersEquity: 2,423,631
+- StockholdersEquity: 467,168
+- StockholdersEquity: 7,832
+- StockholdersEquity: 2,073,967
+- DisposalGroupIncludingDiscontinuedOperationRevenue: 70,284
+- DisposalGroupIncludingDiscontinuedOperationRevenue: 56,005
+- DisposalGroupIncludingDiscontinuedOperationFinanceAndOperatingLeaseLiabilityCurrent: 2,911
+
+### `investor-documents/sec-edgar/10-Q_20250501_rpt20250331_acc0000950170_25_062012.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 261,339
+- RevenueFromContractWithCustomerIncludingAssessedTax: 189,528
+- OperatingLeaseRightOfUseAsset: 9,387
+- OperatingLeaseRightOfUseAsset: 7,544
+- FinanceAndOperatingLeaseLiabilityCurrent: 7,904
+- FinanceAndOperatingLeaseLiabilityCurrent: 8,169
+- StockholdersEquity: 2,073,967
+- StockholdersEquity: 2,039,514
+- LiabilitiesAndStockholdersEquity: 3,023,557
+- LiabilitiesAndStockholdersEquity: 2,981,060
+- StockholdersEquity: 39
+- StockholdersEquity: 160,052
+- StockholdersEquity: 2,418,149
+- StockholdersEquity: 493,529
+- StockholdersEquity: 10,266
+- StockholdersEquity: 34,931
+- StockholdersEquity: 160,228
+- StockholdersEquity: 2,423,631
+- StockholdersEquity: 467,168
+- StockholdersEquity: 7,832
+- StockholdersEquity: 156,076
+- StockholdersEquity: 2,343,747
+- StockholdersEquity: 503,861
+- StockholdersEquity: 5,837
+- StockholdersEquity: 33,734
+- StockholdersEquity: 1,968,104
+- StockholdersEquity: 156,447
+- StockholdersEquity: 2,350,249
+- StockholdersEquity: 513,608
+- StockholdersEquity: 434
+- StockholdersEquity: 1,958,630
+- RevenueFromContractWithCustomerIncludingAssessedTax: 118,143
+- RevenueFromContractWithCustomerIncludingAssessedTax: 63,194
+- RevenueFromContractWithCustomerIncludingAssessedTax: 16,909
+- RevenueFromContractWithCustomerIncludingAssessedTax: 56,005
+
+### `investor-documents/sec-edgar/10-Q_20240509_rpt20240331_acc0000950170_24_056495.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 189,528
+- RevenueFromContractWithCustomerIncludingAssessedTax: 199,500
+- OperatingLeaseRightOfUseAsset: 9,187
+- OperatingLeaseRightOfUseAsset: 8,349
+- FinanceAndOperatingLeaseLiabilityCurrent: 8,610
+- FinanceAndOperatingLeaseLiabilityCurrent: 9,752
+- StockholdersEquity: 1,958,630
+- StockholdersEquity: 1,968,104
+- LiabilitiesAndStockholdersEquity: 2,994,258
+- LiabilitiesAndStockholdersEquity: 3,011,104
+- StockholdersEquity: 39
+- StockholdersEquity: 156,076
+- StockholdersEquity: 2,343,747
+- StockholdersEquity: 503,861
+- StockholdersEquity: 5,837
+- StockholdersEquity: 33,734
+- StockholdersEquity: 156,447
+- StockholdersEquity: 2,350,249
+- StockholdersEquity: 513,608
+- StockholdersEquity: 434
+- StockholdersEquity: 34,931
+- StockholdersEquity: 151,819
+- StockholdersEquity: 2,260,290
+- StockholdersEquity: 403,931
+- StockholdersEquity: 2,448
+- StockholdersEquity: 31,698
+- StockholdersEquity: 1,978,967
+- StockholdersEquity: 152,536
+- StockholdersEquity: 2,273,793
+- StockholdersEquity: 410,995
+- StockholdersEquity: 8,964
+- StockholdersEquity: 32,180
+- StockholdersEquity: 1,992,157
+- RevenueFromContractWithCustomerIncludingAssessedTax: 97,310
+- RevenueFromContractWithCustomerIncludingAssessedTax: 98,611
+
+### `investor-documents/sec-edgar/DEF 14A_20260410_rpt20260521_acc0001193125_26_151210.htm`
+**Keyword snippets (related party, financials, segments):**
+- President, CEO and Director
+- $1.4 Billion Record Revenue
+- NET INCOME APPLICABLE TO
+- Identifying and Evaluating Nominees for Director
+- Director Skills, Experience, Tenure, Age, and Diversity Matrix
+- Director Qualifications, Evaluation and Nomination
+- Majority Voting for Directors and Director Resignation Policy
+- Number of Directors
+- Compensation Committee Procedures
+- Director Onboarding and Continuing Education
+- ELECTION OF TWO CLASS I DIRECTORS
+- COMPENSATION OF INDEPENDENT DIRECTORS
+- Compensation Consultant and Peer Group Benchmarking
+- Components of Independent Director Compensation
+- Equity Compensation
+- Independent Director Compensation for 2025
+- Independent Director Stock Ownership Guidelines
+- OF OUR NAMED EXECUTIVE OFFICER COMPENSATION FOR 2025
+- COMPENSATION DISCUSSION AND ANALYSIS AND OTHER INFORMATION
+- Executive Summary
+- The Compensation Committee Process and the Role of Management and the Human Resources Department
+- Compensation Philosophy and Objectives
+- Elements of Total Compensation
+- Targeted Compensation
+- Changes in NEO Compensation and Year-End Results for 2025
+- Stock Ownership Guidelines for Executive Officers
+- COMPENSATION RISK ANALYSIS
+- COMPENSATION COMMITTEE INTERLOCKS AND INSIDER PARTICIPATION
+- COMPENSATION COMMITTEE REPORT
+- COMPENSATION OF NAMED EXECUTIVE OFFICERS
+- Summary Compensation Table for 2025
+- Nonqualified Deferred Compensation for 2025
+- Compensation Actually Paid and Cumulative Company TSR
+- Compensation Actually Paid and Company Net (Loss) Income
+- Compensation Actually Paid and Annual TSR
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/424B5_20240215_rpt_acc0001193125_24_037468.htm`
+**Keyword snippets (related party, financials, segments):**
+- Distribution Agreement.
+- stock available for issuance and sale from time to time under the Amended Equity Distribution Agreement and this supplement, the Prospectus Supplement and the accompanying prospectus.
+- UBS Investment Bank
+- Each reference to &#147;Plan of Distribution (Conflicts of Interest)&#148; section in the Prospectus
+- Supplement is hereby amended to refer to the &#147;Plan of Distribution&#148; section.
+- Distribution&#148; section of the Prospectus Supplement is hereby amended and restated in its entirety as follows:
+- agreement. The original equity distribution agreement has been filed as an exhibit to a Current Report on Form 8-K that we filed with the SEC, and the Amendment will be filed as an exhibit to a report that we
+- Under the equity distribution agreement, we may offer and sell up to 60,000,000 shares of common stock from time to time through the sales
+- $1.2 million, leaving 45,494,603 shares of common stock available for offer and sale from time to time through the sales agents under the equity distribution agreement.
+- Under the terms of the equity distribution agreement, the sales of common stock made thereunder will be made by means of ordinary
+
+### `investor-documents/sec-edgar/424B5_20220224_rpt_acc0001193125_22_050365.htm`
+**Keyword snippets (related party, financials, segments):**
+- our common stock involves risks. See &#147; Risk Factors &#148; on page S-3 of this prospectus supplement, page 7 of the accompanying prospectus and in the documents incorporated by
+- RISK FACTORS
+- PLAN OF DISTRIBUTION (CONFLICTS OF INTEREST)
+- PLAN OF DISTRIBUTION
+- other mineralization, to differ materially from those expressed in, or implied by, these forward-looking statements.
+- prospectus, in any other SEC Reports we file, in this prospectus supplement in the section entitled &#147;Risk Factors&#148; and in the accompanying prospectus, including the following:
+- commodity and currency risk management activities could prevent us from realizing possible revenues or lower
+- we derive a significant amount of revenue from a relatively small number of customers and occasionally enter into
+- key terms of the Senior Notes will be suspended if the Senior Notes achieve investment grade ratings and no
+- Our principal executive offices are located at 6500 N.
+- Mineral Drive, Suite 200, Coeur d&#146;Alene, Idaho 83815-9408. Our telephone number is (208) 769-4100. Our web site address is www.hecla-mining.com .
+- There are risks associated with this offering and our business. You should consider carefully the risk factors beginning on page S-3 of this prospectus supplement and the other risks identified in the
+- An investment in our common stock involves a significant degree of risk. You should carefully consider the risk factors described below,
+- together with the other information included or incorporated by reference in this prospectus supplement and the accompanying prospectus, including the risk factors included in our Annual Report on Form 10-K
+- shares we will issue under the equity distribution agreement, at any one time or in total, is uncertain.
+- issued and sold under the equity distribution agreement.
+
+### `investor-documents/sec-edgar/424B5_20210218_rpt_acc0001193125_21_047621.htm`
+**Keyword snippets (related party, financials, segments):**
+- involves risks. See &#147;Risk Factors&#148; on page S-3 of this prospectus supplement, page 6 of the accompanying prospectus and in the documents incorporated by reference in this prospectus supplement.
+- RISK FACTORS
+- PLAN OF DISTRIBUTION (CONFLICTS OF INTEREST)
+- PLAN OF DISTRIBUTION
+- commodity and currency risk management activities could prevent us from realizing possible revenues or lower
+- we derive a significant amount of revenue from a relatively small number of customers and occasionally enter into
+- Our principal executive
+- offices are located at 6500 N. Mineral Drive, Suite 200, Coeur d&#146;Alene, Idaho 83815-9408. Our telephone number is (208) 769-4100. Our web site address is www.hecla-mining.com .
+- There are risks associated with this offering and our business. You should consider carefully the risk factors beginning on page S-3 of this prospectus supplement and the other risks identified in the
+- An investment in our common stock involves a significant degree of risk. You should carefully consider the risk factors described below,
+- together with the other information included or incorporated by reference in this prospectus supplement and the accompanying prospectus, including the risk factors included in our Annual Report on Form 10-K
+- in both the book value and fair value of their shares.
+- shares we will issue under the equity distribution agreement, at any one time or in total, is uncertain.
+- issued and sold under the equity distribution agreement.
+
+### `investor-documents/sec-edgar/10-K_20230217_rpt20221231_acc0000950170_23_003174.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 718,905
+- RevenueFromContractWithCustomerIncludingAssessedTax: 807,473
+- RevenueFromContractWithCustomerIncludingAssessedTax: 691,873
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 6,842
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 4,874
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: &#x2014;
+- OperatingLeaseRightOfUseAsset: 11,064
+- OperatingLeaseRightOfUseAsset: 12,435
+- StockholdersEquity: 1,978,967
+- StockholdersEquity: 1,760,787
+- LiabilitiesAndStockholdersEquity: 2,927,172
+- LiabilitiesAndStockholdersEquity: 2,728,808
+- StockholdersEquity: 39
+- StockholdersEquity: 132,292
+- StockholdersEquity: 1,973,700
+- StockholdersEquity: 349,220
+- StockholdersEquity: 37,310
+- StockholdersEquity: 22,967
+- StockholdersEquity: 1,696,534
+- StockholdersEquity: 134,629
+
+### `investor-documents/sec-edgar/10-K_20220223_rpt20211231_acc0001437749_22_004164.htm`
+**Keyword snippets (related party, financials, segments):**
+- ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber: 1,295,620
+- RevenueFromContractWithCustomerIncludingAssessedTax: 807,473
+- RevenueFromContractWithCustomerIncludingAssessedTax: 691,873
+- RevenueFromContractWithCustomerIncludingAssessedTax: 673,266
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 4,874
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: &#x2014;
+- RightOfUseAssetObtainedInExchangeForOperatingLeaseLiability: 22,365
+- MarketableEquitySecuritiesReceivedForSaleOfMineralInterest: &#x2014;
+- MarketableEquitySecuritiesReceivedForSaleOfMineralInterest: 2,257
+- OperatingLeaseRightOfUseAsset: 12,435
+- OperatingLeaseRightOfUseAsset: 10,628
+- OperatingLeaseLiabilityCurrent: 2,486
+- OperatingLeaseLiabilityCurrent: 3,008
+- OperatingLeaseLiabilityNoncurrent: 9,950
+- OperatingLeaseLiabilityNoncurrent: 7,634
+- StockholdersEquity: 1,760,787
+- StockholdersEquity: 1,713,785
+- LiabilitiesAndStockholdersEquity: 2,728,808
+- LiabilitiesAndStockholdersEquity: 2,700,210
+- StockholdersEquity: 39
+
+### `investor-documents/sec-edgar/10-K-A_20200213_rpt20191231_acc0001437749_20_002531.htm`
+**Keyword snippets (related party, financials, segments):**
+- 6500 N. Mineral Drive, Suite 200
+- Address of Principal Executive Offices
+- Hecla Mining Company Key Employee Deferred Compensation Plan. Filed as exhibit 10.4 to Registrant's Form 10-K for the year ended December 31, 2017 (File No. 1-8491), and incorporated herein by reference. (1)
+- Hecla Mining Company Stock Plan for Nonemployee Directors, as amended. Filed as exhibit 10.3 to Registrant's Form 10-Q for the quarter ended June 30, 2017 (File No. 1-8491) and incorporated herein by reference. (1)
+- Chief Executive Officer and Director
+
+### `investor-documents/sec-edgar/10-Q_20251105_rpt20250930_acc0001193125_25_267093.htm`
+**Keyword snippets (related party, financials, segments):**
+- RevenueFromContractWithCustomerIncludingAssessedTax: 409,542
+- RevenueFromContractWithCustomerIncludingAssessedTax: 245,085
+- RevenueFromContractWithCustomerIncludingAssessedTax: 974,908
+- RevenueFromContractWithCustomerIncludingAssessedTax: 680,270
+- OperatingLeaseRightOfUseAsset: 8,706
+- OperatingLeaseRightOfUseAsset: 7,544
+- FinanceAndOperatingLeaseLiabilityCurrent: 7,908
+- FinanceAndOperatingLeaseLiabilityCurrent: 8,169
+- StockholdersEquity: 2,449,644
+- StockholdersEquity: 2,039,514
+- LiabilitiesAndStockholdersEquity: 3,221,842
+- LiabilitiesAndStockholdersEquity: 2,981,060
+- StockholdersEquity: 39
+- StockholdersEquity: 167,872
+- StockholdersEquity: 2,594,492
+- StockholdersEquity: 411,975
+- StockholdersEquity: 4,579
+- StockholdersEquity: 35,816
+- StockholdersEquity: 2,310,033
+- StockholdersEquity: 169,661

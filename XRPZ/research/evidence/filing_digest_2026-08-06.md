@@ -1,0 +1,97 @@
+# Filing digest — XRPZ
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `XRPZ/research/evidence/document_inventory.json`  
+
+Documents in folder: **3** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | 10-K | 2026-06-29 | `investor-documents/sec-edgar/10-K_20260629_rpt20260331_acc0001140361_26_026732.htm` | 300000 |
+| full | 10-Q | 2026-02-17 | `investor-documents/sec-edgar/10-Q_20260217_rpt20251231_acc0001140361_26_005816.htm` | 126712 |
+| partial | 8-K | 2026-05-08 | `investor-documents/sec-edgar/8-K_20260508_rpt20260508_acc0001193125_26_214633.htm` | 4390 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/10-K_20260629_rpt20260331_acc0001140361_26_026732.htm`
+**Keyword snippets (related party, financials, segments):**
+- StockholdersEquity: 2,224,208
+- StockholdersEquity: 323,782,365
+- NumberOfOperatingSegments: 1
+- (Address of principal executive offices, telephone number, including area code)
+- the last day of the fiscal year during which the Trust has total annual gross revenues of $1.235 billion or more;
+- Risk Factors
+- Directors, Executive Officers and Corporate Governance
+- Executive Compensation
+- Certain Relationships and Related Transactions and Director Independence
+- The Trust is organized as a Delaware statutory trust. CSC Delaware Trust Company, a subsidiary of the Corporation Service Company, is the Trustee of the Trust.
+- Investment Objective
+- An investment in Shares is:
+- As convenient and easy to handle as any other investment in shares.
+- Liability of the trustee and Indemnification
+- The Marketing Agent and its affiliates may from time to time purchase or sell Shares for their own account, as agent for their customers and for accounts over which they exercise investment discretion.
+- Summary Risk Factors
+- Risk Factors Related to Digital Assets
+- Risk Factors Related to the Digital Asset Markets
+- Risk Factors Related to the Fund and the Shares
+- Risk Factors Related to the Regulation of the Fund and the Shares
+- Potential amendments to the XRP Ledger's protocols and software could, if accepted and authorized by the XRP Ledger community, adversely affect the value of an investment in the Fund.
+- investment and trading activities of large or active consumer and institutional users, speculators, validators, and investors;
+- Because the Fund holds only XRP and cash, an investment in the Fund may be more volatile than an investment in a more broadly diversified portfolio.
+- The Sponsor will not have any strategy relating to the development of XRP and the XRP Ledger. However, a lack of expansion in usage of XRP and the XRP Ledger could adversely affect an investment in Shares.
+- An investment in the Shares deviates from a direct investment in XRP.
+- reduced disclosure obligations regarding executive compensation in the Fund's periodic reports and audited financial statements in this report;
+- exemptions from the requirements of holding advisory "say-on-pay" votes on executive compensation and shareholder advisory votes on "golden parachute" compensation; and
+- The Fund cannot predict if investors will find an investment in the Fund less attractive if it relies on these exemptions.
+- The lack of an active trading market for the Shares may result in losses on your investment at the time of disposition of your Shares.
+- Shareholders do not have the protections associated with ownership of shares in an investment company registered under the Investment Company Act or the protections afforded by the CEA.
+- As the Sponsor and its management have limited history of operating investment vehicles like the Fund, their experience may be inadequate or unsuitable to manage the affairs of the Fund.
+
+### `investor-documents/sec-edgar/10-Q_20260217_rpt20251231_acc0001140361_26_005816.htm`
+**Keyword snippets (related party, financials, segments):**
+- StockholdersEquity: 2,224,208
+- StockholdersEquity: 244,809,834
+- NumberOfOperatingSegments: 1
+- (Address of principal executive offices, telephone number, including area code)
+- the last day of the fiscal year during which the Trust has total annual gross revenues of $1.235 billion or more;
+- Item 1A. Risk Factors
+- Investment in XRP, at fair value (a)
+- Total assets
+- Cost of investment in XRP: $ 244,809,834 at December 31, 2025.
+- Fair Value as a
+- Investment in XRP
+- Net investment loss
+- Net realized and change in unrealized gain (loss) on investment in XRP
+- Net realized gain (loss) on investment in XRP
+- Net change in unrealized appreciation (depreciation) on investment in XRP
+- Net realized and change in unrealized appreciation (depreciation) on investment in XRP
+- Net realized (gain) loss on investment in XRP
+- Net change in unrealized (appreciation) depreciation on investment in XRP
+- Distributions for Shares redeemed
+- ASC 820 established a hierarchy that prioritized inputs to valuation techniques used to measure fair value. The three levels of inputs are:
+- Level 3: Inputs that are unobservable for the asset or liability, including the Fund's assumptions used in determining the fair value of investments.
+- Dollar amount of balance represents the cumulative fair value of creation of shares less the redemption of shares, at the time of the specific creation or redemption.
+- The following represents the changes in quantity of XRP held and the respective fair value during the period from November 24, 2025 (Date of Commencement of operations) to December 31, 2025*:
+- RELATED PARTIES
+- Net realized and unrealized gain (loss) on investment in XRP
+- OPERATING SEGMENTS
+- Investment in XRP, at fair value
+- Cost of investment in XRP: $244,809,834 at December 31, 2025.
+- in unrealized appreciation (depreciation) on investment in XRP
+- investment loss (b)
+- realized and unrealized gain (loss) on investment in XRP
+- investment loss
+- Risk Factors
+- In addition to the other information set forth in this report, you should carefully consider the risk factors disclosed in our Prospectus dated November 24, 2025 (Registration No. 333-285706).
+- Certification of Principal Executive Officer Pursuant to Section 302 of the Sarbanes-Oxley Act of 2002.
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/8-K_20260508_rpt20260508_acc0001193125_26_214633.htm`
+**Keyword snippets (related party, financials, segments):**
+- (Address of principal executive offices) (Zip Code)
+- Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers.
+- President and Chief Executive Officer

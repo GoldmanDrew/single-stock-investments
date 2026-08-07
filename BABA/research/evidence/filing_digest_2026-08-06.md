@@ -1,0 +1,273 @@
+# Filing digest — BABA
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `BABA/research/evidence/document_inventory.json`  
+
+Documents in folder: **43** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | 424B | 2019-11-13 | `investor-documents/sec-edgar/424B5_20191113_rpt_acc0001047469_19_006274.htm` | 30000 |
+| partial | 424B | 2019-11-14 | `investor-documents/sec-edgar/424B5_20191114_rpt_acc0001047469_19_006309.htm` | 30000 |
+| partial | 424B | 2019-11-20 | `investor-documents/sec-edgar/424B5_20191120_rpt_acc0001047469_19_006436.htm` | 30000 |
+| full | 424B | 2021-02-02 | `investor-documents/sec-edgar/424B5_20210202_rpt_acc0001047469_21_000247.htm` | 300000 |
+| full | 20-F | 2024-05-23 | `investor-documents/sec-edgar/20-F_20240523_rpt20240331_acc0000950170_24_063767.htm` | 300000 |
+| full | 20-F | 2025-06-26 | `investor-documents/sec-edgar/20-F_20250626_rpt20250331_acc0000950170_25_090161.htm` | 300000 |
+| full | 20-F | 2026-05-20 | `investor-documents/sec-edgar/20-F_20260520_rpt20260331_acc0001193125_26_231755.htm` | 300000 |
+| inventory | other | 2019-09-19 | `third-party-analyses/activist_reports/long/SC-13D/A_20190919_acc0001104659_19_050668.htm` | 0 |
+| inventory | other | 2020-06-03 | `third-party-analyses/activist_reports/long/SC-13D/A_20200603_acc0001104659_20_069250.htm` | 0 |
+| inventory | other | 2023-12-12 | `third-party-analyses/activist_reports/long/SC-13D/A_20231212_acc0001104659_23_125354.htm` | 0 |
+| inventory | other | 2023-12-19 | `third-party-analyses/activist_reports/long/SC-13D/A_20231219_acc0001104659_23_127302.htm` | 0 |
+| inventory | other | 2024-03-22 | `third-party-analyses/activist_reports/long/SC-13D/A_20240322_acc0001104659_24_037487.htm` | 0 |
+| inventory | other | 2018-06-21 | `third-party-analyses/activist_reports/long/SC-13D_20180621_acc0001104659_18_041429.htm` | 0 |
+| inventory | other | 2020-09-08 | `third-party-analyses/activist_reports/long/SC-13D_20200908_acc0001104659_20_102778.htm` | 0 |
+| inventory | other | 2018-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20180214_acc0001104659_18_009753.htm` | 0 |
+| inventory | other | 2018-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20180214_acc0001193125_18_043991.htm` | 0 |
+| inventory | other | 2018-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20180214_acc0001193125_18_044322.htm` | 0 |
+| inventory | other | 2019-02-08 | `third-party-analyses/activist_reports/long/SC-13G/A_20190208_acc0001193125_19_031445.htm` | 0 |
+| inventory | other | 2019-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20190214_acc0001104659_19_008728.htm` | 0 |
+| inventory | other | 2019-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20190214_acc0001193125_19_039407.htm` | 0 |
+| inventory | other | 2020-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20200214_acc0001104659_20_021949.htm` | 0 |
+| inventory | other | 2020-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20200214_acc0001193125_20_038127.htm` | 0 |
+| inventory | other | 2020-02-21 | `third-party-analyses/activist_reports/long/SC-13G/A_20200221_acc0001193125_20_043995.htm` | 0 |
+| inventory | other | 2021-02-16 | `third-party-analyses/activist_reports/long/SC-13G/A_20210216_acc0001104659_21_024028.htm` | 0 |
+| inventory | other | 2021-02-16 | `third-party-analyses/activist_reports/long/SC-13G/A_20210216_acc0001193125_21_043323.htm` | 0 |
+| inventory | other | 2022-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20220210_acc0001104659_22_019481.htm` | 0 |
+| inventory | other | 2022-02-10 | `third-party-analyses/activist_reports/long/SC-13G/A_20220210_acc0001104659_22_019484.htm` | 0 |
+| inventory | other | 2022-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20220214_acc0001104659_22_021536.htm` | 0 |
+| inventory | other | 2022-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20220214_acc0001193125_22_039481.htm` | 0 |
+| inventory | other | 2023-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20230214_acc0001104659_23_020248.htm` | 0 |
+| inventory | other | 2023-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20230214_acc0001193125_23_036948.htm` | 0 |
+| inventory | other | 2024-01-29 | `third-party-analyses/activist_reports/long/SC-13G/A_20240129_acc0001104659_24_007678.htm` | 0 |
+| inventory | other | 2024-02-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20240214_acc0001193125_24_034820.htm` | 0 |
+| inventory | other | 2024-03-25 | `third-party-analyses/activist_reports/long/SC-13G/A_20240325_acc0001104659_24_038466.htm` | 0 |
+| inventory | other | 2024-05-31 | `third-party-analyses/activist_reports/long/SC-13G/A_20240531_acc0001104659_24_066825.htm` | 0 |
+| inventory | other | 2024-11-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20241114_acc0001104659_24_118870.htm` | 0 |
+| inventory | other | 2024-11-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20241114_acc0001104659_24_119008.htm` | 0 |
+| inventory | other | 2024-11-14 | `third-party-analyses/activist_reports/long/SC-13G/A_20241114_acc0001193125_24_257708.htm` | 0 |
+| inventory | other | 2019-02-14 | `third-party-analyses/activist_reports/long/SC-13G_20190214_acc0001104659_19_008111.htm` | 0 |
+| inventory | other | 2020-02-10 | `third-party-analyses/activist_reports/long/SC-13G_20200210_acc0000904454_20_000159.htm` | 0 |
+| inventory | other | 2022-02-11 | `third-party-analyses/activist_reports/long/SC-13G_20220211_acc0001104659_22_019748.htm` | 0 |
+| inventory | other | 2023-02-03 | `third-party-analyses/activist_reports/long/SC-13G_20230203_acc0001104659_23_010205.htm` | 0 |
+| inventory | other | 2023-02-07 | `third-party-analyses/activist_reports/long/SC-13G_20230207_acc0001104659_23_011782.htm` | 0 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/424B5_20210202_rpt_acc0001047469_21_000247.htm`
+**Keyword snippets (related party, financials, segments):**
+- Investing in the Notes involves certain risks. See the "Risk Factors" beginning on page S-33 of this prospectus supplement.
+- RISK FACTORS
+- PLAN OF DISTRIBUTION
+- Securities and Futures (Capital Markets Products) Regulations 2018) and Excluded Investment Products (as defined in MAS Notice SFA 04-N12: Notice on the Sale of Investment Products and MAS
+- Notice FAA-N16: Notice on Recommendations on Investment Products).
+- &#149; "board" and "board of directors" are to our board of directors, unless otherwise stated;
+- &#149; "director(s)" are to member(s) of our board, unless otherwise stated;
+- mobile apps for our Internet businesses or other businesses in which foreign investment is restricted or prohibited, and are consolidated into our consolidated financial statements in accordance with
+- otherwise noted, all translations from Renminbi to U.S. dollars in this prospectus supplement were made at RMB6.7896 to US$1.00, the exchange rate set forth in the H.10 statistical release of
+- "intends," "plans," "believes," "estimates," "potential," "continue," "ongoing," "targets," "guidance," and similar expressions. The forward-looking statements included in this prospectus relate to,
+- &#149; expected changes in our revenues and certain cost and expense items and our margins;
+- &#149; the completion of our investment transactions and regulatory approvals as well as other conditions that must be met in order to complete
+- investment transactions;
+- like to caution you not to place undue reliance on these forward-looking statements and you should read these statements in conjunction with the risk factors disclosed in the documents incorporated by
+- reference in this prospectus or in any accompanying prospectus supplement for a more complete discussion of the risks of an investment in our securities.
+- titled "Risk Factors" of this prospectus supplement, the accompanying prospectus and the documents incorporated by reference, including "Updated Risk Factors"and "Updated Information Relating to
+- unconsolidated related party, provides digital payment services and offers digital financial services for consumers and merchants on our platforms. An ecosystem has flourished around our platforms and
+- the H.10 statistical release of
+- Cost of revenue
+- Interest and investment income, net
+- Net income attributable to Alibaba Group Holding Limited
+- Net income attributable to ordinary shareholders
+- Information About Segments
+- The following table sets forth our revenue by segments for the periods indicated:
+- from innovation initiatives and others is primarily generated from businesses such as Amap, Tmall Genie and other innovation initiatives. Other revenue also
+- on April 1, 2020, we reclassified revenue from our self-developed online games business, which was previously reported under the innovation
+- initiatives and others segment, as revenue from digital media and entertainment segment because it has moved beyond the incubation stage. This reclassification conforms to the way that we manage and
+- monitor segment performance. Comparative figures were reclassified to conform to this presentation.
+- following table sets forth our income (loss) from operations by segments for the periods indicated:
+- initiatives and others segment, to the digital
+- and entertainment segment because it has moved beyond the incubation stage. This reclassification conforms to the way that we manage and monitor segment performance. Comparative figures were
+- following table sets forth our adjusted EBITA by segments for the periods indicated:
+- initiatives and others segment, to the digital media and entertainment segment because it has moved beyond the incubation stage. This reclassification conforms to the way that we manage and monitor
+- segment performance. Comparative figures were reclassified to conform to this presentation.
+- table below sets forth selected financial information of our operating segments for the periods indicated:
+
+### `investor-documents/sec-edgar/20-F_20260520_rpt20260331_acc0001193125_26_231755.htm`
+**Keyword snippets (related party, financials, segments):**
+- Revenues: 941,168
+- Revenues: 996,347
+- Revenues: 1,023,670
+- Revenues: 148,401
+- CostOfRevenue: 586,323
+- CostOfRevenue: 598,285
+- CostOfRevenue: 616,136
+- CostOfRevenue: 89,321
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 68,335
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 77,415
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 11,223
+- StockholdersEquity: 1,009,858
+- StockholdersEquity: 1,060,886
+- StockholdersEquity: 153,796
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,078,393
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,118,425
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 162,138
+- LiabilitiesAndStockholdersEquity: 1,804,227
+- LiabilitiesAndStockholdersEquity: 1,909,570
+- LiabilitiesAndStockholdersEquity: 276,830
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 416,880
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 28,763
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 49
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 12,977
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 10,476
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 59
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 599,028
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 989,657
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 123,406
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,113,063
+- StockholdersEquityOther: 268
+- StockholdersEquityOther: 52
+- StockholdersEquityOther: 216
+- StockholdersEquityOther: 350
+
+### `investor-documents/sec-edgar/20-F_20250626_rpt20250331_acc0000950170_25_090161.htm`
+**Keyword snippets (related party, financials, segments):**
+- Revenues: 868,687
+- Revenues: 941,168
+- Revenues: 996,347
+- Revenues: 137,300
+- CostOfRevenue: 549,695
+- CostOfRevenue: 586,323
+- CostOfRevenue: 598,285
+- CostOfRevenue: 82,446
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 72,818
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 68,335
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 9,417
+- StockholdersEquity: 986,544
+- StockholdersEquity: 1,009,858
+- StockholdersEquity: 139,162
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,101,871
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,078,393
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 148,607
+- LiabilitiesAndStockholdersEquity: 1,764,829
+- LiabilitiesAndStockholdersEquity: 1,804,227
+- LiabilitiesAndStockholdersEquity: 248,629
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 410,506
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 2,221
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 46
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 9,839
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 33,184
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 27
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 563,557
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 948,479
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 124,059
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,072,538
+- StockholdersEquityOther: 274
+- StockholdersEquityOther: 1,342
+- StockholdersEquityOther: 1,616
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 416,880
+
+### `investor-documents/sec-edgar/20-F_20240523_rpt20240331_acc0000950170_24_063767.htm`
+**Keyword snippets (related party, financials, segments):**
+- StockholdersEquityOther: 52
+- Revenues: 853,062
+- Revenues: 868,687
+- Revenues: 941,168
+- Revenues: 130,350
+- CostOfRevenue: 539,450
+- CostOfRevenue: 549,695
+- CostOfRevenue: 586,323
+- CostOfRevenue: 81,205
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 71,295
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 72,818
+- DeferredRevenueCurrentAndCustomerAdvancesCurrent: 10,085
+- StockholdersEquity: 989,657
+- StockholdersEquity: 986,544
+- StockholdersEquity: 136,635
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,113,063
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,101,871
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 152,607
+- LiabilitiesAndStockholdersEquity: 1,753,044
+- LiabilitiesAndStockholdersEquity: 1,764,829
+- LiabilitiesAndStockholdersEquity: 244,426
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 394,308
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 47
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 7,347
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 18,930
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 133
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 554,924
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 937,470
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 137,491
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 1,074,961
+- StockholdersEquityOther: 290
+- StockholdersEquityOther: 764
+- StockholdersEquityOther: 1,054
+- StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest: 410,506
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/424B5_20191120_rpt_acc0001047469_19_006436.htm`
+**Keyword snippets (related party, financials, segments):**
+- based on an exchange rate of HK$7.8261 to US$1.00 as of November 15, 2019, per the noon buying rate set forth in the H.10 statistical release of
+- Investing in the ordinary shares involves a high degree of risk. See the "Risk Factors" beginning on page S-28 of this prospectus
+- US$1.00 as of November 15, 2019, per the noon buying rate set forth in the H.10 statistical release of the U.S. Federal Reserve Board.
+- underwriting compensation and certain of our expenses reimbursable by the underwriters.
+- RISK FACTORS
+- PLAN OF DISTRIBUTION
+- that reflect Alibaba's distinctive cultural outlook and the difficult choices we have made along the way. These values are captured in six phrases:
+- bringing about diverse supply of products and services, we hope to fulfill the needs of all consumers in all segments. Further, we hope to re-model the supply side through big data and
+- Alibaba Group Chairman and Chief Executive Officer
+- jurisdiction outside the United States to permit the possession or distribution of this prospectus supplement or the accompanying prospectus in that jurisdiction. Persons who come into possession of
+- (as defined in the prospectus supplement under the caption "Underwriting") and the distribution of this prospectus supplement and the accompanying prospectus applicable to that jurisdiction.
+- mobile apps for our Internet businesses or other businesses in which foreign investment is restricted or prohibited, and are consolidated into our consolidated financial statements in accordance with
+- "Risk Factors", "Use of Proceeds", "Operating and Financial Review and Prospects" and "Management's Discussion and Analysis of Financial Condition and Results of Operations" included herein or
+- &#149; expected changes in our revenues and certain cost and expense items and our operating margins;
+- &#149; the completion of our investment transactions, as well as regulatory approvals and other conditions that must be satisfied or waived in order
+- to complete the investment transactions;
+- to a high degree of uncertainty and risk due to a variety of factors, including those discussed under the heading "Risk Factors" or under similar headings in other documents which are incorporated by
+- prospectus and the documents incorporated by reference carefully, including the section titled "Risk Factors" and our financial statements and the notes to those financial statements, which are
+
+### `investor-documents/sec-edgar/424B5_20191114_rpt_acc0001047469_19_006309.htm`
+**Keyword snippets (related party, financials, segments):**
+- Investing in the ordinary shares involves a high degree of risk. See the "Risk Factors" beginning on page S-29 of this prospectus
+- underwriting compensation.
+- RISK FACTORS
+- PLAN OF DISTRIBUTION
+- that reflect Alibaba's distinctive cultural outlook and the difficult choices we have made along the way. These values are captured in six phrases:
+- bringing about diverse supply of products and services, we hope to fulfill the needs of all consumers in all segments. Further, we hope to re-model the supply side through big data and
+- Alibaba Group Chairman and Chief Executive Officer
+- jurisdiction outside the United States to permit the possession or distribution of this prospectus supplement or the accompanying prospectus in that jurisdiction. Persons who come into possession of
+- (as defined in the prospectus supplement under the caption "Underwriting") and the distribution of this prospectus supplement and the accompanying prospectus applicable to that jurisdiction.
+- mobile apps for our Internet businesses or other businesses in which foreign investment is restricted or prohibited, and are consolidated into our consolidated financial statements in accordance with
+- "Risk Factors", "Use of Proceeds", "Operating and Financial Review and Prospects" and "Management's Discussion and Analysis of Financial Condition and Results of Operations" included herein or
+- &#149; expected changes in our revenues and certain cost and expense items and our operating margins;
+- &#149; the completion of our investment transactions, as well as regulatory approvals and other conditions that must be satisfied or waived in order
+- to complete the investment transactions;
+- to a high degree of uncertainty and risk due to a variety of factors, including those discussed under the heading "Risk Factors" or under similar headings in other documents which are incorporated by
+- prospectus and the documents incorporated by reference carefully, including the section titled "Risk Factors" and our financial statements and the notes to those financial statements, which are
+
+### `investor-documents/sec-edgar/424B5_20191113_rpt_acc0001047469_19_006274.htm`
+**Keyword snippets (related party, financials, segments):**
+- Investing in the ordinary shares involves a high degree of risk. See the "Risk Factors" beginning on page S-25 of this prospectus
+- underwriting compensation.
+- RISK FACTORS
+- PLAN OF DISTRIBUTION
+- jurisdiction outside the United States to permit the possession or distribution of this prospectus supplement or the accompanying prospectus in that jurisdiction. Persons who come into possession of
+- (as defined in the prospectus supplement under the caption "Underwriting") and the distribution of this prospectus supplement and the accompanying prospectus applicable to that jurisdiction.
+- mobile apps for our Internet businesses or other businesses in which foreign investment is restricted or prohibited, and are consolidated into our consolidated financial statements in accordance with
+- "Risk Factors", "Use of Proceeds", "Operating and Financial Review and Prospects" and "Management's Discussion and Analysis of Financial Condition and Results of Operations" included herein or
+- &#149; expected changes in our revenues and certain cost and expense items and our operating margins;
+- &#149; the completion of our investment transactions, as well as regulatory approvals and other conditions that must be satisfied or waived in order
+- to complete the investment transactions;
+- to a high degree of uncertainty and risk due to a variety of factors, including those discussed under the heading "Risk Factors" or under similar headings in other documents which are incorporated by
+- prospectus and the documents incorporated by reference carefully, including the section titled "Risk Factors" and our financial statements and the notes to those financial statements, which are
+- businesses are comprised of core commerce, cloud computing, digital media and entertainment, and innovation initiatives. In addition, Ant Financial, an unconsolidated related party, provides
+- We operate 1688.com, China's leading integrated domestic wholesale marketplace in 2018 by revenue, according to Analysys, and Lingshoutong (
+- We operate Alibaba.com, China's largest integrated international online wholesale marketplace in 2018 by revenue, according to Analysys. As of
+- We operate Alibaba Cloud, the world's third largest, and Asia Pacific's largest, IaaS and Infrastructure Utility Services provider by revenue in 2018 in U.S.
+- dollars, according to Gartner. Alibaba Cloud is also China's largest provider of public cloud services by revenue in 2018, including PaaS and IaaS services, according to IDC. Alibaba Cloud offers a
+- experience. Our two key distribution platforms are Youku, the third largest online video platform in China in terms of monthly active users in March 2019, according to QuestMobile, and UC Browser, one

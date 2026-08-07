@@ -1875,7 +1875,12 @@ function renderHumanReviewBanner(t) {
 function renderReadNextCard(t) {
   const bullets = ((t.essential_insights || {}).bullets || []).slice(0, 3);
   const thesis = t.one_line_thesis || t.deep_dive?.executive_summary;
+  const ssi = t.ssi_report;
+  const ssiLabel = ssi
+    ? `SSI report · ${escapeHtml(ssi.date || '')}${ssi.severity5 ? ` · ${ssi.severity5} sev-5` : ''}${ssi.gate_result ? ` · ${escapeHtml(ssi.gate_result)}` : ''}`
+    : '';
   const links = [
+    ssi?.url ? `<a class="research-link" href="${ssi.url}" target="_blank" rel="noopener" title="${escapeHtml(ssi.gate_summary || '')}">${ssiLabel} →</a>` : '',
     t.deep_dive?.github_url ? `<a class="research-link" href="${t.deep_dive.github_url}" target="_blank" rel="noopener">Deep dive${t.deep_dive.date ? ` · ${escapeHtml(t.deep_dive.date)}` : ''} →</a>` : '',
     t.links?.folder ? linkHtml(t.links.folder, 'Folder →', 'research-link') : '',
     t.links?.valuation ? linkHtml(t.links.valuation, 'valuation.json →', 'research-link') : '',

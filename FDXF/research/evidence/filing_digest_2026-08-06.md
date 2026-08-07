@@ -1,0 +1,121 @@
+# Filing digest — FDXF
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `FDXF/research/evidence/document_inventory.json`  
+
+Documents in folder: **7** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| partial | earnings | — | `investor-documents/ir-fdxf/FedEx_Freight_Q4_FY2026_Earnings_Presentation.pdf` | 13889 |
+| partial | 8-K | 2026-05-13 | `investor-documents/sec-edgar/8-K_20260513_rpt20260511_acc0001104659_26_060223.htm` | 8885 |
+| partial | 8-K | 2026-05-18 | `investor-documents/sec-edgar/8-K_20260518_rpt20260514_acc0001104659_26_063207.htm` | 6863 |
+| partial | 8-K | 2026-06-01 | `investor-documents/sec-edgar/8-K_20260601_rpt20260527_acc0001104659_26_068521.htm` | 30000 |
+| partial | 8-K | 2026-06-25 | `investor-documents/sec-edgar/8-K_20260625_rpt20260625_acc0001628280_26_045515.htm` | 3538 |
+| partial | 8-K | 2026-06-26 | `investor-documents/sec-edgar/8-K_20260626_rpt20260624_acc0001104659_26_078270.htm` | 11154 |
+| inventory | other | — | `investor-documents/ir-fdxf/FedEx_Freight_Reports_Fourth_Quarter_and_Full_Fiscal_Year_2026_Financial_Results.pdf` | 0 |
+
+## Tier: partial — extracts
+
+### `investor-documents/ir-fdxf/FedEx_Freight_Q4_FY2026_Earnings_Presentation.pdf`
+**Keyword snippets (related party, financials, segments):**
+- connection with the spin-off exceeding FedEx Freight’s estimates; the distribution of shares of FedEx Freight, together with certain related transactions, not qualifying for the intended tax treatment; a significant data
+- autonomous technology and artificial intelligence (“AI”); increased insurance and claims expenses related to vehicle accidents, workers’ compensation claims, property and cargo loss, general business liabilities, and
+- financial covenants; and other factors which can be found in FedEx Freight’s press releases and filings with the SEC, including its information statement included as Exhibit 99.1 to its Current Report on Form 8-K that
+- The financial targets and outlook provided herein and discussed during this presentation assume the company's current economic outlook and fuel price expectations, and no additional adverse economic, geopolitical,
+- or international trade-related developments. FedEx Freight's earnings per share and effective tax rate forecasts are based on current law and related regulations and guidance. Guidance discussed during this
+- presentation was effective as of June 25, 2026. Nothing discussed during this presentation should be considered as confirming or disaffirming such guidance.
+- Generated $2.4B revenue, $363M adjusted operating income, and
+- Reported $8.8B revenue, $1.1B adjusted operating income, and
+- As reported in the FedEx Freight segment results of FedEx Corporation and not presented on a carve-out basis.
+- • Higher revenue per shipment driven primarily
+- Adj. Operating Income
+- Emphasis on revenue quality and enhanced customer experience
+- • Reflects 11.5% YoY growth in revenue per shipment
+- Outlook for transition period (TY26)
+- Seasonality Guidance
+- adj. operating income seasonality is expected to
+- • Investment in fit-for-LTL technology and separation
+- Compensation
+- Revenue from customers
+- 3 Represents top 80% of revenue, excluding single shippers (which comprise approx. 20% of revenue).
+
+### `investor-documents/sec-edgar/8-K_20260626_rpt20260624_acc0001104659_26_078270.htm`
+**Keyword snippets (related party, financials, segments):**
+- executive offices)
+- Item 5.02. Departure of Directors
+- Resources and Compensation Committee (the "HRCC") of the Board of Directors of FedEx Freight Holding Company, Inc. (the
+- "Company") approved the following executive compensation-related matters:
+- compensation plan (the "TY26 AIC Plan") for the transition year June 1 to December 31, 2026 ("TY26").
+- The performance measure for all participants in the TY26 AIC Plan is adjusted consolidated operating income, with the HRCC to approve
+- any adjustments to the Company's consolidated operating income following the end of TY26.
+- of the TY26 AIC Plan are specified levels of adjusted operating income. Actual adjusted operating income performance below the threshold
+- objective for executive officers will result in no payout under the TY26 AIC Plan. Actual adjusted operating income performance exceeding
+- executive officers under the TY26 AIC Plan as a percentage of their respective annual base salary rate (as in effect at the end of TY26)
+- President and Chief Executive
+- Executive Vice President
+- (75% of the target TY26-CY28 LTIP payout for executive officers, the "LTIP PSUs") and (ii) a grant of restricted
+- 2028, and 33.34% vesting on February 15, 2029 (25% of the target TY26-CY28 LTIP payout for executive officers, the "LTIP
+- executive officers under the TY26-CY28 LTIP as a percentage of their respective annual base salary are as follows:
+- of the target TY26-CY28 LTIP payout for executive officers and LTIP RSUs comprise 25% of the target TY26-CY28 LTIP payout
+- for executive officers.
+- Title: Executive Vice President - Chief Human Resources and Legal Officer
+
+### `investor-documents/sec-edgar/8-K_20260625_rpt20260625_acc0001628280_26_045515.htm`
+**Keyword snippets (related party, financials, segments):**
+- (Address of principal executive offices) (ZIP code)
+- 99.1 Press Release of FedEx Freight Holding Company, Inc. dated June 25, 2026.
+
+### `investor-documents/sec-edgar/8-K_20260601_rpt20260527_acc0001104659_26_068521.htm`
+**Keyword snippets (related party, financials, segments):**
+- executive offices)
+- Separation and Distribution Agreement
+- and Distribution Agreement (the "Separation and Distribution Agreement") that sets forth the agreements between FedEx and
+- the FedEx Freight business, and the distribution of 80.1% of the issued and outstanding shares of FedEx Freight common stock to FedEx's
+- with FedEx following the Spin-Off. A summary of the Separation and Distribution Agreement can be found in the section entitled "Certain
+- Relationships and Related Person Transactions--Agreements with FedEx--Separation and Distribution Agreement" in FedEx
+- The foregoing description of the Separation and Distribution Agreement
+- does not purport to be complete and is subject to, and qualified in its entirety by, the full text of the Separation and Distribution
+- Matters Agreement (the "Employee Matters Agreement") that addresses employment and employee compensation and benefits matters,
+- including with respect to severance, workers' compensation, paid time off, and sharing of employee records and information. The
+- and former employees and the assets and liabilities of the compensation and benefit plans and programs in which the current and former
+- FedEx completed the Spin-Off through the distribution by FedEx of 80.1% of the outstanding shares of FedEx Freight common stock on a pro
+- Item 5.02 Departure of Directors or Certain Officers; Election of
+- Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers.
+- Appointment and Resignation of Directors
+- 2026 (the "Form 10"), was declared effective by the SEC, the sole member of the Company's Board of Directors (the
+- from his position as a director.
+- A. King, Cindy J. Miller, Amy J. Salcido, and Samantha M. Smith was appointed to the Board, in each case until such director's successor
+- is duly elected and qualified or until such director's earlier death, resignation, retirement, disqualification, or removal.
+- stockholders, the successors to directors whose terms then expire will be elected to serve from the time of election and qualification
+
+### `investor-documents/sec-edgar/8-K_20260518_rpt20260514_acc0001104659_26_063207.htm`
+**Keyword snippets (related party, financials, segments):**
+- executive offices)
+- Item 5.02. Departure of Directors or Certain Officers; Election
+- of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers.
+- and Staff Vice President and Corporate Controller of FedEx from September 2021 to October 2023. He was Director - Accounting of
+- through 2017, including Staff Director - Financial Reporting from 2013 to 2017.
+- No family relationships exist between Mr. Erwin and any director or executive officer of FedEx Freight. The appointment of Mr. Erwin was
+- not pursuant to any arrangement or understanding between him and any person other than a designated executive officer of FedEx Freight
+- salary and be eligible to participate in FedEx Freight's annual incentive compensation plans and long-term incentive program, including
+- at FedEx Freight. Additional details regarding FedEx Freight's annual incentive compensation plans and long-term incentive plans
+- Freight; and other factors which can be found in FedEx Freight's press releases and filings with the SEC, including its Registration
+
+### `investor-documents/sec-edgar/8-K_20260513_rpt20260511_acc0001104659_26_060223.htm`
+**Keyword snippets (related party, financials, segments):**
+- executive offices)
+- On May 13, 2026, the FedEx Board of Directors declared a pro rata
+- in repayment of certain FedEx debt held by FedEx creditors and/or through distributions to stockholders of FedEx as dividends or in exchange
+- connection with the separation and distribution, FedEx Freight will pay a cash dividend of approximately $4.1 billion to FedEx prior to
+- Freight common stock in the distribution. The final Information Statement, dated May 13, 2026 (the "Information Statement"),
+- containing details regarding the distribution of FedEx Freight common stock, and FedEx Freight's business and management following
+- of Information Statement Materials, the form of which is attached hereto as Exhibit 99.2, on or around May 18, 2026. The distribution
+- Copies of press releases issued on May 11, 2026 and May 13,
+- 2026 providing further details of the separation and distribution are attached hereto as Exhibits 99.3 and 99.4, respectively, and incorporated
+- Press Release, dated May 11, 2026.
+- Press Release, dated May 13, 2026.
+- factors which can be found in FedEx's and FedEx Freight's press releases and FedEx's and FedEx Freight's filings

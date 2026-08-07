@@ -1,0 +1,114 @@
+# Filing digest — SOEZ
+
+**Generated:** 2026-08-06  
+**Agent:** Marvin (`build_filing_evidence.py`)  
+**Inventory:** `SOEZ/research/evidence/document_inventory.json`  
+
+Documents in folder: **4** (all listed below; Tier 1–3 extracted or keyword-scanned).
+
+## Document inventory
+
+| Tier | Kind | File date | Path | Chars |
+|------|------|-----------|------|-------|
+| full | 10-K | 2026-06-29 | `investor-documents/sec-edgar/10-K_20260629_rpt20260331_acc0001140361_26_026719.htm` | 300000 |
+| partial | 10-Q | 2025-12-17 | `investor-documents/sec-edgar/10-Q_20251217_rpt20250930_acc0001140361_25_045833.htm` | 30000 |
+| full | 10-Q | 2026-02-17 | `investor-documents/sec-edgar/10-Q_20260217_rpt20251231_acc0001140361_26_005770.htm` | 130398 |
+| partial | 8-K | 2026-05-08 | `investor-documents/sec-edgar/8-K_20260508_rpt20260508_acc0001193125_26_214637.htm` | 4411 |
+
+## Tier: full — extracts
+
+### `investor-documents/sec-edgar/10-K_20260629_rpt20260331_acc0001140361_26_026719.htm`
+**Keyword snippets (related party, financials, segments):**
+- CryptoAssetsDistributionsToShareholders: 7,447
+- StockholdersEquity: 2,325,457
+- CryptoAssetsDistributionToShareholders: -
+- StockholdersEquity: 12,094,601
+- NumberOfOperatingSegments: 1
+- (Address of principal executive offices, telephone number, including area code)
+- required a recovery analysis of incentive-based compensation received by any of
+- the registrant's executive officers during the relevant recovery period
+- the last day of the fiscal year during which the Trust has total annual gross revenues of $1.235 billion or more;
+- Risk Factors
+- Directors, Executive Officers and Corporate Governance
+- Executive Compensation
+- Certain Relationships and Related Transactions and Director Independence
+- The Trust is organized as a Delaware statutory trust. CSC Delaware Trust Company, a subsidiary of the Corporation Service Company, is the Trustee of the Trust.
+- Investment Objective
+- An investment in Shares is:
+- As convenient and easy to handle as any other investment in shares.
+- Liability of the trustee and Indemnification
+- The Marketing Agent and its affiliates may from time to time purchase or sell Shares for their own account, as agent for their customers and for accounts over which they exercise investment discretion.
+- The Shares are speculative and involve a high degree of risk. Before making an investment decision, you should consider carefully the risks described below, as well as the other information included in this report.
+- Summary Risk Factors
+- Risk Factors Related to Digital Assets
+- Risk Factors Related to the Digital Asset
+- Risk Factors Related to the Fund and the Shares
+- Risk Factors Related to the Regulation of the Fund and the Shares
+- Potential amendments to the Solana Network ' s protocols and software could, if accepted and authorized by the Solana Network community, adversely affect the value of an investment in the Fund.
+- Digital assets may have concentrated ownership and large sales or distributions by holders of such digital assets could have an adverse effect on the market price of such digital assets.
+- Risk Factors Related to the Digital Asset Markets
+- investment and trading activities of large or active consumer and institutional users, speculators, validators, and investors;
+- Because the Fund holds only Solana and cash, an investment in the Fund may be more volatile than an investment in a more broadly diversified portfolio.
+- Shareholders may incur tax liability without a corresponding cash distribution from the Fund.
+- An investment in the Shares deviates from a direct investment in Solana.
+- potential tax liabilities for beneficial owners of Shares without receiving corresponding distributions from the Fund in connection with the Fund staking its Solana.
+
+### `investor-documents/sec-edgar/10-Q_20260217_rpt20251231_acc0001140361_26_005770.htm`
+**Keyword snippets (related party, financials, segments):**
+- StockholdersEquity: 2,325,457
+- StockholdersEquity: 3,444,848
+- NumberOfOperatingSegments: 1
+- (Address of principal executive offices, telephone number, including area code)
+- the last day of the fiscal year during which the Trust has total annual gross revenues of $1.235 billion or more;
+- Item 1A. Risk Factors
+- Investment in Solana, at fair value (a)
+- Total assets
+- (a) Cost of investment in Solana: $ 3,456,108 at December 31, 2025.
+- Fair Value as a
+- Investment in Solana (a)
+- Investment income
+- Net investment income(loss)
+- Net realized and change in unrealized gain (loss) on investment in Solana:
+- Net realized gain (loss) on investment in Solana
+- Net change in unrealized appreciation (depreciation) on investment in Solana
+- Net realized and change in unrealized appreciation (depreciation) on investment in Solana
+- Net realized (gain) loss on investment in Solana
+- Net change in unrealized (appreciation) depreciation on investment in Solana
+- Net investment income (loss)
+- Distributions for Shares redeemed
+- ASC 820 established a hierarchy that prioritized inputs to valuation techniques used to measure fair value. The three levels of inputs are:
+- Level 3: Inputs that are unobservable for the asset or liability, including the Fund's assumptions used in determining the fair value of investments
+- Dollar amount of balance represents the cumulative fair value of creation of shares less the redemption of shares, at the time of the specific creation or redemption.
+- INVESTMENT IN SOLANA
+- The following represents the changes in quantity of Solana held and the respective fair value during the period from December 3, 2025 (Date of Commencement of operations) to December 31, 2025*:
+- RELATED PARTIES
+- Net investment income (loss) (b)
+- OPERATING SEGMENTS
+- in Solana, at fair value (a)
+- (a) Cost of investment in Solana:
+- Investment in Solana(a)
+- gain (loss) on investment in Solana:
+- realized gain (loss) on investment in Solana
+- change in unrealized appreciation (depreciation) on investment in Solana
+
+## Tier: partial — extracts
+
+### `investor-documents/sec-edgar/10-Q_20251217_rpt20250930_acc0001140361_25_045833.htm`
+**Keyword snippets (related party, financials, segments):**
+- NumberOfOperatingSegments: 1
+- (Address of principal executive offices, telephone number, including area code)
+- the last day of the fiscal year during which the Trust has total annual gross revenues of $1.235 billion or more;
+- Item 1A. Risk Factors
+- Investment in Solana, at fair value (cost $ - )
+- Total assets
+- Investment in Solana
+- Net investment income (loss)
+- Net realized gain (loss) on investment in Solana
+- Distributions for Shares redeemed
+- Level 3: Inputs that are unobservable for the asset or liability, including the Fund's assumptions used in determining the fair value of investments
+
+### `investor-documents/sec-edgar/8-K_20260508_rpt20260508_acc0001193125_26_214637.htm`
+**Keyword snippets (related party, financials, segments):**
+- (Address of principal executive offices)&#8195;(Zip Code)
+- Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers.
+- President and Chief Executive Officer

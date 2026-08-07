@@ -56,6 +56,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | AMKR | AMKR/ | AMKR | US | 2026-08-05 | 2026-08-07 | unknown | watch |
 | AMP | AMP/ | Ameriprise Financial | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | AMPX | AMPX/ | AMPX | US | 2026-07-28 | 2026-08-07 | unknown | watch |
+| AMR | AMR/ | Alpha Metallurgical Resources, Inc. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
 | AMT | AMT/ | American Tower | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | AMZN | AMZN/ | Amazon.com | US | 2026-07-09 | 2026-08-07 | compounder | hold |
 | ANET | ANET/ | Arista Networks | US | 2026-07-09 | 2026-08-07 | unknown | watch |
@@ -367,6 +368,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | HAS | HAS/ | Hasbro | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HBAN | HBAN/ | Huntington Bancshares | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HCA | HCA/ | HCA Healthcare | US | 2026-07-29 | 2026-08-07 | unknown | watch |
+| HCC | HCC/ | Warrior Met Coal, Inc. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
 | HD | HD/ | Home Depot (The) | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HE | HE/ | Hawaiian Electric Industries | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | HEE | HEE/ | Hellenic Exchanges - Athens Stock Exchange S.A. | EU | 2026-07-09 | 2026-08-07 | unknown | watch |
@@ -635,6 +637,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | RF | RF/ | Regions Financial Corporation | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | RGLD | RGLD/ | Royal Gold Inc. | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | RGTI | RGTI/ | RGTI | US | 2026-07-29 | 2026-08-07 | unknown | watch |
+| RIG | RIG/ | Transocean Ltd. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
 | RIOT | RIOT/ | RIOT | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | RIVN | RIVN/ | RIVN | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | RJF | RJF/ | Raymond James Financial | US | 2026-07-10 | 2026-08-07 | unknown | watch |
@@ -837,4 +840,4 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | ZETA | ZETA/ | ZETA | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | ZTS | ZTS/ | Zoetis | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 
-**830 holdings total.** Registry: `_system/portfolio/registry.json`
+**833 holdings total.** Registry: `_system/portfolio/registry.json`

@@ -69,6 +69,12 @@ COMPARABLE_MAX_DAYS = 430
 DELTA_PCT_FLOOR = 10.0
 DELTA_ROW_CAP = 200
 
+# A same-tag pair differing by more than this factor is almost never economics
+# — it is a scope mismatch (segment vs consolidated, quarter vs year, per-share
+# vs absolute) from taking each filing's first occurrence. Such rows are kept
+# but flagged so downstream severity and confidence can discount them.
+IMPLAUSIBLE_RATIO = 50.0
+
 FILENAME_RE = re.compile(
     r"^(?P<form>10-K|10-Q|20-F|40-F|8-K|S-1|DEF[\s_]14A|Semi-Annual|Annual_Report|Quarterly|Interim)"
     r"_(?P<file_date>\d{8})"
@@ -89,9 +95,45 @@ SECTION_HEADINGS = (
     ("related_party", re.compile(r"\brelated[\s-]part(?:y|ies)\b", re.I)),
 )
 
+# Headings that CLOSE the active section without opening a tracked one, so
+# boilerplate Part II items don't accrue to whatever section came before.
+SECTION_SINKS = re.compile(
+    r"defaults?\s+upon\s+senior\s+securit\s*ies|mine\s+safety\s+disclosures"
+    r"|unregistered\s+sales\s+of\s+equity|other\s+information\b|^exhibits?\b"
+    r"|^signatures?\b",
+    re.I,
+)
+
 SEVERITY_KEYWORDS = re.compile(
     r"going\s+concern|substantial\s+doubt|material\s+weakness|covenant\s+(?:breach|violation|waiver)"
     r"|default|restatement|delisting|subpoena|informal\s+inquiry|formal\s+investigation",
+    re.I,
+)
+
+# Hypothetical / negated / definitional contexts that make a severity keyword
+# boilerplate rather than an event. Guarded hits are recorded separately, not
+# silently dropped, so the Skeptic can audit the guard itself.
+BOILERPLATE_CONTEXT = re.compile(
+    r"no\s+(?:such\s+)?(?:event\s+of\s+)?default|not\s+in\s+default"
+    r"|no\s+material\s+weakness(?:es)?\s+(?:was|were|have|has|exist)"
+    r"|in\s+the\s+event\s+of|upon\s+(?:an?\s+)?event\s+of\s+default"
+    r"|would\s+(?:constitute|result\s+in|be\s+deemed|trigger|accelerate|create)"
+    r"|could\s+(?:constitute|result\s+in|be\s+deemed|trigger|accelerate|lead\s+to|cause)"
+    r"|may\s+(?:constitute|result\s+in|be\s+deemed|trigger|accelerate|lead\s+to|cause)"
+    r"|if\s+(?:we|an?|the|any)\b.{0,80}\bdefault|risk\s+of\s+default|definition\s+of"
+    r"|default\s+rate\s+of\s+interest|events?\s+of\s+default\s+(?:include|under|as\s+defined)"
+    r"|defaults?\s+upon\s+senior\s+securit\s*ies"  # standard 10-Q Part II item heading (kerning-tolerant)
+    r"|default\s+by\s+the\s+United\s+States|government\s+shutdown"
+    r"|\bmay\b[^.]{0,120}?\b(?:result\s+in|lead\s+to|adversely)"
+    r"|increases?\s+in\s+payment\s+defaults?"
+    r"|prescribes\s+procedures|procedures\s+for\s+complying"  # legal-framework description
+    # Compliance affirmations are the OPPOSITE of an event: "we were in
+    # compliance with all covenants and provisions related to potential
+    # defaults" must never post as a severity-5 default signal.
+    r"|(?:in|remained?\s+in|were\s+in|was\s+in)\s+compliance\s+with"
+    r"|no\s+(?:events?\s+of\s+)?default\s+(?:has|have|had)\s+occurred"
+    r"|potential\s+defaults?|provisions?\s+related\s+to"
+    r"|not\s+aware\s+of\s+any",
     re.I,
 )
 
@@ -272,6 +314,10 @@ def fact_delta_engine(current: FilingText, prior: FilingText) -> dict:
                 flags.append("sign_flip")
             if pct is not None and abs(pct) >= 50.0:
                 flags.append("extreme_move")
+            if c["value"] and p["value"]:
+                ratio = max(abs(c["value"]), abs(p["value"])) / min(abs(c["value"]), abs(p["value"]))
+                if ratio > IMPLAUSIBLE_RATIO:
+                    flags.append("implausible_ratio")
             if pct is not None and abs(pct) < DELTA_PCT_FLOOR and not flags:
                 sub_floor += 1
                 continue
@@ -420,6 +466,9 @@ def _narrative_sections(text: str) -> dict[str, list[str]]:
         line = raw.strip()
         if not line or IX_LINE.match(line):
             continue
+        if len(line) < 160 and SECTION_SINKS.search(line):
+            active = None
+            continue
         for key, pattern in SECTION_HEADINGS:
             if pattern.search(line) and len(line) < 160:
                 active = key
@@ -444,22 +493,187 @@ def section_diff_engine(current: FilingText, prior: FilingText) -> dict:
                 added.append(token[1:].strip())
             elif token.startswith("-") and not token.startswith("---"):
                 removed.append(token[1:].strip())
-        severity_hits = sorted(
-            {m.group(0).lower() for line in added for m in SEVERITY_KEYWORDS.finditer(line)}
-        )
+        severity_hits: set[str] = set()
+        boilerplate_hits: set[str] = set()
+        # One evidence line per distinct keyword (first sighting wins), so a
+        # flood of one keyword can't crowd out another's citation.
+        line_by_keyword: dict[str, str] = {}
+        for line in added:
+            for m in SEVERITY_KEYWORDS.finditer(line):
+                keyword = m.group(0).lower()
+                if BOILERPLATE_CONTEXT.search(line):
+                    boilerplate_hits.add(keyword)
+                else:
+                    severity_hits.add(keyword)
+                    # Window centered on the match: stays a contiguous
+                    # substring of the source line, so the Skeptic's
+                    # snippet-in-text check holds — and the keyword is
+                    # guaranteed to survive truncation.
+                    window = line[max(0, m.start() - 120): m.start() + 180]
+                    line_by_keyword.setdefault(keyword, window)
+        severity_lines = list(dict.fromkeys(line_by_keyword.values()))
         if added or removed:
             diffs[key] = {
                 "added": added[:40],
                 "removed": removed[:40],
                 "added_count": len(added),
                 "removed_count": len(removed),
-                "severity_keywords_added": severity_hits,
+                "severity_keywords_added": sorted(severity_hits),
+                "severity_keywords_boilerplate": sorted(boilerplate_hits - severity_hits),
+                # The exact guarded lines that triggered severity — downstream
+                # claims cite these, never a lookalike boilerplate line.
+                "severity_lines_added": severity_lines,
             }
     return {
         "current_filing": current.rel_path,
         "prior_filing": prior.rel_path,
         "narrative_available": bool(cur_sections or pri_sections),
         "sections": diffs,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Stage 6 — XBRL fact series from SEC companyfacts (point-in-time, per-accession)
+# ---------------------------------------------------------------------------
+
+# concept → ((namespace, tag), ...) — first tag with data wins. Includes
+# bank-style revenue tags so financials don't come back empty.
+XBRL_CONCEPTS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
+    ("revenue", (
+        ("us-gaap", "Revenues"),
+        ("us-gaap", "RevenueFromContractWithCustomerExcludingAssessedTax"),
+        ("us-gaap", "RevenueFromContractWithCustomerIncludingAssessedTax"),
+        ("us-gaap", "SalesRevenueNet"),
+        ("us-gaap", "RevenuesNetOfInterestExpense"),
+        ("us-gaap", "InterestAndDividendIncomeOperating"),
+    )),
+    ("net_income", (
+        ("us-gaap", "NetIncomeLoss"),
+        ("us-gaap", "ProfitLoss"),
+    )),
+    ("eps_diluted", (
+        ("us-gaap", "EarningsPerShareDiluted"),
+        ("us-gaap", "EarningsPerShareBasic"),
+    )),
+    ("operating_cash_flow", (
+        ("us-gaap", "NetCashProvidedByUsedInOperatingActivities"),
+        ("us-gaap", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"),
+    )),
+    ("capital_expenditures", (
+        ("us-gaap", "PaymentsToAcquirePropertyPlantAndEquipment"),
+        ("us-gaap", "PaymentsForAdditionsToPropertyPlantAndEquipment"),
+        ("us-gaap", "PaymentsToAcquireProductiveAssets"),
+    )),
+    ("buybacks_paid", (
+        ("us-gaap", "PaymentsForRepurchaseOfCommonStock"),
+    )),
+    ("dividends_paid", (
+        ("us-gaap", "PaymentsOfDividendsCommonStock"),
+        ("us-gaap", "PaymentsOfDividends"),
+    )),
+    ("stockholders_equity", (
+        ("us-gaap", "StockholdersEquity"),
+        ("us-gaap", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"),
+    )),
+    ("total_assets", (
+        ("us-gaap", "Assets"),
+    )),
+    ("shares_outstanding", (
+        ("dei", "EntityCommonStockSharesOutstanding"),
+        ("us-gaap", "CommonStockSharesOutstanding"),
+        ("us-gaap", "WeightedAverageNumberOfDilutedSharesOutstanding"),
+    )),
+)
+
+ANNUAL_XBRL_FORMS = {"10-K", "20-F", "40-F", "10-K/A"}
+_XBRL_ROW_KEYS = ("start", "end", "val", "fy", "fp", "form", "accn", "filed")
+
+
+def _duration_days(row: dict) -> int | None:
+    start, end = row.get("start"), row.get("end")
+    if not start or not end:
+        return None
+    try:
+        return (date.fromisoformat(end) - date.fromisoformat(start)).days
+    except ValueError:
+        return None
+
+
+def _is_annual_row(row: dict) -> bool:
+    if row.get("form") not in ANNUAL_XBRL_FORMS:
+        return False
+    dur = _duration_days(row)
+    return dur is None or dur >= 300
+
+
+def _is_quarterly_row(row: dict) -> bool:
+    if row.get("form") != "10-Q":
+        return False
+    dur = _duration_days(row)
+    return dur is None or 60 <= dur <= 120
+
+
+def _dedupe_by_end(rows: list[dict]) -> list[dict]:
+    """One row per period end: latest-filed wins; distinct values across
+    filings are flagged `restated` (count of distinct values), never hidden."""
+    by_end: dict[str, list[dict]] = {}
+    for row in rows:
+        if row.get("end") is None or row.get("val") is None:
+            continue
+        by_end.setdefault(row["end"], []).append(row)
+    out: list[dict] = []
+    for end in sorted(by_end):
+        group = sorted(by_end[end], key=lambda r: (r.get("filed") or "", r.get("accn") or ""))
+        keep = {k: group[-1].get(k) for k in _XBRL_ROW_KEYS if group[-1].get(k) is not None}
+        distinct_vals = {r.get("val") for r in group}
+        if len(distinct_vals) > 1:
+            keep["restated"] = len(distinct_vals)
+            keep["first_reported"] = sorted(
+                group, key=lambda r: (r.get("filed") or "", r.get("accn") or "")
+            )[0].get("val")
+        out.append(keep)
+    return out
+
+
+def xbrl_fact_series(ticker_dir: Path) -> dict:
+    """Deterministic fact series from research/evidence/sec_companyfacts.json.
+    Every row keeps its accession + filed date as the locator."""
+    path = ticker_dir / "research" / "evidence" / "sec_companyfacts.json"
+    if not path.exists():
+        return {"available": False, "reason": "no_sec_companyfacts"}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"available": False, "reason": "companyfacts_unreadable"}
+    facts = doc.get("facts") or {}
+    concepts: dict[str, dict] = {}
+    for concept, sources in XBRL_CONCEPTS:
+        for ns, tag in sources:
+            entry = (facts.get(ns) or {}).get(tag)
+            if not entry:
+                continue
+            units = entry.get("units") or {}
+            if not units:
+                continue
+            unit_key = max(units, key=lambda u: len(units[u]))
+            rows = units[unit_key]
+            annual = _dedupe_by_end([r for r in rows if _is_annual_row(r)])
+            quarterly = _dedupe_by_end([r for r in rows if _is_quarterly_row(r)])
+            if not annual and not quarterly:
+                continue
+            concepts[concept] = {
+                "tag": f"{ns}:{tag}",
+                "unit": unit_key,
+                "annual": annual[-12:],
+                "quarterly": quarterly[-10:],
+            }
+            break
+    return {
+        "available": bool(concepts),
+        "source": "research/evidence/sec_companyfacts.json",
+        "cik": doc.get("cik"),
+        "entity": doc.get("entityName"),
+        "concepts": concepts,
     }
 
 
@@ -498,6 +712,13 @@ def build_evidence_pack(ticker_dir: Path, as_of: str) -> dict:
     }
     for name in unparsed:
         pack["coverage_notes"].append(f"unparsed_filename:{name}")
+
+    pack["xbrl_series"] = xbrl_fact_series(ticker_dir)
+    if not pack["xbrl_series"]["available"]:
+        pack["coverage_notes"].append(
+            f"xbrl_series_unavailable:{pack['xbrl_series'].get('reason', 'unknown')}"
+        )
+
     if not filings:
         if not unparsed:
             pack["coverage_notes"].append("no_text_extracts")

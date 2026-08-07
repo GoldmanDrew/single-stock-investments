@@ -32,6 +32,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import hashlib
 import json
 import re
@@ -66,7 +67,103 @@ TAXONOMY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("identity_instrument", re.compile(
         r"SharesOutstanding|SharesIssued|StockIssuedDuringPeriod|Warrant"
         r"|Convertible|PreferredStock|TreasuryStock|StockRepurchase", re.I)),
+    # --- Extended coverage (after the core rules, so their routing is
+    # unchanged). The ABX pilot dropped 126/157 delta rows as unrouted;
+    # these map the common US-GAAP surface into the same five buckets. ---
+    ("identity_instrument", re.compile(
+        r"RepurchaseOf(?:Common)?Stock|Dividends|CommonStock|ShareBasedCompensation"
+        r"|SaleOfStock|EquityIssuance|EmployeeStockPurchase|NoncontrollingInterest", re.I)),
+    ("earnings_quality", re.compile(
+        r"Amortization|Depreciation|Goodwill|IntangibleAsset|IncomeTax|DeferredTax"
+        r"|OtherComprehensiveIncome|UnrealizedGain|UnrealizedLoss|EquityMethod"
+        r"|FairValue|AccruedLiabilities|PrepaidExpense|Provision|Reserve"
+        r"|ContractAsset|BadDebt|Writedown|WriteOff", re.I)),
+    ("liquidity_oxygen", re.compile(
+        r"NetCashProvidedByUsedIn|PaymentsOf|PaymentsFor|PaymentsTo|ProceedsFrom"
+        r"|RestrictedCash|MarketableSecurities|ShortTermInvestments|AvailableForSale"
+        r"|HeldToMaturity|WorkingCapital|Deposits|FederalFunds|InterestBearing"
+        r"|FinanceReceivable|LoansAndLeasesReceivable|SecuredBorrowing", re.I)),
+    ("operating_failure", re.compile(
+        r"Revenue|Sales|CostOf|GrossProfit|OperatingIncome|OperatingExpense"
+        r"|SellingGeneralAndAdministrative|ResearchAndDevelopment|GeneralAndAdministrative"
+        r"|NetIncomeLoss|ProfitLoss|EarningsPerShare|ComprehensiveIncome"
+        r"|NumberOfEmployees|LeaseCost|ProductWarranty|Inventory|Production"
+        r"|Segment|Backlog|Utilization", re.I)),
 )
+
+# ---------------------------------------------------------------------------
+# Economic-significance tiering. A +1,900% swing in
+# DeferredStateAndLocalIncomeTaxExpenseBenefit is a footnote artifact, not a
+# thesis signal; without this, high-percentage footnote rows dominate severity
+# ranking and crowd real economics out of the report.
+# ---------------------------------------------------------------------------
+PRIMARY_CONCEPTS = re.compile(
+    r"^(?:Revenues?|RevenueFromContract\w*|SalesRevenue\w*|OperatingIncomeLoss"
+    r"|NetIncomeLoss\w*|ProfitLoss|EarningsPerShare(?:Basic|Diluted)"
+    r"|GrossProfit|CostOfRevenue|CostOfGoodsAndServicesSold"
+    r"|Assets|Liabilities|StockholdersEquity\w*"
+    r"|CashAndCashEquivalentsAtCarryingValue"
+    r"|NetCashProvidedByUsedIn(?:Operating|Investing|Financing)Activities\w*"
+    r"|LongTermDebt\w*|DebtInstrumentCarryingAmount|ShortTermBorrowings"
+    r"|Deposits|InterestIncomeExpenseNet|NoninterestIncome"
+    r"|LoansAndLeasesReceivableNetReportedAmount|FinancingReceivable\w*"
+    r"|AllowanceForCreditLoss\w*|ProvisionForLoanLeaseAndOtherLosses"
+    r"|GoodwillImpairmentLoss|ImpairmentOfLongLivedAssets\w*"
+    r"|PaymentsForRepurchaseOfCommonStock|CommonStockSharesOutstanding"
+    r"|WeightedAverageNumberOf\w*SharesOutstanding\w*"
+    r"|PaymentsToAcquirePropertyPlantAndEquipment)$",
+    re.I,
+)
+
+# Footnote/schedule detail: real disclosures, but movements in them are not
+# thesis-level signals on their own.
+FOOTNOTE_DETAIL = re.compile(
+    r"OtherComprehensiveIncome|AccumulatedOtherComprehensive"
+    r"|Deferred(?:Federal|State|Foreign)\w*IncomeTax"
+    r"|FairValueDisclosure|FiniteLivedIntangibleAssets(?:Amortization|Accumulated|Acquired)"
+    r"|AmortizationExpenseAfterYear|ExpectedAmortization"
+    r"|ShareBasedCompensationArrangement|SharebasedCompensationArrangement"
+    r"|AntidilutiveSecurities|UnrecognizedTaxBenefits\w*Detail"
+    r"|ScheduleOf|TableTextBlock|PolicyTextBlock"
+    r"|DebtInstrumentBasisSpreadOnVariableRate|DebtInstrumentInterestRate\w*",
+    re.I,
+)
+
+# Maturity/obligation schedule buckets. These are footnote detail, but they must
+# be tested BEFORE PRIMARY_CONCEPTS: `LongTermDebt\w*` there otherwise captures
+# LongTermDebtMaturitiesRepaymentsOfPrincipalInYearTwo and friends and ranks a
+# single roll-forward bucket as primary economics. The buckets are volatile by
+# construction — debt rolling from "year two" into "next twelve months" produces
+# a -100%/+100% pair every year with no change in total obligation — so a move in
+# one bucket is not a thesis signal. Aggregate debt tags stay primary.
+MATURITY_SCHEDULE = re.compile(
+    r"MaturitiesRepaymentsOfPrincipal"
+    r"|LongTermDebtMaturities"
+    r"|(?:DebtInstrument|LineOfCredit)\w*(?:MaturityDate|PeriodicPayment)"
+    r"|LesseeOperatingLeaseLiabilityPaymentsDue"
+    r"|FinanceLeaseLiabilityPaymentsDue"
+    r"|LesseeOperatingLeaseLiabilityUndiscountedExcessAmount"
+    r"|OperatingLeasesFutureMinimumPaymentsDue"
+    r"|ContractualObligation"
+    r"|(?:InYear(?:Two|Three|Four|Five)|InNextTwelveMonths|InRemainderOfFiscalYear"
+    r"|AfterYearFive|YearFiveAndThereafter|Thereafter)$",
+    re.I,
+)
+
+# Max severity a footnote-detail row may reach, regardless of percentage move.
+FOOTNOTE_SEVERITY_CAP = 2
+
+
+def tag_tier(tag: str) -> str:
+    """'primary' | 'footnote_detail' | 'secondary'."""
+    if MATURITY_SCHEDULE.search(tag):
+        return "footnote_detail"
+    if PRIMARY_CONCEPTS.match(tag):
+        return "primary"
+    if FOOTNOTE_DETAIL.search(tag):
+        return "footnote_detail"
+    return "secondary"
+
 
 SECTION_TAXONOMY = {
     "risk_factors": "operating_failure",
@@ -115,12 +212,19 @@ def _severity_for_delta(taxonomy: str, row: dict) -> int:
     if taxonomy == "liquidity_oxygen" and "gone_tag" in flags \
             and re.search(r"Cash(?:And|Cash)", row["tag"], re.I):
         severity = max(severity, 4)
+    # A footnote-schedule row cannot outrank real economics on percentage alone.
+    if tag_tier(row["tag"]) == "footnote_detail":
+        severity = min(severity, FOOTNOTE_SEVERITY_CAP)
+    # A pair spanning >50x is a scope mismatch, not a move; it must not headline.
+    if "implausible_ratio" in flags:
+        severity = min(severity, FOOTNOTE_SEVERITY_CAP)
     return severity
 
 
 def _confidence_for_row(row: dict) -> str:
     flags = set(row.get("flags", []))
-    if flags & {"occurrence_mismatch"} or flags >= {"intra_filing_pairing", "ambiguous_occurrences"}:
+    if flags & {"occurrence_mismatch", "implausible_ratio"} \
+            or flags >= {"intra_filing_pairing", "ambiguous_occurrences"}:
         return "low"
     if flags & {"new_tag", "gone_tag", "intra_filing_pairing"}:
         return "medium"
@@ -193,6 +297,7 @@ def sentinel_claims(pack: dict) -> tuple[list[dict], dict]:
                 "direction": direction,
                 "magnitude_pct": pct,
                 "severity": severity,
+                "concept_tier": tag_tier(row["tag"]),
                 "confidence": _confidence_for_row(row),
                 "falsifier": falsifier,
                 "evidence_ref": {
@@ -213,7 +318,11 @@ def sentinel_claims(pack: dict) -> tuple[list[dict], dict]:
             for keyword in diff.get("severity_keywords_added", []):
                 taxonomy = SECTION_TAXONOMY.get(section, "operating_failure")
                 added_line = next(
-                    (line for line in diff.get("added", []) if CRITICAL_NARRATIVE.search(line)),
+                    (
+                        line
+                        for line in diff.get("severity_lines_added", [])
+                        if keyword in line.lower()
+                    ),
                     None,
                 )
                 claims.append({
@@ -294,9 +403,124 @@ def _latest_filing_facts(evidence_dir: Path) -> dict:
     return facts.get("metrics") or {}
 
 
+BUYBACK_AUTH = re.compile(
+    r"(?:board|directors)[^.\n]{0,120}?authoriz\w+[^.\n]{0,160}?"
+    r"\$\s?([\d,][\d,.]*)\s*(million|billion)?[^.\n]{0,120}?(?:repurchas|buy\s?-?\s?back)"
+    r"|authoriz\w+[^.\n]{0,160}?(?:repurchas|buy\s?-?\s?back)[^.\n]{0,160}?"
+    r"\$\s?([\d,][\d,.]*)\s*(million|billion)?",
+    re.I,
+)
+
+
+QUANT_IN_TEXT = re.compile(
+    r"\$\s?([\d,][\d,.]*)\s*(million|billion|bn|m\b)?|([\d,][\d,.]*)\s*(?:%|percent)",
+    re.I,
+)
+
+
+def _quantitative_value(text: str) -> float | None:
+    """First dollar or percent figure in a statement, or None when the
+    statement carries no number (i.e. it is not a scoreable commitment)."""
+    match = QUANT_IN_TEXT.search(text)
+    if not match:
+        return None
+    raw = match.group(1) or match.group(3)
+    if not raw:
+        return None
+    try:
+        value = float(raw.replace(",", ""))
+    except ValueError:
+        return None
+    scale = (match.group(2) or "").lower()
+    if scale in ("million", "m"):
+        value *= 1e6
+    elif scale in ("billion", "bn"):
+        value *= 1e9
+    return value
+
+
+# XBRL context/metadata rows survive text extraction and can contain both a
+# dollar figure and the word "repurchase" (from a tag name), producing a
+# citation that points at machine metadata instead of a board resolution.
+NON_PROSE = re.compile(r"https?://|fasb\.org|us-gaap/|\bxbrl\b|#[A-Za-z]+Current\b", re.I)
+
+
+def _looks_like_prose(line: str) -> bool:
+    """True when a line reads as filing narrative rather than XBRL metadata."""
+    if NON_PROSE.search(line):
+        return False
+    letters = sum(1 for ch in line if ch.isalpha())
+    if letters < 40 or letters / max(len(line), 1) < 0.55:
+        return False
+    # A board resolution is a sentence: it needs lowercase words, not just
+    # identifiers and numbers.
+    words = [w for w in re.split(r"\s+", line) if w.isalpha()]
+    return len(words) >= 8
+
+
+def _auth_usd(match: re.Match) -> float | None:
+    raw = match.group(1) or match.group(3)
+    scale = (match.group(2) or match.group(4) or "").lower()
+    if raw is None:
+        return None
+    try:
+        value = float(raw.replace(",", ""))
+    except ValueError:
+        return None
+    if scale == "million":
+        value *= 1e6
+    elif scale == "billion":
+        value *= 1e9
+    return value
+
+
+def buyback_authorization_promises(pack: dict, evidence_dir: Path) -> list[dict]:
+    """Deterministic scan of periodic-filing narrative for board buyback
+    authorizations — each hit becomes a Management Ledger promise row with a
+    path+line locator. Duplicate dollar amounts across filings keep the
+    earliest sighting (the original promise date)."""
+    base = evidence_dir.parents[1].parent  # rel paths in the pack are ROOT-relative
+    seen: dict[float, dict] = {}
+    for filing in pack.get("filings", []):
+        if filing.get("form_class") not in ("annual", "quarterly"):
+            continue
+        path = base / filing["path"]
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if not _looks_like_prose(line):
+                continue
+            for match in BUYBACK_AUTH.finditer(line):
+                usd = _auth_usd(match)
+                if usd is None or usd < 1e5:
+                    continue
+                row = {
+                    "promise": line.strip()[:240],
+                    "metric": "buyback_authorization",
+                    "promised_value": usd,
+                    "date_made": filing.get("file_date"),
+                    "due": None,
+                    "source_ref": {
+                        "source_path": filing["path"],
+                        "source_sha256": filing.get("sha256"),
+                        "line": line_no,
+                    },
+                    "realized_value": None,
+                    "delta": None,
+                    "status": "open_authorization",
+                }
+                prior = seen.get(usd)
+                if prior is None or (row["date_made"] or "") < (prior["date_made"] or ""):
+                    seen[usd] = row
+    return [seen[k] for k in sorted(seen)]
+
+
 def management_ledger(pack: dict, evidence_dir: Path, as_of: str) -> dict:
     """Promise rows in, resolution status out. Promises come from
-    management_facts_*.json (schema: {claims: [{metric, value, due, ...}]});
+    management_facts_*.json (schema: {claims: [{metric, value, due, ...}]})
+    plus deterministic buyback-authorization sightings in filing narrative;
     realized values resolve from the latest filing_facts metrics."""
     mgmt = _latest_json(evidence_dir, "management_facts") or {}
     promises = mgmt.get("claims") or []
@@ -305,18 +529,39 @@ def management_ledger(pack: dict, evidence_dir: Path, as_of: str) -> dict:
     rows: list[dict] = []
     unresolvable = 0
     for promise in promises:
-        metric = str(promise.get("metric", "")).lower()
+        # build_management_evidence.py emits {id, excerpt, source, file_date};
+        # older/hand-authored files use {metric, value, statement, due}. Accept
+        # both rather than silently rendering blank rows.
+        metric = str(promise.get("metric") or promise.get("id") or "").lower()
+        text = (
+            promise.get("statement")
+            or promise.get("claim")
+            or promise.get("excerpt")
+            or metric
+        )
+        value = promise.get("value")
+        if value is None:
+            value = _quantitative_value(str(promise.get("excerpt") or ""))
         row = {
-            "promise": promise.get("statement") or promise.get("claim") or metric,
+            "promise": text,
             "metric": metric,
-            "promised_value": promise.get("value"),
-            "date_made": promise.get("date") or promise.get("as_of"),
+            "promised_value": value,
+            "date_made": promise.get("date") or promise.get("file_date") or promise.get("as_of"),
             "due": promise.get("due"),
             "source_ref": promise.get("source") or promise.get("evidence_ref"),
             "realized_value": None,
             "delta": None,
             "status": "pending",
+            "epistemic_tier": promise.get("epistemic_tier"),
         }
+        if value is None:
+            # A commitment ledger scores *quantitative* promises. Qualitative
+            # management statements are recorded but never counted as promises
+            # awaiting resolution — that would inflate the ledger with rows
+            # nothing can ever resolve.
+            row["status"] = "qualitative_statement"
+            rows.append(row)
+            continue
         if metric in LEDGER_RESOLVABLE and metric in metrics:
             realized = metrics[metric].get("current")
             row["realized_value"] = realized
@@ -331,17 +576,59 @@ def management_ledger(pack: dict, evidence_dir: Path, as_of: str) -> dict:
             unresolvable += 1
         rows.append(row)
 
+    rows.extend(buyback_authorization_promises(pack, evidence_dir))
+
+    # Context for open buyback authorizations: actual repurchase spend from
+    # the XBRL series (TTM if quarterly data exists, else latest fiscal year).
+    observed_buybacks = None
+    concepts = ((pack.get("xbrl_series") or {}).get("concepts")) or {}
+    bb = concepts.get("buybacks_paid") or {}
+    quarterly = bb.get("quarterly") or []
+    # 10-Q cash-flow frames are often YTD, so the deduped quarterly series can
+    # be sparse (e.g. Q1-only). Only call four quarters a TTM when they are
+    # actually contiguous (~a year end-to-end); otherwise use the annual row.
+    contiguous = False
+    if len(quarterly) >= 4:
+        tail = quarterly[-4:]
+        try:
+            span = (
+                _dt.date.fromisoformat(tail[-1]["end"])
+                - _dt.date.fromisoformat(tail[0]["end"])
+            ).days
+            contiguous = span <= 300
+        except ValueError:
+            contiguous = False
+    if contiguous:
+        observed_buybacks = {
+            "window": "ttm",
+            "value": sum(r["val"] for r in tail),
+            "periods": [r["end"] for r in tail],
+            "tag": bb.get("tag"),
+        }
+    elif bb.get("annual"):
+        last = bb["annual"][-1]
+        observed_buybacks = {
+            "window": "latest_fy",
+            "value": last["val"],
+            "periods": [last["end"]],
+            "tag": bb.get("tag"),
+            "accn": last.get("accn"),
+        }
+
     scored = [r for r in rows if r["status"] in ("met", "missed")]
+    quantitative = [r for r in rows if r["status"] != "qualitative_statement"]
     return {
         "as_of": as_of,
         "pack_hash": pack["pack_hash"],
-        "promise_count": len(rows),
+        "promise_count": len(quantitative),
+        "statement_count": len(rows) - len(quantitative),
         "resolved_count": len(scored),
         "hit_rate": (
             round(sum(1 for r in scored if r["status"] == "met") / len(scored), 3)
             if scored else None
         ),
         "unresolvable_count": unresolvable,
+        "observed_buybacks": observed_buybacks,
         "rows": rows,
     }
 
@@ -350,41 +637,138 @@ def management_ledger(pack: dict, evidence_dir: Path, as_of: str) -> dict:
 # Spawner Engine (capital allocation)
 # ---------------------------------------------------------------------------
 
-def spawner_scores(pack: dict, evidence_dir: Path) -> dict:
-    metrics = _latest_filing_facts(evidence_dir)
+def _series_read(change_pct: float) -> str:
+    if change_pct < -0.5:
+        return "shrinking"
+    if change_pct > 0.5:
+        return "diluting"
+    return "flat"
 
-    def pair(key: str) -> tuple[float | None, float | None]:
-        entry = metrics.get(key) or {}
-        return entry.get("current"), entry.get("prior")
 
-    shares_cur, shares_pri = pair("shares_outstanding")
-    capex_cur, _ = pair("capital_expenditures")
-    ocf_cur, _ = pair("operating_cash_flow")
+def _xbrl_spawner_components(concepts: dict) -> tuple[dict, list[str]]:
+    """Multi-year capital-allocation components from the pack's XBRL series."""
+    components: dict = {}
+    abstentions: list[str] = []
 
-    block: dict = {"pack_hash": pack["pack_hash"], "components": {}, "abstentions": []}
+    def annual(concept: str) -> list[dict]:
+        return (concepts.get(concept) or {}).get("annual") or []
 
-    if shares_cur and shares_pri:
-        change_pct = (shares_cur - shares_pri) / shares_pri * 100.0
-        block["components"]["buyback_trajectory"] = {
-            "share_count_change_pct": round(change_pct, 2),
-            "read": "shrinking" if change_pct < -0.5 else ("diluting" if change_pct > 0.5 else "flat"),
-            "evidence_ref": {"metric": "shares_outstanding", "tag": metrics["shares_outstanding"].get("tag")},
-        }
-    else:
-        block["abstentions"].append("buyback_trajectory:missing_share_count_pair")
-
-    if capex_cur is not None and ocf_cur:
-        ratio = abs(capex_cur) / abs(ocf_cur)
-        block["components"]["capex_intensity"] = {
-            "capex_to_ocf": round(ratio, 3),
-            "read": "reinvesting_heavily" if ratio > 0.6 else ("balanced" if ratio > 0.25 else "capital_light"),
+    shares = annual("shares_outstanding")
+    if len(shares) >= 2:
+        last, prev, first = shares[-1], shares[-2], shares[0]
+        change_1y = ((last["val"] - prev["val"]) / prev["val"] * 100.0) if prev["val"] else None
+        span = max(len(shares) - 1, 1)
+        total = ((last["val"] / first["val"]) ** (1.0 / span) - 1) * 100.0 if first["val"] else None
+        components["buyback_trajectory"] = {
+            "share_count_change_1y_pct": round(change_1y, 2) if change_1y is not None else None,
+            "share_count_cagr_pct": round(total, 2) if total is not None else None,
+            "years_observed": len(shares),
+            "read": _series_read(change_1y if change_1y is not None else 0.0),
             "evidence_ref": {
-                "capex_tag": metrics["capital_expenditures"].get("tag"),
-                "ocf_tag": metrics["operating_cash_flow"].get("tag"),
+                "tag": (concepts.get("shares_outstanding") or {}).get("tag"),
+                "first": {"end": first.get("end"), "accn": first.get("accn")},
+                "last": {"end": last.get("end"), "accn": last.get("accn")},
             },
         }
     else:
-        block["abstentions"].append("capex_intensity:missing_capex_or_ocf")
+        abstentions.append("buyback_trajectory:missing_share_count_pair")
+
+    capex, ocf = annual("capital_expenditures"), annual("operating_cash_flow")
+    ocf_by_end = {r["end"]: r["val"] for r in ocf}
+    ratios = [
+        (r["end"], abs(r["val"]) / abs(ocf_by_end[r["end"]]))
+        for r in capex
+        if r["end"] in ocf_by_end and ocf_by_end[r["end"]]
+    ]
+    if ratios:
+        latest_end, latest_ratio = ratios[-1]
+        med = sorted(v for _, v in ratios)[len(ratios) // 2]
+        components["capex_intensity"] = {
+            "capex_to_ocf": round(latest_ratio, 3),
+            "capex_to_ocf_median": round(med, 3),
+            "years_observed": len(ratios),
+            "period_end": latest_end,
+            "read": (
+                "reinvesting_heavily" if latest_ratio > 0.6
+                else ("balanced" if latest_ratio > 0.25 else "capital_light")
+            ),
+            "negative_ocf_years": sum(1 for r in ocf if r["val"] < 0),
+            "evidence_ref": {
+                "capex_tag": (concepts.get("capital_expenditures") or {}).get("tag"),
+                "ocf_tag": (concepts.get("operating_cash_flow") or {}).get("tag"),
+            },
+        }
+    else:
+        abstentions.append("capex_intensity:missing_capex_or_ocf")
+
+    buybacks, dividends, net_income = (
+        annual("buybacks_paid"), annual("dividends_paid"), annual("net_income"),
+    )
+    if buybacks or dividends:
+        recent_bb = [r["val"] for r in buybacks[-3:]]
+        recent_dv = [r["val"] for r in dividends[-3:]]
+        ni_by_end = {r["end"]: r["val"] for r in net_income}
+        payout = None
+        if buybacks and buybacks[-1]["end"] in ni_by_end and ni_by_end[buybacks[-1]["end"]]:
+            total_returned = buybacks[-1]["val"] + (
+                dividends[-1]["val"] if dividends and dividends[-1]["end"] == buybacks[-1]["end"] else 0
+            )
+            payout = round(total_returned / ni_by_end[buybacks[-1]["end"]], 3)
+        components["shareholder_returns"] = {
+            "buybacks_3y": recent_bb,
+            "dividends_3y": recent_dv,
+            "total_payout_ratio_latest": payout,
+            "evidence_ref": {
+                "buybacks_tag": (concepts.get("buybacks_paid") or {}).get("tag"),
+                "dividends_tag": (concepts.get("dividends_paid") or {}).get("tag"),
+            },
+        }
+
+    return components, abstentions
+
+
+def spawner_scores(pack: dict, evidence_dir: Path) -> dict:
+    block: dict = {"pack_hash": pack["pack_hash"], "components": {}, "abstentions": []}
+
+    concepts = ((pack.get("xbrl_series") or {}).get("concepts")) or {}
+    if concepts:
+        block["basis"] = "xbrl_series"
+        block["components"], block["abstentions"] = _xbrl_spawner_components(concepts)
+    else:
+        # Fallback: single-filing pair from filing_facts (pre-XBRL behavior).
+        block["basis"] = "filing_facts"
+        metrics = _latest_filing_facts(evidence_dir)
+
+        def pair(key: str) -> tuple[float | None, float | None]:
+            entry = metrics.get(key) or {}
+            return entry.get("current"), entry.get("prior")
+
+        shares_cur, shares_pri = pair("shares_outstanding")
+        capex_cur, _ = pair("capital_expenditures")
+        ocf_cur, _ = pair("operating_cash_flow")
+
+        if shares_cur and shares_pri:
+            change_pct = (shares_cur - shares_pri) / shares_pri * 100.0
+            block["components"]["buyback_trajectory"] = {
+                "share_count_change_pct": round(change_pct, 2),
+                "read": _series_read(change_pct),
+                "evidence_ref": {"metric": "shares_outstanding", "tag": metrics["shares_outstanding"].get("tag")},
+            }
+        else:
+            block["abstentions"].append("buyback_trajectory:missing_share_count_pair")
+
+        if capex_cur is not None and ocf_cur:
+            ratio = abs(capex_cur) / abs(ocf_cur)
+            block["components"]["capex_intensity"] = {
+                "capex_to_ocf": round(ratio, 3),
+                "read": "reinvesting_heavily" if ratio > 0.6 else ("balanced" if ratio > 0.25 else "capital_light"),
+                "evidence_ref": {
+                    "capex_tag": metrics["capital_expenditures"].get("tag"),
+                    "ocf_tag": metrics["operating_cash_flow"].get("tag"),
+                },
+            }
+        else:
+            block["abstentions"].append("capex_intensity:missing_capex_or_ocf")
 
     # Small-bet / kill discipline need segment-level history — abstain rather
     # than fabricate a score from insufficient inputs.
@@ -415,6 +799,10 @@ def build_claims(ticker_dir: Path, as_of: str) -> dict | None:
     spawner = spawner_scores(pack, evidence_dir)
 
     severity_hist = {str(n): sum(1 for c in claims if c["severity"] == n) for n in range(1, 6)}
+    tier_hist = {
+        tier: sum(1 for c in claims if c.get("concept_tier") == tier)
+        for tier in ("primary", "secondary", "footnote_detail")
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "ticker": pack["ticker"],
@@ -424,6 +812,7 @@ def build_claims(ticker_dir: Path, as_of: str) -> dict | None:
         "claims": claims,
         "claim_count": len(claims),
         "severity_histogram": severity_hist,
+        "concept_tier_histogram": tier_hist,
         "management_ledger": ledger,
         "spawner": spawner,
         "dropped_modalities": {

@@ -23,6 +23,15 @@ on:
       - "_system/scripts/validate_dashboard_data.py"
       - "_system/scripts/ci_push_main.sh"
       - "dashboard/data/insights.json"
+      - "_system/scripts/build_ssi_evidence_pack.py"
+      - "_system/scripts/build_ssi_claims.py"
+      - "_system/scripts/verify_ssi_claims.py"
+      - "_system/scripts/build_ssi_report.py"
+      - "_system/scripts/run_ssi_pipeline.py"
+      - "_system/scripts/calibrate_ssi.py"
+      - "_system/scripts/ssi_coverage_report.py"
+      - "_system/scripts/build_filing_evidence.py"
+      - "_eval/**"
 
 permissions:
   contents: read
@@ -40,6 +49,7 @@ jobs:
       prompt_sync: ${{ steps.classify.outputs.prompt_sync }}
       research_lint: ${{ steps.classify.outputs.research_lint }}
       dashboard_integrity: ${{ steps.classify.outputs.dashboard_integrity }}
+      ssi_pipeline: ${{ steps.classify.outputs.ssi_pipeline }}
     steps:
       - id: classify
         uses: actions/github-script@v7
@@ -79,9 +89,16 @@ jobs:
                 'dashboard/data/insights.json',
               ].includes(name)
             );
+            const ssiPipeline = has(name =>
+              /^_eval\//.test(name) ||
+              /^_system\/scripts\/(build_ssi_|verify_ssi_|run_ssi_|calibrate_ssi|ssi_coverage)/.test(name) ||
+              name === '_system/scripts/build_filing_evidence.py' ||
+              name === '_system/scripts/tests/test_ssi_pipeline_v2.py'
+            );
             core.setOutput('prompt_sync', String(promptSync));
             core.setOutput('research_lint', String(researchLint));
             core.setOutput('dashboard_integrity', String(dashboardIntegrity));
+            core.setOutput('ssi_pipeline', String(ssiPipeline));
             await core.summary
               .addHeading('Research-quality plan')
               .addTable([
@@ -189,6 +206,32 @@ jobs:
           python _system/scripts/lint_pr_research.py \
             --base origin/${{ github.base_ref }} \
             --name-only-file "$RUNNER_TEMP/pr-files.txt"
+
+  ssi-pipeline:
+    needs: changes
+    if: needs.changes.outputs.ssi_pipeline == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts
+            _eval
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: SSI pipeline unit tests
+        run: |
+          python -m pytest -q \
+            _system/scripts/tests/test_ssi_evidence_pack.py \
+            _system/scripts/tests/test_ssi_claims.py \
+            _system/scripts/tests/test_verify_ssi_claims.py \
+            _system/scripts/tests/test_ssi_pipeline_v2.py
+      - name: Calibration bars (severity-5 recall, locator accuracy, alert precision)
+        run: python _system/scripts/calibrate_ssi.py --enforce
 
   dashboard-integrity:
     needs: changes

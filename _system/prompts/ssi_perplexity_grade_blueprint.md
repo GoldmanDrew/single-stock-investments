@@ -12,7 +12,9 @@ compounding agent capabilities on top of this repo's existing proof-first substr
 4. **Decision Auditor** — time-zero reasoning capture and outcome calibration
 
 "Perplexity-grade" is not a vibe. It is the output contract in §4 below, reverse-engineered from
-the exemplar. A report that fails any MUST item in §5 is not shippable.
+the exemplar. A report that fails any MUST item in §5 is not shippable. §6 enumerates the
+external feeds that are genuinely absent — those render as explicit Gaps and gate as `BLOCKED`,
+which is not the same as a failure.
 
 ---
 
@@ -66,15 +68,35 @@ capability.
 
 ---
 
-## 2. Three-phase report pipeline
+## 2. Four-phase report pipeline
 
 ### Phase 1 — Deterministic evidence extraction
 
 > **Implemented:** `python _system/scripts/build_ssi_evidence_pack.py TICKER [--date D] [--check]`
 > → `{TICKER}/research/evidence/ssi_evidence_pack_{date}.json` (hashed pack: filing
 > discovery + sha256, comparability gate with recorded rejections, cross-filing fact
-> deltas with intra-filing fallback, revenue-definition check, section diffs).
-> Tests: `_system/scripts/tests/test_ssi_evidence_pack.py`.
+> deltas with intra-filing fallback, revenue-definition check, section diffs,
+> XBRL fact series).
+> Tests: `_system/scripts/tests/test_ssi_evidence_pack.py`,
+> `_system/scripts/tests/test_ssi_pipeline_v2.py`.
+>
+> **Upstream prerequisite (was the single biggest blocker):** the gate can only
+> match if the *prior* comparable filing exists as a full-tier `_text` extract.
+> `build_filing_evidence.py` originally extracted only the latest filing per form
+> kind, so domestic filers (10-K + 10-Q + DEF 14A = 3 full docs) never tripped
+> the old `full_count < 2` promotion and **301 of 327 tickers got zero gated
+> comparisons** — every one silently fell back to intra-filing pairing.
+> `promote_comparables()` now runs unconditionally, chaining
+> `COMPARABLE_CHAIN_DEPTH` prior periods per form class. Extraction also
+> preserves block-level line breaks (the section-diff engine is line-addressed;
+> a single collapsed line yields no sections) and caps at 300K chars so MD&A,
+> Liquidity and Controls are actually reached.
+>
+> **XBRL series:** `xbrl_fact_series()` reads `research/evidence/sec_companyfacts.json`
+> into per-concept annual/quarterly series, one row per period end, latest-filed
+> winning and **restatements flagged** (`restated`, `first_reported`) rather than
+> overwritten. Duration filters keep YTD 10-Q frames out of the quarterly series.
+> Every row keeps its accession + filed date as the locator.
 - **Comparability gate:** diff a disclosure only against its truly comparable prior period
   (Q3 YoY vs Q3 YoY; annual risk factors vs prior annual). Reject sequential Q-vs-Q pairings for
   annual disclosures; constrain the prior filing to 300–430 days earlier.
@@ -93,7 +115,47 @@ capability.
 > furnace taxonomy with severity 1–5, confidence, falsifiers, and pack-hash-anchored
 > evidence_refs; Management Ledger resolution; Spawner scores with explicit
 > abstentions; dropped-modalities log). Requires the Phase 1 pack.
-> Tests: `_system/scripts/tests/test_ssi_claims.py`.
+> Tests: `_system/scripts/tests/test_ssi_claims.py`,
+> `_system/scripts/tests/test_ssi_pipeline_v2.py`.
+>
+> **Taxonomy coverage:** the original four routing rules left most of the US-GAAP
+> surface unrouted (the ABX pilot dropped 126 of 157 delta rows). Extended rules
+> now cover cash-flow, tax, OCI, comp, intangibles and segment tags. Unrouted
+> rows are still *counted* in `dropped_modalities`, never silently discarded.
+>
+> **Economic-significance tiering:** `tag_tier()` classifies every fact tag as
+> `primary` (revenue, income, cash, debt, deposits, allowances, shares, OCF,
+> capex), `footnote_detail` (OCI components, deferred-tax detail, amortization
+> schedules, share-based-comp tables, fair-value disclosures) or `secondary`.
+> Footnote rows are capped at severity `FOOTNOTE_SEVERITY_CAP` regardless of
+> percentage move, and the report's variant-perception section excludes them
+> outright. Without this, a +1,962% swing in
+> `DeferredStateAndLocalIncomeTaxExpenseBenefit` ranked as a top "bull-variant
+> expansion signal" — noise dressed as analysis. Severity still leads ordering
+> so a sev-5 critical-narrative claim (which has no tier) is never outranked.
+>
+> **Severity-5 guard:** `BOILERPLATE_CONTEXT` in Phase 1 demotes hypothetical and
+> definitional keyword hits ("in the event of default", "would constitute a
+> default", the standard *Defaults Upon Senior Securities* item heading) to
+> `severity_keywords_boilerplate`, and `SECTION_SINKS` closes the active section
+> at Part II item headings so boilerplate stops accruing to Risk Factors. Each
+> surviving keyword carries its own match-centered evidence window
+> (`severity_lines_added`), so a sev-5 claim always cites the line that actually
+> triggered it — the earlier code cited the first line matching *any* keyword.
+>
+> **Spawner from the XBRL series:** multi-year share-count trajectory (1y change
+> + CAGR), capex-to-OCF with a median and a negative-OCF-year count, and
+> shareholder returns (buybacks/dividends, payout ratio). Falls back to the
+> single-filing `filing_facts` pair when no companyfacts file exists; `basis`
+> records which path ran. Small-bet and kill discipline still abstain pending
+> segment history.
+>
+> **Management Ledger:** `buyback_authorization_promises()` deterministically
+> scans periodic-filing narrative for board repurchase authorizations, each row
+> carrying a path + line locator, deduped to the earliest sighting per amount.
+> `observed_buybacks` pairs those promises with actual repurchase spend from the
+> XBRL series — but only calls four quarters a TTM when the frames are actually
+> contiguous. Guidance-style promises still require the transcript feed.
 - Emit **structured atomic claims**, not prose: `{claim, direction, magnitude, evidence_ref,
   severity 1–5, confidence, falsifier}`.
 - **Filing Sentinel** classifies red flags against the five-part furnace taxonomy from
@@ -167,6 +229,49 @@ The SSI version keeps this skeleton but upgrades its substrate: where Perplexity
 feed, we cite accession + hash + locator; where Perplexity self-reports limitations, our Skeptic
 pass enforces them.
 
+### Phase 4 — Deterministic report rendering
+
+> **Implemented:** `python _system/scripts/build_ssi_report.py TICKER [--date D] [--check]`
+> → `{TICKER}/research/ssi_report_{date}.md` + `research/evidence/ssi_report_gate_{date}.json`.
+> Tests: `_system/scripts/tests/test_ssi_pipeline_v2.py`.
+>
+> Renders the §4 contract from verified claims only — no LLM prose, no
+> re-derivation of numbers outside the pack. Specifics that matter:
+> - Valuation comes **only** from `decision_authority.resolve_authority`; when
+>   `contract_status != decision_grade` the section states that and quotes
+>   nothing. Legacy IRR/stance language is structurally unreachable.
+> - The KPI table flags restated periods (`†`) and calls out per-share vs
+>   headline divergence when EPS and net-income CAGRs part company.
+> - The driver table round-robins across taxonomies, so a noisy bucket (OCI
+>   swings) cannot crowd out liquidity or instrument signals.
+> - Missing external feeds (consensus estimates, price history, peers, borrow)
+>   render as explicit **Gap** sections. The report never fills a hole with
+>   plausible text.
+> - §5 is evaluated mechanically into the gate file. `BLOCKED` distinguishes
+>   "external feed absent" from `FAIL` = "defect in this run", so a report is
+>   never mislabeled shippable.
+
+**Calibration:** `python _system/scripts/calibrate_ssi.py [--enforce] [--splits]`
+reports severity-5 recall, locator accuracy and top-alert precision against the
+§1 bars from `_eval/` (see `_eval/README.md`), printing `INSUFFICIENT DATA`
+rather than inventing a number. Splits are by issuer (`sha1(issuer) % 10`).
+
+**Orchestration:** `automate_valuation_readiness.py` runs Phases 1–4 after the
+decision-contract stage, recording results under `stages.ssi_report`. For batch
+work use `run_ssi_pipeline.py` (per-ticker isolation, `--gated-only`,
+`--holdings`, JSON summary) — one ticker's failure never stops the sweep.
+
+**Coverage as a work queue:** `ssi_coverage_report.py [--md out.md] [--json out.json]
+[--top-blockers]` reports, per ticker and in aggregate, which stage is blocking
+a shippable report (`no_filings` → `no_extracts` → `single_period_only` →
+`no_gated_comparison` → `no_xbrl` / `no_transcripts` → `no_claims` → `no_report`),
+each paired with the command that clears it. Partial coverage is thereby visible
+and actionable rather than a silent degradation.
+
+**CI:** the `ssi-pipeline` job in `.github/workflows/research-quality.yml` runs
+the four SSI test modules and `calibrate_ssi.py --enforce` whenever any pipeline
+script or `_eval/` changes.
+
 ---
 
 ## 4. Output contract per report
@@ -193,7 +298,23 @@ and time-zero Decision Auditor snapshot.
 - [ ] Every Skeptic false-positive/missed-event from this run converted to a gold-set case.
 - [ ] No unverified narrative written to dynamic memory.
 
-## 6. Anti-goals
+## 6. Known feed gaps (render as explicit §-level Gaps, never as prose)
+
+These are missing inputs, not defects. The report states each one where it
+would otherwise be filled in, and the §5 gate marks them `BLOCKED` rather than
+`FAIL` so a run is never mislabeled shippable:
+
+| Gap | Blocks | Unblock |
+|---|---|---|
+| Consensus estimates | §4 expectations reconciliation, §8 surprise pattern, testable variant view | connect an estimates source keyed to the issuer's operating-revenue definition |
+| Earnings calendar / transcripts (`earnings_calendar.json` → `access_status: no_key`) | next-earnings in the header block, §12 catalysts, guidance promises in the Management Ledger | provision the earnings feed key, or source call transcripts (e.g. the PitchBook connector's call-transcript analysis) |
+| Price history | §8 EPS-surprise vs 1-day-move table | market-data feed |
+| Peer returns | §9 peer & factor attribution | peer-set return feed |
+| Borrow / days-to-cover | the market-mechanics leg of the furnace taxonomy | `refresh_short_alpha_borrow.py` coverage |
+| Segment history | Spawner small-bet and kill discipline (both abstain today) | segment-level XBRL (dimensional facts are absent from `companyfacts`) |
+| `sec_companyfacts.json` absent | the whole XBRL series: KPI table, Spawner, header ratios | fetch companyfacts — needs a non-null CIK in **both** `us_ticker_config.json` and `registry.json` (a null there shadows a correct registry entry) |
+
+## 7. Anti-goals
 
 - No prose-first drafting; claims resolve before writing.
 - No sequential-quarter diffs of annual disclosures.
