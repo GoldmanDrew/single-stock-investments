@@ -659,17 +659,32 @@ def shipping_gate(pack: dict, verified_doc: dict, authority: dict,
         verdict = "PASS" if ok else ("BLOCKED" if ok is None else "FAIL")
         checks.append({"name": name, "verdict": verdict, "detail": detail})
 
-    failed = verified_doc.get("failed_count", 0)
-    add("locator_resolution", failed == 0 and verified_doc.get("verified_count", 0) > 0,
-        f"{verified_doc.get('verified_count')} claims Skeptic-verified, {failed} failed; report renders verified claims only")
-
     comparisons = pack.get("comparisons") or []
     cross = sum(1 for c in comparisons if c.get("gate", {}).get("matched"))
     intra = sum(1 for c in comparisons if (c.get("fact_deltas") or {}).get("mode") == "intra_filing")
-    add("comparability_gate", cross > 0 and all(
-        c.get("gate", {}).get("matched") or (c.get("fact_deltas") or {}).get("mode") == "intra_filing"
-        for c in comparisons
-    ), f"{cross} cross-filing gated comparisons; {intra} intra-filing fallbacks (flagged per-row)")
+    # A newly public issuer has no prior-period filing of the same form to diff
+    # against, so the claim engine correctly emits nothing. That is a missing
+    # input, not a defect in this run, and must not read as one. The distinction
+    # is whether any comparison existed at all: if one did and the claims still
+    # came back empty or broken, that IS a defect and stays a FAIL.
+    no_comparable_filing = not comparisons
+
+    failed = verified_doc.get("failed_count", 0)
+    verified_count = verified_doc.get("verified_count", 0)
+    add("locator_resolution",
+        None if (no_comparable_filing and failed == 0 and verified_count == 0)
+        else (failed == 0 and verified_count > 0),
+        f"{verified_count} claims Skeptic-verified, {failed} failed; "
+        + ("no prior-period filing exists to diff against, so no claims were emitted"
+           if no_comparable_filing else "report renders verified claims only"))
+
+    add("comparability_gate",
+        None if no_comparable_filing else (cross > 0 and all(
+            c.get("gate", {}).get("matched") or (c.get("fact_deltas") or {}).get("mode") == "intra_filing"
+            for c in comparisons
+        )),
+        f"{cross} cross-filing gated comparisons; {intra} intra-filing fallbacks (flagged per-row)"
+        + ("; issuer has no prior-period filing of a comparable form" if no_comparable_filing else ""))
 
     add("consensus_reconciliation", None,
         "no consensus-estimate feed configured — beat/miss content omitted, definitional callout emitted when bank-style")
@@ -698,8 +713,10 @@ def shipping_gate(pack: dict, verified_doc: dict, authority: dict,
     tripwires = sum(
         1 for c in verified_doc.get("verified_claims", []) if c.get("falsifier") and c.get("severity", 0) >= 3
     )
-    add("falsification_quantified", tripwires >= 5,
-        f"{tripwires} severity≥3 tripwires, each a re-derivation procedure on hashed sources")
+    add("falsification_quantified",
+        None if (no_comparable_filing and tripwires == 0) else tripwires >= 5,
+        f"{tripwires} severity≥3 tripwires, each a re-derivation procedure on hashed sources"
+        + ("; none available without a prior-period filing to diff" if no_comparable_filing else ""))
 
     add("statistical_caveats", True, "n stated in KPI sidebar; n<40 framed as hypothesis by construction")
 

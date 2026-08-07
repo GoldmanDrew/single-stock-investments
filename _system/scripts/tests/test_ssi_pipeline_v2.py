@@ -514,6 +514,48 @@ def test_maturity_bucket_severity_is_capped():
         <= claims_mod.FOOTNOTE_SEVERITY_CAP
 
 
+def _gate_raw(pack: dict, verified: dict, tmp_path: Path) -> dict:
+    as_of = "2026-08-06"
+    (tmp_path / f"ssi_time_zero_{as_of}.json").write_text("{}", encoding="utf-8")
+    authority = {"authority_level": "contract", "contract_status": "decision_grade"}
+    return report_mod.shipping_gate(pack, verified, authority, tmp_path, as_of,
+                                    report_body="Contract value/share 10.15")
+
+
+def test_newly_public_issuer_blocks_rather_than_fails(tmp_path):
+    """No prior-period filing means the claim engine correctly emits nothing.
+    That is a missing input, not a defect in this run (e.g. WHK, IPO'd
+    2026-06-10 with only a 424B4 on file)."""
+    gate = _gate_raw({"comparisons": [], "pack_hash": "h" * 64},
+                     {"verified_count": 0, "failed_count": 0, "gold_cases_appended": 0,
+                      "verified_claims": []}, tmp_path)
+    v = {c["name"]: c["verdict"] for c in gate["checks"]}
+    assert v["locator_resolution"] == "BLOCKED"
+    assert v["comparability_gate"] == "BLOCKED"
+    assert v["falsification_quantified"] == "BLOCKED"
+    assert gate["result"] == "DRAFT (blocked)"
+
+
+def test_comparisons_present_but_no_claims_is_still_a_failure(tmp_path):
+    """NVO's shape: comparisons exist, yet nothing came back. That is a real
+    defect and must not be softened by the newly-public carve-out."""
+    gate = _gate_raw({"comparisons": [{"gate": {"matched": True}}], "pack_hash": "h" * 64},
+                     {"verified_count": 0, "failed_count": 0, "gold_cases_appended": 0,
+                      "verified_claims": []}, tmp_path)
+    v = {c["name"]: c["verdict"] for c in gate["checks"]}
+    assert v["locator_resolution"] == "FAIL"
+    assert gate["result"] == "NOT SHIPPABLE"
+
+
+def test_claims_that_all_fail_verification_stay_a_failure(tmp_path):
+    """NVDA's shape: 129 claims, all failing."""
+    gate = _gate_raw({"comparisons": [{"gate": {"matched": True}}], "pack_hash": "h" * 64},
+                     {"verified_count": 0, "failed_count": 129, "gold_cases_appended": 129,
+                      "verified_claims": []}, tmp_path)
+    v = {c["name"]: c["verdict"] for c in gate["checks"]}
+    assert v["locator_resolution"] == "FAIL"
+
+
 def _claims_fixture(tmp_path) -> tuple[Path, str]:
     """Ticker taken through Phases 1-2, ready to verify."""
     ticker_dir = _ticker(tmp_path, "CMP")
