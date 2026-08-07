@@ -1,0 +1,28 @@
+# NVR — Insider conviction (2026-08-07)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| DeVito Michael J | 2026-04-24 | 11 | $6699.5 | $73694.5 | 2.151 |
+| Ross Susan Williamson | 2026-05-29 | 238 | $1700.0 | $404600.0 | 2.038 |
+| Bredow Eugene James | 2026-05-14 | 60 | $5776.15 | $346569.0 | 2.017 |
+| Jung Alexandra A | 2025-08-26 | 200 | $2450.0 | $490000.0 | 1.721 |
+| Ross Susan Williamson | 2026-02-04 | 220 | $1700.0 | $374000.0 | 1.631 |
+
+**Routine / planned sales (context):**
+
+- ANDREWS CHARLES ELLIOTT: 5 @ $0.0 on 2026-02-20
+- Ross Susan Williamson: 200 @ $7922.06 on 2026-02-13
+- Ross Susan Williamson: 200 @ $8091.62 on 2026-02-05
+
+Source: `_system/reference/market-data/insider/NVR_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
