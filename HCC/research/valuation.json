@@ -1,0 +1,571 @@
+{
+  "ticker": "HCC",
+  "as_of": "2026-08-08",
+  "schema_version": "3.0",
+  "method": "proof_first",
+  "irr_method": "full",
+  "valuation_mode": "economic_value",
+  "method_profile": "capital_cycle",
+  "classification_inputs": {
+    "archetype": "commodity_cyclical",
+    "moat": "stable",
+    "dhando": "partial",
+    "cycle": "trough",
+    "payoff_lens": "operating",
+    "predictive_attribute": "capital_cycle_trough",
+    "lawrence_bucket": "low_cost"
+  },
+  "inputs": {
+    "price": 89.61,
+    "price_source": "Yahoo HCC close 2026-08-06",
+    "price_as_of": "2026-08-06",
+    "shares_millions": 52.802,
+    "shares_outstanding": 52801964,
+    "shares_source": "52,801,964 common shares outstanding August 3, 2026 (10-Q Q2 2026 cover page)",
+    "fcf_per_share": 4.35,
+    "fcf_source": "Mid-cycle normalized owner cash: four-year average operating cash flow $535M less sustaining mining capital spending ~$105M = ~$430M; base case uses $230M (FY2025 filing OCF $229M) as trough anchor scaled to mid-cycle $230M owner cash / 52.8M shares ≈ $4.35/sh for Lawrence path — not peak 2022 OCF $842M",
+    "revenue_fy2025_m": 1310.0,
+    "revenue_fy2025_source": "FY2025 total revenue $1,310.0M (10-K filed 2026-02-12; RevenueFromContractWithCustomerIncludingAssessedTax)",
+    "revenue_h1_2026_m": 952.1,
+    "revenue_h1_source": "H1 2026 revenue $952.1M vs H1 2025 $583.4M (10-Q filed 2026-08-05)",
+    "production_fy2025_mt": 9.3,
+    "production_source": "Steelmaking coal production 9.3 million metric tons in 2025 (10-K FY2025 Item 1)",
+    "cash_m": 310.4,
+    "cash_source": "Cash, cash equivalents and restricted cash $310.4M at June 30, 2026 (10-Q Q2 2026; sec_companyfacts)",
+    "debt_m": 154.6,
+    "debt_source": "Long-term debt noncurrent $154.6M at June 30, 2026 (10-Q Q2 2026)",
+    "equity_m": 2290.2,
+    "equity_source": "Stockholders equity $2,290.2M at June 30, 2026 (10-Q Q2 2026)",
+    "liquidity_m": 483.9,
+    "liquidity_source": "Available liquidity ~$483.9M including cash, short-term investments, and ABL availability (10-K FY2025 liquidity disclosure)",
+    "normalization_note": "FY2025 was a trough year: net income $57M, operating income $46M, operating cash flow $229M on met coal price weakness. Lawrence base owner cash uses trough-to-midcycle normalization ($230M base owner cash), not 2022 peak OCF $842M. Q2 2026 rebound (revenue $504M, net income $87M, diluted EPS $1.65) supports recovery but is not yet four-quarter run-rate."
+  },
+  "valuation_methodology": {
+    "primary_method": "midcycle_capacity_value",
+    "method_version": "1.0",
+    "horizon_years": 7,
+    "component_methods": [
+      "midcycle_capacity_value",
+      "net_asset_value",
+      "risk_adjusted_milestone_value"
+    ]
+  },
+  "component_valuation": {
+    "schema_version": "1.0",
+    "all_material_components_identified": true,
+    "coverage_statement": "Met coal mining operations, net cash, Blue Creek development option, and explicit cycle reserve — each valued once.",
+    "components": [
+      {
+        "id": "midcycle_met_coal_operations",
+        "label": "Alabama met coal longwall operations at mid-cycle utilization",
+        "category": "operating_business",
+        "overlap_key": "met_coal_operating_cash",
+        "treatment": "additive",
+        "valuation": {
+          "method": "midcycle_capacity_value",
+          "basis": "per_share",
+          "low": 5.5,
+          "base": 9.0,
+          "high": 14.0,
+          "evidence_tier": "primary_derived",
+          "evidence": "FY2022-FY2025 operating cash flow $842M/$701M/$367M/$229M; FY2025 production 9.3M metric tons; longwall mines No. 4 and No. 7 (10-K FY2025)",
+          "assumption_summary": "Mid-cycle owner cash $230M base × capital-cycle multiple / 52.8M shares; trough FY2025 anchor, not peak 2022.",
+          "falsifier": "Met coal prices stay below cash cost for four quarters and FY owner cash falls below $150M.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "midcycle_capacity_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "HCC/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "values": {
+                  "low": 150.0,
+                  "base": 230.0,
+                  "high": 350.0
+                },
+                "unit": "USD_m",
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics.",
+                "allowed_range": {
+                  "min": 50.0,
+                  "max": 600.0
+                }
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "values": {
+                  "low": 1.9,
+                  "base": 2.07,
+                  "high": 2.1
+                },
+                "unit": "multiple",
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization.",
+                "allowed_range": {
+                  "min": 1.0,
+                  "max": 4.0
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "op": "multiply",
+                "args": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "op": "divide",
+                "args": [
+                  "equity_value_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      },
+      {
+        "id": "net_cash_position",
+        "label": "Net cash after long-term debt",
+        "category": "financial_asset",
+        "overlap_key": "balance_sheet_cash",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": 2.0,
+          "base": 2.95,
+          "high": 3.5,
+          "evidence_tier": "filing",
+          "evidence": "Cash $310.4M less long-term debt $154.6M at June 30, 2026 / 52.8M shares (10-Q Q2 2026)",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "net_asset_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "HCC/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30"
+                },
+                "locked": true
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "HCC/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30"
+                },
+                "locked": true
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "HCC/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "values": {
+                  "low": 50.0,
+                  "base": 0.0,
+                  "high": 0.0
+                },
+                "unit": "USD_m",
+                "rationale": "Low case haircuts surplus cash needed for Blue Creek development and working capital.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 100.0
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "op": "subtract",
+                "args": [
+                  "cash_m",
+                  "debt_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "op": "subtract",
+                "args": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "op": "divide",
+                "args": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "calculated"
+        }
+      },
+      {
+        "id": "blue_creek_development",
+        "label": "Blue Creek second longwall development option",
+        "category": "real_option",
+        "overlap_key": "blue_creek_capacity",
+        "treatment": "additive",
+        "valuation": {
+          "method": "risk_adjusted_milestone_value",
+          "basis": "per_share",
+          "low": 0.0,
+          "base": 2.0,
+          "high": 6.0,
+          "evidence_tier": "filing",
+          "evidence": "Blue Creek longwall development disclosed in 10-K Item 1; company optimizing first longwall before second; federal coal lease renewals filed January 2026 (8-K 2026-01-16)",
+          "assumption_summary": "Risk-weighted incremental capacity value net of remaining development spend; zero in Lawrence consolidated FCF path.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "risk_adjusted_milestone_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "HCC/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "success_probability",
+                "label": "Probability Blue Creek reaches planned second-longwall economics",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.0,
+                  "base": 0.35,
+                  "high": 0.55
+                },
+                "unit": "ratio",
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 0.75
+                }
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.0,
+                  "base": 300.0,
+                  "high": 550.0
+                },
+                "unit": "USD_m",
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 800.0
+                }
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "values": {
+                  "low": 50.0,
+                  "base": 100.0,
+                  "high": 150.0
+                },
+                "unit": "USD_m",
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 300.0
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "op": "multiply",
+                "args": [
+                  "success_value_m",
+                  "success_probability"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "op": "subtract",
+                "args": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Blue Creek option per share",
+                "op": "divide",
+                "args": [
+                  "net_option_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      },
+      {
+        "id": "met_coal_cycle_reserve",
+        "label": "Met coal supply-response and price-normalization reserve",
+        "category": "liability_or_reserve",
+        "overlap_key": "cycle_price_risk",
+        "treatment": "additive",
+        "valuation": {
+          "method": "midcycle_capacity_value",
+          "basis": "per_share",
+          "low": -6.0,
+          "base": -2.5,
+          "high": 0.0,
+          "evidence_tier": "judgment",
+          "evidence": "Capital-cycle failure mode: peak margins capitalized; global met coal supply can respond when prices recover (10-K risk factors; Power Zone capital_cycle profile)",
+          "assumption_summary": "Explicit deduction for cyclical price mean reversion and supply response not captured in trough-normalized owner cash.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "midcycle_capacity_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "HCC/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.067,
+                  "base": 0.028,
+                  "high": 0.0
+                },
+                "unit": "ratio",
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 0.15
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "op": "multiply",
+                "args": [
+                  "price",
+                  "cycle_haircut_pct"
+                ],
+                "unit": "USD_per_share"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "op": "negative",
+                "args": [
+                  "gross_reserve"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      }
+    ]
+  },
+  "option_scan": [
+    {
+      "q": 1,
+      "question": "GAAP book misstates core assets?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "Coal reserves and mining assets carried at cost less depletion; no land-at-zero pattern (10-K balance sheet)"
+    },
+    {
+      "q": 2,
+      "question": "Undeveloped reserves / dormant assets?",
+      "answer": "Yes",
+      "treatment": "milestone_nav",
+      "evidence": "Blue Creek development; second longwall not yet at steady-state production (10-K Item 1)"
+    },
+    {
+      "q": 3,
+      "question": "In-business loss segment?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "Single reportable segment; consolidated profitable in Q2 2026 despite FY2025 trough"
+    },
+    {
+      "q": 4,
+      "question": "Backlog / contracted revenue not in FCF path?",
+      "answer": "Partial",
+      "treatment": "embedded_in_segment",
+      "evidence": "Met coal sold at spot/index-linked prices; no multi-year backlog separate from mining operations"
+    },
+    {
+      "q": 5,
+      "question": "Private or illiquid stakes below fair value?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "No material private equity stakes disclosed"
+    },
+    {
+      "q": 6,
+      "question": "Transitory distribution / legal recovery?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "Regular dividends and buybacks are capital-allocation choices, not litigation recoveries"
+    },
+    {
+      "q": 7,
+      "question": "Embedded product option in revenue?",
+      "answer": "Partial",
+      "treatment": "milestone_nav",
+      "evidence": "Natural gas removed from coal seams is ancillary; Blue Creek capacity is separate option row"
+    }
+  ],
+  "scenarios": {
+    "bear": {
+      "growth_y1_5": -0.05,
+      "growth_y6_10": 0.0,
+      "exit_pfcf_y10": 6,
+      "notes": "Met coal prices remain weak; Blue Creek delayed; owner cash stays near FY2025 trough"
+    },
+    "base": {
+      "growth_y1_5": 0.08,
+      "growth_y6_10": 0.03,
+      "exit_pfcf_y10": 8,
+      "notes": "Partial normalization toward mid-cycle owner cash; Q2 2026 rebound informs path but not full run-rate"
+    },
+    "bull": {
+      "growth_y1_5": 0.15,
+      "growth_y6_10": 0.05,
+      "exit_pfcf_y10": 10,
+      "notes": "Met coal price recovery plus Blue Creek ramp; capital returns accelerate from net cash position"
+    }
+  },
+  "growth_explanation": {
+    "mechanism": "Owner cash grows when seaborne met coal benchmark prices recover and longwall volumes run at full utilization; Blue Creek adds incremental tons when second longwall reaches steady state",
+    "filing_citation": "10-K FY2025 supplementary sales volume and average selling price table; Q2 2026 revenue +75% YoY (10-Q filed 2026-08-05)",
+    "stress_test": "If Q2 2026 pricing proves temporary and FY2026 owner cash reverts toward FY2025 $229M OCF, normalized return at $90 stays deeply negative"
+  },
+  "stance_proposal": "watch",
+  "human_review": [
+    "Capital return policy: special dividends vs Blue Creek capex trade-off — confirm with management on next call",
+    "Mid-cycle met coal price assumption for normalization band"
+  ],
+  "notes": "Proof-first capital_cycle route. Legacy Lawrence IRR is reference; contract authority is decision-grade after refresh."
+}
