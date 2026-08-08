@@ -2,7 +2,7 @@
 
 **As of:** 2026-07-24
 
-**Price:** $77.36
+**Price:** $109.89
 
 **Decision:** watch_pending_owner_review
 
@@ -11,12 +11,12 @@
 | Component | Method | Low | Base | High |
 |---|---|---:|---:|---:|
 | Mid-cycle burn-in / test systems owner-cash engine | owner_cash_or_dividend_discount | $0.59 | $2.55 | $14.42 |
-| Deferred revenue and customer deposit conversion option | risk_adjusted_milestone_value | $0.00 | $12.19 | $36.24 |
+| Deferred revenue and customer deposit conversion option | risk_adjusted_milestone_value | $0.00 | $11.80 | $35.10 |
 | Net cash and financial claims per share | net_asset_value | $0.80 | $1.05 | $1.30 |
 | Cycle, customer concentration, and dilution reserve | net_asset_value | $-12.00 | $-6.00 | $-2.00 |
-| **Total** |  | **$0.00** | **$9.79** | **$49.96** |
+| **Total** |  | **$0.00** | **$9.40** | **$48.82** |
 
-Base value versus price: **-87.3%**. Current or contracted operating and financial assets support approximately **$-2.40** per share; the market asks investors to pay another **$79.76** for growth, inventory, projects, or scarcity.
+Base value versus price: **-91.4%**. Current or contracted operating and financial assets support approximately **$-2.40** per share; the market asks investors to pay another **$112.29** for growth, inventory, projects, or scarcity.
 
 
 ## Economic value versus accounting value
@@ -30,7 +30,7 @@ A complete comparable NAV is not asserted; comparable marks are used only where 
 | Economic component | Comparable basis | Comparable base / share | Risked base / share | Overlap control |
 |---|---|---:|---:|---|
 | Mid-cycle burn-in / test systems owner-cash engine | Owner-cash discount on normalized $0.1632 per share mid-cycle free cash flow per AEHR/investor-documents/sec-edgar/10-K_20250728_rpt20250530_acc0001654954_25_008553.htm. | n/a | $2.55 | Unique overlap key midcycle_burn_in_operations. |
-| Deferred revenue and customer deposit conversion option | Risk-adjusted milestone on $1.91M deferred revenue per Q3 FY2026 10-Q. | n/a | $12.19 | Unique overlap key deferred_revenue_milestone_option. |
+| Deferred revenue and customer deposit conversion option | Risk-adjusted milestone on $1.91M deferred revenue per Q3 FY2026 10-Q. | n/a | $11.80 | Unique overlap key deferred_revenue_milestone_option. |
 | Net cash and financial claims per share | Cash $36.9M less no term debt divided by 31.453M diluted shares per Q3 FY2026 10-Q. | n/a | $1.05 | Unique overlap key net_financial_claims. |
 | Cycle, customer concentration, and dilution reserve | Reserve for customer pause, $60M ATM dilution overhang, and order lumpiness. | n/a | $-6.00 | Unique overlap key cycle_customer_concentration_reserve. |
 
@@ -39,7 +39,7 @@ A complete comparable NAV is not asserted; comparable marks are used only where 
 | Economic claim | Method | Comparable | Low / base / high | Risk / timing | Overlap control | Falsifier |
 |---|---|---|---:|---|---|---|
 | Mid-cycle burn-in / test systems owner-cash engine | owner_cash_or_dividend_discount | not_applicable | $0.59 / $2.55 / $14.42 | n/a | Unique overlap key midcycle_burn_in_operations. | Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case. |
-| Deferred revenue and customer deposit conversion option | risk_adjusted_milestone_value | not_applicable | $0.00 / $12.19 / $36.24 | p=55.0%; Typical 12-24 month implant system delivery from backlog disclosure (10-K); base realization ~2 years | Unique overlap key deferred_revenue_milestone_option. | Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case. |
+| Deferred revenue and customer deposit conversion option | risk_adjusted_milestone_value | not_applicable | $0.00 / $11.80 / $35.10 | p=55.0%; Typical 12-24 month implant system delivery from backlog disclosure (10-K); base realization ~2 years | Unique overlap key deferred_revenue_milestone_option. | Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case. |
 | Net cash and financial claims per share | net_asset_value | not_applicable | $0.80 / $1.05 / $1.30 | n/a | Unique overlap key net_financial_claims. | Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case. |
 | Cycle, customer concentration, and dilution reserve | net_asset_value | not_applicable | $-12.00 / $-6.00 / $-2.00 | n/a | Unique overlap key cycle_customer_concentration_reserve. | Primary evidence shows claim, cash conversion, or cycle path is materially worse than low case. |
 
@@ -56,7 +56,7 @@ A complete comparable NAV is not asserted; comparable marks are used only where 
 
 ## What the price implies
 
-At the stated terminal multiple, the price requires approximately **61.5%** constant annual owner-cash growth for seven years. Constant 7-year owner-cash growth with a 14x terminal owner-cash multiple; diagnostic, not forecast.
+At the stated terminal multiple, the price requires approximately **70.1%** constant annual owner-cash growth for seven years. Constant 7-year owner-cash growth with a 14x terminal owner-cash multiple; diagnostic, not forecast.
 
 ## Entry prices by required return
 
