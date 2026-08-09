@@ -1,6 +1,6 @@
 # Holdings
 
-Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
+Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-09.
 
 **Classification schema:** `_system/frameworks/classification.md` · source map: `_system/portfolio/classification.json`
 
@@ -56,7 +56,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | AMKR | AMKR/ | AMKR | US | 2026-08-05 | 2026-08-07 | unknown | watch |
 | AMP | AMP/ | Ameriprise Financial | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | AMPX | AMPX/ | AMPX | US | 2026-07-28 | 2026-08-07 | unknown | watch |
-| AMR | AMR/ | Alpha Metallurgical Resources, Inc. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
+| AMR | AMR/ | Alpha Metallurgical Resources, Inc. | US | 2026-08-06 | 2026-08-07 | commodity_cyclical | watch |
 | AMT | AMT/ | American Tower | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | AMZN | AMZN/ | Amazon.com | US | 2026-07-09 | 2026-08-07 | compounder | hold |
 | ANET | ANET/ | Arista Networks | US | 2026-07-09 | 2026-08-07 | unknown | watch |
@@ -368,7 +368,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | HAS | HAS/ | Hasbro | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HBAN | HBAN/ | Huntington Bancshares | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HCA | HCA/ | HCA Healthcare | US | 2026-07-29 | 2026-08-07 | unknown | watch |
-| HCC | HCC/ | Warrior Met Coal, Inc. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
+| HCC | HCC/ | Warrior Met Coal, Inc. | US | 2026-08-06 | 2026-08-07 | commodity_cyclical | watch |
 | HD | HD/ | Home Depot (The) | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | HE | HE/ | Hawaiian Electric Industries | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | HEE | HEE/ | Hellenic Exchanges - Athens Stock Exchange S.A. | EU | 2026-07-09 | 2026-08-07 | unknown | watch |
@@ -546,7 +546,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | NU | NU/ | NU | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | NUE | NUE/ | Nucor | US | 2026-07-21 | 2026-08-07 | unknown | watch |
 | NVDA | NVDA/ | NVIDIA Corporation | US | 2026-07-09 | 2026-08-07 | unknown | watch |
-| NVO | NVO/ | NVO | US | 2026-07-29 | 2026-08-07 | unknown | watch |
+| NVO | NVO/ | NVO | US | 2026-08-07 | 2026-08-07 | unknown | watch |
 | NVR | NVR/ | NVR, Inc. | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | NVTS | NVTS/ | NVTS | US | 2026-07-29 | 2026-08-07 | unknown | watch |
 | NWS | NWS/ | News Corp (Class B) | US | 2026-07-10 | 2026-08-07 | unknown | watch |
@@ -637,7 +637,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | RF | RF/ | Regions Financial Corporation | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | RGLD | RGLD/ | Royal Gold Inc. | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | RGTI | RGTI/ | RGTI | US | 2026-07-29 | 2026-08-07 | unknown | watch |
-| RIG | RIG/ | Transocean Ltd. | US | 2026-08-06 | 2026-08-06 | commodity_cyclical | watch |
+| RIG | RIG/ | Transocean Ltd. | US | 2026-08-06 | 2026-08-07 | commodity_cyclical | watch |
 | RIOT | RIOT/ | RIOT | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | RIVN | RIVN/ | RIVN | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | RJF | RJF/ | Raymond James Financial | US | 2026-07-10 | 2026-08-07 | unknown | watch |
@@ -713,7 +713,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | T | T/ | AT&T | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | TAP | TAP/ | Molson Coors Beverage Company | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | TASE | TASE/ | Tel Aviv Stock Exchange Ltd. | EU | 2026-07-09 | 2026-08-07 | unknown | watch |
-| TBBK | TBBK/ | The Bancorp, Inc. | US | 2026-07-09 | 2026-08-07 | unknown | watch |
+| TBBK | TBBK/ | The Bancorp, Inc. | US | 2026-08-06 | 2026-08-07 | unknown | watch |
 | TDC | TDC/ | TDC | US | 2026-07-28 | 2026-08-07 | unknown | watch |
 | TDG | TDG/ | TransDigm Group | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | TDOG | TDOG/ | TDOG | US | 2026-07-29 | 2026-08-07 | unknown | watch |
@@ -806,7 +806,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-07.
 | WELL | WELL/ | Welltower | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | WEST | WEST/ | Westrock Coffee Company | US | 2026-07-09 | 2026-08-07 | unknown | watch |
 | WFC | WFC/ | Wells Fargo | US | 2026-07-10 | 2026-08-07 | unknown | watch |
-| WHK | WHK/ | WhiteHawk Minerals Corp. | US | 2026-08-05 | 2026-08-07 | croupier | watch |
+| WHK | WHK/ | WhiteHawk Minerals Corp. | US | 2026-08-07 | 2026-08-07 | croupier | watch |
 | WM | WM/ | Waste Management | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | WMB | WMB/ | Williams Companies | US | 2026-07-10 | 2026-08-07 | unknown | watch |
 | WMT | WMT/ | Walmart | US | 2026-07-10 | 2026-08-07 | unknown | watch |

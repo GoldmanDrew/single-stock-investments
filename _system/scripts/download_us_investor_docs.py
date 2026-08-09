@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = Path(__file__).resolve().parent / "us_ticker_config.json"
+SEC_CIK_MAP_PATH = ROOT / "_system" / "reference" / "market-data" / "fundamentals" / "_sec_ticker_cik_map.json"
 SEC_UA = "MarvinPortfolioDocs (contact@example.com)"
 IR_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MarvinPortfolioDocs/1.0"
 SLEEP_SEC = 0.12
@@ -305,6 +306,20 @@ subprocess.check_call([
     return script
 
 
+def sec_map_cik(ticker: str) -> str | None:
+    """Fallback CIK from the SEC ticker-CIK map (mirrors fetch_insider_transactions)."""
+    if not SEC_CIK_MAP_PATH.exists():
+        return None
+    try:
+        sec_map = json.loads(SEC_CIK_MAP_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    mapped = sec_map.get(ticker.upper()) or sec_map.get(ticker.upper().replace(".", "-"))
+    if mapped:
+        return str(int(str(mapped).lstrip("0") or "0"))
+    return None
+
+
 def run_ticker(ticker: str, config: dict) -> None:
     ticker = ticker.upper()
     if ticker not in config:
@@ -321,12 +336,19 @@ def run_ticker(ticker: str, config: dict) -> None:
     log(log_file, f"Starting download for {ticker}")
 
     manifest: list[dict] = []
-    if meta.get("cik"):
+    cik = meta.get("cik")
+    if not cik:
+        cik = sec_map_cik(ticker)
+        if cik:
+            log(log_file, f"CIK fallback: {ticker} -> {cik} via SEC ticker-CIK map")
+    if cik:
         try:
-            manifest = download_sec(str(meta["cik"]), sec_dir, log_file, meta)
+            manifest = download_sec(str(cik), sec_dir, log_file, meta)
             log(log_file, f"SEC filings downloaded: {len(manifest)}")
         except Exception as e:
             log(log_file, f"SEC FAIL -> {e}")
+    else:
+        log(log_file, f"SEC SKIPPED: no CIK for {ticker}")
 
     pdfs = harvest_ir_pdfs(meta.get("ir_roots", []), log_file)
     log(log_file, f"IR PDF URLs found: {len(pdfs)}")
