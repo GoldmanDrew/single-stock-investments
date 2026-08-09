@@ -31,6 +31,9 @@ NEWS_PATH = ROOT / "dashboard" / "data" / "portfolio_news.json"
 ANNOUNCEMENTS = DATA_DIR / "index_announcements.jsonl"
 REVIEWS_PENDING = ROOT / "_system" / "reviews" / "pending"
 REVIEWS_APPROVED = ROOT / "_system" / "reviews" / "approved"
+# build_review_queue_rollup.py retires superseded news digests here; keep harvesting
+# them or the archive recall shrinks every time the queue is drained.
+REVIEWS_EXPIRED = ROOT / "_system" / "reviews" / "expired" / "portfolio_news"
 
 # Review / archive title screen (recall for aged headlines; extract is still the gate)
 _ARCHIVE_EVENTISH = re.compile(
@@ -673,7 +676,7 @@ def harvest_archive_announcements(
     seen_titles: set[str] = set()
 
     # 1) Pending + approved news review digests
-    review_dirs = [p for p in (REVIEWS_PENDING, REVIEWS_APPROVED) if p.is_dir()]
+    review_dirs = [p for p in (REVIEWS_PENDING, REVIEWS_APPROVED, REVIEWS_EXPIRED) if p.is_dir()]
     for rev_dir in review_dirs:
         for path in sorted(rev_dir.glob("news_*.md")):
             dm = _REVIEW_DATE_RE.search(path.name)
