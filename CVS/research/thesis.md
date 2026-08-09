@@ -1,29 +1,29 @@
 # CVS — Investment Thesis
 
-**Last updated:** 2026-07-10
+**Last updated:** 2026-08-09
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
-| **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Archetype** (Stahl) | platform |
+| **Moat** (Munger) | stable |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | mid |
+| **Payoff lens** | operating |
 
 ## One-line thesis
 
-CVS Health — thesis pending Marvin deep dive.
+Integrated U.S. healthcare platform (PBM + pharmacy + Aetna) with **$402B** FY2025 revenue and **$7.8B** normalized owner earnings; proof base **~$69/sh** vs **$95.70** price implies **-4.5%** base annual return — watch until Medicare Advantage margins repair.
 
 ## Key questions
 
-- [ ] Read latest annual report
-- [ ] Read latest quarterly report
-- [ ] Apply `_system/frameworks/mental_models.md` Tier 1 lenses
+- [ ] Medicare Advantage margin recovery timeline
+- [ ] PBM transparency / reimbursement regulation impact
+- [ ] Debt paydown versus acquisition integration returns
 
 ## [HUMAN REVIEW]
 
-- Onboarded 2026-07-10; awaiting deep dive.
+- Activist third-party filings remain context tier only
+- No human capital decision recorded
