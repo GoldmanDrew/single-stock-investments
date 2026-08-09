@@ -99,7 +99,12 @@ class WorkflowGovernanceTests(unittest.TestCase):
     def test_agent_pr_merge_waits_for_research_quality_without_race(self):
         workflow = (ROOT / ".github" / "workflows" / "marvin-pr-automerge.yml").read_text(encoding="utf-8")
         self.assertIn("wait_for_workflow_run.py", workflow)
-        self.assertIn('workflows: ["Research quality (PR)"]', workflow)
+        # Must match research-quality.yml's `name:` exactly: workflow_run and
+        # `gh run list --workflow` resolve by name string, so a rename that
+        # misses this line silently disables the wait.
+        quality = (ROOT / ".github" / "workflows" / "research-quality.yml").read_text(encoding="utf-8")
+        name = re.search(r"^name:\s*(.+)$", quality, re.MULTILINE).group(1).strip()
+        self.assertIn(f'workflows: ["{name}"]', workflow)
         self.assertNotIn("lewagon/wait-on-check-action", workflow)
 
     def test_agent_pr_merge_serializes_squash_on_main(self):
@@ -149,7 +154,14 @@ class WorkflowGovernanceTests(unittest.TestCase):
     def test_research_quality_checks_use_persistent_pr_head_ref(self):
         workflow = (ROOT / ".github" / "workflows" / "research-quality.yml").read_text(encoding="utf-8")
         persistent_ref = '"pull/${{ github.event.pull_request.number }}/head"'
-        self.assertEqual(workflow.count(persistent_ref), 3)
+        # Every PR-ref checkout must use the persistent pull/N/head ref, which
+        # survives a force-push, rather than the branch name. Assert the
+        # property, not a count: jobs get added.
+        checkouts = re.findall(r"ci_checkout_workspace\.sh \w+ (.+)$", workflow, re.MULTILINE)
+        pr_checkouts = [ref for ref in checkouts if "pull_request" in ref]
+        self.assertTrue(pr_checkouts)
+        self.assertEqual(workflow.count(persistent_ref), len(pr_checkouts))
+        self.assertNotIn("github.event.pull_request.head.ref", workflow)
 
     def test_model_ladder_defaults_cheap_and_escalates_frontier(self):
         import llm_call_gate
