@@ -134,7 +134,8 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
             "2026-07-18", "all", ["MSB"], {"dashboard": {"status": "refreshed"}}, False, explicit=True
         )
         self.assertEqual(path.name, "power_zone_security_run_2026-07-18_msb.json")
-        self.assertFalse((pipeline.ROOT / "_system/reviews/pending/power_zone_universe_run_2026-07-18.json").exists())
+        self.assertEqual(path.parent, pipeline.ROOT / "_system/data/runs")
+        self.assertFalse((pipeline.ROOT / "_system/data/runs/power_zone_universe_run_2026-07-18.json").exists())
 
 
 if __name__ == "__main__":

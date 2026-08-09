@@ -327,12 +327,15 @@ def write_summary(as_of: str, scope: str, tickers: list[str], stages: dict, dry_
     }
     if dry_run:
         return None
-    reviews = ROOT / "_system" / "reviews" / "pending"
+    # Run receipts are pipeline telemetry, not human reviews — they live under
+    # _system/data/runs/ so _system/reviews/pending/ holds only items that need
+    # a human verdict.
+    runs = ROOT / "_system" / "data" / "runs"
     if explicit:
         slug = "-".join(tickers).lower()[:80] or "none"
-        path = reviews / f"power_zone_security_run_{as_of}_{slug}.json"
+        path = runs / f"power_zone_security_run_{as_of}_{slug}.json"
     else:
-        path = reviews / f"power_zone_universe_run_{as_of}.json"
+        path = runs / f"power_zone_universe_run_{as_of}.json"
     write_json(path, summary)
     return path
 
