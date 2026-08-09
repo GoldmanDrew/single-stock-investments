@@ -1,23 +1,39 @@
 #!/usr/bin/env python3
-"""Scan locked fact ledgers for currency labels that contradict SEC companyfacts.
+"""Scan locked currency labels against the SEC companyfacts unit key they came from.
 
-For every ``{TICKER}/research/valuation_fact_ledger.json``, each locked fact
-sourced from ``sec_companyfacts.json`` must satisfy one of:
+Two surfaces are scanned, because the label is asserted in both and only one of
+them is what the valuation actually consumes:
 
-  * the ledger unit's currency appears among the source concept's unit keys, or
-  * the fact carries an ``fx_conversion`` row whose ``from_currency`` matches a
-    source unit key and whose ``to_currency`` matches the ledger unit.
+  * ``{TICKER}/research/valuation_fact_ledger.json`` - every locked fact, and
+  * ``{TICKER}/research/valuation.json`` - every ``calculation_proof`` input of
+    kind ``fact``, at any depth.
 
-Anything else is the NVO corruption (DKK values locked as "USD millions",
-found 2026-08-09): the number is in one currency and the label in another.
-Exit code 1 when any mismatch is found. Output is ASCII-only.
+A row sourced from ``sec_companyfacts.json`` must satisfy one of:
+
+  * the row unit's currency appears among the source concept's unit keys, or
+  * the row carries an ``fx_conversion`` block whose ``from_currency`` matches a
+    source unit key and whose ``to_currency`` matches the row unit.
+
+Anything else is the NVO corruption (DKK values locked as "USD millions", found
+2026-08-09): the number is in one currency and the label in another. Scanning
+the ledger alone missed the ASML case, where the ledger was corrected but the
+proof inputs the model reads kept the raw EUR figures - a validator green on
+data it never looked at. Exit code 1 when any mismatch is found in either
+surface. Output is ASCII-only.
+
+COVERAGE. A monetary row whose source is NOT sec_companyfacts.json (a PDF or HTM
+locator, a filing_facts extract) has no unit key to compare against, so it is
+skipped - about 10% of proof inputs. Skipping is unavoidable; skipping silently
+is not, because "0 mismatches" then reads as "everything checked" when a tenth of
+the monetary surface was never looked at. Every skip is counted in the summary and
+broken down by source file, and `--show-skipped` lists the rows. `--fail-on-skipped`
+turns the coverage gap itself into a non-zero exit for a caller that wants it.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,25 +71,79 @@ def concept_currencies(companyfacts: dict, locator: str) -> set[str] | None:
     return {currency for currency in found if currency}
 
 
-def scan() -> int:
-    mismatches, unverifiable, checked = [], [], 0
+def iter_calculation_proofs(node):
+    """Yield every ``calculation_proof`` dict anywhere in a valuation model.
+
+    Walking the whole tree rather than one known path is deliberate: component
+    schedules are nested differently across schema versions and overlays, and a
+    scan that only knows one path is blind to the file it is meant to check.
+    """
+    if isinstance(node, dict):
+        proof = node.get("calculation_proof")
+        if isinstance(proof, dict):
+            yield proof
+        for value in node.values():
+            yield from iter_calculation_proofs(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from iter_calculation_proofs(value)
+
+
+def check_row(unit: str, fx: dict | None, currencies: set[str] | None) -> tuple[str, str] | None:
+    """Return ``(claimed, actual)`` when the row's currency label contradicts its source.
+
+    Returns None when the row is consistent; callers handle ``currencies`` of
+    None/empty (unverifiable) before getting here.
+    """
+    row_currency = unit_currency(str(unit or ""))
+    if row_currency is None or not currencies:
+        return None
+    fx = fx or {}
+    if fx:
+        if fx.get("from_currency") in currencies and fx.get("to_currency") == row_currency:
+            return None
+        return (f"{row_currency} via fx {fx.get('from_currency')}->{fx.get('to_currency')}",
+                "/".join(sorted(currencies)))
+    if row_currency not in currencies:
+        return (str(unit), "/".join(sorted(currencies)))
+    return None
+
+
+def _resolve(ref: str, locator: str, cache: dict) -> set[str] | None:
+    if ref not in cache:
+        cache[ref] = read_json(ROOT / ref)
+    return concept_currencies(cache[ref], locator)
+
+
+def _source_kind(ref: str) -> str:
+    """Coarse label for a non-companyfacts source, for the skipped-row breakdown."""
+    name = ref.rsplit("/", 1)[-1] or ref
+    if not name:
+        return "(no source ref)"
+    if name.startswith("filing_facts_"):
+        return "filing_facts_*.json"
+    return name
+
+
+def scan_ledgers() -> tuple[list, list, list, int]:
+    mismatches, unverifiable, skipped, checked = [], [], [], 0
     for ledger_path in sorted(ROOT.glob("*/research/valuation_fact_ledger.json")):
         ticker = ledger_path.parents[1].name
         ledger = read_json(ledger_path)
-        companyfacts_cache: dict[str, dict] = {}
+        cache: dict[str, dict] = {}
         for row in ledger.get("facts") or []:
             if row.get("locked") is not True:
                 continue
-            ref = str((row.get("source") or {}).get("ref") or "")
-            if not ref.endswith("sec_companyfacts.json"):
-                continue
-            ledger_ccy = unit_currency(str(row.get("unit") or ""))
-            if ledger_ccy is None:
+            source = row.get("source") or {}
+            ref = str(source.get("ref") or "")
+            if unit_currency(str(row.get("unit") or "")) is None:
                 continue  # non-monetary fact (shares etc.)
-            if ref not in companyfacts_cache:
-                companyfacts_cache[ref] = read_json(ROOT / ref)
-            currencies = concept_currencies(companyfacts_cache[ref], (row.get("source") or {}).get("locator") or "")
-            field_id = str(row.get("field_id"))
+            if not ref.endswith("sec_companyfacts.json"):
+                # Monetary, but the source exposes no unit key to check against.
+                skipped.append((ticker, f"ledger {row.get('field_id')}", _source_kind(ref)))
+                continue
+            field_id = f"ledger {row.get('field_id')}"
+            currencies = _resolve(ref, str(source.get("locator") or ""), cache)
             if currencies is None:
                 unverifiable.append((ticker, field_id, "locator does not resolve in companyfacts"))
                 continue
@@ -81,28 +151,93 @@ def scan() -> int:
                 unverifiable.append((ticker, field_id, "source concept has no monetary unit key"))
                 continue
             checked += 1
-            fx = row.get("fx_conversion") or {}
-            if fx:
-                if fx.get("from_currency") in currencies and fx.get("to_currency") == ledger_ccy:
+            problem = check_row(row.get("unit"), row.get("fx_conversion"), currencies)
+            if problem:
+                mismatches.append((ticker, field_id, *problem))
+    return mismatches, unverifiable, skipped, checked
+
+
+def scan_proofs() -> tuple[list, list, list, int]:
+    mismatches, unverifiable, skipped, checked = [], [], [], 0
+    for model_path in sorted(ROOT.glob("*/research/valuation.json")):
+        ticker = model_path.parents[1].name
+        cache: dict[str, dict] = {}
+        for proof in iter_calculation_proofs(read_json(model_path)):
+            method_id = str(proof.get("method_id") or "proof")
+            for row in proof.get("inputs") or []:
+                if not isinstance(row, dict) or row.get("kind") != "fact":
                     continue
-                mismatches.append((ticker, field_id, f"{ledger_ccy} via fx {fx.get('from_currency')}->{fx.get('to_currency')}",
-                                   "/".join(sorted(currencies))))
-                continue
-            if ledger_ccy not in currencies:
-                mismatches.append((ticker, field_id, str(row.get("unit")), "/".join(sorted(currencies))))
-    for ticker, field_id, ledger_unit, source_unit in mismatches:
-        print(f"MISMATCH {ticker} {field_id}: ledger says '{ledger_unit}' but companyfacts reports {source_unit}")
+                source = row.get("source") or {}
+                ref = str(source.get("ref") or "")
+                if unit_currency(str(row.get("unit") or "")) is None:
+                    continue  # non-monetary input (shares etc.)
+                if not ref.endswith("sec_companyfacts.json"):
+                    # Monetary, but the source exposes no unit key to check against.
+                    skipped.append((ticker, f"proof {method_id}.{row.get('id')}", _source_kind(ref)))
+                    continue
+                node_id = f"proof {method_id}.{row.get('id')}"
+                currencies = _resolve(ref, str(source.get("locator") or ""), cache)
+                if currencies is None:
+                    unverifiable.append((ticker, node_id, "locator does not resolve in companyfacts"))
+                    continue
+                if not currencies:
+                    unverifiable.append((ticker, node_id, "source concept has no monetary unit key"))
+                    continue
+                checked += 1
+                problem = check_row(row.get("unit"), row.get("fx_conversion"), currencies)
+                if problem:
+                    mismatches.append((ticker, node_id, *problem))
+    return mismatches, unverifiable, skipped, checked
+
+
+def scan(show_skipped: bool = False, fail_on_skipped: bool = False) -> int:
+    ledger_mismatches, ledger_unverifiable, ledger_skipped, ledger_checked = scan_ledgers()
+    proof_mismatches, proof_unverifiable, proof_skipped, proof_checked = scan_proofs()
+    mismatches = ledger_mismatches + proof_mismatches
+    unverifiable = ledger_unverifiable + proof_unverifiable
+    skipped = ledger_skipped + proof_skipped
+    for ticker, field_id, row_unit, source_unit in mismatches:
+        print(f"MISMATCH {ticker} {field_id}: says '{row_unit}' but companyfacts reports {source_unit}")
     if unverifiable:
-        print(f"NOTE: {len(unverifiable)} locked companyfacts fact(s) could not be verified (stale or renamed concepts):")
+        print(f"NOTE: {len(unverifiable)} companyfacts-sourced row(s) could not be verified (stale or renamed concepts):")
         for ticker, field_id, reason in unverifiable:
             print(f"  UNVERIFIABLE {ticker} {field_id}: {reason}")
-    print(f"Checked {checked} locked companyfacts fact(s); {len(mismatches)} mismatch(es).")
-    return 1 if mismatches else 0
+
+    checked = ledger_checked + proof_checked
+    if skipped:
+        # Never silent: "0 mismatches" over a partial surface is not a clean bill of
+        # health, and the reader cannot tell the difference without this line.
+        by_kind: dict[str, int] = {}
+        for _, _, kind in skipped:
+            by_kind[kind] = by_kind.get(kind, 0) + 1
+        denom = checked + len(skipped)
+        share = (100.0 * len(skipped) / denom) if denom else 0.0
+        print(f"SKIPPED {len(skipped)} monetary row(s) ({share:.1f}% of "
+              f"{denom} monetary rows: {len(ledger_skipped)} ledger, {len(proof_skipped)} proof) - "
+              f"source is not sec_companyfacts.json, so there is no unit key to check against:")
+        for kind, count in sorted(by_kind.items(), key=lambda kv: (-kv[1], kv[0])):
+            print(f"  SKIPPED-SOURCE {kind}: {count}")
+        if show_skipped:
+            for ticker, field_id, kind in skipped:
+                print(f"  SKIPPED {ticker} {field_id}: source {kind}")
+        else:
+            print("  (re-run with --show-skipped to list them)")
+
+    print(f"Checked {ledger_checked} locked fact-ledger row(s) and {proof_checked} calculation_proof input(s); "
+          f"{len(mismatches)} mismatch(es), {len(skipped)} skipped for lack of a source unit key.")
+    if mismatches:
+        return 1
+    return 1 if (fail_on_skipped and skipped) else 0
 
 
 def main() -> int:
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    return scan()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--show-skipped", action="store_true",
+                        help="list every monetary row skipped for lack of a source unit key")
+    parser.add_argument("--fail-on-skipped", action="store_true",
+                        help="exit 1 on the coverage gap too, not only on a mismatch")
+    args = parser.parse_args()
+    return scan(show_skipped=args.show_skipped, fail_on_skipped=args.fail_on_skipped)
 
 
 if __name__ == "__main__":

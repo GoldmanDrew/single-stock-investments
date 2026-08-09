@@ -1,13 +1,19 @@
 name: Research quality
 
 on:
-  # The SSI pipeline job is self-contained and must also validate direct pushes
-  # to main, which bypass pull_request entirely. The other jobs in this file
-  # need a PR base ref and stay gated to pull_request below.
+  # The SSI pipeline and fact-ledger currency jobs are self-contained and must
+  # also validate direct pushes to main, which bypass pull_request entirely --
+  # and batch valuation writes land on main by direct push, which is exactly how
+  # a mislabeled-currency fact would arrive. The other jobs in this file need a
+  # PR base ref and stay gated to pull_request below.
   push:
     branches: [main]
     paths:
       - ".github/workflows/research-quality.yml"
+      - "**/research/valuation.json"
+      - "**/research/valuation_fact_ledger.json"
+      - "_system/scripts/scan_fact_ledger_currency.py"
+      - "_system/scripts/test_scan_fact_ledger_currency.py"
       - "_system/scripts/build_ssi_evidence_pack.py"
       - "_system/scripts/build_ssi_claims.py"
       - "_system/scripts/verify_ssi_claims.py"
@@ -49,6 +55,8 @@ on:
       - "_system/scripts/calibrate_ssi.py"
       - "_system/scripts/ssi_coverage_report.py"
       - "_system/scripts/build_filing_evidence.py"
+      - "_system/scripts/scan_fact_ledger_currency.py"
+      - "_system/scripts/test_scan_fact_ledger_currency.py"
       - "_eval/**"
 
 permissions:
@@ -70,6 +78,7 @@ jobs:
       research_lint: ${{ steps.classify.outputs.research_lint }}
       dashboard_integrity: ${{ steps.classify.outputs.dashboard_integrity }}
       ssi_pipeline: ${{ steps.classify.outputs.ssi_pipeline }}
+      fact_currency: ${{ steps.classify.outputs.fact_currency }}
     steps:
       - id: classify
         uses: actions/github-script@v7
@@ -88,9 +97,11 @@ jobs:
             }
             // On push we deliberately do not diff before..after: the compare API
             // returns at most 300 files, and a batch push here routinely changes
-            // thousands, so an SSI script change could be missed. `on.push.paths`
-            // already lists only SSI paths, so the workflow having triggered at
-            // all is itself the signal.
+            // thousands, so a change could be missed. `on.push.paths` lists only
+            // the SSI and fact-ledger-currency surfaces, so the workflow having
+            // triggered at all is itself the signal -- both of those jobs run on
+            // every push that reaches here. Over-running one cheap job beats
+            // missing the push that ships a mislabeled-currency fact.
             const has = predicate => names.some(predicate);
             const promptSync = has(name =>
               name === '_system/prompts/cloud_marvin_runbook.md' ||
@@ -124,10 +135,18 @@ jobs:
               name === '_system/scripts/build_filing_evidence.py' ||
               name === '_system/scripts/tests/test_ssi_pipeline_v2.py'
             );
+            // Currency labels are asserted in both valuation.json and the fact
+            // ledger, and the scanner itself is the only thing that checks them.
+            const factCurrency = isPush || has(name =>
+              /(^|\/)research\/valuation(_fact_ledger)?\.json$/.test(name) ||
+              name === '_system/scripts/scan_fact_ledger_currency.py' ||
+              name === '_system/scripts/test_scan_fact_ledger_currency.py'
+            );
             core.setOutput('prompt_sync', String(promptSync));
             core.setOutput('research_lint', String(researchLint));
             core.setOutput('dashboard_integrity', String(dashboardIntegrity));
             core.setOutput('ssi_pipeline', String(ssiPipeline));
+            core.setOutput('fact_currency', String(factCurrency));
             await core.summary
               .addHeading('Research-quality plan')
               .addTable([
@@ -136,6 +155,7 @@ jobs:
                 ['research-lint', String(researchLint)],
                 ['dashboard-integrity', String(dashboardIntegrity)],
                 ['ssi-pipeline', String(ssiPipeline)],
+                ['fact-ledger-currency', String(factCurrency)],
               ])
               .write();
 
@@ -273,6 +293,68 @@ jobs:
             _system/scripts/tests/test_ssi_pipeline_v2.py
       - name: Calibration bars (severity-5 recall, locator accuracy, alert precision)
         run: python _system/scripts/calibrate_ssi.py --enforce
+
+  fact-ledger-currency:
+    needs: changes
+    # Runs on push AND pull_request: the corruption class this catches (a DKK
+    # value locked as "USD millions") arrives with batch valuation writes, which
+    # go straight to main.
+    if: needs.changes.outputs.fact_currency == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout workspace (full)
+        # Full tree: the scan resolves each row's `source.ref` to the evidence file
+        # it names (`{TICKER}/research/evidence/sec_companyfacts.json`), so a sparse
+        # profile would turn real rows into silent "locator does not resolve".
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bash _system/scripts/ci_checkout_workspace.sh full "pull/${{ github.event.pull_request.number }}/head"
+          else
+            bash _system/scripts/ci_checkout_workspace.sh full
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Currency scanner unit tests
+        working-directory: _system/scripts
+        run: python -m unittest -v test_scan_fact_ledger_currency
+      - name: Scan locked currency labels against source unit keys
+        # Deliberately no `|| true` and no `continue-on-error`: a mismatch has to
+        # fail this job. The repo has a recorded trap where a validator's ERROR
+        # only skipped a downstream step, leaving the run green and the data wrong.
+        # `pipefail` keeps the scanner's exit code through `tee`.
+        run: |
+          set -euo pipefail
+          python _system/scripts/scan_fact_ledger_currency.py | tee "$RUNNER_TEMP/currency-scan.txt"
+      - name: Publish scan output to the run summary
+        # always(): the SKIPPED coverage line and any MISMATCH lines must be
+        # readable from the run page whether the scan passed or failed.
+        if: always()
+        run: |
+          {
+            echo "### Fact-ledger currency scan"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/currency-scan.txt" 2>/dev/null || echo "(no scanner output; the step did not run)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   dashboard-integrity:
     needs: changes

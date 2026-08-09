@@ -164,6 +164,30 @@ def _latest_across_companyfacts(
     return namespace, tag, row
 
 
+# A foreign private issuer filing under IFRS has no ``dei`` share tag in its
+# companyfacts payload: the DEI cover element is only produced by the domestic
+# forms. Its issuer-wide count lives in the IFRS taxonomy instead, so both the
+# point-in-time and the weighted lists carry an ifrs-full equivalent. Without
+# these, an IFRS filer dead-ends on shares_outstanding forever (NVO, 2026-08-09).
+ENTITY_SHARE_SPECS = [
+    ("dei", ["EntityCommonStockSharesOutstanding"]),
+    ("ifrs-full", ["NumberOfSharesOutstanding"]),
+]
+WEIGHTED_SHARE_SPECS = [
+    ("us-gaap", [
+        "WeightedAverageNumberOfDilutedSharesOutstanding",
+        "WeightedAverageNumberOfSharesOutstandingBasic",
+    ]),
+    # IAS 33 elements: WeightedAverageShares is basic, AdjustedWeightedAverageShares
+    # is diluted. (``WeightedAverageNumberOfSharesOutstanding`` is a us-gaap-shaped
+    # name that does not exist in ifrs-full and never matched anything.)
+    ("ifrs-full", [
+        "AdjustedWeightedAverageShares",
+        "WeightedAverageShares",
+    ]),
+]
+
+
 def _select_share_companyfact(payload: dict) -> tuple[str, dict] | None:
     """Choose the freshest issuer-wide share denominator.
 
@@ -172,20 +196,8 @@ def _select_share_companyfact(payload: dict) -> tuple[str, dict] | None:
     shares are a safer fallback than accepting that stale value merely because
     it is the only DEI row.
     """
-    entity = _latest_across_companyfacts(
-        payload, [("dei", ["EntityCommonStockSharesOutstanding"])], annual=False
-    )
-    weighted = _latest_across_companyfacts(
-        payload,
-        [
-            ("us-gaap", [
-                "WeightedAverageNumberOfDilutedSharesOutstanding",
-                "WeightedAverageNumberOfSharesOutstandingBasic",
-            ]),
-            ("ifrs-full", ["WeightedAverageNumberOfSharesOutstanding"]),
-        ],
-        annual=False,
-    )
+    entity = _latest_across_companyfacts(payload, ENTITY_SHARE_SPECS, annual=False)
+    weighted = _latest_across_companyfacts(payload, WEIGHTED_SHARE_SPECS, annual=False)
     candidates = [row for row in (entity, weighted) if row]
     if not candidates:
         return None
@@ -208,6 +220,68 @@ def _select_share_companyfact(payload: dict) -> tuple[str, dict] | None:
             selected = weighted
     namespace, tag, row = selected
     return tag, {**row, "namespace": namespace}
+
+
+COVER_SHARE_DIRECTIVE = re.compile(r"Indicate the number of outstanding shares", re.I)
+COVER_SHARE_TERMINATOR = re.compile(r"Indicate by check mark", re.I)
+# Only comma-grouped counts of a million or more: enough to skip nominal values
+# ("DKK 0.10 each"), item numbers and years without guessing at bare integers.
+COVER_SHARE_COUNT = re.compile(r"\b\d{1,3}(?:,\d{3}){2,}\b")
+COVER_FILING_DATE = re.compile(r"_(\d{8})")
+
+
+def _cover_page_share_count(ticker: str) -> dict | None:
+    """Share count summed over the classes on the latest 20-F/40-F cover page.
+
+    Last resort for a foreign private issuer whose companyfacts payload carries
+    no share concept at all. Item 'Indicate the number of outstanding shares of
+    each of the issuer's classes of capital or common stock' is a required cover
+    item, so the classes are enumerated there even when the taxonomy is silent.
+    Returns a locked-fact row, or None when the cover cannot be read
+    unambiguously - a wrong denominator is worse than a blocked one.
+    """
+    docs = ROOT / ticker / "investor-documents" / "sec-edgar"
+    filings = [p for p in docs.glob("*.htm*") if p.name.split("_")[0] in {"20-F", "40-F"}]
+    if not filings:
+        return None
+    def filed_on(path: Path) -> str:
+        match = COVER_FILING_DATE.search(path.name)
+        return match.group(1) if match else ""
+    filing = max(filings, key=lambda p: (filed_on(p), p.name))
+    extract = ROOT / ticker / "research" / "evidence" / "_text" / f"{filing.name}.txt"
+    try:
+        text = extract.read_text(encoding="utf-8", errors="replace") if extract.is_file() else re.sub(
+            r"<[^>]+>", " ", filing.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+    start = COVER_SHARE_DIRECTIVE.search(text)
+    if not start:
+        return None
+    tail = text[start.end():start.end() + 1500]
+    stop = COVER_SHARE_TERMINATOR.search(tail)
+    window = tail[:stop.start()] if stop else tail
+    counts = [int(raw.replace(",", "")) for raw in COVER_SHARE_COUNT.findall(window)]
+    if not counts:
+        return None
+    line = text.count("\n", 0, start.start()) + 1
+    classes = " + ".join(f"{value:,}" for value in counts)
+    period_end = ""
+    period = re.search(r"_rpt(\d{8})", filing.name)
+    if period:
+        stamp = period.group(1)
+        period_end = f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:]}"
+    return {
+        "field_id": "shares_outstanding", "value": float(sum(counts)), "unit": "shares",
+        "locked": True, "confidence": "medium",
+        "source": {
+            "ref": str(filing.relative_to(ROOT)).replace("\\", "/"),
+            "locator": (f"{filing.name.split('_')[0]} cover page, 'Indicate the number of outstanding "
+                        f"shares of each of the issuer's classes'; classes {classes}; "
+                        f"text extract line {line}"),
+            "as_of": period_end or None,
+            "content_sha256": sha256(filing),
+        },
+    }
 
 
 _ISO_CURRENCY = re.compile(r"^[A-Z]{3}$")
@@ -347,6 +421,10 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
         }
     if companyfact_rows:
         by_id = companyfact_rows
+    if "shares_outstanding" not in by_id:
+        cover_shares = _cover_page_share_count(ticker)
+        if cover_shares:
+            by_id["shares_outstanding"] = cover_shares
     facts = list(by_id.values())
     ocf, capex = by_id.get("operating_cash_flow_m"), by_id.get("capital_expenditures_m")
     if ocf and capex:
@@ -632,8 +710,19 @@ def evidence_plan(
 
 def _proof_fact(field: dict, node_id: str, label: str, unit: str, scale: float = 1.0) -> dict:
     source = {k: v for k, v in field["source"].items() if k in {"ref", "locator", "as_of"}}
-    return {"id": node_id, "label": label, "kind": "fact", "value": float(field["value"]) * scale,
+    node = {"id": node_id, "label": label, "kind": "fact", "value": float(field["value"]) * scale,
             "unit": unit, "source": source, "locked": True}
+    fx = field.get("fx_conversion")
+    if isinstance(fx, dict) and fx:
+        # Carry the ledger's conversion evidence into the proof. Without it a
+        # converted value and a raw foreign-currency value both read as plain
+        # "USD millions" sourced to a EUR/DKK concept, so a stale proof input is
+        # indistinguishable from a correct one by inspection (ASML, 2026-08-09).
+        converted = dict(fx)
+        if scale != 1.0 and isinstance(converted.get("source_value"), (int, float)):
+            converted["source_value"] = float(converted["source_value"]) * scale
+        node["fx_conversion"] = converted
+    return node
 
 
 def _shares_scale(facts: dict) -> float:

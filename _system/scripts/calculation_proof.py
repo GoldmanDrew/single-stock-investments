@@ -227,11 +227,18 @@ def evaluate_calculation_proof(proof: dict) -> dict:
                 value = _case_value(row, case, str(row.get("id")))
                 values[row["id"]] = value
                 source = _source_record(row.get("source"))
-                case_trace.append({
+                traced = {
                     "id": row["id"], "label": row.get("label") or row["id"],
                     "kind": row.get("kind"), "value": round(value, 8), "unit": row.get("unit"),
                     "source": source, "rationale": row.get("rationale"),
-                })
+                }
+                # A value converted out of the source currency must stay
+                # distinguishable from an unconverted one downstream; without
+                # this the contract trace shows "USD millions" against a EUR/DKK
+                # concept with nothing saying a rate was applied.
+                if isinstance(row.get("fx_conversion"), dict) and row["fx_conversion"]:
+                    traced["fx_conversion"] = row["fx_conversion"]
+                case_trace.append(traced)
             for node in proof.get("calculations") or []:
                 resolved = [_resolve(arg, values, node["id"]) for arg in node.get("args") or []]
                 value = _apply(node["op"], resolved, node)

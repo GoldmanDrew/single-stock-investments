@@ -1,7 +1,10 @@
 import importlib.util
 import copy
+import hashlib
 import sys
+import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -283,6 +286,93 @@ class ValuationAutomationTests(unittest.TestCase):
         tag, row = automation._select_share_companyfact(companyfacts)
         self.assertEqual(tag, "EntityCommonStockSharesOutstanding")
         self.assertEqual(row["val"], 1_675_000_000)
+
+    def test_ifrs_filer_resolves_shares_without_a_dei_tag(self):
+        """Regression: an IFRS foreign private issuer has no
+        dei:EntityCommonStockSharesOutstanding, so NVO sat evidence_blocked on
+        shares_outstanding with a perfectly good ifrs-full count in the same
+        companyfacts payload."""
+        companyfacts = {
+            "facts": {
+                "ifrs-full": {
+                    "NumberOfSharesOutstanding": {"units": {"shares": [
+                        {"val": 4_441_000_000, "end": "2024-12-31",
+                         "filed": "2025-02-05", "form": "20-F"},
+                        {"val": 4_444_000_000, "end": "2025-12-31",
+                         "filed": "2026-02-04", "form": "20-F"},
+                    ]}},
+                    "AdjustedWeightedAverageShares": {"units": {"shares": [
+                        {"val": 4_447_700_000, "end": "2025-12-31",
+                         "filed": "2026-02-04", "form": "20-F"},
+                    ]}},
+                }
+            }
+        }
+        tag, row = automation._select_share_companyfact(companyfacts)
+        self.assertEqual(tag, "NumberOfSharesOutstanding")
+        self.assertEqual(row["namespace"], "ifrs-full")
+        self.assertEqual(row["val"], 4_444_000_000)
+
+    def test_ifrs_weighted_shares_still_screen_a_stale_point_in_time_count(self):
+        """The IFRS fallback must not disable the divergence guard: a
+        class-member artifact is rejected in favour of the weighted count."""
+        companyfacts = {
+            "facts": {
+                "ifrs-full": {
+                    "NumberOfSharesOutstanding": {"units": {"shares": [{
+                        "val": 1_074_872_000, "end": "2025-12-31",
+                        "filed": "2026-02-04", "form": "20-F"}]}},
+                    "WeightedAverageShares": {"units": {"shares": [{
+                        "val": 4_443_000_000, "end": "2025-12-31",
+                        "filed": "2026-02-04", "form": "20-F"}]}},
+                }
+            }
+        }
+        tag, row = automation._select_share_companyfact(companyfacts)
+        self.assertEqual(tag, "WeightedAverageShares")
+        self.assertEqual(row["val"], 4_443_000_000)
+
+    def test_cover_page_shares_sum_every_class_when_the_taxonomy_is_silent(self):
+        """Last-resort fallback for a filer whose companyfacts carry no share
+        concept at all: the 20-F cover item enumerates the classes."""
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        docs = root / "FPI" / "investor-documents" / "sec-edgar"
+        docs.mkdir(parents=True)
+        filing = docs / "20-F_20260204_rpt20251231_acc0000353278_26_000012.htm"
+        filing.write_text(
+            "<p>Securities registered pursuant to Section 12(b) of the Act:</p>\n"
+            "<p>Indicate the number of outstanding shares of each of the issuer's "
+            "classes of capital or common stock as of the close of the period "
+            "covered by the Annual Report:</p>\n"
+            "<p>A shares, nominal value DKK 0.10 each: 1,074,872,000</p>\n"
+            "<p>B shares, nominal value DKK 0.10 each: 3,390,128,000</p>\n"
+            "<p>Indicate by check mark if the registrant is a well-known seasoned "
+            "issuer. 999,999,999</p>\n",
+            encoding="utf-8")
+        with unittest.mock.patch.object(automation, "ROOT", root):
+            row = automation._cover_page_share_count("FPI")
+        self.assertIsNotNone(row)
+        # Both classes, and nothing from beyond the cover item's terminator.
+        self.assertEqual(row["value"], 4_465_000_000.0)
+        self.assertEqual(row["unit"], "shares")
+        self.assertTrue(row["locked"])
+        self.assertEqual(row["source"]["as_of"], "2025-12-31")
+        self.assertIn("cover page", row["source"]["locator"])
+        self.assertIn("1,074,872,000", row["source"]["locator"])
+        self.assertEqual(row["source"]["ref"], str(filing.relative_to(root)).replace("\\", "/"))
+        self.assertEqual(row["source"]["content_sha256"],
+                         hashlib.sha256(filing.read_bytes()).hexdigest())
+
+    def test_cover_page_shares_return_nothing_rather_than_guess(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        docs = root / "FPI" / "investor-documents" / "sec-edgar"
+        docs.mkdir(parents=True)
+        (docs / "20-F_20260204_rpt20251231_acc0000353278_26_000012.htm").write_text(
+            "<p>Indicate the number of outstanding shares of each of the issuer's "
+            "classes:</p><p>Not applicable.</p><p>Indicate by check mark</p>",
+            encoding="utf-8")
+        with unittest.mock.patch.object(automation, "ROOT", root):
+            self.assertIsNone(automation._cover_page_share_count("FPI"))
 
     def test_non_usd_companyfact_refuses_to_lock_without_fx_evidence(self):
         """Regression: NVO (IFRS, DKK filer) locked DKK companyfacts values as
