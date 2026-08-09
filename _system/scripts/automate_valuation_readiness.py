@@ -13,6 +13,7 @@ import copy
 import hashlib
 import json
 import math
+import re
 import subprocess
 import sys
 import urllib.request
@@ -27,6 +28,7 @@ SCRIPTS = ROOT / "_system" / "scripts"
 REGISTRY = ROOT / "_system" / "portfolio" / "registry.json"
 OVERRIDES = ROOT / "_system" / "reference" / "security_identity_overrides.json"
 METHODS = ROOT / "_system" / "reference" / "valuation_method_registry.json"
+FX_RATES = ROOT / "_system" / "reference" / "market-data" / "fx_rates.json"
 
 
 def read_json(path: Path, default=None):
@@ -208,6 +210,59 @@ def _select_share_companyfact(payload: dict) -> tuple[str, dict] | None:
     return tag, {**row, "namespace": namespace}
 
 
+_ISO_CURRENCY = re.compile(r"^[A-Z]{3}$")
+
+
+def _companyfacts_currency(unit_key: str) -> str | None:
+    """ISO currency of a companyfacts unit key ("DKK", "USD", "EUR/shares")."""
+    base = str(unit_key).split("/", 1)[0].strip()
+    return base if _ISO_CURRENCY.match(base) else None
+
+
+def _usd_conversion(
+    ticker: str, field_id: str, unit_key: str, fact_end: str, fx_payload: dict
+) -> tuple[float, dict | None] | None:
+    """Divisor and provenance that turn a companyfacts value into USD.
+
+    The ledger's monetary interface is USD millions, so the recorded unit is
+    only honest when the source unit key is USD or an explicit, evidenced FX
+    conversion is applied. Returns ``(divisor, fx_conversion_or_None)``, or
+    ``None`` when the fact must NOT be locked: the unit key is not a monetary
+    ISO code, or the source currency is non-USD and no FX rate row (rate,
+    date, source) within 45 days of the fact's period end exists in
+    ``FX_RATES``. Locking anyway is exactly the NVO DKK-labeled-as-USD
+    corruption (2026-08-09).
+    """
+    currency = _companyfacts_currency(unit_key)
+    if currency == "USD":
+        return 1.0, None
+    if currency is None:
+        print(f"REFUSED to lock {ticker} {field_id}: companyfacts unit key "
+              f"'{unit_key}' is not a monetary ISO currency code.")
+        return None
+    fx_ref = str(FX_RATES.relative_to(ROOT)).replace("\\", "/")
+    candidates = []
+    for row in (fx_payload.get("rates") or {}).get(currency) or []:
+        rate, rate_as_of = row.get("rate_per_usd"), str(row.get("as_of") or "")
+        if not isinstance(rate, (int, float)) or rate <= 0 or not row.get("source"):
+            continue
+        try:
+            gap_days = abs((date.fromisoformat(rate_as_of[:10])
+                            - date.fromisoformat(str(fact_end)[:10])).days)
+        except (TypeError, ValueError):
+            continue
+        if gap_days <= 45:
+            candidates.append((gap_days, rate_as_of, float(rate), str(row["source"])))
+    if not candidates:
+        print(f"REFUSED to lock {ticker} {field_id}: source reports in {currency} "
+              f"but {fx_ref} has no {currency} rate row (rate_per_usd, as_of, source) "
+              f"within 45 days of {fact_end}. Add an evidenced rate or the fact stays unlocked.")
+        return None
+    _gap, rate_as_of, rate, rate_source = min(candidates, key=lambda item: (item[0], item[1]))
+    return rate, {"from_currency": currency, "to_currency": "USD", "rate_per_usd": rate,
+                  "rate_as_of": rate_as_of, "evidence_ref": fx_ref, "rate_source": rate_source}
+
+
 def build_fact_ledger(ticker: str, as_of: str) -> dict:
     path, filing = latest_filing_facts(ticker)
     facts = []
@@ -257,17 +312,28 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
     }
     by_id = {row["field_id"]: row for row in facts}
     companyfact_rows = {}
+    fx_payload = read_json(FX_RATES)
     for field_id, (specs, annual, scale, unit) in companyfact_specs.items():
         selected = _latest_across_companyfacts(companyfacts, specs, annual)
         if not selected:
             continue
         namespace, tag, row = selected
+        conversion = _usd_conversion(ticker, field_id, str(row.get("unit") or ""),
+                                     str(row.get("end") or as_of), fx_payload)
+        if conversion is None:
+            continue
+        divisor, fx = conversion
         companyfact_rows[field_id] = {
-            "field_id": field_id, "value": float(row["val"]) * scale, "unit": unit, "locked": True, "confidence": "high",
+            "field_id": field_id, "value": float(row["val"]) * scale / divisor, "unit": unit, "locked": True, "confidence": "high",
             "source": {"ref": str(companyfacts_path.relative_to(ROOT)).replace("\\", "/"),
                        "locator": f"{namespace}:{tag}; accession {row.get('accn')}; form {row.get('form')}",
                        "as_of": row.get("end"), "content_sha256": sha256(companyfacts_path)},
         }
+        if fx:
+            companyfact_rows[field_id]["fx_conversion"] = {
+                **fx, "source_value": float(row["val"]) * scale,
+                "source_unit": f"{fx['from_currency']} millions",
+            }
     selected_shares = _select_share_companyfact(companyfacts)
     if selected_shares:
         tag, row = selected_shares
@@ -284,11 +350,15 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
     facts = list(by_id.values())
     ocf, capex = by_id.get("operating_cash_flow_m"), by_id.get("capital_expenditures_m")
     if ocf and capex:
-        facts.append({
+        derived = {
             "field_id": "normalized_owner_earnings_m", "value": float(ocf["value"]) - abs(float(capex["value"])), "unit": "USD millions",
             "source": ocf["source"], "derived_from": ["operating_cash_flow_m", "capital_expenditures_m"],
             "formula": "operating_cash_flow_m - abs(capital_expenditures_m)", "confidence": "medium", "locked": True,
-        })
+        }
+        if ocf.get("fx_conversion"):
+            derived["fx_conversion"] = {k: v for k, v in ocf["fx_conversion"].items()
+                                        if k not in ("source_value", "source_unit")}
+        facts.append(derived)
     return {"schema_version": "1.0", "ticker": ticker, "as_of": as_of, "facts": facts,
             "source_count": len({row["source"]["ref"] for row in facts}), "generated_at": now()}
 

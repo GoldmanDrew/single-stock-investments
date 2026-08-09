@@ -284,6 +284,40 @@ class ValuationAutomationTests(unittest.TestCase):
         self.assertEqual(tag, "EntityCommonStockSharesOutstanding")
         self.assertEqual(row["val"], 1_675_000_000)
 
+    def test_non_usd_companyfact_refuses_to_lock_without_fx_evidence(self):
+        """Regression: NVO (IFRS, DKK filer) locked DKK companyfacts values as
+        "USD millions", a ~6.4x overstatement waiting for a shares fact. A
+        non-USD source unit must either convert through an evidenced FX row or
+        refuse to lock."""
+        self.assertIsNone(automation._usd_conversion(
+            "NVO", "cash_m", "DKK", "2025-12-31", {}))
+        # A recognized rate that is too stale to cover the fact must also refuse.
+        stale = {"rates": {"DKK": [{
+            "rate_per_usd": 6.3565, "as_of": "2024-12-31", "source": "ECB reference rate",
+        }]}}
+        self.assertIsNone(automation._usd_conversion(
+            "NVO", "cash_m", "DKK", "2025-12-31", stale))
+        # A non-monetary unit key can never silently pass as USD.
+        self.assertIsNone(automation._usd_conversion(
+            "NVO", "cash_m", "shares", "2025-12-31", {}))
+
+    def test_non_usd_companyfact_converts_through_evidenced_fx_row(self):
+        payload = {"rates": {"DKK": [
+            {"rate_per_usd": 7.0, "as_of": "2025-06-30", "source": "ECB reference rate"},
+            {"rate_per_usd": 6.3565, "as_of": "2025-12-31", "source": "ECB reference rate"},
+        ]}}
+        divisor, fx = automation._usd_conversion(
+            "NVO", "operating_cash_flow_m", "DKK", "2025-12-31", payload)
+        self.assertEqual(divisor, 6.3565)
+        self.assertEqual(fx["from_currency"], "DKK")
+        self.assertEqual(fx["to_currency"], "USD")
+        self.assertEqual(fx["rate_as_of"], "2025-12-31")
+        self.assertTrue(fx["rate_source"])
+        self.assertTrue(fx["evidence_ref"].endswith("fx_rates.json"))
+        # USD source units pass through unchanged with no conversion row.
+        self.assertEqual(automation._usd_conversion(
+            "TEST", "cash_m", "USD", "2025-12-31", {}), (1.0, None))
+
     def test_zero_base_value_requires_explicit_terminal_outcome(self):
         identity = {"primary_method": "owner_earnings_reinvestment_dcf", "archetype": "compounder"}
         ledger = {"facts": [
