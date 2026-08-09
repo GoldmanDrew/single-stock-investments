@@ -2,6 +2,11 @@ name: Auto - Investment Committee
 
 # A Power Zone commit creates committee_work. Each merged isolated-task PR
 # changes that tree and automatically advances the next stage.
+#
+# Agent execution was removed here in 13d0534f2e ("disable committee agents");
+# the repository variable COMMITTEE_AGENTS_ENABLED is the single switch that
+# turns it back on. The re-freeze job is gated on the same variable: with no
+# rater able to vote, re-freezing packets only churns supersede archives.
 on:
   schedule:
     # Safety-net sweep every 4h; the repository_dispatch chain
@@ -68,6 +73,32 @@ jobs:
               handle.write("tasks=" + json.dumps(filtered, separators=(",", ":")) + "\n")
           print(f"committee action={action}; ready={len(filtered)}; already_in_flight={len(tasks) - len(filtered)}")
           PY
+      - name: Report the parked refresh queue
+        # refresh-stale-packet is gated on COMMITTEE_AGENTS_ENABLED, so with the
+        # flag off a refresh action runs no job at all. Without this the run is
+        # green having done nothing visible.
+        if: steps.pending.outputs.action == 'refresh' && vars.COMMITTEE_AGENTS_ENABLED != 'true'
+        env:
+          TICKER: ${{ steps.queue.outputs.ticker }}
+          COMMITTEE_DATE: ${{ steps.queue.outputs.committee_date }}
+          REASON: ${{ steps.queue.outputs.reason }}
+        run: |
+          {
+            echo "### Committee refresh held: COMMITTEE_AGENTS_ENABLED is off"
+            echo ""
+            echo "Next packet: **$TICKER** · date **$COMMITTEE_DATE** · reason \`$REASON\`."
+            echo "No re-freeze runs while the flag is off; nothing is superseded and no vote is discarded."
+            echo ""
+            python _system/scripts/select_committee_work.py --refresh-backlog
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Report parked committees awaiting a human
+        # stage=parked is terminal, so select() and the refresh backlog both skip
+        # it. Without this the packets a park is protecting - and the votes they
+        # hold - are invisible to the human the park defers to. The held-refresh
+        # step above already prints this section, so this runs only when it did
+        # not.
+        if: always() && (steps.pending.outputs.action != 'refresh' || vars.COMMITTEE_AGENTS_ENABLED == 'true')
+        run: python _system/scripts/select_committee_work.py --parked >> "$GITHUB_STEP_SUMMARY"
 
   review-required:
     needs: prepare
@@ -117,8 +148,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${{ needs.prepare.outputs.ticker }}/research/committee_${{ needs.prepare.outputs.committee_date }}.json" \
-                  "${{ needs.prepare.outputs.ticker }}/research/committee_work/${{ needs.prepare.outputs.committee_date }}/manifest.json" \
+          git add -A -- "${{ needs.prepare.outputs.ticker }}/research/committee_${{ needs.prepare.outputs.committee_date }}"*.json
+          git add "${{ needs.prepare.outputs.ticker }}/research/committee_work/${{ needs.prepare.outputs.committee_date }}/manifest.json" \
                   "${{ needs.prepare.outputs.ticker }}/research/valuation_workbench.json" \
                   dashboard/data/dashboard_data.json
           git commit -m "feat(ic): assemble ${{ needs.prepare.outputs.ticker }} committee ${{ needs.prepare.outputs.committee_date }}"
@@ -128,7 +159,8 @@ jobs:
 
   refresh-stale-packet:
     needs: prepare
-    if: needs.prepare.outputs.action == 'refresh'
+    # Same switch that gates agent execution: no voters, no re-freezing.
+    if: needs.prepare.outputs.action == 'refresh' && vars.COMMITTEE_AGENTS_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -150,7 +182,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A -- "${{ needs.prepare.outputs.ticker }}/research/committee_work"
-          git commit -m "chore(ic): refresh ${{ needs.prepare.outputs.ticker }} frozen evidence"
+          if [ -f _system/data/committee_triage.json ]; then
+            git add -- _system/data/committee_triage.json
+          fi
+          git commit -m "chore(ic): re-freeze or park ${{ needs.prepare.outputs.ticker }} committee packet"
           git push origin HEAD:main
           gh api --method POST "repos/${{ github.repository }}/dispatches" \
             -f event_type=advance-investment-committee

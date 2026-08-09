@@ -62,10 +62,27 @@ def committee_view(research: Path) -> dict:
     record_is_current = bool(record) and (not manifest_date or record_date >= manifest_date)
     active_record = record if record_is_current else {}
     owner = active_record.get("human_decision") or {}
+    stage = str(manifest.get("stage") or "").lower()
     if owner.get("status") == "complete" and owner.get("decision"):
         status = "outcome_tracking"
         next_action = "Measure the recorded decision at each due 6-, 12-, and 24-month horizon."
-    elif str(manifest.get("stage") or "").lower() == "evidence_blocked":
+    elif stage == "parked":
+        # Without this branch a parked committee fell through to
+        # independent_review_open, and this derived file then shadowed its own
+        # source: every reader of the workbench saw an open review, and
+        # run_security_decision_pipeline read the same status back and opened a
+        # second committee over the held votes.
+        parked = manifest.get("parked") or {}
+        held = parked.get("votes_landed")
+        status = "parked"
+        next_action = (
+            f"Committee parked ({parked.get('reason') or 'unknown'})"
+            + (f" holding {held} vote(s)" if held else "")
+            + ". Resume or discard it with select_committee_work.py --unpark "
+            f"{str(manifest.get('ticker') or '').upper()} --unpark-date {manifest.get('as_of')} "
+            "--unpark-mode resume|discard; nothing automatic will."
+        )
+    elif stage == "evidence_blocked":
         status = "evidence_blocked"
         next_action = "Close the committee's primary-evidence blockers before requesting an owner decision."
     elif active_record:
@@ -85,6 +102,7 @@ def committee_view(research: Path) -> dict:
         "as_of": manifest.get("as_of") or (active_record.get("review") or {}).get("as_of"),
         "packet_hash": manifest.get("packet_hash"),
         "stage": manifest.get("stage"),
+        "parked": manifest.get("parked"),
         "selected_raters": [row.get("persona") for row in raters if row.get("persona")],
         "analysis_progress": {"completed": len(completed), "required": len(required)},
         "completed_outputs": completed,

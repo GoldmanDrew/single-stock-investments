@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from investment_committee_pipeline import validate_vote
+from investment_committee_pipeline import has_snapshot, validate_vote
 
 ROOT = Path(__file__).resolve().parents[2]
 COMMITTEE_RE = re.compile(
@@ -108,7 +108,14 @@ def validate_artifact(path: Path, rel: str, manifest: dict) -> list[str]:
         )
         if expected is None:
             return [f"{rel}: persona {persona} is not a selected rater"]
-        return [f"{rel}: {message}" for message in validate_vote(payload, expected)]
+        # Bind the vote to the packet it claims to answer, so a vote written
+        # against a superseded packet cannot merge.
+        bound = {
+            **expected,
+            "packet_hash": manifest.get("packet_hash"),
+            "hash_binding": "required" if has_snapshot(manifest) else "legacy_optional",
+        }
+        return [f"{rel}: {message}" for message in validate_vote(payload, bound)]
     return [f"unsupported committee artifact: {rel}"]
 
 

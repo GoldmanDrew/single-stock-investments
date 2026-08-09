@@ -5,6 +5,37 @@ The script does not call models and never invents votes. It freezes evidence,
 selects method-diverse raters, writes isolated work packets, validates completed
 work, and assembles a schema-compatible record only after every required stage
 exists.
+
+Parking and un-parking
+----------------------
+`park_committee` is the circuit breaker: it stops a committee that would
+otherwise loop or lose votes, sets `stage=parked`, and files the packet in
+`_system/data/committee_triage.json`. `parked` is terminal, so no automatic job
+touches a parked packet again - a human does, through
+`select_committee_work.py`:
+
+    # list what is parked and why
+    python _system/scripts/select_committee_work.py --parked
+
+    # keep the landed votes and put the packet back to work
+    python _system/scripts/select_committee_work.py \\
+        --unpark AAA --unpark-date 2026-07-18 --unpark-mode resume
+
+    # throw the packet away and freeze a new one from live evidence
+    python _system/scripts/select_committee_work.py \\
+        --unpark AAA --unpark-date 2026-07-18 --unpark-mode discard
+
+`resume` keeps the votes only when the frozen copies still hash to the recorded
+packet. If they do not, it re-freezes from live evidence, moves every landed
+vote into `invalidated_votes/<old-packet-prefix>/`, and re-issues the rater
+prompts against the new packet hash: an answer to a packet that no longer
+exists is never silently accepted. `discard` archives the whole work directory
+and initializes a fresh one.
+
+`initialize` refuses to open a second door into a work directory that already
+holds votes or a park block. Re-initializing such a directory would reset the
+stage, drop the park block, and mint a new packet hash, which would reject every
+landed vote as answering a different packet.
 """
 from __future__ import annotations
 
@@ -35,6 +66,19 @@ GROUPS = {
 DEFAULT_RATERS = ("hohn", "pabrai", "marks_credit_cycle")
 BASELINE_LLM_CALLS = 5
 MAXIMUM_LLM_CALLS = 9
+PIPELINE_VERSION = "3.1-copy-on-freeze"
+SNAPSHOT_DIR = "evidence_snapshot"
+# A committee that has been re-frozen this many times without a single vote
+# landing is not waiting on evidence; it is looping. Park it instead.
+MAX_REFRESHES_WITHOUT_VOTES = 3
+TERMINAL_STAGES = {
+    "assembled",
+    "complete",
+    "superseded",
+    "parked",
+    "evidence_blocked",
+    "committee_complete_decision_pending",
+}
 
 
 def read_json(path: Path) -> dict:
@@ -46,10 +90,16 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
 
-def file_reference(path: Path) -> dict:
+def triage_path() -> Path:
+    """Resolved at call time so tests can relocate ROOT."""
+    return ROOT / "_system" / "data" / "committee_triage.json"
+
+
+def file_reference(path: Path, source: Path | None = None) -> dict:
+    """Hash `path`; record `source` as the packet path when the bytes are a copy."""
     raw = path.read_bytes()
     return {
-        "path": path.relative_to(ROOT).as_posix(),
+        "path": (source or path).relative_to(ROOT).as_posix(),
         "sha256": hashlib.sha256(raw).hexdigest(),
         "bytes": len(raw),
         "role": "frozen local evidence",
@@ -60,6 +110,142 @@ def file_reference(path: Path) -> dict:
 def packet_hash(refs: list[dict]) -> str:
     canonical = [{k: row[k] for k in ("path", "sha256", "bytes")} for row in sorted(refs, key=lambda x: x["path"])]
     return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def snapshot_name(ticker: str, path: Path) -> str:
+    """Flatten a research-relative evidence path into one snapshot filename."""
+    try:
+        relative = path.relative_to(ROOT / ticker / "research")
+    except ValueError:
+        relative = Path(path.name)
+    return relative.as_posix().replace("/", "__")
+
+
+def freeze_evidence(ticker: str, work: Path, paths: list[Path]) -> list[dict]:
+    """Copy every evidence file into the work dir and reference the copy.
+
+    The packet hash is taken over the frozen copies, so the daily compilers may
+    rewrite the live research tree without ageing a packet that raters are still
+    voting on. Only a deliberate refresh replaces the copies.
+    """
+    snapshot = work / SNAPSHOT_DIR
+    snapshot.mkdir(parents=True, exist_ok=True)
+    for stale in snapshot.iterdir():
+        if stale.is_file():
+            stale.unlink()
+    refs = []
+    for path in paths:
+        target = snapshot / snapshot_name(ticker, path)
+        target.write_bytes(path.read_bytes())
+        row = file_reference(target, source=path)
+        row["snapshot_path"] = target.relative_to(ROOT).as_posix()
+        refs.append(row)
+    return refs
+
+
+def has_snapshot(manifest: dict) -> bool:
+    return any(row.get("snapshot_path") for row in manifest.get("evidence") or [])
+
+
+def packet_refs(manifest: dict) -> list[dict]:
+    """Rehash the packet: the frozen copies when present, the live files otherwise."""
+    rows = manifest.get("evidence") or []
+    if has_snapshot(manifest):
+        return [file_reference(ROOT / row["snapshot_path"], source=ROOT / row["path"]) for row in rows]
+    return [file_reference(ROOT / row["path"]) for row in rows]
+
+
+def verify_packet(manifest: dict) -> bool:
+    """True when the packet still hashes to its frozen value.
+
+    Packets frozen before copy-on-freeze carry no snapshot and keep the old
+    live-file behaviour, so existing records need no migration.
+    """
+    try:
+        refs = packet_refs(manifest)
+    except (FileNotFoundError, OSError):
+        return False
+    return packet_hash(refs) == manifest.get("packet_hash")
+
+
+def live_evidence_drifted(manifest: dict) -> bool:
+    """Live research files no longer match the frozen copies (informational only)."""
+    if not has_snapshot(manifest):
+        return False
+    try:
+        refs = [file_reference(ROOT / row["path"]) for row in manifest.get("evidence") or []]
+    except (FileNotFoundError, OSError):
+        return True
+    return packet_hash(refs) != manifest.get("packet_hash")
+
+
+def vote_files(work: Path) -> list[Path]:
+    """Every landed vote file in this work dir, in a stable order."""
+    return sorted(work.glob("round_*/*.json"))
+
+
+def votes_landed(work: Path) -> int:
+    return len(vote_files(work))
+
+
+def record_triage(entry: dict) -> Path:
+    """Upsert one parked committee into the operator triage file."""
+    path = triage_path()
+    document = read_json(path) if path.exists() else {"schema_version": "1.0", "parked": []}
+    rows = [
+        row
+        for row in document.get("parked") or []
+        if (row.get("ticker"), row.get("committee_date")) != (entry["ticker"], entry["committee_date"])
+    ]
+    rows.append(entry)
+    document["parked"] = sorted(rows, key=lambda row: (row.get("ticker", ""), row.get("committee_date", "")))
+    document["updated_at"] = datetime.now(timezone.utc).isoformat()
+    write_json(path, document)
+    return path
+
+
+def clear_triage(ticker: str, committee_date: str) -> Path | None:
+    """Drop one committee from the operator triage file after it is un-parked."""
+    path = triage_path()
+    if not path.exists():
+        return None
+    document = read_json(path)
+    rows = [
+        row
+        for row in document.get("parked") or []
+        if (row.get("ticker"), row.get("committee_date")) != (ticker, committee_date)
+    ]
+    document["parked"] = rows
+    document["updated_at"] = datetime.now(timezone.utc).isoformat()
+    write_json(path, document)
+    return path
+
+
+def park_committee(work: Path, reason: str, detail: str) -> dict:
+    """Stop the loop and surface the committee instead of re-freezing it again."""
+    manifest_path = work / "manifest.json"
+    manifest = read_json(manifest_path)
+    previous_stage = str(manifest.get("stage") or "") or "round_one_open"
+    manifest["stage"] = "parked"
+    manifest["parked"] = {
+        "reason": reason,
+        "detail": detail,
+        "parked_at": datetime.now(timezone.utc).isoformat(),
+        # The stage to restore on `--unpark-mode resume`; parking must not lose
+        # how far the committee had already got.
+        "previous_stage": previous_stage if previous_stage != "parked" else "round_one_open",
+        "refresh_count": int(manifest.get("refresh_count") or 0),
+        "votes_landed": votes_landed(work),
+    }
+    write_json(manifest_path, manifest)
+    record_triage({
+        "ticker": manifest.get("ticker"),
+        "committee_date": manifest.get("as_of"),
+        "packet_hash": manifest.get("packet_hash"),
+        "work_dir": work.relative_to(ROOT).as_posix(),
+        **manifest["parked"],
+    })
+    return manifest
 
 
 def latest(ticker_dir: Path, pattern: str, exclude: str | None = None) -> Path | None:
@@ -143,7 +329,7 @@ def select_raters(valuation: dict) -> list[dict]:
 
 
 def rater_prompt(ticker: str, persona: str, group: str, packet: str, evidence: list[dict], round_number: int) -> str:
-    paths = "\n".join(f"- `{row['path']}`" for row in evidence)
+    paths = "\n".join(f"- `{row.get('snapshot_path') or row['path']}`" for row in evidence)
     return f"""# {ticker} - isolated committee round {round_number}
 
 You are the **{persona}** method, independence group **{group}**.
@@ -160,7 +346,8 @@ Rules:
 4. Use `insufficient_evidence` or `outside_power_zone` when appropriate; abstention is valid.
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
-7. Return only one JSON object matching the committee schema vote definition.
+7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "{packet}"`. A vote whose evidence_hash does not match the packet it answers is rejected.
 """
 
 
@@ -289,71 +476,12 @@ def deterministic_committee_support(work: Path, votes: list[dict], escalation: d
     })
 
 
-def initialize(ticker: str, as_of: str) -> Path:
-    ticker = ticker.upper()
-    research = ROOT / ticker / "research"
-    valuation_path = research / "valuation.json"
-    if not valuation_path.exists():
-        raise FileNotFoundError(f"{ticker}: valuation.json missing")
-    valuation = read_json(valuation_path)
-    canonical_route = research / "valuation_route.json"
-    if canonical_route.exists():
-        valuation["valuation_method_route"] = read_json(canonical_route)
-    contract_path = research / "valuation_contract.json"
-    contract = read_json(contract_path) if contract_path.exists() else (valuation.get("universal_valuation_contract") or {})
-    if contract.get("status") != "decision_grade":
-        raise ValueError(f"{ticker}: committee requires a decision-grade valuation contract")
-    proof_summary = contract.get("calculation_proof_summary") or {}
-    model_checks = contract.get("model_checks") or {}
-    if not proof_summary.get("all_material_components_priced") or not all(model_checks.values()):
-        raise ValueError(f"{ticker}: committee requires complete, valid calculation proofs and passing model checks")
-    if (valuation.get("valuation_method_route") or {}).get("status") in {"default_needs_review", "reviewer_coverage_blocked"}:
-        raise ValueError(f"{ticker}: canonical Power Zone route is not committee-ready")
-    evidence_paths = discover_evidence(ticker)
-    substantive = [
-        path
-        for path in evidence_paths
-        if path.name == "thesis.md" or path.name.startswith(("deep_dive_", "adversarial_"))
-    ]
-    if len(evidence_paths) < 3 or not substantive:
-        raise ValueError(
-            f"{ticker}: at least three evidence artifacts, including a thesis, deep dive, or adversarial review, are required"
-        )
-    refs = [file_reference(path) for path in evidence_paths]
-    frozen_hash = packet_hash(refs)
-    raters = select_raters(valuation)
-    work = research / "committee_work" / as_of
-    manifest = {
-        "pipeline_version": "3.0-token-efficient",
-        "ticker": ticker,
-        "as_of": as_of,
-        "stage": "round_one_open",
-        "packet_hash": frozen_hash,
-        "route_hash": (valuation.get("valuation_method_route") or {}).get("input_hash"),
-        "contract_source": "valuation_contract.json" if contract_path.exists() else "valuation.json#universal_valuation_contract",
-        "frozen_at": datetime.now(timezone.utc).isoformat(),
-        "evidence": refs,
-        "selected_raters": raters,
-        "llm_policy": {
-            "baseline_calls": BASELINE_LLM_CALLS,
-            "maximum_calls": MAXIMUM_LLM_CALLS,
-            "baseline_tasks": ["pre_mortem", "round1:<three-independent-raters>", "chair_synthesis"],
-            "conditional_tasks": ["targeted_research", "round2:<three-independent-raters>"],
-            "deterministic_tasks": ["proposer", "evidence_tribunal", "valuation_reconciliation", "adversarial_review", "assembly"],
-        },
-        "required_files": {
-            "proposer": "proposer.json",
-            "pre_mortem": "pre_mortem.json",
-            "evidence_tribunal": "evidence_tribunal.json",
-            "research_response": "research_response.json",
-            "valuation_reconciliation": "valuation_reconciliation.json",
-            "adversarial_review": "adversarial_review.json",
-            "chair_synthesis": "chair_synthesis.json",
-            "human_decision": "human_decision.json",
-        },
-    }
-    write_json(work / "manifest.json", manifest)
-    write_json(work / "proposer.json", deterministic_proposer(ticker, valuation, contract, refs))
+def write_prompts(ticker: str, work: Path, frozen_hash: str, refs: list[dict], raters: list[dict]) -> None:
+    """(Re)issue every prompt bound to `frozen_hash`.
+
+    Called on initialize and again whenever a resumed packet is re-frozen, so a
+    rater is never handed a prompt quoting a packet hash that no longer exists.
+    """
     for round_number in (1, 2):
         round_dir = work / f"round_{round_number}"
         round_dir.mkdir(parents=True, exist_ok=True)
@@ -384,6 +512,108 @@ def initialize(ticker: str, as_of: str) -> Path:
         f"# {ticker} chair synthesis\n\nSelect the primary method, explain why it dominates corroborating methods, preserve dissent, state agreed and disputed facts, value and entry ranges, recommendation, and monitoring plan. Never average methods solely to create consensus. Return chair_synthesis.json only.\n",
         encoding="utf-8",
     )
+
+
+def occupied_reason(work: Path) -> str | None:
+    """Why `work` must not be re-initialized, or None when it is free to use.
+
+    Re-initializing over live work is a second door into the same failure the
+    refresh circuit breaker closes: it drops the park block, resets the stage
+    and refresh counter, and mints a new packet hash, which turns every landed
+    vote into an answer to a packet that no longer exists.
+    """
+    if not work.exists():
+        return None
+    manifest_path = work / "manifest.json"
+    manifest = read_json(manifest_path) if manifest_path.exists() else {}
+    if manifest.get("parked") or str(manifest.get("stage") or "") == "parked":
+        detail = (manifest.get("parked") or {}).get("reason") or "unknown"
+        return (
+            f"the committee is parked ({detail}); re-initializing would drop the park block. "
+            "Use select_committee_work.py --unpark ... --unpark-mode resume|discard."
+        )
+    landed = vote_files(work)
+    if landed:
+        names = ", ".join(path.relative_to(work).as_posix() for path in landed[:5])
+        return (
+            f"{len(landed)} vote file(s) already answer this packet ({names}); re-initializing "
+            "would mint a new packet hash and reject every one of them. Refresh or un-park "
+            "through select_committee_work.py, which preserves or explicitly invalidates votes."
+        )
+    return None
+
+
+def initialize(ticker: str, as_of: str) -> Path:
+    ticker = ticker.upper()
+    research = ROOT / ticker / "research"
+    occupied = occupied_reason(research / "committee_work" / as_of)
+    if occupied:
+        raise FileExistsError(f"{ticker} {as_of}: refusing to re-initialize committee work: {occupied}")
+    valuation_path = research / "valuation.json"
+    if not valuation_path.exists():
+        raise FileNotFoundError(f"{ticker}: valuation.json missing")
+    valuation = read_json(valuation_path)
+    canonical_route = research / "valuation_route.json"
+    if canonical_route.exists():
+        valuation["valuation_method_route"] = read_json(canonical_route)
+    contract_path = research / "valuation_contract.json"
+    contract = read_json(contract_path) if contract_path.exists() else (valuation.get("universal_valuation_contract") or {})
+    if contract.get("status") != "decision_grade":
+        raise ValueError(f"{ticker}: committee requires a decision-grade valuation contract")
+    proof_summary = contract.get("calculation_proof_summary") or {}
+    model_checks = contract.get("model_checks") or {}
+    if not proof_summary.get("all_material_components_priced") or not all(model_checks.values()):
+        raise ValueError(f"{ticker}: committee requires complete, valid calculation proofs and passing model checks")
+    if (valuation.get("valuation_method_route") or {}).get("status") in {"default_needs_review", "reviewer_coverage_blocked"}:
+        raise ValueError(f"{ticker}: canonical Power Zone route is not committee-ready")
+    evidence_paths = discover_evidence(ticker)
+    substantive = [
+        path
+        for path in evidence_paths
+        if path.name == "thesis.md" or path.name.startswith(("deep_dive_", "adversarial_"))
+    ]
+    if len(evidence_paths) < 3 or not substantive:
+        raise ValueError(
+            f"{ticker}: at least three evidence artifacts, including a thesis, deep dive, or adversarial review, are required"
+        )
+    raters = select_raters(valuation)
+    work = research / "committee_work" / as_of
+    refs = freeze_evidence(ticker, work, evidence_paths)
+    frozen_hash = packet_hash(refs)
+    manifest = {
+        "pipeline_version": PIPELINE_VERSION,
+        "ticker": ticker,
+        "as_of": as_of,
+        "stage": "round_one_open",
+        "packet_hash": frozen_hash,
+        "evidence_snapshot": (work / SNAPSHOT_DIR).relative_to(ROOT).as_posix(),
+        "refresh_count": 0,
+        "route_hash": (valuation.get("valuation_method_route") or {}).get("input_hash"),
+        "contract_source": "valuation_contract.json" if contract_path.exists() else "valuation.json#universal_valuation_contract",
+        "frozen_at": datetime.now(timezone.utc).isoformat(),
+        "evidence": refs,
+        "selected_raters": raters,
+        "llm_policy": {
+            "baseline_calls": BASELINE_LLM_CALLS,
+            "maximum_calls": MAXIMUM_LLM_CALLS,
+            "baseline_tasks": ["pre_mortem", "round1:<three-independent-raters>", "chair_synthesis"],
+            "conditional_tasks": ["targeted_research", "round2:<three-independent-raters>"],
+            "deterministic_tasks": ["proposer", "evidence_tribunal", "valuation_reconciliation", "adversarial_review", "assembly"],
+        },
+        "required_files": {
+            "proposer": "proposer.json",
+            "pre_mortem": "pre_mortem.json",
+            "evidence_tribunal": "evidence_tribunal.json",
+            "research_response": "research_response.json",
+            "valuation_reconciliation": "valuation_reconciliation.json",
+            "adversarial_review": "adversarial_review.json",
+            "chair_synthesis": "chair_synthesis.json",
+            "human_decision": "human_decision.json",
+        },
+    }
+    write_json(work / "manifest.json", manifest)
+    write_json(work / "proposer.json", deterministic_proposer(ticker, valuation, contract, refs))
+    write_prompts(ticker, work, frozen_hash, refs, raters)
     return work
 
 
@@ -406,18 +636,52 @@ def validate_vote(vote: dict, expected: dict) -> list[str]:
     for key in ("claims", "strongest_counter_explanation", "most_important_missing_fact", "falsifiers", "specialist_findings", "confidence"):
         if vote.get(key) in (None, "", []):
             errors.append(f"{key} is required")
+    expected_hash = expected.get("packet_hash")
+    binding = expected.get("hash_binding", "required")
+    claimed = vote.get("evidence_hash")
+    if not expected_hash:
+        # Fail closed: with no packet hash to bind to there is nothing proving
+        # this vote answers the packet it was filed under.
+        if binding == "required":
+            errors.append("no frozen packet hash is available to bind this vote to")
+    elif not claimed:
+        if binding == "required":
+            errors.append("evidence_hash is required and must equal the frozen packet hash")
+    elif claimed != expected_hash:
+        errors.append(
+            f"evidence_hash {claimed[:12]} answers a different packet than {expected_hash[:12]}"
+        )
     return errors
+
+
+def vote_binding(work: Path) -> dict:
+    """Hash binding for votes in this work dir.
+
+    Copy-on-freeze packets bind every vote to the packet hash. Packets frozen
+    before copy-on-freeze only reject a hash that is present and wrong, so past
+    records stay valid without migration. A missing manifest fails closed: no
+    manifest means no packet to answer, so no vote can validate.
+    """
+    manifest_path = work / "manifest.json"
+    if not manifest_path.exists():
+        return {"packet_hash": None, "hash_binding": "required"}
+    manifest = read_json(manifest_path)
+    return {
+        "packet_hash": manifest.get("packet_hash"),
+        "hash_binding": "required" if has_snapshot(manifest) else "legacy_optional",
+    }
 
 
 def load_round(work: Path, round_number: int, raters: list[dict]) -> tuple[list[dict], list[str]]:
     votes, errors = [], []
+    binding = vote_binding(work)
     for expected in raters:
         path = work / f"round_{round_number}" / f"{expected['persona']}.json"
         if not path.exists():
             errors.append(f"missing {path.relative_to(work)}")
             continue
         vote = read_json(path)
-        errors.extend(f"{path.name}: {message}" for message in validate_vote(vote, expected))
+        errors.extend(f"{path.name}: {message}" for message in validate_vote(vote, {**expected, **binding}))
         votes.append(vote)
     return votes, errors
 
@@ -437,10 +701,52 @@ def validate_work(work: Path) -> list[str]:
     ):
         if not (work / name).exists():
             errors.append(f"missing {name}")
-    current_refs = [file_reference(ROOT / row["path"]) for row in manifest["evidence"]]
-    if packet_hash(current_refs) != manifest["packet_hash"]:
-        errors.append("evidence packet changed after freezing")
+    if not verify_packet(manifest):
+        errors.append(
+            "frozen evidence copies changed after freezing"
+            if has_snapshot(manifest)
+            else "evidence packet changed after freezing"
+        )
     return errors
+
+
+def assembled_packet_hash(ticker: str, as_of: str) -> str | None:
+    path = ROOT / ticker / "research" / f"committee_{as_of}.json"
+    if not path.exists():
+        return None
+    return ((read_json(path).get("evidence_packet") or {}).get("packet_hash")) or None
+
+
+def stale_archive_name(path: Path, as_of: str, suffix: str) -> Path:
+    """A free archive name; never overwrite an audit artifact already on disk.
+
+    Two different stale records can share the first eight hex characters of
+    their packet hash, so the first name is uniquified rather than unlinked.
+    """
+    archive = path.with_name(f"committee_{as_of}-superseded-{suffix}.json")
+    if not archive.exists():
+        return archive
+    for index in range(2, 100):
+        candidate = path.with_name(f"committee_{as_of}-superseded-{suffix}-{index}.json")
+        if not candidate.exists():
+            return candidate
+    raise FileExistsError(f"cannot archive stale assembled record: {archive}")
+
+
+def archive_stale_assembled(ticker: str, as_of: str, current_hash: str) -> Path | None:
+    """Move an assembled record built from a superseded packet out of the way.
+
+    The archive name deliberately breaks the `committee_????-??-??.json` glob
+    every reader uses, so the stale record stops being the authority while
+    staying on disk for audit.
+    """
+    recorded = assembled_packet_hash(ticker, as_of)
+    if not recorded or recorded == current_hash:
+        return None
+    path = ROOT / ticker / "research" / f"committee_{as_of}.json"
+    archive = stale_archive_name(path, as_of, recorded[:8])
+    path.rename(archive)
+    return archive
 
 
 def assemble(work: Path) -> Path:
@@ -544,6 +850,7 @@ def assemble(work: Path) -> Path:
     }
     if record["component_review"] is None:
         record.pop("component_review")
+    archive_stale_assembled(ticker, manifest["as_of"], manifest["packet_hash"])
     output = ROOT / ticker / "research" / f"committee_{manifest['as_of']}.json"
     write_json(output, record)
     manifest["stage"] = record["final_state"]

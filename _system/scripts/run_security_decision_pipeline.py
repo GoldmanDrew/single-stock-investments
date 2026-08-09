@@ -27,8 +27,16 @@ from investment_committee_pipeline import initialize as initialize_committee  # 
 from power_zone_router import build_route, registry_entries, write_json  # noqa: E402
 from universal_valuation_contract import build_universal_valuation_contract  # noqa: E402
 
+# Stages that mean a committee is still in flight or still owed a human, so no
+# new committee may be opened over it. `parked` is the circuit breaker holding
+# landed votes for a human decision: re-initializing over it drops the park
+# block, resets the stage and refresh counter, and mints a new packet hash,
+# which turns every held vote into an answer to a packet that no longer exists -
+# exactly the loss the breaker exists to stop. `conditional_escalation` and
+# `chair_pending` are set by committee_task_queue once round one has landed.
 BUSY_COMMITTEE_STATES = {
-    "round_one_open", "independent_review_open", "ready_to_assemble",
+    "round_one_open", "independent_review_open", "conditional_escalation", "chair_pending",
+    "ready_to_assemble", "parked",
     "committee_complete_decision_pending", "owner_decision_pending", "outcome_tracking",
 }
 FOLLOWUPS = ROOT / "_system" / "reference" / "valuation_followups.json"
@@ -261,10 +269,13 @@ def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
     initiated, active, blocked, evidence_tasks, resting = [], [], [], [], []
     for ticker in tickers:
         existing_manifest = read_json(ROOT / ticker / "research" / "committee_work" / as_of / "manifest.json")
-        if str(existing_manifest.get("stage") or "") in BUSY_COMMITTEE_STATES:
+        # Any manifest at this exact date, whatever stage it reached, means the
+        # work dir is taken. initialize() refuses to open a second door into it;
+        # reporting it as active keeps that refusal off the blocked list.
+        if existing_manifest.get("stage") or existing_manifest.get("packet_hash"):
             active.append({
                 "ticker": ticker,
-                "stage": existing_manifest["stage"],
+                "stage": existing_manifest.get("stage") or "unknown",
                 "work": f"{ticker}/research/committee_work/{as_of}",
             })
             continue
