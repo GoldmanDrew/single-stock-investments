@@ -75,7 +75,7 @@ Contract is `evidence_blocked` — per the one-valuation-language rule, no value
 
 | Proxy | Latest artifact | Read cadence |
 |---|---|---|
-| Thematic context sweep | `research/evidence/thematic_context_2026-08-08.md` | daily |
+| Thematic context sweep | `research/evidence/thematic_context_2026-08-09.md` | daily |
 
 ## 11. Variant perception (mechanical draft)
 
