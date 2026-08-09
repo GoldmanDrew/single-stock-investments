@@ -383,6 +383,7 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
         ], False, 1 / 1_000_000, "USD millions"),
         "debt_m": ([
             ("us-gaap", [
+                "DebtInstrumentCarryingAmount",
                 "LongTermDebt",
                 "LongTermDebtAndFinanceLeaseObligations",
                 "LongTermDebtAndCapitalLeaseObligations",
@@ -415,6 +416,32 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
                 **fx, "source_value": float(row["val"]) * scale,
                 "source_unit": f"{fx['from_currency']} millions",
             }
+    debt_row = companyfact_rows.get("debt_m")
+    if debt_row:
+        debt_tag = str(debt_row["source"].get("locator") or "").split(":", 1)[-1].split(";", 1)[0]
+        if debt_tag in {
+            "LongTermDebtAndCapitalLeaseObligations",
+            "LongTermDebtAndFinanceLeaseObligations",
+            "LongTermDebtNoncurrent",
+            "LongTermDebt",
+        }:
+            current = _latest_across_companyfacts(companyfacts, [("us-gaap", ["DebtCurrent"])], False)
+            if current:
+                _, cur_tag, cur_row = current
+                conversion = _usd_conversion(
+                    ticker, "debt_m", str(cur_row.get("unit") or ""),
+                    str(cur_row.get("end") or as_of), fx_payload,
+                )
+                if conversion is not None:
+                    divisor, _fx = conversion
+                    current_m = float(cur_row["val"]) * (1 / 1_000_000) / divisor
+                    debt_row["value"] = float(debt_row["value"]) + current_m
+                    debt_row["source"]["locator"] = (
+                        f"{debt_row['source']['locator']} + us-gaap:{cur_tag}; "
+                        f"accession {cur_row.get('accn')}; form {cur_row.get('form')}"
+                    )
+                    debt_row["derived_from"] = ["long_term_debt_m", "debt_current_m"]
+                    debt_row["formula"] = "long_term_debt_m + debt_current_m"
     selected_shares = _select_share_companyfact(companyfacts)
     if selected_shares:
         tag, row = selected_shares
