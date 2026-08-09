@@ -54,14 +54,14 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-09.
 | AME | AME/ | Ametek | US | 2026-08-05 | 2026-08-09 | unknown | watch |
 | AMGN | AMGN/ | Amgen | US | 2026-08-05 | 2026-08-09 | unknown | watch |
 | AMKR | AMKR/ | AMKR | US | 2026-08-05 | 2026-08-09 | unknown | watch |
-| AMP | AMP/ | Ameriprise Financial | US | 2026-07-09 | 2026-08-09 | unknown | watch |
-| AMPX | AMPX/ | AMPX | US | 2026-07-28 | 2026-08-09 | unknown | watch |
-| AMR | AMR/ | Alpha Metallurgical Resources, Inc. | US | 2026-08-06 | 2026-08-09 | commodity_cyclical | watch |
-| AMT | AMT/ | American Tower | US | 2026-07-09 | 2026-08-09 | unknown | watch |
-| AMZN | AMZN/ | Amazon.com | US | 2026-07-09 | 2026-08-09 | compounder | hold |
-| ANET | ANET/ | Arista Networks | US | 2026-07-09 | 2026-08-09 | unknown | watch |
-| AON | AON/ | Aon plc | US | 2026-07-09 | 2026-08-09 | unknown | watch |
-| AOS | AOS/ | A. O. Smith | US | 2026-07-09 | 2026-08-09 | unknown | watch |
+| AMP | AMP/ | Ameriprise Financial | US | 2026-08-09 | 2026-08-09 | unknown | watch |
+| AMPX | AMPX/ | AMPX | US | 2026-08-09 | 2026-08-09 | unknown | watch |
+| AMR | AMR/ | Alpha Metallurgical Resources, Inc. | US | 2026-08-09 | 2026-08-09 | commodity_cyclical | watch |
+| AMT | AMT/ | American Tower | US | 2026-08-09 | 2026-08-09 | unknown | watch |
+| AMZN | AMZN/ | Amazon.com | US | 2026-08-09 | 2026-08-09 | compounder | hold |
+| ANET | ANET/ | Arista Networks | US | 2026-08-09 | 2026-08-09 | unknown | watch |
+| AON | AON/ | Aon plc | US | 2026-08-09 | 2026-08-09 | unknown | watch |
+| AOS | AOS/ | A. O. Smith | US | 2026-08-09 | 2026-08-09 | unknown | watch |
 | APA | APA/ | APA Corporation | US | 2026-07-09 | 2026-08-09 | unknown | watch |
 | APD | APD/ | Air Products | US | 2026-07-09 | 2026-08-09 | unknown | watch |
 | APH | APH/ | Amphenol | US | 2026-07-09 | 2026-08-09 | unknown | watch |
