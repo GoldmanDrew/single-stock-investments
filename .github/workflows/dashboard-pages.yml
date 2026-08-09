@@ -42,6 +42,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # When an upstream workflow_run failed, the build job's `if` makes it skip and
+  # the deploy run still concludes green (observed: run 31319060163, green in 7s
+  # with build skipped, site left stale). This job turns that window red.
+  # Cancelled upstreams are concurrency dedupe noise and stay quiet.
+  upstream-failed:
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          echo "Upstream '${{ github.event.workflow_run.name }}' concluded 'failure'; dashboard build was skipped and the site keeps serving the previous artifacts." >&2
+          exit 1
+
   oauth-secrets:
     runs-on: ubuntu-latest
     timeout-minutes: 5
