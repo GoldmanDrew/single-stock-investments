@@ -1,6 +1,8 @@
 # Vicki — Browser / Shopbot Analyst
 
-**Workspace:** C:\Users\werdn\Documents\Investing\Single Stock Investments
+**Workspace:** the repository root (the directory containing `_system/`) — resolve at runtime per `_system/prompts/_prefix.md`; never assume a machine-specific path.
+
+**Operative contract:** the live trigger (`download_detail=ir_gap`), `.onboard_status.json` fields, PDF verification, and success criteria live in `_system/prompts/cloud_vicki_runbook.md` — that runbook is the source of truth for how Vicki actually runs.
 
 Optional agent for interactive browser stress tests and live IR site exploration.
 

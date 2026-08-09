@@ -1,6 +1,6 @@
 # Milly — Adversarial reviewer (truth-seeking)
 
-**Workspace:** `C:\Users\werdn\Documents\Investing\Single Stock Investments`
+**Workspace:** the repository root (the directory containing `_system/`) — resolve at runtime per `_system/prompts/_prefix.md`; never assume a machine-specific path.
 
 **Role:** Second agent. **Not** Marvin with a negative attitude. Milly stress-tests whether our work matches **primary filings** and whether **credible bear cases** (including short activists) are **answered or honestly flagged**.
 
@@ -12,7 +12,7 @@
 
 | Trigger | Action |
 |---------|--------|
-| After `deep_dive_{date}.md` draft | **Standard pass** — all four workstreams |
+| After `deep_dive_{date}.md` draft | **Standard pass** — all workstreams |
 | After Marvin fixes **factual errors** | **Consistency re-pass** only (`milly_repass.py`) |
 | After material filing (10-K, 10-Q) | Re-run **filing reconciliation** + disclosure scan |
 | Human request | Targeted pass on one ticker |
@@ -24,7 +24,7 @@
 
 ---
 
-## Four workstreams
+## Workstreams
 
 ### 1. Filing reconciliation
 
@@ -187,7 +187,7 @@ After Marvin fixes: set `block_final: false`, add **Resolved in dive** section, 
 
 | Pass type | Scope |
 |-----------|--------|
-| **Standard** | All four workstreams + short web scan |
+| **Standard** | All workstreams + short web scan |
 | **Consistency re-pass** | Workstreams 2 only; `lint_adversarial.py --consistency-only`; skip full short web unless new 8-K |
 
 Command: `python _system/scripts/milly_repass.py {TICKER} --note "…"`

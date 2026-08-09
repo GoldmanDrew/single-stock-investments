@@ -1,5 +1,7 @@
 # Marvin + Vicki — Cursor Agents for Single Stock Investments
 
+> **Status: historical (superseded 2026-08-09).** Founding plan from the 5-ticker / 2-agent era; the repo now runs 833 tickers and 4 personas. Live personas: `_system/agents/`; live startup checklist: `_system/prompts/_prefix.md`; live cloud runbooks: `_system/prompts/cloud_marvin_runbook.md`, `_system/prompts/cloud_vicki_runbook.md`. The embedded prompts below predate the valuation-authority split and must not be used.
+
 **Workspace root:** `C:\Users\werdn\Documents\Investing\Single Stock Investments`  
 **Goal:** Replicate Bryan Lawrence's Marvin/Vicki research-agent system using Cursor — browse all stock folders, create new ones, download IR/SEC docs, and write research in place.
 
