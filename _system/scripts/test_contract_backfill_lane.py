@@ -47,7 +47,7 @@ class ContractBackfillLaneTests(unittest.TestCase):
 
     def _write_contract(self, ticker: str, *, evidence_blocked: bool, mapped: bool):
         research = self.root / ticker / "research"
-        research.mkdir(parents=True)
+        research.mkdir(parents=True, exist_ok=True)
         contract = {
             "status": "evidence_blocked" if evidence_blocked else "decision_grade",
             "component_coverage": {
@@ -67,6 +67,87 @@ class ContractBackfillLaneTests(unittest.TestCase):
         auth = json.loads((self.root / "AAA" / "research" / "authorized_evidence.json").read_text(encoding="utf-8"))
         self.assertEqual(auth["purpose"], "contract_backfill")
         self.assertEqual(auth["cohort"], "almost_there")
+
+    def test_fresh_build_does_not_rotate(self):
+        payload = queue.build_queue(wave_size=10, authorize_packets=True)
+        self.assertFalse(payload["stall_breaker"]["rotated"])
+        self.assertEqual(payload["tickers"], ["AAA", "BBB"])
+        self.assertEqual(payload["dispatch_attempts"], {"AAA": 1, "BBB": 1})
+
+    def test_stalled_wave_rotates_to_back(self):
+        # First real dispatch: wave of 1 takes the almost-there ticker.
+        first = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertEqual(first["tickers"], ["AAA"])
+        # No contract changed (the batch job failed); identical rebuild must rotate.
+        second = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertTrue(second["stall_breaker"]["rotated"])
+        self.assertEqual(second["stall_breaker"]["stalled_wave"], ["AAA"])
+        self.assertEqual(second["tickers"], ["BBB"])
+        self.assertEqual(second["dispatch_attempts"], {"AAA": 1, "BBB": 1})
+        # Third rebuild with still no progress rotates back and bumps attempts.
+        third = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertEqual(third["tickers"], ["AAA"])
+        self.assertEqual(third["dispatch_attempts"], {"AAA": 2, "BBB": 1})
+
+    def test_stall_with_all_pending_in_wave_rotates_by_one(self):
+        first = queue.build_queue(wave_size=10, authorize_packets=True)
+        self.assertEqual(first["tickers"], ["AAA", "BBB"])
+        second = queue.build_queue(wave_size=10, authorize_packets=True)
+        self.assertTrue(second["stall_breaker"]["rotated"])
+        self.assertEqual(second["tickers"], ["BBB", "AAA"])
+        self.assertNotEqual(second["tickers"], first["tickers"])
+
+    def test_progress_suppresses_rotation(self):
+        queue.build_queue(wave_size=10, authorize_packets=True)
+        # AAA graduated: the rebuilt wave already differs, so no rotation.
+        self._write_contract("AAA", evidence_blocked=False, mapped=True)
+        payload = queue.build_queue(wave_size=10, authorize_packets=True)
+        self.assertFalse(payload["stall_breaker"]["rotated"])
+        self.assertEqual(payload["tickers"], ["BBB"])
+        self.assertNotIn("AAA", payload["dispatch_attempts"])
+
+    def test_dry_run_wave_is_not_treated_as_dispatched(self):
+        # authorized_packets == 0 (dry run / --no-authorize) never counts as a
+        # dispatched wave, so an identical rebuild passes through unchanged.
+        queue.build_queue(wave_size=10, authorize_packets=False)
+        payload = queue.build_queue(wave_size=10, authorize_packets=True)
+        self.assertFalse(payload["stall_breaker"]["rotated"])
+        self.assertEqual(payload["tickers"], ["AAA", "BBB"])
+
+    def test_terminal_single_ticker_stall_reports_honestly(self):
+        # Only one pending ticker: rotation is impossible, so the breaker must
+        # not claim one, the wave stays unchanged (no push fires), and
+        # attempts must not phantom-increment on the no-op rebuilds.
+        self._write_contract("BBB", evidence_blocked=False, mapped=True)
+        first = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertEqual(first["tickers"], ["AAA"])
+        second = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertFalse(second["stall_breaker"]["rotated"])
+        self.assertEqual(second["tickers"], ["AAA"])
+        self.assertEqual(second["dispatch_attempts"], {"AAA": 1})
+
+    def test_exhausted_tickers_park_behind_fresh_work(self):
+        # After MAX_DISPATCH_ATTEMPTS failed dispatches a ticker parks at the
+        # back of the order (visible in stall_breaker.parked) so fresh work
+        # drains first, even though almost-there normally sorts ahead.
+        for _ in range(5):
+            payload = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertEqual(payload["dispatch_attempts"]["AAA"], queue.MAX_DISPATCH_ATTEMPTS)
+        sixth = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertEqual(sixth["stall_breaker"]["parked"], ["AAA"])
+        self.assertEqual(sixth["tickers"], ["BBB"])
+
+    def test_dry_run_does_not_overwrite_dispatch_baseline(self):
+        queue.build_queue(wave_size=1, authorize_packets=True)
+        # A manual dry-run between scheduled runs must not clobber the
+        # dispatched-wave record that arms the stall breaker.
+        queue.build_queue(wave_size=1, authorize_packets=False, persist=False)
+        on_disk = json.loads(
+            (self.root / "_system" / "data" / "contract_backfill_queue.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(on_disk["authorized_packets"], 1)
+        second = queue.build_queue(wave_size=1, authorize_packets=True)
+        self.assertTrue(second["stall_breaker"]["rotated"])
 
     def test_matrix_prefers_backfill_queue_reason(self):
         queue.build_queue(wave_size=10, authorize_packets=False)

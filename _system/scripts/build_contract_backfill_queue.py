@@ -9,6 +9,14 @@ Writes:
   - _system/data/contract_backfill_queue.json
   - {TICKER}/research/authorized_evidence.json for each queued ticker so the
     evidence hash differs from a prior deep-dive hash (daily lane stays gated).
+
+Stall breaker: statuses alone would rebuild the identical wave forever when its
+tickers fail without progress (they stay evidence_blocked), and the continue
+workflow skips the push/dispatch on "unchanged". When the rebuilt wave matches
+the previously dispatched wave (authorized_packets > 0 in the prior queue file),
+the stalled tickers rotate to the back of the priority order so the next wave
+differs and the drain resumes. dispatch_attempts in the queue JSON records how
+often each pending ticker has been waved.
 """
 from __future__ import annotations
 
@@ -74,11 +82,40 @@ def authorize(ticker: str, contract: dict, *, cohort: str) -> dict:
     return packet
 
 
+MAX_DISPATCH_ATTEMPTS = 3
+
+
+def rotate_if_stalled(ordered: list[str], wave_size: int, previous: dict) -> tuple[list[str], bool]:
+    """Rotate stalled tickers to the back when rebuilding the already-dispatched wave.
+
+    A wave is "stalled" when the fresh priority order reproduces exactly the
+    tickers of the previous queue file AND that file was a real dispatch
+    (authorized_packets > 0; dry runs write 0). Returns (ordered, stalled).
+    """
+    prev_wave = [str(t) for t in (previous.get("tickers") or [])]
+    if not prev_wave or int(previous.get("authorized_packets") or 0) <= 0:
+        return ordered, False
+    if ordered[:wave_size] != prev_wave:
+        return ordered, False
+    rotated = ordered[len(prev_wave):] + prev_wave
+    if rotated[:wave_size] == prev_wave and len(rotated) > 1:
+        # Everything pending was in the stalled wave; rotate by one inside it
+        # so the serialized ticker list still changes and the push fires.
+        rotated = rotated[1:] + rotated[:1]
+    if rotated[:wave_size] == prev_wave:
+        # Rotation is a no-op (a single pending ticker). Claiming a rotation
+        # here would record rotated=true while the workflow's BEFORE==AFTER
+        # check suppresses the push — report the state honestly instead.
+        return ordered, False
+    return rotated, True
+
+
 def build_queue(
     *,
     wave_size: int,
     authorize_packets: bool,
     exclude_tickers: set[str] | None = None,
+    persist: bool = True,
 ) -> dict:
     registry = read_json(REGISTRY)
     holdings = registry.get("holdings") or {}
@@ -99,7 +136,27 @@ def build_queue(
             unmapped.append((stance_rank(holdings.get(ticker) or {}), ticker))
     unmapped.sort()
     ordered = almost + [t for _, t in unmapped]
+    previous = read_json(QUEUE)
+    prev_attempts = {
+        t: int(n)
+        for t, n in ((previous.get("dispatch_attempts") or {}).items())
+    }
+    # Park tickers that already burned MAX_DISPATCH_ATTEMPTS dispatches at the
+    # back of the order so fresh work drains first; they only re-enter a wave
+    # once everything else is exhausted. Parking is visible in stall_breaker.
+    parked = [t for t in ordered if prev_attempts.get(t, 0) >= MAX_DISPATCH_ATTEMPTS]
+    if parked and len(parked) < len(ordered):
+        parked_set = set(parked)
+        ordered = [t for t in ordered if t not in parked_set] + parked
+    ordered, stalled = rotate_if_stalled(ordered, wave_size, previous)
     wave = ordered[:wave_size]
+    attempts = {t: n for t, n in prev_attempts.items() if t in set(ordered)}
+    prev_wave = [str(t) for t in (previous.get("tickers") or [])]
+    if wave != prev_wave:
+        # The workflow only pushes and dispatches when the wave changed, so an
+        # unchanged rebuild must not count as an attempt.
+        for ticker in wave:
+            attempts[ticker] = attempts.get(ticker, 0) + 1
     authorized = 0
     if authorize_packets:
         for ticker in wave:
@@ -119,8 +176,16 @@ def build_queue(
         "authorized_packets": authorized,
         "tickers": wave,
         "almost_there": almost,
+        "dispatch_attempts": attempts,
+        "stall_breaker": {
+            "rotated": stalled,
+            "stalled_wave": [str(t) for t in (previous.get("tickers") or [])] if stalled else [],
+            "parked": parked,
+            "max_dispatch_attempts": MAX_DISPATCH_ATTEMPTS,
+        },
     }
-    write_json(QUEUE, payload)
+    if persist:
+        write_json(QUEUE, payload)
     return payload
 
 
@@ -143,7 +208,10 @@ def main() -> int:
     args = parser.parse_args()
     exclude = {t.strip().upper() for t in args.exclude_ticker if t.strip()}
     if args.dry_run:
-        payload = build_queue(wave_size=args.wave_size, authorize_packets=False, exclude_tickers=exclude)
+        # persist=False: a dry-run must not overwrite the dispatched-wave
+        # record (authorized_packets/dispatch_attempts) that arms the stall
+        # breaker for the next scheduled run.
+        payload = build_queue(wave_size=args.wave_size, authorize_packets=False, exclude_tickers=exclude, persist=False)
         print(json.dumps({k: payload[k] for k in ("total_pending", "almost_there_count", "unmapped_count", "wave_size", "tickers")}, indent=2))
         return 0
     payload = build_queue(
