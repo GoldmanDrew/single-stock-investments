@@ -38,13 +38,13 @@ No approved third-party sources are indexed for DuPont as of this refresh. Marvi
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | **~$4.09/sh** base proof | **-39.4%** per year at **$135.75** | watch |
+| Marvin floor | **~$4.14/sh** base proof | **-39.7%** per year at **$142.47** | watch |
 | External (combined) | — | — | — |
-| **Blended best estimate** | **~$4.09/sh** | **-39.4%** per year | **watch** |
+| **Blended best estimate** | **~$4.14/sh** | **-39.7%** per year | **watch** |
 
 **Weights:** 100% Marvin floor (no approved external inputs).
 
-**Returns statement (blended):** At **$135.75**, blended best estimate is **-39.4%** per year on filing-normalized owner earnings; pending sources not in base IRR.
+**Returns statement (blended):** At **$142.47**, blended best estimate is **-39.7%** per year on filing-normalized owner earnings; pending sources not in base IRR.
 
 ## [HUMAN REVIEW]
 
@@ -53,7 +53,7 @@ No approved third-party sources are indexed for DuPont as of this refresh. Marvi
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] DD: contract backfill 2026-08-09 closed stale-debt blocker; base proof **~$4.09/sh** vs price **$135.75**; watch.
+- [PROPOSED COMPANY] DD: contract backfill 2026-08-09 closed stale-debt blocker (LongTermDebt 2024 tag → LT+current **$3.17B**); base proof **$4.14/sh** vs price **$142.47**; watch.
 
 ## Primary sources cited
 

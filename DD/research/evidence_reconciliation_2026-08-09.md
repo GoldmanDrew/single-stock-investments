@@ -20,7 +20,7 @@
 | status | met |
 | evidence | `us-gaap:LongTermDebtAndCapitalLeaseObligations` **$3,134 million** and `us-gaap:DebtCurrent` **$60 million** at **2025-12-31**; accession **0001666700-26-000013** (FY2025 10-K). Q1 2026 10-Q confirms **$3,132M** long-term debt and **$40M** current debt at **2026-03-31**. |
 | source path | `DD/research/evidence/sec_companyfacts.json` |
-| calculation | Prior proof used standalone `LongTermDebt` **$7,170M** (2024-09-30), overstating leverage by **~$3.98 billion** versus post-separation filings. Updated total debt flows through the equity bridge: base equity value per share rises from **−$5.61** to **~$4.09** at unchanged owner-earnings and reinvestment judgments. |
+| calculation | Prior proof used standalone `LongTermDebt` **$7,170M** (2024-09-30), overstating leverage by **~$4.0 billion** versus post-separation filings. Updated total debt **$3,172M** (Q1 2026) flows through the equity bridge: base equity value per share rises from **−$5.61** to **$4.14**. |
 | remaining uncertainty | Single-component proof uses consolidated owner earnings after major 2025 Electronics separation; segment-level reinvestment not yet split. **[HUMAN REVIEW]** if stance should reflect Healthcare & Water vs Diversified Industrials separately. |
 | falsifier | FY2026 10-K or Q2 2026 10-Q shows total debt above **$4.5B** without a disclosed acquisition, or a restatement changes the FY2025 debt note. |
 
@@ -30,10 +30,10 @@ Single additive component `operating_business_and_net_assets` retains valid `own
 
 ## Facts vs judgments
 
-**Facts (locked):** FY2025 revenue **$6.849B**; FY2025 operating cash flow **$560M**; FY2025 capital spending **$333M**; normalized owner earnings **$227M** (OCF minus capex); cash **$752M** (Q1 2026); total debt **$3.194B** (FY2025 LT + current); shares **409.9M** (Q1 2026); price **$135.75** (Yahoo close 2026-07-20).
+**Facts (locked):** FY2025 revenue **$6.849B**; FY2025 operating cash flow **$560M**; FY2025 capital spending **$333M**; normalized owner earnings **$227M** (OCF minus capex); cash **$752M** (Q1 2026); total debt **$3.172B** (Q1 2026 LT + current); shares **409.9M** (Q1 2026); price **$142.47** (Yahoo close 2026-08-07).
 
 **Judgments (bounded):** Reinvestment rate 20–50%; incremental after-tax return on capital 12–25%; discount rate 9–12%; terminal owner-earnings multiple 12–24×.
 
 ## Valuation consequence
 
-Proof-complete base value **~$4.09 per share** (post-debt fix) vs **$135.75** price. Contract annualized return at price remains **deeply negative** on base case. Security remains **watch**; no human capital decision recorded. Zero-value policy not required once base equity value is positive under refreshed debt.
+Proof-complete base value **~$4.14 per share** (post-debt fix) vs **$142.47** price. Contract annualized return at price **-39.7%** on base case. Original zero-equity blocker closed; contract remains **evidence_blocked** on extreme-return validation only.
