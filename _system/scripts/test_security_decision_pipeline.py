@@ -129,6 +129,62 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
         finally:
             pipeline.registry_entries = old_entries
 
+    def test_contract_carries_falsifier_coverage_from_sidecar(self):
+        # The sidecar is the durable source (contracts are regenerated);
+        # the contract carries only a summary, and never a blocker from it.
+        # The contract must actually carry the components and falsifier texts
+        # the sidecar types: coverage_summary anchor-checks component_id
+        # against economic_ownership_map and derived_from against the
+        # contract's falsifier texts, so a spec typing nothing real counts as
+        # unanchored, never typed.
+        self.write(
+            "AAA/research/valuation.json",
+            {"ticker": "AAA", "method": "full", "inputs": {"price": 10},
+             "component_valuation_results": {"additive_components": [
+                 {"id": "ops", "label": "Operating business", "treatment": "additive",
+                  "method": "owner_earnings", "falsifier": "Owner cash collapses"},
+                 {"id": "governance", "label": "Governance", "treatment": "additive",
+                  "method": "qualitative", "falsifier": "Board stops acting like owners"},
+             ]}},
+        )
+        self.write("AAA/research/valuation_route.json", {"profile_id": "quality_reinvestment"})
+        self.write("AAA/research/falsifier_specs.json", {
+            "schema_version": "1.0",
+            "ticker": "AAA",
+            "specs": [
+                {"component_id": "ops", "metric": "owner_cash", "comparator": "lt",
+                 "threshold": 10.0, "unit": "USD_m", "due": "2027-01-31",
+                 "source_hint": "owner_cash_m", "derived_from": "Owner cash collapses",
+                 "untestable": False, "rationale": "Thesis needs positive owner cash."},
+                {"component_id": "governance", "metric": "board_alignment",
+                 "comparator": "lt", "threshold": None, "unit": "qualitative",
+                 "due": None, "source_hint": None, "derived_from": "Board stops acting like owners",
+                 "untestable": True, "rationale": "No data surface scores this."},
+            ],
+        })
+        result = pipeline.stage_contracts(["AAA"], dry_run=False)
+        self.assertEqual(result["errors"], [])
+        contract = json.loads((pipeline.ROOT / "AAA/research/valuation_contract.json").read_text())
+        coverage = contract["falsifier_coverage"]
+        self.assertEqual(coverage["typed"], 1)
+        self.assertEqual(coverage["untestable"], 1)
+        self.assertEqual(coverage["unanchored"], 0)
+        self.assertEqual(coverage["spec_ref"], "AAA/research/falsifier_specs.json")
+        self.assertFalse(coverage["enforcement_enabled"])
+        self.assertFalse(any("falsifier" in blocker.lower() for blocker in contract["evidence"]["blockers"]))
+
+    def test_scaffold_contract_carries_falsifier_coverage(self):
+        self.write("ZZZ/research/valuation_route.json", {
+            "profile_id": "quality_reinvestment", "status": "routed",
+            "required_evidence": [], "primary_methods": [], "corroborating_methods": [],
+            "silent_personas": [],
+        })
+        result = pipeline.stage_contracts(["ZZZ"], dry_run=False, as_of="2026-08-10")
+        self.assertEqual(result["errors"], [])
+        contract = json.loads((pipeline.ROOT / "ZZZ/research/valuation_contract.json").read_text())
+        self.assertEqual(contract["falsifier_coverage"]["typed"], 0)
+        self.assertIsNone(contract["falsifier_coverage"]["spec_ref"])
+
     def test_targeted_summary_does_not_overwrite_universe_summary(self):
         path = pipeline.write_summary(
             "2026-07-18", "all", ["MSB"], {"dashboard": {"status": "refreshed"}}, False, explicit=True

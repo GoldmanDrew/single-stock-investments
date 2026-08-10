@@ -1,0 +1,148 @@
+name: Falsifier Resolution
+
+# Weekly epistemic-ratchet resolver (spec: _system/graph/README.md): score
+# typed falsifiers whose due date has passed into the append-only outcomes
+# ledger and rebuild the descriptive calibration store. Calibration never
+# changes weights automatically; it informs humans and prompts.
+#
+# Dedicated small workflow instead of a new data-pipeline.yml schedule slot:
+# that file's decide job matches on exact cron strings, so adding a slot means
+# touching three places and a rename-style name-string trap (corrections.md).
+on:
+  schedule:
+    # Saturday 13:00 UTC — deliberately OFF the crowded Sunday slots
+    # (02:15 code scan, 10:00 full downloads, 14:00 memory digest, 16:00
+    # letter backfill + world model) and clear of Saturday's 12:00 light
+    # downloads, 12:17 committee (17 */4), 12:30 news (30 */6), and
+    # 12:33/14:33 backfill refill (33 */2).
+    - cron: "0 13 * * 6"
+permissions:
+  contents: write
+
+concurrency:
+  group: data-commit-main
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Non-cone patterns: the resolver reads per-ticker sidecars plus the
+          # evidence they resolve against. resolve_falsifiers.py fails closed
+          # if the outcomes ledger is absent while calibration records prior
+          # outcomes, so a too-sparse checkout cannot silently zero the store.
+          sparse-checkout: |
+            _system/scripts
+            _system/research
+            _system/graph
+            .github/actions/commit-main
+            */research/falsifier_specs.json
+            */research/valuation_fact_ledger.json
+            */research/valuation_contract.json
+            */research/valuation_route.json
+            */research/evidence/sec_companyfacts.json
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve matured falsifiers
+        # Schedule-only workflow (governance: no manual-run choices on the
+        # Actions surface); a local dry-run is just resolve_falsifiers.py
+        # with no flag.
+        run: |
+          set -euo pipefail
+          python _system/scripts/resolve_falsifiers.py --apply
+
+      - name: Ensure staged paths exist
+        # Belt and braces with resolve_falsifiers.py --apply (which always
+        # creates the ledger, empty or not): `git add --sparse <path>` exits
+        # 128 on a nonexistent path, which turned the first scheduled run red.
+        run: |
+          mkdir -p _system/research
+          touch _system/research/falsifier_outcomes.jsonl
+
+      - name: Commit outcomes and calibration
+        uses: ./.github/actions/commit-main
+        with:
+          message: |
+            chore: weekly falsifier resolution $(date -u +%Y-%m-%d)
+
+            Score matured typed falsifiers into falsifier_outcomes.jsonl and
+            rebuild the descriptive method_id x power_zone calibration store
+            (resolve_falsifiers.py; weights never change automatically).
+          git_add: >-
+            _system/research/falsifier_outcomes.jsonl
+            _system/research/falsifier_calibration.json
+
+  graph-invariants:
+    # Time-based invariants (P3 lane staleness, E2 falsifier maturation) only
+    # fire when something runs the suite AFTER time has passed; the push- and
+    # PR-triggered Research quality runs cannot be relied on for that -- a
+    # quiet week means no push, which is exactly when P3 should be firing.
+    # This job reuses the Research quality workflow's graph-invariants steps
+    # on this file's weekly schedule. Failures are loud: no continue-on-error,
+    # no `|| true`, and pipefail keeps the suite's exit code through tee.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout workspace (full)
+        # Full tree: graph_build streams every ticker's contract and fact
+        # ledger, and E5 existence-checks the source paths beliefs cite, so a
+        # sparse profile would turn real beliefs into silent "source missing".
+        run: bash _system/scripts/ci_checkout_workspace.sh full
+      - name: Deepen commit history for lane freshness (commits only, no blobs)
+        # graph_build projects Lane/Commit from `git log -n 400`; on the
+        # depth-1 checkout above every lane would read NO-COMMIT and fail P3
+        # for a reason that has nothing to do with the lanes.
+        run: git fetch --filter=blob:none --deepen=400 origin "+refs/heads/main:refs/remotes/origin/main"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Graph engine and invariant unit tests
+        working-directory: _system/scripts
+        run: python -m unittest -v test_graph_build test_graph_invariants
+      - name: Run the invariant suite (hard invariants fail the job)
+        # Deliberately no `|| true` and no `continue-on-error`: the repo has a
+        # recorded trap where a validator's ERROR only skipped a downstream
+        # step, leaving the run green and the data wrong.
+        run: |
+          set -euo pipefail
+          python _system/scripts/graph_invariants.py | tee "$RUNNER_TEMP/graph-invariants.txt"
+      - name: Publish invariant report to the run summary
+        # always(): the per-invariant counts and any violation lists must be
+        # readable from the run page whether the suite passed or failed.
+        if: always()
+        run: |
+          {
+            echo "### Graph invariants (weekly schedule)"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/graph-invariants.txt" 2>/dev/null || echo "(no invariant output; the step did not run)"
+            echo '```'
+            echo ""
+            cat _system/graph/INVARIANTS.md 2>/dev/null || echo "(INVARIANTS.md was not written)"
+          } >> "$GITHUB_STEP_SUMMARY"

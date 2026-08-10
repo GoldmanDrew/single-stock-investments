@@ -23,6 +23,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 from build_power_zone_pricing import build_contract_pricing  # noqa: E402
 from build_valuation_workbench import write as write_workbench  # noqa: E402
+from falsifier_specs import coverage_summary as falsifier_coverage_summary  # noqa: E402
 from investment_committee_pipeline import initialize as initialize_committee  # noqa: E402
 from power_zone_router import build_route, registry_entries, write_json  # noqa: E402
 from universal_valuation_contract import build_universal_valuation_contract  # noqa: E402
@@ -105,6 +106,13 @@ def current_contract(ticker: str, valuation: dict, route: dict, reviewed: dict) 
     contract["legacy_reference_present"] = bool(
         valuation.get("implied_return") or valuation.get("results_lawrence_legacy")
     )
+    # Falsifier coverage mirrors curated_evidence_blockers: the sidecar
+    # ({ticker}/research/falsifier_specs.json) is the durable source because
+    # this contract is regenerated on every build; only a derived summary is
+    # carried forward.  Coverage is NEVER a blocker while graph_sources.json
+    # falsifier_enforcement.enforcement_enabled is false (flipping the
+    # decision-grade book to evidence_blocked would freeze the factory).
+    contract["falsifier_coverage"] = falsifier_coverage_summary(ticker, contract, root=ROOT)
     return contract
 
 
@@ -177,6 +185,9 @@ def stage_contracts(tickers: list[str], dry_run: bool, as_of: str | None = None)
                 contract["authority"] = "universal_valuation_contract"
                 contract["model_scaffold_ref"] = f"{ticker}/research/valuation_model_scaffold.json"
                 contract["next_action"] = scaffold["next_action"]
+                # Same durability rule as current_contract: summary only,
+                # sourced from the sidecar, never a blocker.
+                contract["falsifier_coverage"] = falsifier_coverage_summary(ticker, contract, root=ROOT)
                 if not dry_run:
                     write_json(research / "valuation_model_scaffold.json", scaffold)
                     write_json(research / "valuation_contract.json", contract)
