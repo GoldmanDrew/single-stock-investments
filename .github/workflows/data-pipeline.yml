@@ -146,6 +146,18 @@ jobs:
           python _system/scripts/build_technical_signals.py --workers 12
           python _system/scripts/build_criticality_signals.py --workers 4
           python _system/scripts/validate_dashboard_data.py
+      - name: Refresh vol metrics and the SPX surface snapshot
+        # Same lane rather than a new cron slot: the decide job case-matches
+        # exact cron strings and hard-errors on an unrecognized one, so a new
+        # slot means editing three places (corrections.md rename trap). This
+        # lane already runs the Yahoo-sourced builders on the same cadence,
+        # and 02:15 UTC Mon-Fri lands after the prior US close, which is what
+        # the delayed CBOE chain needs. Both builders preserve their prior
+        # rows and stamp quality_state='stale' on a source hiccup, so a
+        # vendor outage cannot fail the lane.
+        run: |
+          python _system/scripts/build_vol_metrics.py
+          python _system/scripts/build_spx_surface.py
       - name: Commit technical snapshots
         uses: ./.github/actions/commit-main
         with:
