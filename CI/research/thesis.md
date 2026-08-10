@@ -1,6 +1,6 @@
 # CI — Investment Thesis
 
-**Last updated:** 2026-08-10
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,8 +11,13 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | mid |
-| **MOI bucket** (legacy) | pending |
+| **Implied 7yr IRR** (base) | 7.26% (contract base, provisional) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
 | **Payoff lens** | operating |
+| **MOI bucket** | pending |
+
+**Deep dive:** `CI/research/deep_dive_2026-08-10.md` (auto-sync)
 
 ## One-line thesis
 
