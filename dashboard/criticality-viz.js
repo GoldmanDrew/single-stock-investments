@@ -102,12 +102,18 @@
     const bySymbol = payload?.by_symbol || {};
     const spy = bySymbol.SPY || (payload?.market || []).find((row) => row.symbol === 'SPY') || {};
     const internal = marketContext?.internal || {};
-    return { spy, flow: spy.flow || internal, flowScores: (spy.flow || internal).scores || {} };
+    // When no mechanical-flow feed is attached, the technical-fear breadth
+    // scores stand in. flowIsBreadthProxy lets the rails disclose that
+    // substitution instead of presenting breadth as flow.
+    const flow = spy.flow || internal;
+    const flowIsBreadthProxy = !spy.flow && Object.keys(internal).length > 0;
+    return { spy, flow, flowScores: flow.scores || {}, flowIsBreadthProxy };
   }
 
   function render(payload, options = {}) {
     const escapeHtml = options.escapeHtml || escapeFallback;
-    const { spy, flow, flowScores } = resolveReading(payload, options.marketContext || {});
+    const { spy, flow, flowScores, flowIsBreadthProxy } = resolveReading(payload, options.marketContext || {});
+    const proxyNote = flowIsBreadthProxy ? ' · (breadth proxy - no flow feed)' : '';
     const direction = directionMeta(spy.direction);
     const confidence = spy.confidence || {};
     const asOf = spy.as_of || payload?.generated_at;
@@ -123,8 +129,8 @@
           <small>${whole(spy.qualified_count)} qualified of ${whole(spy.attempted_count)} attempted fits · ${escapeHtml(quality(spy))}</small></div></div>
         <div class="criticality-rail" aria-label="Criticality, mechanical pressure, and exhaustion stages">
           ${rail('1 · Criticality buildup', spy.score, `${whole(confidence.positive)} positive · ${whole(confidence.negative)} negative confidence`, direction.cls)}
-          ${rail('2 · Mechanical pressure', flowScores.pressure, flow.state ? String(flow.state).replace(/_/g, ' ') : 'awaiting intraday flow feed', 'criticality-pressure')}
-          ${rail('3 · Exhaustion confirmation', flowScores.exhaustion, finite(flowScores.exhaustion) == null ? 'awaiting pressure-decay confirmation' : 'independent stabilization evidence', 'criticality-exhaustion')}
+          ${rail('2 · Mechanical pressure', flowScores.pressure, `${flow.state ? String(flow.state).replace(/_/g, ' ') : 'awaiting intraday flow feed'}${proxyNote}`, 'criticality-pressure')}
+          ${rail('3 · Exhaustion confirmation', flowScores.exhaustion, `${finite(flowScores.exhaustion) == null ? 'awaiting pressure-decay confirmation' : 'independent stabilization evidence'}${proxyNote}`, 'criticality-exhaustion')}
         </div>
         <details class="criticality-sectors" ${options.expandSectors ? 'open' : ''}><summary>Sector heatmap · ${sectors.length} available</summary>${sectorRows(sectors, escapeHtml)}</details>
         <p class="criticality-policy">${escapeHtml(spy.policy || 'Critical time describes regime instability, not a promised crash or reversal date.')} No model output has trading authority.</p>
@@ -180,6 +186,30 @@
     }[String(state || '').toLowerCase()] || [String(state || 'Unknown').replace(/_/g, ' '), 'is-unavailable'];
   }
 
+  function calendarAge(asOf, now = new Date()) {
+    if (!asOf) return null;
+    const start = new Date(asOf);
+    if (Number.isNaN(start.getTime())) return null;
+    const startDay = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+    const endDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    return Math.round((endDay - startDay) / 86400000);
+  }
+
+  // quality_state is stamped at build time, so a frozen fallback snapshot
+  // carries 'ready' forever. Recompute staleness from as_of at render time:
+  // anything older than 2 calendar days renders as stale no matter what the
+  // build claimed. 'unavailable' is exempt — a feed that was never connected
+  // is missing, not old, and "stale" would imply data existed.
+  function componentQuality(item, now = new Date()) {
+    const state = String(item.quality_state || 'unknown').toLowerCase();
+    const age = calendarAge(item.as_of, now);
+    if (state !== 'unavailable' && age != null && age > 2) {
+      return { state: 'stale', label: `Stale (as_of ${String(item.as_of).slice(0, 10)})`, cls: 'is-stale' };
+    }
+    const meta = qualityMeta(item.quality_state);
+    return { state, label: meta[0], cls: meta[1] };
+  }
+
   function componentDetail(item, escapeHtml) {
     if (item.component.startsWith('letf_rebalance')) {
       return `<dl><div><dt>Net close flow</dt><dd>${compactNumber(item.net_dollars ?? item.value, 'USD')}</dd></div>
@@ -192,6 +222,8 @@
     }
     if (item.component === 'options_stress') {
       return `<dl><div><dt>Latest skew</dt><dd>${compactNumber(item.latest?.skew_z, 'z_score')}</dd></div>
+        <div><dt>Term ratio</dt><dd>${compactNumber(item.latest?.term_ratio_z, 'z_score')}</dd></div>
+        <div><dt>RV vs implied</dt><dd>${compactNumber(item.latest?.realized_vs_implied_z, 'z_score')}</dd></div>
         <div><dt>VIX</dt><dd>${compactNumber(item.latest_vix, 'index_points')}</dd></div><div><dt>Minute samples</dt><dd>${whole(item.observations)}</dd></div></dl>`;
     }
     if (item.component === 'etf_holdings_coverage') {
@@ -212,13 +244,13 @@
     const all = payload?.components || [];
     const market = all.filter((item) => item.scope === 'market');
     const sectors = all.filter((item) => item.scope === 'sector' && item.component === 'letf_rebalance_intraday');
-    const counts = all.reduce((memo, item) => { memo[item.quality_state] = (memo[item.quality_state] || 0) + 1; return memo; }, {});
+    const counts = all.reduce((memo, item) => { const state = componentQuality(item).state; memo[state] = (memo[state] || 0) + 1; return memo; }, {});
     if (!all.length) return `<section class="risk-data-stack"><header><div><h3>Mechanical-flow data stack</h3><p>Awaiting the first component ingest.</p></div></header></section>`;
     return `<section class="risk-data-stack"><header><div><span class="criticality-kicker">Independent inputs · never silently blended</span><h3>Mechanical-flow data stack</h3>
       <p>Each tile retains its source cadence and quality. “Unavailable” means the model does not have that dataset—not that risk is zero.</p></div>
       <div class="risk-coverage"><strong>${counts.ready || 0} current</strong><span>${counts.delayed || 0} delayed · ${counts.stale || 0} stale · ${counts.unavailable || 0} unavailable</span></div></header>
-      <div class="risk-component-grid">${market.map((item) => { const q = qualityMeta(item.quality_state); return `<article class="risk-component-card">
-        <div class="risk-component-head"><div><span>${escapeHtml(String(item.component).replace(/_/g, ' '))}</span><h4>${escapeHtml(item.label || item.symbol)}</h4></div><b class="${q[1]}">${escapeHtml(q[0])}</b></div>
+      <div class="risk-component-grid">${market.map((item) => { const q = componentQuality(item); return `<article class="risk-component-card">
+        <div class="risk-component-head"><div><span>${escapeHtml(String(item.component).replace(/_/g, ' '))}</span><h4>${escapeHtml(item.label || item.symbol)}</h4></div><b class="${q.cls}">${escapeHtml(q.label)}</b></div>
         <div class="risk-component-value">${compactNumber(item.value, item.unit)}${finite(item.score) == null ? '' : `<small>stress ${whole(item.score)} / 100</small>`}</div>
         ${componentDetail(item, escapeHtml)}<p>${escapeHtml(item.description || '')}</p><footer>${escapeHtml(item.source)} · ${escapeHtml(String(item.as_of || '').replace('T', ' ').slice(0, 19))}</footer>
       </article>`; }).join('')}</div>
@@ -245,7 +277,7 @@
           <div><dt>Latest flow</dt><dd>${escapeHtml(health.snapshots?.latest_flow_at || '—')}</dd></div>
           <div><dt>Stored snapshots</dt><dd>${whole(health.snapshots?.criticality_count)} criticality · ${whole(health.snapshots?.flow_count)} flow · ${whole(health.snapshots?.component_count)} components</dd></div>
           <div><dt>Open alerts</dt><dd>${whole(health.alerts?.open_count)}</dd></div></dl></section>
-        <section class="risk-card"><h3>Alert journal</h3>${alerts.length ? `<div class="risk-alerts">${alerts.slice(0, 12).map((alert) => `<article><strong>${escapeHtml(alert.symbol)} · ${escapeHtml(alert.state.replace(/_/g, ' '))}</strong><span class="risk-severity risk-severity-${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span><small>${escapeHtml((alert.reason_codes || []).join(' · '))}</small></article>`).join('')}</div>` : '<div class="risk-empty">No alert episodes have been recorded yet.</div>'}</section>
+        <section class="risk-card"><h3>Alert journal</h3>${alerts.length ? `<div class="risk-alerts">${alerts.slice(0, 12).map((alert) => `<article><strong>${escapeHtml(alert.symbol)} · ${escapeHtml(alert.state.replace(/_/g, ' '))}</strong><span class="risk-severity risk-severity-${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span><small>${escapeHtml((alert.reason_codes || []).join(' · '))}</small></article>`).join('')}</div>` : '<div class="risk-empty">No alert episodes recorded. Alerts come from the Databento flow monitor, a local scheduled task that runs outside CI—if that task is not running, this journal stays empty even during market stress.</div>'}</section>
         <section class="risk-card"><h3>How the private ingest works</h3><p>The browser can read risk data, but cannot write it. The publisher signs each payload with the market-risk ingest token, a timestamp, and a one-time nonce. Cloudflare verifies the signature, rejects requests older than five minutes, and refuses reused nonces.</p><p>The token never appears in this page, D1, request headers, or the market data feed. It is a private signing secret, separate from the Databento API key.</p></section>
       </div>
       <section class="risk-method"><h3>Interpretation guardrails</h3><p><strong>Criticality</strong> asks whether price dynamics resemble an unstable LPPLS regime. <strong>Pressure</strong> estimates mechanical stress consistent with volatility-sensitive deleveraging. <strong>Exhaustion</strong> requires stabilization evidence and persistence. A critical time is a probability window, not a scheduled crash; all outputs remain research-only until shadow validation establishes calibration and false-positive behavior.</p></section>`;

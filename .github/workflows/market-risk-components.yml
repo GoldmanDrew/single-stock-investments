@@ -1,15 +1,21 @@
 name: Market Risk Components
 
 on:
-  # Offset from the top of the hour to reduce scheduled-run contention.
-  # The 18:37 run is the end-of-day snapshot.
+  # GitHub Actions evaluates schedule.cron in UTC and silently ignores any
+  # `timezone:` key, so these times are written directly in UTC.
+  # Intended window: 08:00-17:00 ET twice-hourly, with the after-close
+  # end-of-day snapshots landing after the 16:00 ET close. During EDT
+  # (UTC-4) hours 12-21 UTC give 08:07-17:37 ET, and the 21:07/21:37 UTC
+  # runs are the EOD snapshots (17:07/17:37 ET).
+  # DST caveat (deliberately not compensated): during EST (UTC-5) the same
+  # UTC times land one hour earlier on the local clock, 07:07-16:37 ET, so
+  # the EOD snapshots become 16:07/16:37 ET - still after the 16:00 close.
+  # Minutes offset from the top of the hour to reduce scheduled-run
+  # contention.
   schedule:
-    - cron: "7,37 8-17 * * 1-5"
-      timezone: "America/New_York"
-    - cron: "7,37 18 * * 1-5"
-      timezone: "America/New_York"
+    - cron: "7,37 12-21 * * 1-5"
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: market-risk-components
@@ -112,3 +118,62 @@ jobs:
           assert payload.get("generated_at")
           print(json.dumps({"components": len(components), "coverage": coverage}, sort_keys=True))
           PY
+
+      - name: Commit daily dashboard fallback snapshot
+        # dashboard/data/market_risk_components.json is the static fallback the
+        # Cloudflare page serves verbatim when the D1 API path fails; without
+        # this step it stays frozen at whatever run last committed it. Commit
+        # AT MOST ONCE PER UTC DAY (deploy-churn guard): skip when the
+        # committed file's generated_at already carries the same UTC date as
+        # the fresh snapshot. Uses ci_push_main.sh, the same push helper the
+        # repo's other committing workflows use, run inside the RUNNER_TEMP
+        # sparse clone from the fetch step (the workspace itself is not a
+        # checkout of this repository).
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/ssi-source"
+          # Widen the sparse clone to the push helper and the committed
+          # fallback, then move off the detached SHA onto main so the helper
+          # can rebase and push.
+          git -C "$source_root" sparse-checkout add \
+            _system/scripts/ci_push_main.sh \
+            dashboard/data/market_risk_components.json
+          git -C "$source_root" fetch --depth 1 origin main
+          git -C "$source_root" checkout -B main origin/main
+          decision=$(python - \
+            "$source_root/dashboard/data/market_risk_components.json" \
+            "$RUNNER_TEMP/market-risk-components.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          def gen_date(path):
+              try:
+                  stamp = json.loads(Path(path).read_text(encoding="utf-8")).get("generated_at") or ""
+              except (OSError, ValueError):
+                  return None
+              return str(stamp)[:10] or None
+
+          committed_date = gen_date(sys.argv[1])
+          fresh_date = gen_date(sys.argv[2])
+          print(
+              f"committed generated_at date={committed_date} "
+              f"fresh generated_at date={fresh_date}",
+              file=sys.stderr,
+          )
+          if fresh_date is None:
+              raise SystemExit("fresh snapshot has no generated_at; refusing to decide")
+          print("skip" if committed_date == fresh_date else "commit")
+          PY
+          )
+          if [ "$decision" = "commit" ]; then
+            cp "$RUNNER_TEMP/market-risk-components.json" \
+              "$source_root/dashboard/data/market_risk_components.json"
+            cd "$source_root"
+            git add dashboard/data/market_risk_components.json
+            bash _system/scripts/ci_push_main.sh \
+              "chore(risk): daily market-risk components dashboard fallback"
+          else
+            echo "Once-daily gate: committed fallback already has today's UTC generated_at; skipping commit."
+          fi

@@ -125,6 +125,12 @@ surface: their counts must be monotonically non-increasing across cycles.
 - **P4** (hard): no run receipts outside `_system/data/runs/`.
 - **P5** (report): validator scripts with zero CI references (the 17-orphan
   finding, kept measured so it can only shrink).
+- **P6** (hard): every data feed registered in `graph_sources.json`
+  `data_feeds` carries a parseable freshness stamp younger than its window.
+  Born from the risk page's committed components fallback silently freezing
+  at 2026-08-02 while its workflow ran green hourly (D1-only publishes).
+  Each violation names its healer; a stamp that cannot be parsed can never
+  be judged fresh and is always a violation.
 
 **Epistemic (self-compounding):**
 - **E1** (report): decision-grade components carrying a *typed* falsifier

@@ -201,7 +201,34 @@
           "violation": "belief:the-drive-intake-root-is-admin-intake-not-the-vic-child-f -> source:Admin/Intake",
           "note": "2026-08-10: 'Admin/Intake' is a Google Drive folder path quoted inside the belief text, not a repo path, so exists-on-disk cannot apply; MEMORY.md is human-owned and the bullet cannot be reworded by an agent (that would itself violate E4). E5 stays hard for every other belief source."
         }
+      ],
+      "P6": [
+        {
+          "violation": "market_risk_components_committed: stale (window 100h)",
+          "note": "2026-08-10 grace until the market-risk-components.yml daily commit step lands its first snapshot; the workflow previously published to D1 only and the committed fallback froze at 2026-08-02. Remove this waiver after the first weekday run commits."
+        }
       ]
+    }
+  },
+  "data_feeds": {
+    "_doc": "P6 registry: dashboard/risk data feeds with an expected freshness window and the healer that refills them. Windows span weekends for weekday-cadence feeds. A feed whose stamp is unparseable can never be judged fresh and is always a violation.",
+    "criticality_summary": {
+      "path": "dashboard/data/criticality_summary.json",
+      "stamp_field": "generated_at",
+      "max_age_hours": 100,
+      "healer": "python _system/scripts/build_criticality_signals.py --workers 4 (data-pipeline lane, cron 15 2 * * 1-5)"
+    },
+    "technical_summary": {
+      "path": "dashboard/data/technical_summary.json",
+      "stamp_field": "generated_at",
+      "max_age_hours": 100,
+      "healer": "python _system/scripts/build_technical_signals.py (data-pipeline lane, cron 15 2 * * 1-5)"
+    },
+    "market_risk_components_committed": {
+      "path": "dashboard/data/market_risk_components.json",
+      "stamp_field": "generated_at",
+      "max_age_hours": 100,
+      "healer": "market-risk-components.yml commit-once-daily step (lands the $RUNNER_TEMP snapshot it already builds)"
     }
   }
 }

@@ -57,6 +57,7 @@ TABLE_STATUS = re.compile(r"^`?(active|superseded|disproven)\s+\d{4}-\d{2}-\d{2}
 
 BASE_SEVERITY = {
     "P1": "report", "P2": "hard", "P3": "hard", "P4": "hard", "P5": "report",
+    "P6": "hard",
     "E1": "report", "E2": "hard", "E3": "hard", "E4": "hard", "E5": "hard",
     "E6": "report",
 }
@@ -74,6 +75,7 @@ TITLES = {
           " history window)",
     "E5": "every Belief's SUPPORTED_BY source exists on disk",
     "E6": "Proposals with no DECIDED_AS decision (silent-drop detector)",
+    "P6": "every registered data feed is fresher than its window",
 }
 
 
@@ -411,7 +413,52 @@ def inv_e6(conn, root, today) -> Result:
                   [f"{r['as_of']} {r['label'][:80]}" for r in rows])
 
 
-INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5,
+def inv_p6(conn, root, today) -> Result:
+    """Data-feed freshness (self-healing detector for the risk dashboard).
+
+    Filesystem check like P4: each feed registered in graph_sources.json
+    data_feeds must carry a parseable stamp younger than its window. The
+    violation text is deliberately STABLE across days (feed + window, ages
+    live in the note) so waivers with dated notes can target it exactly.
+    A missing file or unparseable stamp is always a violation - a feed that
+    cannot be judged fresh must never read as fresh."""
+    config = graph_build.load_json(
+        root / "_system" / "graph" / "graph_sources.json") or {}
+    feeds = config.get("data_feeds", {}) if isinstance(config, dict) else {}
+    now = datetime.now(timezone.utc)
+    violations, ages, fresh = [], [], 0
+    for name, feed in sorted(feeds.items()):
+        if name.startswith("_") or not isinstance(feed, dict):
+            continue
+        window = float(feed.get("max_age_hours", 48))
+        path = root / str(feed.get("path", ""))
+        healer = ascii_safe(feed.get("healer", ""))[:100]
+        if not path.is_file():
+            violations.append(f"{name}: file missing ({feed.get('path')})"
+                              f" -- heal: {healer}")
+            continue
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            stamp = doc.get(str(feed.get("stamp_field", "generated_at")))
+            when = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            violations.append(f"{name}: unparseable stamp -- can never be"
+                              f" judged fresh -- heal: {healer}")
+            continue
+        age_h = (now - when).total_seconds() / 3600.0
+        ages.append(f"{name} {age_h:.0f}h")
+        if age_h > window:
+            violations.append(f"{name}: stale (window {window:.0f}h)")
+        else:
+            fresh += 1
+    return Result("P6", len(violations), violations,
+                  note=f"{fresh}/{fresh + len(violations)} feeds fresh"
+                       f" ({', '.join(ages)})")
+
+
+INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6,
               inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6]
 
 

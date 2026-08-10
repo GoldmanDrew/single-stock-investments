@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -120,7 +120,7 @@ class CleanFixtureTests(unittest.TestCase):
                               "invariants.json").read_text(encoding="utf-8"))
         for inv_id in graph_invariants.BASE_SEVERITY:
             self.assertIn(f"| {inv_id} |", md)
-        self.assertEqual(len(payload["invariants"]), 11)
+        self.assertEqual(len(payload["invariants"]), 12)
         self.assertEqual(payload["exit_code"], 0)
 
 
@@ -159,6 +159,52 @@ class PlantedViolationTests(unittest.TestCase):
         self.assertEqual(results["P2"].count, 1)
         self.assertIn("unwired-guard", results["P2"].violations[0])
         self.assertEqual(exit_code, 1)
+
+    def test_p6_stale_feed_fires_fresh_feed_passes(self):
+        config = load_config(self.root)
+        (self.root / "dashboard" / "data").mkdir(parents=True, exist_ok=True)
+        stale = self.root / "dashboard" / "data" / "stale_feed.json"
+        stale.write_text(json.dumps(
+            {"generated_at": "2026-01-01T00:00:00+00:00"}), encoding="utf-8")
+        fresh = self.root / "dashboard" / "data" / "fresh_feed.json"
+        fresh.write_text(json.dumps(
+            {"generated_at": datetime.now(timezone.utc).isoformat()}),
+            encoding="utf-8")
+        config["data_feeds"] = {
+            "stale_feed": {"path": "dashboard/data/stale_feed.json",
+                           "stamp_field": "generated_at",
+                           "max_age_hours": 48, "healer": "run the builder"},
+            "fresh_feed": {"path": "dashboard/data/fresh_feed.json",
+                           "stamp_field": "generated_at",
+                           "max_age_hours": 48, "healer": "run the builder"},
+        }
+        save_config(self.root, config)
+        results, exit_code = run_invariants(self.root)
+        self.assertEqual(results["P6"].count, 1)
+        self.assertIn("stale_feed: stale (window 48h)",
+                      results["P6"].violations[0])
+        self.assertEqual(exit_code, 1)
+
+    def test_p6_unparseable_stamp_and_missing_file_fire(self):
+        config = load_config(self.root)
+        (self.root / "dashboard" / "data").mkdir(parents=True, exist_ok=True)
+        garbled = self.root / "dashboard" / "data" / "garbled_feed.json"
+        garbled.write_text(json.dumps({"generated_at": "soon"}),
+                           encoding="utf-8")
+        config["data_feeds"] = {
+            "garbled_feed": {"path": "dashboard/data/garbled_feed.json",
+                             "stamp_field": "generated_at",
+                             "max_age_hours": 48, "healer": "h"},
+            "ghost_feed": {"path": "dashboard/data/ghost_feed.json",
+                           "stamp_field": "generated_at",
+                           "max_age_hours": 48, "healer": "h"},
+        }
+        save_config(self.root, config)
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["P6"].count, 2)
+        joined = " | ".join(results["P6"].violations)
+        self.assertIn("can never be judged fresh", joined)
+        self.assertIn("file missing", joined)
 
     def test_p3_lane_with_no_commit_fires(self):
         config = load_config(self.root)
