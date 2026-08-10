@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0",
+  "updated": "2026-08-10",
+  "notes": [
+    "Config for _system/scripts/graph_build.py. Lane regexes match git commit subjects (one git log call, bounded window).",
+    "The guard registry maps correction row ids (date + first-40-chars-of-error slug, computed by graph_build.correction_slug) to the executable asserts that guard them and the scripts that enforce those asserts.",
+    "Populated honestly from corrections.md's Source column and .github/workflows: a correction whose recorded fix is prose procedure (read the definition, grep before renaming, reconcile before adjudicating) has NO entry here. Surfacing those as unguarded is invariant P1's job, not this file's.",
+    "enforced_by entries may be validator scripts (five-prefix) or test suites; whether any CI job actually invokes them is projected separately (INVOKED_BY) and judged by invariant P2."
+  ],
+  "lanes": [
+    {
+      "name": "ls-algo",
+      "subject_regex": "^(chore|feat|fix)\\(ls-algo\\)",
+      "freshness_hours": 48
+    },
+    {
+      "name": "valuation",
+      "subject_regex": "^(chore|feat|fix)\\(valuation\\)",
+      "freshness_hours": 48
+    },
+    {
+      "name": "backfill",
+      "subject_regex": "^(chore|feat|fix)\\((queue|contract)\\)|contract backfill",
+      "freshness_hours": 48
+    },
+    {
+      "name": "committee",
+      "subject_regex": "^(chore|feat|fix)\\(ic\\)|^IC[- ]",
+      "freshness_hours": 48
+    },
+    {
+      "name": "deploy",
+      "subject_regex": "^(chore|feat|fix)\\(dashboard\\)|^(Rebuild|Refresh) dashboard",
+      "freshness_hours": 48
+    },
+    {
+      "name": "memory-digest",
+      "subject_regex": "^Weekly memory digest",
+      "freshness_hours": 192
+    },
+    {
+      "name": "daily-sync",
+      "subject_regex": "^chore: daily download sync",
+      "freshness_hours": 48
+    }
+  ],
+  "guards": {
+    "2026-08-07-added-a-validator-check-that-read-tick": [
+      {
+        "id": "dashboard-payload-carries-validation",
+        "label": "extreme_return_validated is stamped into the dashboard payload by build_dashboard_data and checked by validate_dashboard_data inside the sparse pages checkout",
+        "script": "_system/scripts/validate_dashboard_data.py",
+        "function": null,
+        "enforced_by": [
+          "_system/scripts/validate_dashboard_data.py"
+        ]
+      }
+    ],
+    "2026-08-07-read-a-green-calibration-bar-as-evidence": [
+      {
+        "id": "calibration-insufficient-data-gate",
+        "label": "calibration bars with no adjudicated cases report INSUFFICIENT DATA instead of a green MEETS BAR verdict",
+        "script": "_system/scripts/calibrate_ssi.py",
+        "function": null,
+        "enforced_by": [
+          "_system/scripts/calibrate_ssi.py"
+        ]
+      }
+    ],
+    "2026-08-09-assumed-the-2-hourly-backfill-refill-wou": [
+      {
+        "id": "backfill-stall-breaker",
+        "label": "build_contract_backfill_queue rotates a stalled wave and parks tickers after MAX_DISPATCH_ATTEMPTS; stall_breaker/dispatch_attempts recorded in the queue JSON",
+        "script": "_system/scripts/build_contract_backfill_queue.py",
+        "function": "stall_breaker / MAX_DISPATCH_ATTEMPTS",
+        "enforced_by": [
+          "_system/scripts/test_contract_backfill_lane.py"
+        ]
+      }
+    ],
+    "2026-08-09-treated-no-locked-shares-outstanding": [
+      {
+        "id": "ifrs-share-selector",
+        "label": "share selector reads the IFRS share elements and falls back to the 20-F/40-F cover item instead of dead-ending on us-gaap tags",
+        "script": "_system/scripts/automate_valuation_readiness.py",
+        "function": "ENTITY_SHARE_SPECS / _cover_page_share_count",
+        "enforced_by": [
+          "_system/scripts/tests/test_valuation_readiness_automation.py"
+        ]
+      }
+    ],
+    "2026-08-09-froze-a-committee-packet-by-hashing-the": [
+      {
+        "id": "copy-on-freeze-evidence-snapshot",
+        "label": "initialize() copies evidence into evidence_snapshot/ and hashes the copies; votes must carry the packet's evidence_hash (validate_vote and the PR gate); parked after MAX_REFRESHES_WITHOUT_VOTES",
+        "script": "_system/scripts/investment_committee_pipeline.py",
+        "function": "initialize / validate_vote",
+        "enforced_by": [
+          "_system/scripts/test_committee_livelock.py",
+          "_system/scripts/validate_committee_pr_artifacts.py"
+        ]
+      }
+    ],
+    "2026-08-09-wrote-the-vote-preservation-guard-as-if": [
+      {
+        "id": "park-on-any-landed-vote",
+        "label": "select_committee_work.refresh parks on any landed vote regardless of packet generation; the refresh_limit breaker carries no 'and not landed' gate",
+        "script": "_system/scripts/select_committee_work.py",
+        "function": "refresh",
+        "enforced_by": [
+          "_system/scripts/test_committee_livelock.py"
+        ]
+      }
+    ],
+    "2026-08-09-auto-closed-616-onboard-checklists-on-ch": [
+      {
+        "id": "onboard-default-discriminating-gate",
+        "label": "onboard checks compare fields against DEFAULT_CLASSIFICATION plus PLACEHOLDER_VALUES, require a non-sentinel sleeve, treat empty ir_roots as missing; --reverify-closed re-opens failures",
+        "script": "_system/scripts/build_review_queue_rollup.py",
+        "function": "onboard_checks / --reverify-closed",
+        "enforced_by": [
+          "_system/scripts/test_build_review_queue_rollup.py"
+        ]
+      }
+    ],
+    "2026-08-09-corrected-the-fact-ledger-to-usd-and-cal": [
+      {
+        "id": "currency-scan-both-surfaces",
+        "label": "scan_fact_ledger_currency covers both the fact ledger and the valuation.json proof inputs the model actually reads",
+        "script": "_system/scripts/scan_fact_ledger_currency.py",
+        "function": null,
+        "enforced_by": [
+          "_system/scripts/scan_fact_ledger_currency.py"
+        ]
+      }
+    ],
+    "2026-08-09-copied-converted-ledger-facts-into-calc": [
+      {
+        "id": "fx-conversion-carried-into-proof",
+        "label": "_proof_fact and the evaluate_calculation_proof trace builder carry fx_conversion through into the proof and the contract",
+        "script": "_system/scripts/calculation_proof.py",
+        "function": "_proof_fact / evaluate_calculation_proof",
+        "enforced_by": [
+          "_system/scripts/scan_fact_ledger_currency.py"
+        ]
+      }
+    ],
+    "2026-08-09-build-fact-ledger-locked-foreign-curre": [
+      {
+        "id": "usd-conversion-fail-closed",
+        "label": "the ledger writer reads the companyfacts unit key: non-USD requires an evidenced fx_conversion, anything else refuses to lock (fail closed)",
+        "script": "_system/scripts/automate_valuation_readiness.py",
+        "function": "_usd_conversion",
+        "enforced_by": [
+          "_system/scripts/scan_fact_ledger_currency.py",
+          "_system/scripts/test_scan_fact_ledger_currency.py"
+        ]
+      }
+    ],
+    "2026-08-09-re-ticked-a-row-in-the-memory-triage-que": [
+      {
+        "id": "append-only-ledger-refusal",
+        "label": "record() warns and --mark exits non-zero when a re-tick disagrees with a recorded decision; audit_promoted requires a quoted anchor phrase or falls back to the text match",
+        "script": "_system/scripts/build_memory_triage.py",
+        "function": "record / audit_promoted",
+        "enforced_by": [
+          "_system/scripts/tests/test_memory_triage.py"
+        ]
+      }
+    ],
+    "2026-08-09-ran-build-memory-triage-py-sync-promo": [
+      {
+        "id": "backfill-attribution-constant",
+        "label": "the back-sync path stamps a constant by: backfill and ignores --by entirely; attribution follows who decided, not who executed",
+        "script": "_system/scripts/build_memory_triage.py",
+        "function": "BACKFILL_BY",
+        "enforced_by": [
+          "_system/scripts/tests/test_memory_triage.py"
+        ]
+      }
+    ]
+  },
+  "falsifier_enforcement": {
+    "typed_coverage_threshold": 0.8,
+    "enforcement_enabled": false,
+    "note": "Typed-falsifier-required for decision_grade stays OFF until E1 coverage crosses the threshold; flipping 189 contracts to evidence_blocked overnight would freeze the factory."
+  },
+  "invariants": {
+    "notes": [
+      "Read by graph_invariants.py. 'overrides' demotes a whole invariant's severity; 'waivers' excuses one named violation while the invariant stays hard for everything else. Both REQUIRE a dated note and both are printed in INVARIANTS.md -- a silent demotion is the validator-green-on-nothing trap. A waiver that matches no live violation is reported as stale."
+    ],
+    "overrides": {
+      "P2": {
+        "severity": "report",
+        "todo": "2026-08-10 TODO: 6 of 12 guards are enforced only by test suites (test_committee_livelock.py, test_memory_triage.py, test_contract_backfill_lane.py, test_build_review_queue_rollup.py, test_valuation_readiness_automation.py) that no CI workflow invokes. Wiring five real test suites into CI is its own change with its own failure modes, not a mechanical fix, so P2 is report-severity until they are wired; re-harden it in the same commit that wires them."
+      }
+    },
+    "waivers": {
+      "E5": [
+        {
+          "violation": "belief:the-drive-intake-root-is-admin-intake-not-the-vic-child-f -> source:Admin/Intake",
+          "note": "2026-08-10: 'Admin/Intake' is a Google Drive folder path quoted inside the belief text, not a repo path, so exists-on-disk cannot apply; MEMORY.md is human-owned and the bullet cannot be reworded by an agent (that would itself violate E4). E5 stays hard for every other belief source."
+        }
+      ]
+    }
+  }
+}
