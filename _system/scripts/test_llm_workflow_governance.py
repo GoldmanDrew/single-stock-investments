@@ -160,7 +160,11 @@ class WorkflowGovernanceTests(unittest.TestCase):
         checkouts = re.findall(r"ci_checkout_workspace\.sh \w+ (.+)$", workflow, re.MULTILINE)
         pr_checkouts = [ref for ref in checkouts if "pull_request" in ref]
         self.assertTrue(pr_checkouts)
-        self.assertEqual(workflow.count(persistent_ref), len(pr_checkouts))
+        for ref in pr_checkouts:
+            # Every PR-ref checkout must use the persistent pull/N/head form
+            # (survives force-push); other persistent-ref uses (e.g. a git
+            # fetch deepening history) are fine and not counted.
+            self.assertTrue(ref.startswith(persistent_ref), ref)
         self.assertNotIn("github.event.pull_request.head.ref", workflow)
 
     def test_model_ladder_defaults_cheap_and_escalates_frontier(self):

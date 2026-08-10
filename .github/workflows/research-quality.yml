@@ -24,6 +24,23 @@ on:
       - "_system/scripts/build_filing_evidence.py"
       - "_system/scripts/tests/test_ssi_pipeline_v2.py"
       - "_eval/**"
+      - "_system/graph/**"
+      - "_system/scripts/graph_build.py"
+      - "_system/scripts/graph_query.py"
+      - "_system/scripts/graph_invariants.py"
+      - "_system/scripts/test_graph_build.py"
+      - "_system/scripts/test_graph_invariants.py"
+      - "_system/memory/**"
+      # Judged surfaces of the graph invariants: contracts and typed
+      # falsifier sidecars feed E1/E2, _system/research holds outcomes and
+      # calibration (E2/E3), run receipts feed P4, and review artifacts are
+      # part of P4's scan surface. Without these a push that only changes a
+      # judged surface never triggers the suite.
+      - "**/research/valuation_contract.json"
+      - "**/research/falsifier_specs.json"
+      - "_system/research/**"
+      - "_system/data/runs/**"
+      - "_system/reviews/**"
   pull_request:
     branches: [main]
     paths:
@@ -58,6 +75,19 @@ on:
       - "_system/scripts/scan_fact_ledger_currency.py"
       - "_system/scripts/test_scan_fact_ledger_currency.py"
       - "_eval/**"
+      - "_system/graph/**"
+      - "_system/scripts/graph_build.py"
+      - "_system/scripts/graph_query.py"
+      - "_system/scripts/graph_invariants.py"
+      - "_system/scripts/test_graph_build.py"
+      - "_system/scripts/test_graph_invariants.py"
+      - "_system/memory/**"
+      # Graph-invariant judged surfaces not already covered by the
+      # "**/research/**" pattern above (which subsumes valuation_contract,
+      # falsifier_specs, and _system/research): run receipts (P4) and the
+      # review tree P4 scans.
+      - "_system/data/runs/**"
+      - "_system/reviews/**"
 
 permissions:
   contents: read
@@ -79,6 +109,7 @@ jobs:
       dashboard_integrity: ${{ steps.classify.outputs.dashboard_integrity }}
       ssi_pipeline: ${{ steps.classify.outputs.ssi_pipeline }}
       fact_currency: ${{ steps.classify.outputs.fact_currency }}
+      graph_invariants: ${{ steps.classify.outputs.graph_invariants }}
     steps:
       - id: classify
         uses: actions/github-script@v7
@@ -142,11 +173,28 @@ jobs:
               name === '_system/scripts/scan_fact_ledger_currency.py' ||
               name === '_system/scripts/test_scan_fact_ledger_currency.py'
             );
+            // The graph is a projection of contracts, ledgers, memory and CI
+            // wiring; the invariant suite is the executable health contract
+            // over it (_system/graph/README.md). The judged surfaces --
+            // contracts (E1), typed falsifier sidecars (E1/E2), outcomes and
+            // calibration under _system/research (E2/E3), run receipts (P4)
+            // and the reviews tree P4 scans -- must classify true too, or a
+            // PR changing only them skips the suite that judges them.
+            const graphInvariants = isPush || has(name =>
+              /^_system\/graph\//.test(name) ||
+              /^_system\/scripts\/(graph_|test_graph_)[^/]+\.py$/.test(name) ||
+              /^_system\/memory\//.test(name) ||
+              /(^|\/)research\/(valuation_contract|falsifier_specs)\.json$/.test(name) ||
+              /^_system\/research\//.test(name) ||
+              /^_system\/data\/runs\//.test(name) ||
+              /^_system\/reviews\//.test(name)
+            );
             core.setOutput('prompt_sync', String(promptSync));
             core.setOutput('research_lint', String(researchLint));
             core.setOutput('dashboard_integrity', String(dashboardIntegrity));
             core.setOutput('ssi_pipeline', String(ssiPipeline));
             core.setOutput('fact_currency', String(factCurrency));
+            core.setOutput('graph_invariants', String(graphInvariants));
             await core.summary
               .addHeading('Research-quality plan')
               .addTable([
@@ -156,6 +204,7 @@ jobs:
                 ['dashboard-integrity', String(dashboardIntegrity)],
                 ['ssi-pipeline', String(ssiPipeline)],
                 ['fact-ledger-currency', String(factCurrency)],
+                ['graph-invariants', String(graphInvariants)],
               ])
               .write();
 
@@ -354,6 +403,88 @@ jobs:
             echo '```'
             cat "$RUNNER_TEMP/currency-scan.txt" 2>/dev/null || echo "(no scanner output; the step did not run)"
             echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  graph-invariants:
+    needs: changes
+    # Runs on push AND pull_request: the failure classes this catches (a
+    # stalled lane, a guard no CI job invokes, a belief rewritten in place, a
+    # receipt in the wrong place) arrive with direct pushes to main just as
+    # often as with PRs.
+    if: needs.changes.outputs.graph_invariants == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          swap-storage: true
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout workspace (full)
+        # Full tree: graph_build streams every ticker's contract and fact
+        # ledger, and E5 existence-checks the source paths beliefs cite, so a
+        # sparse profile would turn real beliefs into silent "source missing".
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bash _system/scripts/ci_checkout_workspace.sh full "pull/${{ github.event.pull_request.number }}/head"
+          else
+            bash _system/scripts/ci_checkout_workspace.sh full
+          fi
+      - name: Deepen commit history for lane freshness (commits only, no blobs)
+        # graph_build projects Lane/Commit from `git log -n 400`; on the
+        # depth-1 checkout above every lane would read NO-COMMIT and fail P3
+        # for a reason that has nothing to do with the lanes.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --filter=blob:none --deepen=400 origin "pull/${{ github.event.pull_request.number }}/head"
+            # P3 spurious-fire fix: a PR whose branch point is >48h old is
+            # missing the nightly lane commits that landed on main since, so
+            # every lane would read stale from the PR head's history alone.
+            # Fetch a bounded window of main; graph_invariants.py then sets
+            # GRAPH_LANE_REF=origin/main so graph_build projects lanes from
+            # main whenever that ref exists.
+            git fetch --filter=blob:none --depth=300 origin "+refs/heads/main:refs/remotes/origin/main"
+          else
+            git fetch --filter=blob:none --deepen=400 origin main
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Graph engine and invariant unit tests
+        working-directory: _system/scripts
+        run: python -m unittest -v test_graph_build test_graph_invariants
+      - name: Run the invariant suite (hard invariants fail the job)
+        # Deliberately no `|| true` and no `continue-on-error`: the repo has a
+        # recorded trap where a validator's ERROR only skipped a downstream
+        # step, leaving the run green and the data wrong. `pipefail` keeps the
+        # suite's exit code through `tee`.
+        run: |
+          set -euo pipefail
+          python _system/scripts/graph_invariants.py | tee "$RUNNER_TEMP/graph-invariants.txt"
+      - name: Publish invariant report to the run summary
+        # always(): the per-invariant counts and any violation lists must be
+        # readable from the run page whether the suite passed or failed.
+        if: always()
+        run: |
+          {
+            echo "### Graph invariants"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/graph-invariants.txt" 2>/dev/null || echo "(no invariant output; the step did not run)"
+            echo '```'
+            echo ""
+            cat _system/graph/INVARIANTS.md 2>/dev/null || echo "(INVARIANTS.md was not written)"
           } >> "$GITHUB_STEP_SUMMARY"
 
   dashboard-integrity:

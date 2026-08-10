@@ -19,21 +19,24 @@ Run these checks first; each is cheap and each failure mode below has actually
 happened. A green CI dashboard does NOT mean the factory is running — the
 observed failure modes are silent no-ops, not red runs.
 
-1. **Nightly lanes fresh?** Last `chore(ls-algo)` and `chore(valuation)` commit
-   ages. > 48h stale = investigate (token expiry, upstream gate, validator).
-2. **Backfill lane moving?** `_system/data/contract_backfill_queue.json` —
-   wave changed since last run? Same wave + failed agent jobs = stall
-   (see corrections.md; the refill's "unchanged; no push" short-circuit).
-3. **Deploy honest?** Upstream `Data Pipeline` conclusion vs dashboard deploy:
+1. **`python _system/scripts/graph_invariants.py`** — rebuilds the workspace
+   graph and runs the invariant suite (P1–P5, E1–E6; spec in
+   `_system/graph/README.md`). Non-zero exit = a hard invariant fired; read
+   `_system/graph/INVARIANTS.md` for the violation list, and compare its
+   counts against the committed copy — report-severity counts are the ratchet
+   and must not grow. This one command replaces the old manual checks for lane
+   freshness (P3 covers the nightly `ls-algo`/`valuation` lanes *and* the
+   backfill lane — last landed commit, not run conclusions, is the health
+   signal), run receipts outside `_system/data/runs/` (P4; they never belong
+   in `_system/reviews/pending/`), guard→CI wiring (P2/P5), and the
+   memory-compounding backlog (E6 counts daily-log proposals no ledger
+   decision ever touched).
+2. **Deploy honest?** Upstream `Data Pipeline` conclusion vs dashboard deploy:
    a skipped build inside a green deploy run means the site is stale.
    `dashboard-pages.yml` job `upstream-failed` turns this red — check it exists.
-4. **Committee state.** Zero-vote `committee_work` dirs, supersede loops
+3. **Committee state.** Zero-vote `committee_work` dirs, supersede loops
    (packet refreshed > 3x without votes), `committee_complete_decision_pending`
    records awaiting a human.
-5. **Queues drainable?** `_system/reviews/pending/` file count and type mix —
-   run receipts belong in `_system/data/runs/`, never in pending.
-6. **Memory compounding?** Days since last promotion into
-   `_system/memory/MEMORY.md` vs daily-log volume; size of the triage queue.
 
 ## Operating principles
 
