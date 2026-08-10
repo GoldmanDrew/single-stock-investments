@@ -38,13 +38,13 @@ No approved third-party sources are indexed for CSX as of this scan. Marvin stan
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | **~$7.12/sh** base proof | **-24.3%** per year at **$50.11** | watch |
+| Marvin floor | **~$7.12/sh** base proof | **-24.4%** per year at **$50.27** | watch |
 | External (combined) | — | — | — |
-| **Blended best estimate** | **~$7.12/sh** | **-24.3%** per year | **watch** |
+| **Blended best estimate** | **~$7.12/sh** | **-24.4%** per year | **watch** |
 
 **Weights:** 100% Marvin primary proof; no approved external inputs.
 
-**Returns statement (blended):** At **$50.11**, blended base annual return is **-24.3%** per year over seven years; pending activist sources excluded from base IRR.
+**Returns statement (blended):** At **$50.27**, blended base annual return is **-24.4%** per year over seven years; pending activist sources excluded from base IRR.
 
 ## [HUMAN REVIEW]
 

@@ -1006,6 +1006,10 @@ def compute_valuation(data: dict) -> dict:
     elif method == "pending":
         results = {}
         return_label = "pending"
+    elif method == "proof_first_automated":
+        # Legacy compatibility pass: contract-owned models skip Lawrence recompute.
+        results = {}
+        return_label = "pending"
     else:
         raise ValueError(f"Unknown method: {method}")
 
