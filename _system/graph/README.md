@@ -131,6 +131,20 @@ surface: their counts must be monotonically non-increasing across cycles.
   at 2026-08-02 while its workflow ran green hourly (D1-only publishes).
   Each violation names its healer; a stamp that cannot be parsed can never
   be judged fresh and is always a violation.
+- **P7** (report): every *live* feed registered in `graph_sources.json`
+  `live_feeds` — feeds published through the HMAC ingest rather than
+  committed as files — has published inside its window. Born from the
+  Databento flow monitor dying on 2026-08-03 on an uncaught `urlopen`
+  timeout in its publish path: the flow rails, sector pressure/exhaustion
+  columns and alert journal were empty for seven days and nothing said so.
+  The evidence is the publisher's own log on the publishing host, so the
+  skip rule differs from P6's and is deliberate: an evidence file that is
+  **absent** is SKIPPED with a reason in the note (a CI checkout has no
+  local monitor logs, and an invariant that reddens on every CI run is one
+  everybody learns to ignore), while an evidence file that **exists** and is
+  stale — or whose stamp cannot be parsed — is a violation. Report severity:
+  a local feed being down must be loud without blocking a merge by someone
+  who cannot see that host.
 
 **Epistemic (self-compounding):**
 - **E1** (report): decision-grade components carrying a *typed* falsifier

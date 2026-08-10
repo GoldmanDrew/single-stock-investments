@@ -120,7 +120,8 @@ class CleanFixtureTests(unittest.TestCase):
                               "invariants.json").read_text(encoding="utf-8"))
         for inv_id in graph_invariants.BASE_SEVERITY:
             self.assertIn(f"| {inv_id} |", md)
-        self.assertEqual(len(payload["invariants"]), 12)
+        self.assertEqual(len(payload["invariants"]),
+                         len(graph_invariants.BASE_SEVERITY))
         self.assertEqual(payload["exit_code"], 0)
 
 

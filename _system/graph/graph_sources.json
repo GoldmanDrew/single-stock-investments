@@ -236,5 +236,16 @@
       "max_age_hours": 100,
       "healer": "python _system/scripts/build_spx_surface.py (data-pipeline technicals lane, cron 15 2 * * 1-5)"
     }
+  },
+  "live_feeds": {
+    "_doc": "P7 registry: feeds published through the HMAC ingest rather than committed as files, so the only local evidence they ran is the publisher's own log. evidence_path may be absolute or ~-rooted (machine-local, by design) or repo-relative. P7 is REPORT severity and its skip rule differs from P6's: an evidence file that is ABSENT is SKIPPED with a reason (a CI checkout has no local monitor logs, and an invariant that reddens on every CI run is one everybody learns to ignore), while an evidence file that EXISTS and is stale, or whose stamp cannot be parsed, is a violation. Windows span weekends, as in data_feeds: the flow monitor only publishes when minute bars arrive.",
+    "databento_flow_monitor": {
+      "name": "databento_flow_monitor",
+      "description": "Databento minute-bar forced-flow snapshots signed and POSTed to the market-risk ingest every ~60s; feeds the dashboard flow rails, the sector pressure/exhaustion columns and the alert journal. Died 2026-08-03 12:15 on an uncaught urlopen timeout in its publish path and was not noticed for seven days.",
+      "evidence_path": "~/.magis-market-risk/logs/databento-flow-monitor.out.log",
+      "stamp_field": "published_at",
+      "max_age_hours": 100,
+      "healer": "start the Windows scheduled task that runs _system/scripts/run_databento_flow_monitor.ps1 (it now supervises the python monitor and restarts it, bounded to 6 restarts/hour)"
+    }
   }
 }

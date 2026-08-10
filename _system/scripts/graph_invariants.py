@@ -57,7 +57,7 @@ TABLE_STATUS = re.compile(r"^`?(active|superseded|disproven)\s+\d{4}-\d{2}-\d{2}
 
 BASE_SEVERITY = {
     "P1": "report", "P2": "hard", "P3": "hard", "P4": "hard", "P5": "report",
-    "P6": "hard",
+    "P6": "hard", "P7": "report",
     "E1": "report", "E2": "hard", "E3": "hard", "E4": "hard", "E5": "hard",
     "E6": "report",
 }
@@ -76,6 +76,7 @@ TITLES = {
     "E5": "every Belief's SUPPORTED_BY source exists on disk",
     "E6": "Proposals with no DECIDED_AS decision (silent-drop detector)",
     "P6": "every registered data feed is fresher than its window",
+    "P7": "every registered live feed has published inside its window",
 }
 
 
@@ -458,7 +459,122 @@ def inv_p6(conn, root, today) -> Result:
                        f" ({', '.join(ages)})")
 
 
-INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6,
+def _live_evidence_path(root: Path, raw) -> Path | None:
+    """Resolve a live feed's evidence path. Absolute and ``~``-rooted paths
+    are machine-local by design (monitor logs); a relative path resolves
+    against the repo root like P6's ``path``."""
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        path = root / text
+    return path
+
+
+def _live_stamp(path: Path, field: str):
+    """The most recent value of ``field`` in the evidence file.
+
+    Accepts both a single JSON document and a JSONL/append-only log whose
+    LAST line carries the stamp (the flow monitor's out log). Returns None
+    when nothing in the file carries the field -- which the caller treats as
+    unparseable, never as fresh."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        doc = json.loads(text)
+        if isinstance(doc, dict) and doc.get(field) is not None:
+            return doc[field]
+    except (TypeError, ValueError):
+        pass
+    for line in reversed(text.splitlines()):
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            doc = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(doc, dict) and doc.get(field) is not None:
+            return doc[field]
+    return None
+
+
+def inv_p7(conn, root, today) -> Result:
+    """Live-feed staleness: feeds published through the HMAC ingest rather
+    than committed as files (P6 covers the committed ones).
+
+    Born from the Databento flow monitor dying on 2026-08-03 at 12:15 on an
+    UNCAUGHT urlopen timeout in its publish path: the dashboard's flow rails,
+    sector pressure/exhaustion columns and alert journal were empty for seven
+    days and no surface anywhere said so. The disease was the silence, so the
+    silence itself is now a countable defect.
+
+    The evidence for a live feed is a machine-local artifact (a monitor log on
+    the publishing host), so the CI rule differs from P6's and is deliberate:
+
+      * evidence file ABSENT -> SKIPPED with a reason, named in the note,
+        NEVER a violation. CI checkouts have no local monitor logs, and an
+        invariant that reddens on every CI run is one everybody learns to
+        ignore.
+      * evidence file PRESENT but no parseable stamp -> violation. Same rule
+        as P6: a stamp that cannot be parsed can never be judged fresh.
+      * evidence file PRESENT and older than its window -> violation.
+
+    Severity is report, not hard: a local feed being down must be loud, and
+    must not block a merge by someone who cannot see that host.
+
+    Violation text is stable across days (feed + window; ages live in the
+    note) so a waiver carrying a dated note can target it exactly.
+    """
+    config = graph_build.load_json(
+        root / "_system" / "graph" / "graph_sources.json") or {}
+    feeds = config.get("live_feeds", {}) if isinstance(config, dict) else {}
+    now = datetime.now(timezone.utc)
+    violations, ages, skipped = [], [], []
+    fresh = 0
+    for name, feed in sorted(feeds.items()):
+        if name.startswith("_") or not isinstance(feed, dict):
+            continue
+        window = float(feed.get("max_age_hours", 24))
+        healer = ascii_safe(feed.get("healer", ""))[:120]
+        raw_path = feed.get("evidence_path", "")
+        path = _live_evidence_path(root, raw_path)
+        if path is None:
+            violations.append(f"{name}: no evidence_path registered -- can"
+                              f" never be judged fresh -- heal: {healer}")
+            continue
+        if not path.is_file():
+            skipped.append(f"{name} (evidence absent: {ascii_safe(raw_path)})")
+            continue
+        try:
+            stamp = _live_stamp(path, str(feed.get("stamp_field",
+                                                   "published_at")))
+            when = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+        except (OSError, TypeError, ValueError):
+            violations.append(f"{name}: unparseable stamp -- can never be"
+                              f" judged fresh -- heal: {healer}")
+            continue
+        age_h = (now - when).total_seconds() / 3600.0
+        ages.append(f"{name} {age_h:.0f}h")
+        if age_h > window:
+            violations.append(f"{name}: not published inside its window"
+                              f" (window {window:.0f}h) -- heal: {healer}")
+        else:
+            fresh += 1
+    judged = fresh + len(violations)
+    note = f"{fresh}/{judged} live feeds fresh"
+    if ages:
+        note += f" ({', '.join(ages)})"
+    if skipped:
+        note += ("; " + str(len(skipped)) + " SKIPPED -- " + "; ".join(skipped)
+                 + " -- an absent evidence file is reported, never a violation"
+                 " (this evidence is machine-local and does not exist in CI)")
+    return Result("P7", len(violations), violations, note=note)
+
+
+INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6, inv_p7,
               inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6]
 
 
