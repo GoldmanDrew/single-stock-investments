@@ -380,7 +380,12 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
             ("ifrs-full", ["CashAndCashEquivalents"]),
         ], False, 1 / 1_000_000, "USD millions"),
         "debt_m": ([
-            ("us-gaap", ["LongTermDebt", "LongTermDebtAndFinanceLeaseObligations", "LongTermDebtNoncurrent"]),
+            ("us-gaap", [
+                "LongTermDebt",
+                "LongTermDebtAndFinanceLeaseObligations",
+                "LongTermDebtAndCapitalLeaseObligations",
+                "LongTermDebtNoncurrent",
+            ]),
             ("ifrs-full", ["LongtermBorrowings"]),
         ], False, 1 / 1_000_000, "USD millions"),
     }
