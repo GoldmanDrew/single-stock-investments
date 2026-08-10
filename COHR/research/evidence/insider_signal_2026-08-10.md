@@ -20,9 +20,9 @@
 
 **Routine / planned sales (context):**
 
+- Luther Sherri R: 1000 @ $306.68 on 2026-07-22
 - ANDERSON JAMES ROBERT: 25836 @ $426.89 on 2026-06-03
 - Place Jeffrey B.: 2181 @ $394.47 on 2026-07-01
-- CORASANTI JOSEPH J: 15000 @ $196.74 on 2025-12-10
 
 Source: `_system/reference/market-data/insider/COHR_transactions.csv`.
 Lawrence base IRR unchanged (`in_base_irr: False`).
