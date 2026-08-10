@@ -257,7 +257,7 @@
   .criticality-sectors { margin-top: 8px; border: 1px solid var(--border); }
   .criticality-sectors > summary { padding: 8px 10px; color: var(--text-secondary); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; }
   .criticality-sector-grid { overflow-x: auto; }
-  .criticality-sector-row { display: grid; grid-template-columns: 155px 130px 90px 70px 75px minmax(220px, 1fr) 120px; align-items: center; min-width: 980px; border-top: 1px solid var(--border); }
+  .criticality-sector-row { display: grid; grid-template-columns: 155px 130px 90px minmax(220px, 1fr) 120px; align-items: center; min-width: 820px; border-top: 1px solid var(--border); }
   .criticality-sector-row > span { min-width: 0; padding: 7px 9px; color: var(--text-secondary); font-size: 9px; }
   .criticality-sector-row > span + span { border-left: 1px solid rgba(30,45,70,.55); }
   .criticality-sector-row strong { color: var(--text-primary); font: 700 10px 'JetBrains Mono', monospace; }
@@ -268,6 +268,124 @@
   .criticality-quality { color: var(--text-muted) !important; text-transform: uppercase; }
   .criticality-empty { padding: 16px; color: var(--text-muted); font-size: 10px; text-align: center; }
   .criticality-policy { margin-top: 8px; color: var(--text-muted); font-size: 8px; }
+  .criticality-rail-single { grid-template-columns: minmax(0, 1fr); }
+
+  /* --- Regime verdict + capitulation ladder (criticality-viz.js) ---------
+     Ladder severity ramp: rank 0 is a deliberate neutral slate (nothing is
+     happening, so it wears no stress colour); ranks 1-4 are a single-hue
+     ordinal red ramp validated with the dataviz palette validator against this
+     page's surface #0a0e17 - monotone lightness, adjacent dL >= 0.06, hue
+     spread 5 degrees, dark end 2.37:1. Ranks 1-2 sit under 3:1 by design (they
+     are the low end of the ramp) and carry the required relief channel: every
+     rung is named in text and numbered 0-4, so colour is never the only
+     encoding. */
+  .cap-panel, .regime-verdict {
+    --cap-0: #57657f; --cap-1: #8e2e2e; --cap-2: #c03a3a; --cap-3: #e66767; --cap-4: #f2a0a0;
+  }
+  .regime-verdict {
+    margin-bottom: 10px; padding: 12px 14px; border: 1px solid #31415d;
+    border-left: 3px solid var(--cap-0);
+    background: linear-gradient(115deg, rgba(6,182,212,.06), rgba(10,14,23,.75));
+  }
+  .regime-verdict.stress-mixed { border-left-color: var(--cap-1); }
+  .regime-verdict.stress-elevated { border-left-color: var(--cap-2); }
+  .regime-verdict.stress-stressed { border-left-color: var(--cap-3); }
+  .regime-verdict-line { margin-top: 5px; color: var(--text-primary); font-size: 14px; line-height: 1.55; text-wrap: balance; }
+  .regime-trust-line { margin-top: 6px; color: var(--text-secondary); font-size: 9px; line-height: 1.6; }
+  .regime-trust-line b { color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-size: 8px; }
+
+  .cap-panel { margin-top: 10px; padding: 13px; border: 1px solid #31415d; background: linear-gradient(135deg, rgba(239,68,68,.045), rgba(10,14,23,.74)); }
+  .cap-panel-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+  .cap-panel-head h2 { margin: 3px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+  .cap-panel-head p { max-width: 80ch; color: var(--text-secondary); font-size: 9px; line-height: 1.65; }
+  .cap-panel-state { min-width: 160px; padding: 8px 10px; border: 1px solid var(--border); text-align: right; }
+  .cap-panel-state strong { display: block; font: 600 12px 'JetBrains Mono', monospace; text-transform: uppercase; }
+  .cap-panel-state small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 7px; text-transform: uppercase; }
+  .cap-provenance { margin-top: 9px; padding: 7px 10px; border-left: 2px solid var(--text-muted); background: rgba(10,14,23,.6); color: var(--text-secondary); font-size: 8.5px; line-height: 1.6; }
+  .cap-provenance b { color: var(--text-primary); letter-spacing: .4px; }
+  .cap-provenance.is-live { border-left-color: var(--positive); }
+  .cap-provenance.is-daily { border-left-color: var(--warning); }
+
+  .cap-ladder { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin-top: 11px; list-style: none; }
+  .cap-rung { min-width: 0; padding: 8px 9px 9px; border: 1px solid var(--border); background: rgba(7,11,19,.72); opacity: .58; }
+  .cap-rung.is-passed { opacity: .8; }
+  .cap-rung.is-lit { opacity: 1; background: rgba(20,28,44,.95); border-color: #46587a; }
+  .cap-rung.is-pending { opacity: 1; border-style: dashed; border-color: var(--text-muted); }
+  .cap-rung-bar { display: block; height: 5px; border-radius: 2px; background: #1c2537; }
+  .cap-rung.cap-rank-0.is-lit .cap-rung-bar { background: var(--cap-0); }
+  .cap-rung.cap-rank-1.is-lit .cap-rung-bar { background: var(--cap-1); }
+  .cap-rung.cap-rank-2.is-lit .cap-rung-bar { background: var(--cap-2); }
+  .cap-rung.cap-rank-3.is-lit .cap-rung-bar { background: var(--cap-3); }
+  .cap-rung.cap-rank-4.is-lit .cap-rung-bar { background: var(--cap-4); }
+  .cap-rung-step { display: block; margin-top: 6px; color: var(--text-muted); font: 700 8px 'JetBrains Mono', monospace; }
+  .cap-rung-name { display: block; margin-top: 1px; color: var(--text-primary); font-size: 10px; font-weight: 700; line-height: 1.25; }
+  .cap-rung-rule { display: block; margin-top: 3px; color: var(--text-muted); font-size: 7.5px; line-height: 1.45; }
+  .cap-rung-flag { display: inline-block; margin-top: 5px; color: var(--text-primary); font-size: 7px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+  .cap-rung-flag.is-ghost { color: var(--text-muted); }
+  .cap-dwell { margin-top: 7px; color: var(--text-muted); font-size: 8px; line-height: 1.6; }
+  .cap-dwell b { color: var(--text-secondary); }
+
+  .cap-score-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .cap-score { min-width: 0; padding: 10px; border: 1px solid var(--border); background: rgba(7,11,19,.76); }
+  .cap-score-label { display: block; color: var(--text-muted); font-size: 8px; font-weight: 800; letter-spacing: .65px; text-transform: uppercase; }
+  .cap-score-value { display: block; margin-top: 4px; color: var(--text-primary); font: 600 21px 'JetBrains Mono', monospace; line-height: 1.15; }
+  .cap-score-track { display: block; height: 4px; margin-top: 6px; border-radius: 3px; background: #1b263a; overflow: hidden; }
+  .cap-score-track > span { display: block; height: 100%; background: var(--text-secondary); }
+  .cap-score small { display: block; margin-top: 5px; color: var(--text-muted); font-size: 7.5px; line-height: 1.5; }
+  .cap-exhaustion.is-void { border-color: #3a3f4d; background: repeating-linear-gradient(135deg, rgba(86,101,128,.09) 0 6px, transparent 6px 12px), rgba(7,11,19,.76); }
+  .cap-exhaustion.is-void .cap-score-value { color: var(--text-muted); }
+  .cap-exhaustion.is-void .cap-score-value s { text-decoration-thickness: 2px; }
+  .cap-void-flag { display: block; margin-top: 5px; color: var(--warning); font-size: 8px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+  .cap-void-reason { margin-top: 5px; color: var(--text-secondary); font-size: 8px; line-height: 1.55; }
+  .cap-live-flag { display: block; margin-top: 6px; color: var(--negative); font-size: 8px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+
+  .cap-evidence { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; margin-top: 8px; }
+  .cap-checks, .cap-drawdown, .cap-sectors { min-width: 0; padding: 10px; border: 1px solid var(--border); background: rgba(7,11,19,.7); }
+  .cap-sectors { margin-top: 8px; }
+  .cap-checks-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .cap-checks-head strong { color: var(--text-primary); font: 700 9px 'JetBrains Mono', monospace; text-transform: uppercase; }
+  .cap-check-list { margin-top: 7px; list-style: none; display: grid; gap: 3px; }
+  .cap-check { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; align-items: center; padding: 4px 6px; background: rgba(18,27,43,.5); }
+  .cap-check-mark { font: 700 10px 'JetBrains Mono', monospace; text-align: center; }
+  .cap-check.is-met .cap-check-mark { color: var(--positive); }
+  .cap-check.is-unmet .cap-check-mark { color: var(--text-muted); }
+  .cap-check-label { color: var(--text-secondary); font-size: 9px; }
+  .cap-check.is-met .cap-check-label { color: var(--text-primary); }
+  .cap-check-state { color: var(--text-muted); font: 8px 'JetBrains Mono', monospace; text-transform: uppercase; }
+  .cap-checks small { display: block; margin-top: 7px; color: var(--text-muted); font-size: 7.5px; line-height: 1.55; }
+  .cap-drawdown p { margin-top: 5px; color: var(--text-secondary); font-size: 9.5px; line-height: 1.65; }
+  .cap-drawdown b { color: var(--text-primary); }
+  .cap-drawdown.is-calm { border-left: 2px solid var(--cap-0); }
+  .cap-drawdown.is-drawdown { border-left: 2px solid var(--cap-2); }
+
+  .cap-sector-summary p { margin-top: 6px; color: var(--text-secondary); font-size: 9.5px; line-height: 1.6; }
+  .cap-sector-summary code { font: 8.5px 'JetBrains Mono', monospace; color: var(--text-primary); }
+  .cap-sector-worst { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; list-style: none; }
+  .cap-sector-worst li { min-width: 0; padding: 7px 8px; border: 1px solid var(--border); background: rgba(18,27,43,.5); }
+  .cap-sector-symbol { display: inline-block; color: var(--text-primary); font: 800 10px 'JetBrains Mono', monospace; }
+  .cap-sector-name { display: inline-block; margin-left: 5px; color: var(--text-muted); font-size: 8px; }
+  .cap-sector-metric { display: block; margin-top: 3px; color: var(--text-muted); font-size: 8px; }
+  .cap-sector-metric b { color: var(--text-primary); font: 700 9px 'JetBrains Mono', monospace; }
+  .cap-sector-grid { margin-top: 7px; overflow-x: auto; }
+  .cap-sector-row { display: grid; grid-template-columns: 170px 150px 80px 90px minmax(120px, 1fr); align-items: center; min-width: 620px; border-top: 1px solid var(--border); }
+  .cap-sector-row > span { min-width: 0; padding: 6px 9px; color: var(--text-secondary); font: 9px 'JetBrains Mono', monospace; }
+  .cap-sector-row > span + span { border-left: 1px solid rgba(30,45,70,.55); }
+  .cap-sector-row strong { color: var(--text-primary); font: 700 10px 'JetBrains Mono', monospace; }
+  .cap-sector-row small { display: block; margin-top: 2px; color: var(--text-muted); font: 8px 'DM Sans', sans-serif; }
+  .cap-sector-header > span { color: var(--text-muted); font: 800 8px 'DM Sans', sans-serif; letter-spacing: .45px; text-transform: uppercase; }
+  .cap-sector-row.is-elevated { background: rgba(192,58,58,.09); }
+  .cap-chip { display: inline-block; padding: 2px 6px; border: 1px solid currentColor; border-radius: 2px; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+  .cap-chip.cap-rank-0 { color: var(--cap-0); } .cap-chip.cap-rank-1 { color: var(--cap-1); }
+  .cap-chip.cap-rank-2 { color: var(--cap-2); } .cap-chip.cap-rank-3 { color: var(--cap-3); }
+  .cap-chip.cap-rank-4 { color: var(--cap-4); }
+  .cap-na { color: var(--text-muted); font: 8px 'DM Sans', sans-serif; }
+  .cap-sector-note { margin-top: 7px; color: var(--text-muted); font-size: 8px; }
+  .cap-empty { padding: 14px; color: var(--text-muted); font-size: 9px; text-align: center; }
+  .risk-dead-note { margin-top: 8px; color: var(--text-muted); font-size: 8px; line-height: 1.6; }
+  @media (max-width: 1100px) {
+    .cap-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cap-score-row, .cap-evidence, .cap-sector-worst { grid-template-columns: minmax(0, 1fr); }
+  }
   .technical-scoreboard { display: grid; grid-template-columns: 120px 120px minmax(240px, 1fr); gap: 8px; }
   .technical-primary-score, .technical-combined-read {
     border: 1px solid var(--border); border-radius: 8px; padding: 10px 11px; background: rgba(10,14,23,.7);
@@ -1130,6 +1248,7 @@
   .vol-spark-line { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   .vol-spark-dot { fill: var(--vol-n2); stroke: var(--bg-card); stroke-width: 1.5; }
   .vol-heat-card { margin-top: 10px; }
+  .vol-term-card { margin-top: 10px; }
   .vol-card-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
   .vol-card-head p { max-width: 96ch; }
   .vol-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 11px; margin: 9px 0 6px; color: var(--text-muted); font-size: 8px; }
@@ -2694,6 +2813,12 @@ async function load() {
   catch (_) { data.spx_surface = null; }
   try { data.spx_surface_history = await fetchJsonlTail('data/spx_surface_history.jsonl', 60); }
   catch (_) { data.spx_surface_history = []; }
+  // Always-on daily capitulation model. The live intraday forced-flow feed is
+  // preferred when the criticality payload carries one; this daily run means
+  // the ladder is never empty when it does not. A missing file leaves the slot
+  // null and the panel renders its own empty state.
+  try { data.capitulation = await fetchShardJson('data/capitulation_daily.json'); }
+  catch (_) { data.capitulation = null; }
   try {
     const [historyResponse, alertsResponse, healthResponse] = await Promise.all([
       fetch('/api/v1/market-risk/history?symbol=SPY&limit=250', { headers: { accept: 'application/json' } }),
@@ -2753,10 +2878,21 @@ function renderMarketRiskView() {
       { escapeHtml, surfaceHistory: data.spx_surface_history || [] },
     )
     : '';
-  content.innerHTML = `${renderMarketFearTape()}${CriticalityViz.renderRiskView(
+  const riskOptions = {
+    escapeHtml,
+    marketContext: data.technical_signals_ref?.market_context || {},
+    capitulation: data.capitulation || null,
+    volLatest: data.vol_metrics || null,
+    payload: data.market_risk,
+    details: data.market_risk_details || {},
+  };
+  // The verdict line is the first thing on the page: one plain-English sentence
+  // composed from the survivors, plus the trust line that says whether to
+  // believe it.
+  content.innerHTML = `${CriticalityViz.renderRegimeVerdict(riskOptions)}${renderMarketFearTape()}${CriticalityViz.renderRiskView(
     data.market_risk,
     data.market_risk_details || {},
-    { escapeHtml, marketContext: data.technical_signals_ref?.market_context || {} },
+    riskOptions,
   )}${volPanel}`;
 }
 

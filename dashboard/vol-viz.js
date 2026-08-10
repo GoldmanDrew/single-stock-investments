@@ -10,11 +10,17 @@
   // day") and are never imputed to zero — every surface here renders a null
   // as a distinct absence, not as a neutral/average value.
 
-  const METRIC_ORDER = [
-    'vix', 'vix9d', 'vix3m', 'vix6m', 'vix1d', 'vvix', 'skew', 'move',
-    'spx_rv20', 'slope_9d_vix', 'slope_vix_3m', 'slope_3m_6m',
-    'vvix_vix_ratio', 'iv_rv_spread',
-  ];
+  // Five orthogonal rows, not fourteen. Correlation of each metric's 1y z-score
+  // against VIX's over the 120 displayed sessions: vix3m 0.97, vix9d 0.95,
+  // vix6m 0.95, slope_vix_3m 0.94, vvix 0.92, vix1d 0.75 - those are the same
+  // signal repainted, and slope_9d_vix / slope_3m_6m / vvix_vix_ratio are
+  // arithmetic derivatives of rows already present, so they cannot add
+  // information by construction. The rows kept here are -0.15 (spx_rv20),
+  // 0.28 (skew), 0.62 (move) and 0.71 (iv_rv_spread) against VIX. The full
+  // 14-metric series is untouched in data/vol_metrics_history.jsonl; this is a
+  // rendering choice, not a data deletion. The term slope survives as the term
+  // STATE tile, which is the part that carries information.
+  const METRIC_ORDER = ['vix', 'spx_rv20', 'skew', 'move', 'iv_rv_spread'];
 
   const METRIC_LABELS = {
     vix: 'VIX', vix9d: 'VIX9D', vix3m: 'VIX3M', vix6m: 'VIX6M', vix1d: 'VIX1D',
@@ -396,29 +402,10 @@
     </div>`;
   }
 
-  function metricsTable(volLatest, escapeHtml) {
-    const metrics = volLatest?.metrics || {};
-    const lagging = volLatest?.coverage?.metrics_lagging || {};
-    const rows = METRIC_ORDER.map((metric) => {
-      const entry = metrics[metric] || {};
-      const live = finite(entry.value);
-      const lag = lagging[metric] || {};
-      const valueCell = live != null
-        ? `<span class="vol-fresh">${escapeHtml(level(live))}</span>`
-        : `<span class="vol-na">no print today</span><small class="vol-lag">last ${escapeHtml(level(entry.last_value))} on ${escapeHtml(shortDate(lag.last_value_date || entry.last_value_date))} · ${escapeHtml(behindText(lag.sessions_behind))}</small>`;
-      return `<tr${live == null ? ' class="is-lagging"' : ''}>
-        <th scope="row">${escapeHtml(METRIC_LABELS[metric] || metric)}${live == null ? '<small class="vol-lag">z-scores below are from the last print</small>' : ''}</th>
-        <td>${valueCell}</td>
-        <td>${escapeHtml(zText(entry.z1y ?? entry.last_z1y))}</td>
-        <td>${escapeHtml(zText(entry.z5y ?? entry.last_z5y))}</td>
-        <td>${escapeHtml(pctText(entry.pct1y ?? entry.last_pct1y))}</td>
-      </tr>`;
-    }).join('');
-    return `<div class="vol-table-scroll"><table class="vol-metrics-table">
-      <caption>Every metric as of ${escapeHtml(shortDate(volLatest?.as_of))}. Where a vendor has not printed today the cell says so and shows the last real print with its date and session lag — a lagging feed is never dressed up as a fresh zero.</caption>
-      <thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">z 1y</th><th scope="col">z 5y</th><th scope="col">1y percentile</th></tr></thead>
-      <tbody>${rows}</tbody></table></div>`;
-  }
+  // The 14-row metric detail table was deleted: it restated, as numbers, the
+  // strip that sat beside it. The heatmap's table view carries the same
+  // z-scores in an accessible form, and a lagging feed still declares itself in
+  // the banner, the tiles and the hatched cells.
 
   // ---------------------------------------------------------------------
   // (d) SPX surface card
@@ -553,21 +540,16 @@
       ${volLatest ? regimeTiles(volLatest, history, escapeHtml) : ''}
 
       <section class="risk-card vol-heat-card">
-        <header class="vol-card-head"><div><h3>Z-score history · ${escapeHtml(String(heatWindow.length))} sessions</h3>
-          <p>Each cell is one metric on one session, coloured by its trailing one-year z-score. Blue is below the one-year mean, red is above, grey is within half a sigma of it. A hatched cell means the vendor did not print that day — it is deliberately not the same as zero. Hover any cell for the exact 1y and 5y z.</p></div></header>
+        <header class="vol-card-head"><div><h3>Z-score history · ${escapeHtml(String(METRIC_ORDER.length))} metrics × ${escapeHtml(String(heatWindow.length))} sessions</h3>
+          <p>Each cell is one metric on one session, coloured by its trailing one-year z-score. Blue is below the one-year mean, red is above, grey is within half a sigma of it. A hatched cell means the vendor did not print that day — it is deliberately not the same as zero. Hover any cell for the exact 1y and 5y z. Only metrics that are not near-copies of VIX are drawn: the nine dropped rows ran 0.92–0.97 correlated with a row that stays, or were arithmetic derivatives of one.</p></div></header>
         ${heatLegend(escapeHtml)}
         ${heatmap(history, lagging, escapeHtml)}
         ${heatTable(history, escapeHtml)}
       </section>
 
-      <div class="risk-grid vol-grid">
-        <section class="risk-card"><header class="vol-card-head"><div><h3>SPX term structure</h3>
-          <p>At-the-money implied vol by actual days to expiry from the latest chain snapshot.</p></div></header>
-          ${termStructure(surfaceLatest, priorSurface, volLatest, escapeHtml)}</section>
-        <section class="risk-card"><header class="vol-card-head"><div><h3>Metric detail</h3>
-          <p>All ${escapeHtml(String(METRIC_ORDER.length))} tracked metrics with their current standing.</p></div></header>
-          ${volLatest ? metricsTable(volLatest, escapeHtml) : '<div class="risk-empty">vol_metrics_latest.json is not loaded.</div>'}</section>
-      </div>
+      <section class="risk-card vol-term-card"><header class="vol-card-head"><div><h3>SPX term structure</h3>
+        <p>At-the-money implied vol by actual days to expiry from the latest chain snapshot. The curve's state — contango or backwardation — is the tile above; this is the shape behind it.</p></div></header>
+        ${termStructure(surfaceLatest, priorSurface, volLatest, escapeHtml)}</section>
 
       ${surfaceCard(surfaceLatest, escapeHtml)}
 

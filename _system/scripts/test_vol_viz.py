@@ -7,10 +7,14 @@ in the committed artifacts), and asserts the invariants that would otherwise
 fail silently in the browser:
 
   * the panel returns non-empty HTML
-  * the heatmap draws exactly one cell per (metric, session) in its window
+  * the heatmap draws exactly one cell per (metric, session) in its window, and
+    that window is the 5 orthogonal metrics x 120 sessions = 600 cells (it was
+    14 x 120 = 1680; nine rows ran 0.92-0.97 correlated with VIX or were
+    arithmetic derivatives of a row already present)
   * a metric with a null as-of value renders its lag label and its last real
     print, and its cells use the null-hatch channel - never the neutral
     (z ~ 0) colour
+  * the deleted 14-row metric detail table does not come back
   * the dealer-gamma sign-convention / OI / gamma-flip caveats appear verbatim
   * the 3m tenor is labelled with its ACTUAL dte (81), not the target (91)
   * every feed being unreachable yields the panel's own empty state
@@ -100,20 +104,27 @@ check('heatmap cell count == metrics x sessions',
   cells === metrics.length * window_.length,
   cells + ' cells (expected ' + metrics.length + ' x ' + window_.length + ' = ' + (metrics.length * window_.length) + ')');
 
+check('heatmap is the 5 orthogonal rows x 120 sessions = 600 cells',
+  cells === 600 && metrics.length === 5 && window_.length === 120
+    && metrics.join(',') === 'vix,spx_rv20,skew,move,iv_rv_spread',
+  cells + ' cells over [' + metrics.join(', ') + ']');
+check('the nine redundant rows are gone from every heatmap surface',
+  ['vix3m', 'vix9d', 'vix6m', 'vix1d', 'vvix', 'slope_9d_vix', 'slope_3m_6m']
+    .every((m) => !metrics.includes(m))
+    && !html.includes('>VIX3M<') && !html.includes('>VIX9D<') && !html.includes('>VVIX<'),
+  'no near-copy of VIX draws a row');
+
 const hatched = count(html, 'fill="url(#vol-null-hatch)"');
 check('null cells use the hatch channel, not a colour',
   hatched === expectedNulls && hatched > 0,
   hatched + ' hatched cells (expected ' + expectedNulls + '); per-metric nulls: '
     + Object.entries(nullsByMetric).filter(([, n]) => n > 0).map(([m, n]) => m + '=' + n).join(', '));
 
-// coverage.metrics_lagging only reports metrics whose LAST print is old, so an
-// interior hole in a feed that printed again today is invisible in the latest
-// snapshot. The heatmap is the only surface that shows it - guard that.
-check('interior feed gaps show as hatch even when metrics_lagging is silent',
-  nullsByMetric.vix9d > 10 && latest.coverage.metrics_lagging.vix9d === undefined
-    && html.includes('VIX9D &middot; 2026-08-07 &middot; no print') === false
-    && html.includes('VIX9D · 2026-08-07 · no print'),
-  'vix9d has ' + nullsByMetric.vix9d + ' nulls in the window and is NOT in metrics_lagging');
+// A multi-session hole must be visible as hatch in the strip, per session -
+// the banner only says "16 sessions behind", it cannot show WHERE the hole is.
+check('a multi-session feed hole draws one hatched cell per missing session',
+  nullsByMetric.move >= 16 && html.includes('MOVE · 2026-08-10 · no print'),
+  'move has ' + nullsByMetric.move + ' hatched cells in the 120-session window');
 
 // A null z must never be binned. zBin(null) is the contract that guarantees it.
 check('zBin(null) is not the neutral bin', VolViz.zBin(null) === null && VolViz.zBin(0) === 'z0',
@@ -125,25 +136,30 @@ const skewLag = latest.coverage.metrics_lagging.skew;
 check('source shape: skew value is null with a last_value fallback',
   skew.value === null && skew.last_value === 132.57 && skewLag.sessions_behind === 1,
   'value=' + skew.value + ' last_value=' + skew.last_value + ' behind=' + skewLag.sessions_behind);
-check('skew renders its lag label',
-  html.includes('132.57') && html.includes('2026-08-07') && html.includes('1 session behind')
+check('skew lag is disclosed with its date and correctly singular session count',
+  html.includes('2026-08-07') && html.includes('1 session behind')
     && !html.includes('1 sessions behind'),
-  'last print, date and correctly singular session lag all present');
+  'date and singular session lag present in the lagging banner');
 
 // move: 16 sessions behind.
-check('move renders its lag label',
-  html.includes('70.88') && html.includes('2026-07-17') && html.includes('16 sessions behind'),
-  'last print, date and session lag all present');
+check('move lag is disclosed with its date and session count',
+  html.includes('2026-07-17') && html.includes('16 sessions behind'),
+  'date and session lag present in the lagging banner');
 
 check('lagging banner names both stale feeds',
   html.includes('Lagging feeds (2)') && html.includes('SKEW &mdash; last print') === false
     && html.includes('MOVE') && html.includes('SKEW'),
   'banner present naming SKEW and MOVE');
 
-// No fake zero: the metrics table must say so rather than print a value.
-check('lagging metrics say "no print today" instead of a value',
-  count(html, 'no print today') === 2,
-  count(html, 'no print today') + ' cells marked "no print today" (skew, move)');
+// The 14-row metric detail table was deleted as a duplicate of the strip
+// beside it. Guard that it does not creep back.
+check('the metric detail table is gone',
+  !html.includes('vol-metrics-table') && !html.includes('no print today')
+    && !html.includes('Metric detail'),
+  'no metrics table markup, caption or heading');
+check('a lagging metric still refuses to render a fake value',
+  html.includes('Lagging feeds') && html.includes('rather than carrying the previous value forward'),
+  'absence is still declared, in the banner and the hatched cells');
 
 // Dealer gamma caveats, verbatim (after the same escaping the panel applies).
 const gamma = surface.dealer_gamma_proxy;
