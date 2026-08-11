@@ -30,26 +30,38 @@ DATA table supplies the missing leg, so both are now built -- over a partition
 that keeps them non-overlapping:
 
   * `pdp_royalty_cash_stream` -- the producing wells, whose cash flow *is* the
-    disclosed CAFD, valued on owner cash.
-  * `non_producing_reserve_inventory` -- proved developed non-producing plus
-    proved undeveloped reserves, which contribute no CAFD today, valued at
-    unit NAV.
+    disclosed CAFD, valued on owner cash at the producing decline rate.
+  * `undeveloped_location_inventory` -- the 8,783 gross undeveloped locations,
+    which contribute no CAFD today, valued at unit NAV.
 
-The partition matters because it disciplines the decline rate. A perpetuity
-declining at rate d consumes total volume P/d. Proved developed producing
-reserves are 178,544 MMcfe against pro forma annual production of 24,548
-MMcfe, so the producing book supports d = 13.75% and no shallower without
-reaching into volumes that the second component already counts. The previous
-revision's +2% growth high case implied roughly 22.7 years of production
-against an 8.4-year total proved reserve life; that is the profile's third
-failure mode, "remote options treated as contracted cash".
+The partition disciplines the decline rate. A perpetuity declining at rate d
+consumes total volume P/d. Proved developed producing reserves are 178,544
+MMcfe against pro forma annual production of 24,548 MMcfe, so the producing
+component is held to d = 13.75% and cannot reach into volumes the second
+component already counts.
 
-What this script still does NOT do is credit unbooked acreage. WhiteHawk owns
-minerals in fee, so locations beyond the booked PUDs have real value, and that
--- together with a gas price deck above the SEC trailing average -- is the
-honest explanation for the gap between these numbers and the market price. It
-is left uncredited here and recorded as a falsifier, because crediting it
-without a type-curve model is exactly the error the routed profile warns about.
+An earlier revision valued the second component on booked reserves alone --
+the 27,930 MMcfe of PDNP plus PUD -- and so credited the inventory at roughly
+zero. That was wrong, and wrong for a structural reason worth recording: a
+non-operated mineral owner cannot commit to a development plan, so SEC rules
+bar it from booking PUDs. WhiteHawk's proved reserves are 98% PD / 2% PUD *by
+construction*, and using them as the economic endowment values the company as
+if operators stop drilling forever. The filing discloses 8,783 gross
+undeveloped locations, 8,353 of which sit outside the reserve report but were
+audited and approved by CG&A, the same engineer. Those locations are now the
+second component.
+
+Two disciplines keep that from becoming the profile's third failure mode,
+"remote options treated as contracted cash". Volumes are basin-weighted --
+Mid-Continent is 50% of the net location count on much shorter laterals and
+lower EUR per foot, so a uniform rate overstates the book by ~40%. And the
+realisation haircut is deep (0.10-0.25 of the blended PV-10 unit value),
+because 8,783 locations at the disclosed 126-198 wells/yr pace is a 35-58 year
+programme whose average location is discounted over decades.
+
+Still not credited anywhere: a gas price deck above the SEC trailing
+$3.387/MMBtu. That is the largest remaining lever and it needs a live strip,
+which the filing does not contain.
 
 Usage:
   python _system/scripts/build_whk_contract_proofs.py [--date YYYY-MM-DD]
@@ -109,6 +121,43 @@ TOTAL_PROVED_MMCFE = 206_473.0
 PV10_M = 293.690
 STANDARDIZED_MEASURE_M = 266.326
 
+# Undeveloped inventory at 2025-12-31. 430 of the 8,783 gross locations are in
+# the reserve report; the other 8,353 are not, but were audited and approved by
+# CG&A. Net locations are basin-weighted because Mid-Continent is 50% of the
+# net count on 9,314 ft laterals against Appalachia's 13,246 ft and far lower
+# EUR per foot -- treating them uniformly overstates the book by ~40%.
+# (net locations, avg lateral ft, low/high basin-typical Bcfe per 1,000 ft)
+INVENTORY_BY_BASIN = {
+    "appalachian":    (8.7, 13_246, 2.0, 2.7),
+    "haynesville":    (3.1,  9_267, 2.2, 2.8),
+    "mid_continent":  (14.1, 9_314, 0.6, 1.2),
+    "other":          (2.1,  9_864, 0.6, 1.2),
+}
+GROSS_UNDEVELOPED_LOCATIONS = 8_783
+GROSS_UNDEVELOPED_UNBOOKED = 8_353
+
+
+def _inventory_mmcfe(which: str) -> float:
+    """Net undeveloped reserves in MMcfe, basin-weighted.
+
+    net locations x (lateral ft / 1000 x Bcfe per 1,000 ft) x 1000 -> MMcfe.
+    A "net location" is already gross locations scaled by net revenue
+    interest, so multiplying by a gross per-well EUR gives net volume.
+    """
+    total = 0.0
+    for net, lateral_ft, bcfe_low, bcfe_high in INVENTORY_BY_BASIN.values():
+        per_kft = bcfe_low if which == "low" else bcfe_high
+        eur_bcfe = (lateral_ft / 1000.0) * per_kft
+        total += net * eur_bcfe * 1000.0
+    return total
+
+
+INVENTORY_MMCFE = {
+    "low": round(_inventory_mmcfe("low"), 0),
+    "base": round((_inventory_mmcfe("low") + _inventory_mmcfe("high")) / 2, 0),
+    "high": round(_inventory_mmcfe("high"), 0),
+}
+
 # Net production (Mcfe/d)
 PF_FY2025_PRODUCTION_MCFE_D = 67_255.0
 Q1_2026_PRODUCTION_MCFE_D = 64_270.0
@@ -137,10 +186,12 @@ REQUIRED_RETURN = {"low": 0.12, "base": 0.10, "high": 0.09}
 # 7.27 years (d = 13.75%); against Q1 2026 annualised it is 7.61 years
 # (d = 13.14%). The band sits between those two computed values.
 PDP_DECLINE = {"low": -0.1375, "base": -0.135, "high": -0.130}
-# Share of the blended PV-10 unit value realised on volumes that are not yet
-# producing. They sit later in the schedule than the PDP volumes that dominate
-# PV-10, so they are worth less per Mcfe than the blended rate.
-REALIZATION_HAIRCUT = {"low": 0.40, "base": 0.55, "high": 0.70}
+# Share of the blended PV-10 unit value realised on the undeveloped inventory.
+# Far deeper than the old 0.40-0.70 band, which applied only to the 430 booked
+# locations: the full 8,783-location inventory is a 35-58 year drilling
+# programme at the disclosed 126-198 wells/yr pace, so the average location is
+# discounted over decades. 0.10-0.25 brackets that.
+REALIZATION_HAIRCUT = {"low": 0.10, "base": 0.17, "high": 0.25}
 SENIOR_CLAIMS_IN_NAV_M = {"low": 0.0, "base": 0.0, "high": 0.0}
 
 
@@ -309,7 +360,7 @@ def pdp_component() -> dict:
                 "reserve life so the component cannot capitalise volume it does not own."
             ),
             "cross_check": (
-                "The unit-NAV leg is component `non_producing_reserve_inventory`. Together "
+                "The unit-NAV leg is component `undeveloped_location_inventory`. Together "
                 "the two components span the 206,473 MMcfe proved book: 178,544 MMcfe "
                 "producing here, 27,930 MMcfe non-producing there. As an aggregate check, "
                 "PV-10 of $293.690m less net debt of $64.463m and the $30.643m Series B "
@@ -334,7 +385,7 @@ def pdp_component() -> dict:
 
 def nav_value_per_share(case: str) -> float:
     """Mirror of the component 2 proof graph, used to set the emitted range."""
-    non_producing_mmcfe = PROVED_PDNP_MMCFE + PROVED_PUD_MMCFE
+    non_producing_mmcfe = INVENTORY_MMCFE[case]
     blended_unit_value = PV10_M / TOTAL_PROVED_MMCFE
     gross_assets_m = non_producing_mmcfe * (blended_unit_value * REALIZATION_HAIRCUT[case])
     tax_drag_ratio = (PV10_M - STANDARDIZED_MEASURE_M) / PV10_M
@@ -350,14 +401,19 @@ def nav_component() -> dict:
         "method_version": "1.0",
         "output_unit": "USD_per_share",
         "inputs": [
-            _fact("proved_pdnp_mmcfe", "Proved developed non-producing reserves at 2025-12-31",
-                  PROVED_PDNP_MMCFE, "MMcfe",
-                  "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved "
-                  "developed non-producing reserves Total (MMcfe): 23,066", "2025-12-31"),
-            _fact("proved_pud_mmcfe", "Proved undeveloped reserves at 2025-12-31",
-                  PROVED_PUD_MMCFE, "MMcfe",
-                  "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved "
-                  "undeveloped reserves Total (MMcfe): 4,864", "2025-12-31"),
+            _fact("undeveloped_locations_gross",
+                  "Total gross undeveloped locations at 2025-12-31",
+                  float(GROSS_UNDEVELOPED_LOCATIONS), "gross locations",
+                  "Gross and net locations by region or basin: Appalachian 2,792, "
+                  "Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are "
+                  "included in proved reserves; the other 8,353 were audited and "
+                  "approved by CG&A per footnote (3)", "2025-12-31"),
+            _fact("undeveloped_locations_net",
+                  "Net undeveloped locations at 2025-12-31",
+                  28.0, "net locations",
+                  "Gross and net locations by region or basin, Net Undeveloped Location "
+                  "Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
+                  "2025-12-31"),
             _fact("total_proved_mmcfe", "Total proved reserves at 2025-12-31",
                   TOTAL_PROVED_MMCFE, "MMcfe",
                   "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved "
@@ -378,17 +434,37 @@ def nav_component() -> dict:
         ],
         "assumptions": [
             _judgment(
+                "inventory_mmcfe",
+                "Net undeveloped reserves behind the location inventory",
+                INVENTORY_MMCFE, "MMcfe",
+                "Net locations x basin-typical EUR. A net location is already gross "
+                "locations scaled by net revenue interest, so multiplying by a gross "
+                "per-well EUR gives net volume. Basin-weighted rather than uniform "
+                "because Mid-Continent is 50% of the net count (14.1 of 28.0) on "
+                "9,314 ft laterals against Appalachia's 13,246 ft and far lower EUR "
+                "per foot: a uniform rate overstates the book by roughly 40%. Bands "
+                "use 2.0-2.7 Bcfe per 1,000 ft in Appalachia, 2.2-2.8 in Haynesville "
+                "and 0.6-1.2 in Mid-Continent and Other. This is the largest single "
+                "estimate in the contract and the one a third-party type-curve study "
+                "would replace.",
+                200_000.0, 700_000.0,
+            ),
+            _judgment(
                 "realization_haircut",
-                "Share of the blended PV-10 unit value realised on non-producing volumes",
+                "Share of the blended PV-10 unit value realised on undeveloped volumes",
                 REALIZATION_HAIRCUT, "ratio",
                 "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that "
                 "blended rate is dominated by the 178,544 MMcfe already producing, which sit "
-                "earliest in the discount schedule. The 23,066 MMcfe of proved developed "
-                "non-producing and 4,864 MMcfe of proved undeveloped volumes are realised "
-                "later and are therefore worth less per Mcfe. The band brackets that timing "
-                "discount. A royalty owner funds none of the development cost, so the "
-                "haircut is timing and operator-behaviour only, not capital.",
-                0.30, 0.80,
+                "earliest in the discount schedule. The inventory is a 35-58 year drilling "
+                "programme -- 8,783 gross locations at the 126-198 wells/yr implied by "
+                "WhiteHawk's disclosed interest in 18% of new Appalachian and Haynesville "
+                "wells -- so the average location is discounted over decades and is worth a "
+                "small fraction of the blended rate. A royalty owner funds none of the "
+                "development cost, so the haircut is timing and operator pace only, never "
+                "capital. The band is deliberately deep: crediting this inventory at "
+                "anything near the producing rate would be the routed profile's third "
+                "failure mode, remote options treated as contracted cash.",
+                0.05, 0.40,
             ),
             _judgment(
                 "company_economic_interest", "Company's common economic interest in WhiteHawk OpCo",
@@ -412,14 +488,12 @@ def nav_component() -> dict:
             ),
         ],
         "calculations": [
-            {"id": "non_producing_mmcfe", "op": "add",
-             "args": ["proved_pdnp_mmcfe", "proved_pud_mmcfe"], "unit": "MMcfe"},
             {"id": "blended_unit_value", "op": "divide",
              "args": ["pv10_m", "total_proved_mmcfe"], "unit": "USD_m_per_MMcfe"},
             {"id": "effective_unit_value", "op": "multiply",
              "args": ["blended_unit_value", "realization_haircut"], "unit": "USD_m_per_MMcfe"},
             {"id": "gross_assets_m", "op": "multiply",
-             "args": ["non_producing_mmcfe", "effective_unit_value"], "unit": "USD_m"},
+             "args": ["inventory_mmcfe", "effective_unit_value"], "unit": "USD_m"},
             {"id": "tax_drag_m", "op": "subtract",
              "args": ["pv10_m", "standardized_measure_m"], "unit": "USD_m"},
             {"id": "tax_drag_ratio", "op": "divide", "args": ["tax_drag_m", "pv10_m"], "unit": "ratio"},
@@ -445,11 +519,11 @@ def nav_component() -> dict:
         }],
     }
     return {
-        "id": "non_producing_reserve_inventory",
-        "label": "Proved developed non-producing and proved undeveloped mineral reserves, "
-                 "attributable to Class A via the Company's OpCo stake",
+        "id": "undeveloped_location_inventory",
+        "label": "Undeveloped mineral location inventory (8,783 gross locations, CG&A "
+                 "audited), attributable to Class A via the Company's OpCo stake",
         "category": "net_assets",
-        "overlap_key": "pdnp_and_pud_reserves",
+        "overlap_key": "undeveloped_location_inventory",
         "treatment": "additive",
         "valuation": {
             "method": "net_asset_value",
@@ -481,11 +555,14 @@ def nav_component() -> dict:
                 "legs share source data but not method."
             ),
             "falsifier": (
-                "The FY2026 reserve report reclassifies these volumes to producing without "
-                "a matching fall in the PDP decline rate, which would mean the partition "
-                "double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next "
-                "SEC price deck, which would reset the unit value this component is built "
-                "on."
+                "The FY2026 reserve report or an updated location census carries fewer "
+                "than 6,000 gross undeveloped locations against the 8,783 booked here, "
+                "or fewer than 20 net locations against 28.0, either of which removes "
+                "the inventory this component exists to value; or PV-10 per Mcfe moves "
+                "outside $1.00-$2.00 on the next SEC price deck, which resets the unit "
+                "value it is built on; or operators convert inventory into production "
+                "fast enough that the producing component's decline shallows, which "
+                "would mean the partition double-counts."
             ),
             "calculation_proof": proof,
         },
@@ -594,9 +671,9 @@ def economic_value_spec() -> dict:
                 ),
             },
             {
-                "id": "non_producing_inventory_group",
+                "id": "undeveloped_inventory_group",
                 "label": "Non-producing and undeveloped mineral reserves",
-                "component_ids": ["non_producing_reserve_inventory"],
+                "component_ids": ["undeveloped_location_inventory"],
                 "economic_claim": (
                     "Royalties on the 23,066 MMcfe of proved developed non-producing and "
                     "4,864 MMcfe of proved undeveloped reserves, which generate no Cash "
@@ -662,7 +739,7 @@ def change_log_entries(as_of: str) -> list[dict]:
             "before": "single component `mineral_royalty_cash_stream` on owner cash, with "
                       "the unit-NAV leg recorded as an unevidenced corroboration gap",
             "after": "two non-overlapping components: `pdp_royalty_cash_stream` "
-                     "(owner_cash_or_dividend_discount) and `non_producing_reserve_inventory` "
+                     "(owner_cash_or_dividend_discount) and `undeveloped_location_inventory` "
                      "(net_asset_value)",
             "reason": "The routed method component_owner_cash_and_unit_nav is a pairing and "
                       "requires both legs. The 424B4 SUMMARY RESERVE DATA table supplies the "

@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "ticker": "WHK",
-  "as_of": "2026-08-10",
-  "note": "Typed against the two-component contract built 2026-08-10. The prior sidecar carried a single untestable spec on the retired component `mineral_royalty_cash_stream`, whose stated blocker was that no reserve-life model existed. The 424B4 SUMMARY RESERVE DATA is now locked into the fact ledger, so every spec below resolves against a locked field_id.",
+  "as_of": "2026-08-11",
+  "note": "Re-typed against the 2026-08-11 contract, after the filing extract was restored from 300,000 to 1,283,894 characters. The second component is now the 8,783-location undeveloped inventory rather than booked PDNP+PUD, so its specs test location count rather than reserve category. Every spec resolves against a locked fact-ledger field.",
   "specs": [
     {
       "component_id": "pdp_royalty_cash_stream",
@@ -14,7 +14,7 @@
       "source_hint": "normalized_owner_cash",
       "derived_from": "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report",
       "untestable": false,
-      "rationale": "Cash Available for Distribution is the ledger-locked observable that carries production through to owner cash. The producing component caps sustainable CAFD at $42.0m (the cafd_run_rate_m judgment's allowed_range max, set by Q1 2026 annualised of $39.836m). A reported CAFD above that means volumes are holding up better than a 13.14%-13.75% producing decline allows, so the component is understated. Testable off the first 10-Q as a public company."
+      "rationale": "Cash Available for Distribution is the ledger-locked observable carrying production through to owner cash. The producing component caps sustainable CAFD at $42.0m, the cafd_run_rate_m allowed_range max set by Q1 2026 annualised of $39.836m. A reported CAFD above that means volumes are holding better than a 13.14%-13.75% producing decline allows and the component is understated. Note the Note Purchase Agreement mandates fixed-price swaps on 50-75% of PDP volumes on a rolling 36-month basis, so CAFD is materially insulated from spot gas in either direction; a breach of this threshold is therefore a volume signal rather than a price signal."
     },
     {
       "component_id": "pdp_royalty_cash_stream",
@@ -26,31 +26,55 @@
       "source_hint": "unit_value",
       "derived_from": "the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here",
       "untestable": false,
-      "rationale": "PV-10 of $500m over the 206,473 MMcfe booked at 2025-12-31 is $0.00242m per MMcfe. Crossing it means the reserve report has revalued the book far above the $3.387/MMBtu SEC deck this contract is anchored to, which resets both the producing component's discount rate comparability and the NAV component's unit value. Testable off the FY2026 10-K reserve report."
+      "rationale": "PV-10 of $500m over the 206,473 MMcfe booked at 2025-12-31 is $0.00242m per MMcfe. Crossing it means the reserve report has revalued the book well above the $3.387/MMBtu SEC deck this contract is anchored to, which resets both the producing component's discount-rate comparability and the inventory component's unit value."
     },
     {
-      "component_id": "non_producing_reserve_inventory",
+      "component_id": "undeveloped_location_inventory",
+      "metric": "gross_undeveloped_locations",
+      "comparator": "lt",
+      "threshold": 6000.0,
+      "unit": "gross locations",
+      "due": "2027-03-31",
+      "source_hint": "undeveloped_locations_gross",
+      "derived_from": "The FY2026 reserve report or an updated location census carries fewer than 6,000 gross undeveloped locations against the 8,783 booked here",
+      "untestable": false,
+      "rationale": "The inventory component values 8,783 gross locations, of which 8,353 sit outside the reserve report but were audited and approved by CG&A. A census below 6,000 removes roughly a third of the inventory and the component's basis with it. This is the single largest estimate in the contract and the most important thing to re-measure."
+    },
+    {
+      "component_id": "undeveloped_location_inventory",
+      "metric": "net_undeveloped_locations",
+      "comparator": "lt",
+      "threshold": 20.0,
+      "unit": "net locations",
+      "due": "2027-03-31",
+      "source_hint": "undeveloped_locations_net",
+      "derived_from": "or fewer than 20 net locations against 28.0, either of which removes the inventory this component exists to value",
+      "untestable": false,
+      "rationale": "Net locations carry the net revenue interest and are what the volume estimate multiplies. Below 20.0 the basin-weighted 385-574 Bcfe falls by more than a quarter regardless of type-curve assumptions."
+    },
+    {
+      "component_id": "undeveloped_location_inventory",
       "metric": "pv10_unit_value",
       "comparator": "outside_range",
       "threshold": [0.001, 0.002],
       "unit": "USD millions per MMcfe",
       "due": "2027-03-31",
       "source_hint": "unit_value",
-      "derived_from": "PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on",
+      "derived_from": "or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which resets the unit value it is built on",
       "untestable": false,
-      "rationale": "The NAV component values non-producing volumes off the blended PV-10 unit value of $1.422 per Mcfe, haircut for timing. If the next SEC price deck moves that blended rate outside $1.00-$2.00 per Mcfe the component's anchor is gone, in either direction. Testable off the FY2026 10-K reserve report."
+      "rationale": "The inventory is valued off the blended PV-10 unit value of $1.422 per Mcfe, haircut for a 35-58 year realisation schedule. If the next SEC deck moves that blended rate outside $1.00-$2.00 per Mcfe the anchor is gone in either direction."
     },
     {
-      "component_id": "non_producing_reserve_inventory",
-      "metric": "total_proved_reserves",
-      "comparator": "lt",
-      "threshold": 150000.0,
-      "unit": "MMcfe",
-      "due": "2027-03-31",
-      "source_hint": "asset_quantity",
-      "derived_from": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts",
+      "component_id": "monitoring",
+      "metric": "senior_claims",
+      "comparator": "gt",
+      "threshold": 225.0,
+      "unit": "USD millions",
+      "due": "2026-11-16",
+      "source_hint": "senior_claims",
+      "derived_from": "a declared dividend sets an annualised Class A rate above $1.30 per share, which no sustainable distribution consistent with this decline band supports",
       "untestable": false,
-      "rationale": "The partition rests on 206,473 MMcfe of proved reserves split 178,544 producing / 27,930 non-producing. A total proved book below 150,000 MMcfe means either the non-producing volumes this component values have been written down, or they were reclassified into production while the producing component still assumes a 7.27-year life -- the double-count the partition exists to prevent. Testable off the FY2026 10-K reserve report."
+      "rationale": "Senior claims of $95.106m (net debt plus the Series B preferred) sit against $64.405m of pro forma Adjusted EBITDA, roughly 1.0x. The Note Purchase Agreement caps Consolidated Total Net Leverage at 3.50x and blocks restricted payments including dividends above 2.00x pro forma. Senior claims above $225m would put leverage through the dividend gate and make the distribution this contract capitalises unpayable, which is the practical form the dividend falsifier takes."
     }
   ]
 }

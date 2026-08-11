@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "status": "decision_grade",
   "ticker": "WHK",
-  "as_of": "2026-08-10",
+  "as_of": "2026-08-11",
   "economic_ownership_map": [
     {
       "component_id": "pdp_royalty_cash_stream",
@@ -749,8 +749,8 @@
       "assumption_type": "judgment"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
-      "label": "Proved developed non-producing and proved undeveloped mineral reserves, attributable to Class A via the Company's OpCo stake",
+      "component_id": "undeveloped_location_inventory",
+      "label": "Undeveloped mineral location inventory (8,783 gross locations, CG&A audited), attributable to Class A via the Company's OpCo stake",
       "category": "net_assets",
       "treatment": "additive",
       "included_in_component_id": null,
@@ -781,14 +781,14 @@
       },
       "comparable_ids": [],
       "range_per_share": {
-        "low": 0.5147,
-        "base": 0.7077,
-        "high": 0.9429
+        "low": 1.7734,
+        "base": 3.7554,
+        "high": 6.9209
       },
       "legacy_range_per_share": {
-        "low": 0.51,
-        "base": 0.71,
-        "high": 0.94
+        "low": 1.77,
+        "base": 3.76,
+        "high": 6.92
       },
       "valuation_status": "bounded_estimate",
       "calculation_proof": {
@@ -796,40 +796,40 @@
         "method_id": "net_asset_value",
         "method_version": "1.0",
         "outputs": {
-          "low": 0.5147,
-          "base": 0.7077,
-          "high": 0.9429
+          "low": 1.7734,
+          "base": 3.7554,
+          "high": 6.9209
         },
         "output_unit": "USD_per_share",
         "traces": {
           "low": [
             {
-              "id": "proved_pdnp_mmcfe",
-              "label": "Proved developed non-producing reserves at 2025-12-31",
+              "id": "undeveloped_locations_gross",
+              "label": "Total gross undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 23066.0,
-              "unit": "MMcfe",
+              "value": 8783.0,
+              "unit": "gross locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+                "locator": "Gross and net locations by region or basin: Appalachian 2,792, Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are included in proved reserves; the other 8,353 were audited and approved by CG&A per footnote (3)",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "12d33b1121991d484d08c765184425b57512b705898e8afd23b010853eedfc07"
+                "source_id": "bfe17b767baf8dc2e337c5362fff3c048f78114e0c99ba0670f71f020c4ae32e"
               },
               "rationale": null
             },
             {
-              "id": "proved_pud_mmcfe",
-              "label": "Proved undeveloped reserves at 2025-12-31",
+              "id": "undeveloped_locations_net",
+              "label": "Net undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 4864.0,
-              "unit": "MMcfe",
+              "value": 28.0,
+              "unit": "net locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+                "locator": "Gross and net locations by region or basin, Net Undeveloped Location Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "a20b29002d0986094fa9f307787365f1f38d84c22dd52992e7eae3b60f7fcd26"
+                "source_id": "dbeec7f98732de33a3d068000476ac6440642cb67f5345d90785f987e9792fcd"
               },
               "rationale": null
             },
@@ -894,13 +894,22 @@
               "rationale": null
             },
             {
-              "id": "realization_haircut",
-              "label": "Share of the blended PV-10 unit value realised on non-producing volumes",
+              "id": "inventory_mmcfe",
+              "label": "Net undeveloped reserves behind the location inventory",
               "kind": "judgment",
-              "value": 0.4,
+              "value": 384906.0,
+              "unit": "MMcfe",
+              "source": null,
+              "rationale": "Net locations x basin-typical EUR. A net location is already gross locations scaled by net revenue interest, so multiplying by a gross per-well EUR gives net volume. Basin-weighted rather than uniform because Mid-Continent is 50% of the net count (14.1 of 28.0) on 9,314 ft laterals against Appalachia's 13,246 ft and far lower EUR per foot: a uniform rate overstates the book by roughly 40%. Bands use 2.0-2.7 Bcfe per 1,000 ft in Appalachia, 2.2-2.8 in Haynesville and 0.6-1.2 in Mid-Continent and Other. This is the largest single estimate in the contract and the one a third-party type-curve study would replace."
+            },
+            {
+              "id": "realization_haircut",
+              "label": "Share of the blended PV-10 unit value realised on undeveloped volumes",
+              "kind": "judgment",
+              "value": 0.1,
               "unit": "ratio",
               "source": null,
-              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped volumes are realised later and are therefore worth less per Mcfe. The band brackets that timing discount. A royalty owner funds none of the development cost, so the haircut is timing and operator-behaviour only, not capital."
+              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The inventory is a 35-58 year drilling programme -- 8,783 gross locations at the 126-198 wells/yr implied by WhiteHawk's disclosed interest in 18% of new Appalachian and Haynesville wells -- so the average location is discounted over decades and is worth a small fraction of the blended rate. A royalty owner funds none of the development cost, so the haircut is timing and operator pace only, never capital. The band is deliberately deep: crediting this inventory at anything near the producing rate would be the routed profile's third failure mode, remote options treated as contracted cash."
             },
             {
               "id": "company_economic_interest",
@@ -921,20 +930,6 @@
               "rationale": "Explicitly zero, not omitted. Net debt of $64.463m ($75.000m less $10.537m cash) and the $30.643m Series B preferred are serviced inside Cash Available for Distribution, which is struck after cash interest expense and cash preferred dividends and drives the producing component. Deducting the principal here as well would charge the same claims twice -- the routed profile's 'operating cash flow and NAV counted twice' failure mode."
             },
             {
-              "id": "non_producing_mmcfe",
-              "label": "non_producing_mmcfe",
-              "kind": "calculation",
-              "value": 27930.0,
-              "unit": "MMcfe",
-              "operation": "add",
-              "formula": "proved_pdnp_mmcfe + proved_pud_mmcfe",
-              "substituted_formula": "23066 + 4864",
-              "dependencies": [
-                "proved_pdnp_mmcfe",
-                "proved_pud_mmcfe"
-              ]
-            },
-            {
               "id": "blended_unit_value",
               "label": "blended_unit_value",
               "kind": "calculation",
@@ -952,11 +947,11 @@
               "id": "effective_unit_value",
               "label": "effective_unit_value",
               "kind": "calculation",
-              "value": 0.00056897,
+              "value": 0.00014224,
               "unit": "USD_m_per_MMcfe",
               "operation": "multiply",
               "formula": "blended_unit_value \u00d7 realization_haircut",
-              "substituted_formula": "0.0014224136 \u00d7 0.4",
+              "substituted_formula": "0.0014224136 \u00d7 0.1",
               "dependencies": [
                 "blended_unit_value",
                 "realization_haircut"
@@ -966,13 +961,13 @@
               "id": "gross_assets_m",
               "label": "gross_assets_m",
               "kind": "calculation",
-              "value": 15.89120456,
+              "value": 54.74955231,
               "unit": "USD_m",
               "operation": "multiply",
-              "formula": "non_producing_mmcfe \u00d7 effective_unit_value",
-              "substituted_formula": "27930 \u00d7 0.00056896543",
+              "formula": "inventory_mmcfe \u00d7 effective_unit_value",
+              "substituted_formula": "384906 \u00d7 0.00014224136",
               "dependencies": [
-                "non_producing_mmcfe",
+                "inventory_mmcfe",
                 "effective_unit_value"
               ]
             },
@@ -1008,11 +1003,11 @@
               "id": "tax_and_realization_costs_m",
               "label": "tax_and_realization_costs_m",
               "kind": "calculation",
-              "value": 1.48063237,
+              "value": 5.10118407,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "gross_assets_m \u00d7 tax_drag_ratio",
-              "substituted_formula": "15.891205 \u00d7 0.093173074",
+              "substituted_formula": "54.749552 \u00d7 0.093173074",
               "dependencies": [
                 "gross_assets_m",
                 "tax_drag_ratio"
@@ -1022,11 +1017,11 @@
               "id": "assets_after_tax_m",
               "label": "assets_after_tax_m",
               "kind": "calculation",
-              "value": 14.41057219,
+              "value": 49.64836824,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "gross_assets_m - tax_and_realization_costs_m",
-              "substituted_formula": "15.891205 - 1.4806324",
+              "substituted_formula": "54.749552 - 5.1011841",
               "dependencies": [
                 "gross_assets_m",
                 "tax_and_realization_costs_m"
@@ -1036,11 +1031,11 @@
               "id": "net_assets_m",
               "label": "net_assets_m",
               "kind": "calculation",
-              "value": 14.41057219,
+              "value": 49.64836824,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "assets_after_tax_m - senior_claims_m",
-              "substituted_formula": "14.410572 - 0",
+              "substituted_formula": "49.648368 - 0",
               "dependencies": [
                 "assets_after_tax_m",
                 "senior_claims_m"
@@ -1050,11 +1045,11 @@
               "id": "attributable_net_assets_m",
               "label": "attributable_net_assets_m",
               "kind": "calculation",
-              "value": 11.83694487,
+              "value": 40.78151721,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "net_assets_m \u00d7 company_economic_interest",
-              "substituted_formula": "14.410572 \u00d7 0.821407",
+              "substituted_formula": "49.648368 \u00d7 0.821407",
               "dependencies": [
                 "net_assets_m",
                 "company_economic_interest"
@@ -1064,11 +1059,11 @@
               "id": "attributable_net_assets",
               "label": "attributable_net_assets",
               "kind": "calculation",
-              "value": 11836944.8717232,
+              "value": 40781517.21084399,
               "unit": "USD",
               "operation": "multiply",
               "formula": "attributable_net_assets_m \u00d7 1000000",
-              "substituted_formula": "11.836945 \u00d7 1000000",
+              "substituted_formula": "40.781517 \u00d7 1000000",
               "dependencies": [
                 "attributable_net_assets_m",
                 1000000
@@ -1078,11 +1073,11 @@
               "id": "value_per_share",
               "label": "value_per_share",
               "kind": "calculation",
-              "value": 0.51472634,
+              "value": 1.77337321,
               "unit": "USD_per_share",
               "operation": "divide",
               "formula": "attributable_net_assets \u00f7 class_a_shares",
-              "substituted_formula": "11836945 \u00f7 22996579",
+              "substituted_formula": "40781517 \u00f7 22996579",
               "dependencies": [
                 "attributable_net_assets",
                 "class_a_shares"
@@ -1091,32 +1086,32 @@
           ],
           "base": [
             {
-              "id": "proved_pdnp_mmcfe",
-              "label": "Proved developed non-producing reserves at 2025-12-31",
+              "id": "undeveloped_locations_gross",
+              "label": "Total gross undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 23066.0,
-              "unit": "MMcfe",
+              "value": 8783.0,
+              "unit": "gross locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+                "locator": "Gross and net locations by region or basin: Appalachian 2,792, Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are included in proved reserves; the other 8,353 were audited and approved by CG&A per footnote (3)",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "12d33b1121991d484d08c765184425b57512b705898e8afd23b010853eedfc07"
+                "source_id": "bfe17b767baf8dc2e337c5362fff3c048f78114e0c99ba0670f71f020c4ae32e"
               },
               "rationale": null
             },
             {
-              "id": "proved_pud_mmcfe",
-              "label": "Proved undeveloped reserves at 2025-12-31",
+              "id": "undeveloped_locations_net",
+              "label": "Net undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 4864.0,
-              "unit": "MMcfe",
+              "value": 28.0,
+              "unit": "net locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+                "locator": "Gross and net locations by region or basin, Net Undeveloped Location Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "a20b29002d0986094fa9f307787365f1f38d84c22dd52992e7eae3b60f7fcd26"
+                "source_id": "dbeec7f98732de33a3d068000476ac6440642cb67f5345d90785f987e9792fcd"
               },
               "rationale": null
             },
@@ -1181,13 +1176,22 @@
               "rationale": null
             },
             {
-              "id": "realization_haircut",
-              "label": "Share of the blended PV-10 unit value realised on non-producing volumes",
+              "id": "inventory_mmcfe",
+              "label": "Net undeveloped reserves behind the location inventory",
               "kind": "judgment",
-              "value": 0.55,
+              "value": 479471.0,
+              "unit": "MMcfe",
+              "source": null,
+              "rationale": "Net locations x basin-typical EUR. A net location is already gross locations scaled by net revenue interest, so multiplying by a gross per-well EUR gives net volume. Basin-weighted rather than uniform because Mid-Continent is 50% of the net count (14.1 of 28.0) on 9,314 ft laterals against Appalachia's 13,246 ft and far lower EUR per foot: a uniform rate overstates the book by roughly 40%. Bands use 2.0-2.7 Bcfe per 1,000 ft in Appalachia, 2.2-2.8 in Haynesville and 0.6-1.2 in Mid-Continent and Other. This is the largest single estimate in the contract and the one a third-party type-curve study would replace."
+            },
+            {
+              "id": "realization_haircut",
+              "label": "Share of the blended PV-10 unit value realised on undeveloped volumes",
+              "kind": "judgment",
+              "value": 0.17,
               "unit": "ratio",
               "source": null,
-              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped volumes are realised later and are therefore worth less per Mcfe. The band brackets that timing discount. A royalty owner funds none of the development cost, so the haircut is timing and operator-behaviour only, not capital."
+              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The inventory is a 35-58 year drilling programme -- 8,783 gross locations at the 126-198 wells/yr implied by WhiteHawk's disclosed interest in 18% of new Appalachian and Haynesville wells -- so the average location is discounted over decades and is worth a small fraction of the blended rate. A royalty owner funds none of the development cost, so the haircut is timing and operator pace only, never capital. The band is deliberately deep: crediting this inventory at anything near the producing rate would be the routed profile's third failure mode, remote options treated as contracted cash."
             },
             {
               "id": "company_economic_interest",
@@ -1208,20 +1212,6 @@
               "rationale": "Explicitly zero, not omitted. Net debt of $64.463m ($75.000m less $10.537m cash) and the $30.643m Series B preferred are serviced inside Cash Available for Distribution, which is struck after cash interest expense and cash preferred dividends and drives the producing component. Deducting the principal here as well would charge the same claims twice -- the routed profile's 'operating cash flow and NAV counted twice' failure mode."
             },
             {
-              "id": "non_producing_mmcfe",
-              "label": "non_producing_mmcfe",
-              "kind": "calculation",
-              "value": 27930.0,
-              "unit": "MMcfe",
-              "operation": "add",
-              "formula": "proved_pdnp_mmcfe + proved_pud_mmcfe",
-              "substituted_formula": "23066 + 4864",
-              "dependencies": [
-                "proved_pdnp_mmcfe",
-                "proved_pud_mmcfe"
-              ]
-            },
-            {
               "id": "blended_unit_value",
               "label": "blended_unit_value",
               "kind": "calculation",
@@ -1239,11 +1229,11 @@
               "id": "effective_unit_value",
               "label": "effective_unit_value",
               "kind": "calculation",
-              "value": 0.00078233,
+              "value": 0.00024181,
               "unit": "USD_m_per_MMcfe",
               "operation": "multiply",
               "formula": "blended_unit_value \u00d7 realization_haircut",
-              "substituted_formula": "0.0014224136 \u00d7 0.55",
+              "substituted_formula": "0.0014224136 \u00d7 0.17",
               "dependencies": [
                 "blended_unit_value",
                 "realization_haircut"
@@ -1253,13 +1243,13 @@
               "id": "gross_assets_m",
               "label": "gross_assets_m",
               "kind": "calculation",
-              "value": 21.85040628,
+              "value": 115.94103083,
               "unit": "USD_m",
               "operation": "multiply",
-              "formula": "non_producing_mmcfe \u00d7 effective_unit_value",
-              "substituted_formula": "27930 \u00d7 0.00078232747",
+              "formula": "inventory_mmcfe \u00d7 effective_unit_value",
+              "substituted_formula": "479471 \u00d7 0.00024181031",
               "dependencies": [
-                "non_producing_mmcfe",
+                "inventory_mmcfe",
                 "effective_unit_value"
               ]
             },
@@ -1295,11 +1285,11 @@
               "id": "tax_and_realization_costs_m",
               "label": "tax_and_realization_costs_m",
               "kind": "calculation",
-              "value": 2.03586951,
+              "value": 10.8025822,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "gross_assets_m \u00d7 tax_drag_ratio",
-              "substituted_formula": "21.850406 \u00d7 0.093173074",
+              "substituted_formula": "115.94103 \u00d7 0.093173074",
               "dependencies": [
                 "gross_assets_m",
                 "tax_drag_ratio"
@@ -1309,11 +1299,11 @@
               "id": "assets_after_tax_m",
               "label": "assets_after_tax_m",
               "kind": "calculation",
-              "value": 19.81453676,
+              "value": 105.13844862,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "gross_assets_m - tax_and_realization_costs_m",
-              "substituted_formula": "21.850406 - 2.0358695",
+              "substituted_formula": "115.94103 - 10.802582",
               "dependencies": [
                 "gross_assets_m",
                 "tax_and_realization_costs_m"
@@ -1323,11 +1313,11 @@
               "id": "net_assets_m",
               "label": "net_assets_m",
               "kind": "calculation",
-              "value": 19.81453676,
+              "value": 105.13844862,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "assets_after_tax_m - senior_claims_m",
-              "substituted_formula": "19.814537 - 0",
+              "substituted_formula": "105.13845 - 0",
               "dependencies": [
                 "assets_after_tax_m",
                 "senior_claims_m"
@@ -1337,11 +1327,11 @@
               "id": "attributable_net_assets_m",
               "label": "attributable_net_assets_m",
               "kind": "calculation",
-              "value": 16.2757992,
+              "value": 86.36145767,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "net_assets_m \u00d7 company_economic_interest",
-              "substituted_formula": "19.814537 \u00d7 0.821407",
+              "substituted_formula": "105.13845 \u00d7 0.821407",
               "dependencies": [
                 "net_assets_m",
                 "company_economic_interest"
@@ -1351,11 +1341,11 @@
               "id": "attributable_net_assets",
               "label": "attributable_net_assets",
               "kind": "calculation",
-              "value": 16275799.1986194,
+              "value": 86361457.6691997,
               "unit": "USD",
               "operation": "multiply",
               "formula": "attributable_net_assets_m \u00d7 1000000",
-              "substituted_formula": "16.275799 \u00d7 1000000",
+              "substituted_formula": "86.361458 \u00d7 1000000",
               "dependencies": [
                 "attributable_net_assets_m",
                 1000000
@@ -1365,11 +1355,11 @@
               "id": "value_per_share",
               "label": "value_per_share",
               "kind": "calculation",
-              "value": 0.70774871,
+              "value": 3.75540456,
               "unit": "USD_per_share",
               "operation": "divide",
               "formula": "attributable_net_assets \u00f7 class_a_shares",
-              "substituted_formula": "16275799 \u00f7 22996579",
+              "substituted_formula": "86361458 \u00f7 22996579",
               "dependencies": [
                 "attributable_net_assets",
                 "class_a_shares"
@@ -1378,32 +1368,32 @@
           ],
           "high": [
             {
-              "id": "proved_pdnp_mmcfe",
-              "label": "Proved developed non-producing reserves at 2025-12-31",
+              "id": "undeveloped_locations_gross",
+              "label": "Total gross undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 23066.0,
-              "unit": "MMcfe",
+              "value": 8783.0,
+              "unit": "gross locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+                "locator": "Gross and net locations by region or basin: Appalachian 2,792, Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are included in proved reserves; the other 8,353 were audited and approved by CG&A per footnote (3)",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "12d33b1121991d484d08c765184425b57512b705898e8afd23b010853eedfc07"
+                "source_id": "bfe17b767baf8dc2e337c5362fff3c048f78114e0c99ba0670f71f020c4ae32e"
               },
               "rationale": null
             },
             {
-              "id": "proved_pud_mmcfe",
-              "label": "Proved undeveloped reserves at 2025-12-31",
+              "id": "undeveloped_locations_net",
+              "label": "Net undeveloped locations at 2025-12-31",
               "kind": "fact",
-              "value": 4864.0,
-              "unit": "MMcfe",
+              "value": 28.0,
+              "unit": "net locations",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+                "locator": "Gross and net locations by region or basin, Net Undeveloped Location Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
                 "as_of": "2025-12-31",
                 "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-                "source_id": "a20b29002d0986094fa9f307787365f1f38d84c22dd52992e7eae3b60f7fcd26"
+                "source_id": "dbeec7f98732de33a3d068000476ac6440642cb67f5345d90785f987e9792fcd"
               },
               "rationale": null
             },
@@ -1468,13 +1458,22 @@
               "rationale": null
             },
             {
-              "id": "realization_haircut",
-              "label": "Share of the blended PV-10 unit value realised on non-producing volumes",
+              "id": "inventory_mmcfe",
+              "label": "Net undeveloped reserves behind the location inventory",
               "kind": "judgment",
-              "value": 0.7,
+              "value": 574036.0,
+              "unit": "MMcfe",
+              "source": null,
+              "rationale": "Net locations x basin-typical EUR. A net location is already gross locations scaled by net revenue interest, so multiplying by a gross per-well EUR gives net volume. Basin-weighted rather than uniform because Mid-Continent is 50% of the net count (14.1 of 28.0) on 9,314 ft laterals against Appalachia's 13,246 ft and far lower EUR per foot: a uniform rate overstates the book by roughly 40%. Bands use 2.0-2.7 Bcfe per 1,000 ft in Appalachia, 2.2-2.8 in Haynesville and 0.6-1.2 in Mid-Continent and Other. This is the largest single estimate in the contract and the one a third-party type-curve study would replace."
+            },
+            {
+              "id": "realization_haircut",
+              "label": "Share of the blended PV-10 unit value realised on undeveloped volumes",
+              "kind": "judgment",
+              "value": 0.25,
               "unit": "ratio",
               "source": null,
-              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped volumes are realised later and are therefore worth less per Mcfe. The band brackets that timing discount. A royalty owner funds none of the development cost, so the haircut is timing and operator-behaviour only, not capital."
+              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The inventory is a 35-58 year drilling programme -- 8,783 gross locations at the 126-198 wells/yr implied by WhiteHawk's disclosed interest in 18% of new Appalachian and Haynesville wells -- so the average location is discounted over decades and is worth a small fraction of the blended rate. A royalty owner funds none of the development cost, so the haircut is timing and operator pace only, never capital. The band is deliberately deep: crediting this inventory at anything near the producing rate would be the routed profile's third failure mode, remote options treated as contracted cash."
             },
             {
               "id": "company_economic_interest",
@@ -1495,20 +1494,6 @@
               "rationale": "Explicitly zero, not omitted. Net debt of $64.463m ($75.000m less $10.537m cash) and the $30.643m Series B preferred are serviced inside Cash Available for Distribution, which is struck after cash interest expense and cash preferred dividends and drives the producing component. Deducting the principal here as well would charge the same claims twice -- the routed profile's 'operating cash flow and NAV counted twice' failure mode."
             },
             {
-              "id": "non_producing_mmcfe",
-              "label": "non_producing_mmcfe",
-              "kind": "calculation",
-              "value": 27930.0,
-              "unit": "MMcfe",
-              "operation": "add",
-              "formula": "proved_pdnp_mmcfe + proved_pud_mmcfe",
-              "substituted_formula": "23066 + 4864",
-              "dependencies": [
-                "proved_pdnp_mmcfe",
-                "proved_pud_mmcfe"
-              ]
-            },
-            {
               "id": "blended_unit_value",
               "label": "blended_unit_value",
               "kind": "calculation",
@@ -1526,11 +1511,11 @@
               "id": "effective_unit_value",
               "label": "effective_unit_value",
               "kind": "calculation",
-              "value": 0.00099569,
+              "value": 0.0003556,
               "unit": "USD_m_per_MMcfe",
               "operation": "multiply",
               "formula": "blended_unit_value \u00d7 realization_haircut",
-              "substituted_formula": "0.0014224136 \u00d7 0.7",
+              "substituted_formula": "0.0014224136 \u00d7 0.25",
               "dependencies": [
                 "blended_unit_value",
                 "realization_haircut"
@@ -1540,13 +1525,13 @@
               "id": "gross_assets_m",
               "label": "gross_assets_m",
               "kind": "calculation",
-              "value": 27.80960799,
+              "value": 204.12915108,
               "unit": "USD_m",
               "operation": "multiply",
-              "formula": "non_producing_mmcfe \u00d7 effective_unit_value",
-              "substituted_formula": "27930 \u00d7 0.00099568951",
+              "formula": "inventory_mmcfe \u00d7 effective_unit_value",
+              "substituted_formula": "574036 \u00d7 0.0003556034",
               "dependencies": [
-                "non_producing_mmcfe",
+                "inventory_mmcfe",
                 "effective_unit_value"
               ]
             },
@@ -1582,11 +1567,11 @@
               "id": "tax_and_realization_costs_m",
               "label": "tax_and_realization_costs_m",
               "kind": "calculation",
-              "value": 2.59110665,
+              "value": 19.01934043,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "gross_assets_m \u00d7 tax_drag_ratio",
-              "substituted_formula": "27.809608 \u00d7 0.093173074",
+              "substituted_formula": "204.12915 \u00d7 0.093173074",
               "dependencies": [
                 "gross_assets_m",
                 "tax_drag_ratio"
@@ -1596,11 +1581,11 @@
               "id": "assets_after_tax_m",
               "label": "assets_after_tax_m",
               "kind": "calculation",
-              "value": 25.21850133,
+              "value": 185.10981065,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "gross_assets_m - tax_and_realization_costs_m",
-              "substituted_formula": "27.809608 - 2.5911067",
+              "substituted_formula": "204.12915 - 19.01934",
               "dependencies": [
                 "gross_assets_m",
                 "tax_and_realization_costs_m"
@@ -1610,11 +1595,11 @@
               "id": "net_assets_m",
               "label": "net_assets_m",
               "kind": "calculation",
-              "value": 25.21850133,
+              "value": 185.10981065,
               "unit": "USD_m",
               "operation": "subtract",
               "formula": "assets_after_tax_m - senior_claims_m",
-              "substituted_formula": "25.218501 - 0",
+              "substituted_formula": "185.10981 - 0",
               "dependencies": [
                 "assets_after_tax_m",
                 "senior_claims_m"
@@ -1624,11 +1609,11 @@
               "id": "attributable_net_assets_m",
               "label": "attributable_net_assets_m",
               "kind": "calculation",
-              "value": 21.68274135,
+              "value": 159.15648965,
               "unit": "USD_m",
               "operation": "multiply",
               "formula": "net_assets_m \u00d7 company_economic_interest",
-              "substituted_formula": "25.218501 \u00d7 0.859795",
+              "substituted_formula": "185.10981 \u00d7 0.859795",
               "dependencies": [
                 "net_assets_m",
                 "company_economic_interest"
@@ -1638,11 +1623,11 @@
               "id": "attributable_net_assets",
               "label": "attributable_net_assets",
               "kind": "calculation",
-              "value": 21682741.35473728,
+              "value": 159156489.64641154,
               "unit": "USD",
               "operation": "multiply",
               "formula": "attributable_net_assets_m \u00d7 1000000",
-              "substituted_formula": "21.682741 \u00d7 1000000",
+              "substituted_formula": "159.15649 \u00d7 1000000",
               "dependencies": [
                 "attributable_net_assets_m",
                 1000000
@@ -1652,11 +1637,11 @@
               "id": "value_per_share",
               "label": "value_per_share",
               "kind": "calculation",
-              "value": 0.94286813,
+              "value": 6.92087678,
               "unit": "USD_per_share",
               "operation": "divide",
               "formula": "attributable_net_assets \u00f7 class_a_shares",
-              "substituted_formula": "21682741 \u00f7 22996579",
+              "substituted_formula": "1.5915649e+08 \u00f7 22996579",
               "dependencies": [
                 "attributable_net_assets",
                 "class_a_shares"
@@ -1666,20 +1651,20 @@
         },
         "source_lineage": [
           {
-            "node_id": "proved_pdnp_mmcfe",
+            "node_id": "undeveloped_locations_gross",
             "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-            "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+            "locator": "Gross and net locations by region or basin: Appalachian 2,792, Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are included in proved reserves; the other 8,353 were audited and approved by CG&A per footnote (3)",
             "as_of": "2025-12-31",
             "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-            "source_id": "12d33b1121991d484d08c765184425b57512b705898e8afd23b010853eedfc07"
+            "source_id": "bfe17b767baf8dc2e337c5362fff3c048f78114e0c99ba0670f71f020c4ae32e"
           },
           {
-            "node_id": "proved_pud_mmcfe",
+            "node_id": "undeveloped_locations_net",
             "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-            "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+            "locator": "Gross and net locations by region or basin, Net Undeveloped Location Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
             "as_of": "2025-12-31",
             "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-            "source_id": "a20b29002d0986094fa9f307787365f1f38d84c22dd52992e7eae3b60f7fcd26"
+            "source_id": "dbeec7f98732de33a3d068000476ac6440642cb67f5345d90785f987e9792fcd"
           },
           {
             "node_id": "total_proved_mmcfe",
@@ -1718,7 +1703,7 @@
           "passed": true,
           "errors": []
         },
-        "proof_hash": "b337c0bf7c9705397ba72dbd2968f438739d50e945774b17ec8909a8b47c2f6f"
+        "proof_hash": "c16694b04d03e8002227119b26e0fd12d615519b4140a053a72bf682e7b478c0"
       },
       "evidence_tier": "primary_derived",
       "evidence_level": "primary_derived",
@@ -1726,8 +1711,8 @@
       "scenario_assumptions": "Unit-NAV leg of component_owner_cash_and_unit_nav. Booked non-producing reserves only; unbooked acreage is deliberately uncredited.",
       "probability_and_timing": null,
       "tax_and_realization_adjustments": "Tax drag taken from the $27.364m difference between PV-10 of $293.690m and the standardized measure of $266.326m. Senior claims explicitly zero to avoid charging debt and preferred a second time. Company economic interest applied before the per-share division.",
-      "falsifier": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on.",
-      "overlap_key": "pdnp_and_pud_reserves",
+      "falsifier": "The FY2026 reserve report or an updated location census carries fewer than 6,000 gross undeveloped locations against the 8,783 booked here, or fewer than 20 net locations against 28.0, either of which removes the inventory this component exists to value; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which resets the unit value it is built on; or operators convert inventory into production fast enough that the producing component's decline shallows, which would mean the partition double-counts.",
+      "overlap_key": "undeveloped_location_inventory",
       "assumption_type": "judgment"
     }
   ],
@@ -1753,8 +1738,8 @@
         "valuation_status": "bounded_estimate"
       },
       {
-        "component_id": "non_producing_reserve_inventory",
-        "label": "Proved developed non-producing and proved undeveloped mineral reserves, attributable to Class A via the Company's OpCo stake",
+        "component_id": "undeveloped_location_inventory",
+        "label": "Undeveloped mineral location inventory (8,783 gross locations, CG&A audited), attributable to Class A via the Company's OpCo stake",
         "kind": "judgment",
         "evidence_tier": "primary_derived",
         "evidence": "23,066 MMcfe of proved developed non-producing plus 4,864 MMcfe of proved undeveloped reserves at 2025-12-31, from the CG&A reserve report in the 424B4. Valued at the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe) less a timing haircut, then less the SEC-computed future income tax drag of 9.32% (PV-10 $293.690m against a standardized measure of $266.326m). These volumes contribute no Cash Available for Distribution today, so they do not overlap the producing component.",
@@ -1871,7 +1856,7 @@
     },
     "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
     "ticker": "WHK",
-    "as_of": "2026-08-10",
+    "as_of": "2026-08-11",
     "route_source": "canonical_power_zone_router",
     "config_path": "_system/frameworks/power_zones.json",
     "config_updated": "2026-07-14",
@@ -1911,8 +1896,8 @@
         }
       ]
     },
-    "input_hash": "aa1ddce6c2e98542852eba18c406763b422ff645b7439b2576f6669a022ecdbf",
-    "generated_at": "2026-08-11T01:06:09.462933+00:00"
+    "input_hash": "7b2e43d29f474ddb3dc9ace80769215e633f970d0d58b3d95b932d16c4c0c9e3",
+    "generated_at": "2026-08-11T14:29:03.269233+00:00"
   },
   "market": {
     "price_per_share": 26.16,
@@ -1922,28 +1907,28 @@
   },
   "valuation": {
     "value_per_share": {
-      "low": 4.8597,
-      "base": 5.7137,
-      "high": 6.8327
+      "low": 6.1184,
+      "base": 8.7614,
+      "high": 12.8107
     },
     "priced_components_per_share": {
-      "low": 4.8597,
-      "base": 5.7137,
-      "high": 6.8327
+      "low": 6.1184,
+      "base": 8.7614,
+      "high": 12.8107
     },
     "legacy_value_per_share": {
-      "low": 4.85,
-      "base": 5.72,
-      "high": 6.83
+      "low": 6.11,
+      "base": 8.77,
+      "high": 12.81
     },
-    "probability_weighted_value_per_share": 5.7137,
+    "probability_weighted_value_per_share": 8.7614,
     "expected_distributions_per_share": 0.0,
     "annualized_return_at_price_pct": {
-      "low": -21.37,
-      "base": -19.53,
-      "high": -17.45
+      "low": -18.74,
+      "base": -14.47,
+      "high": -9.7
     },
-    "downside_to_low_pct": -81.42,
+    "downside_to_low_pct": -76.61,
     "horizon_years": 7,
     "equity_liability_floor": 0.0,
     "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
@@ -1952,6 +1937,15 @@
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
     "top_value_drivers": [
       {
+        "component_id": "undeveloped_location_inventory",
+        "label": "Undeveloped mineral location inventory (8,783 gross locations, CG&A audited), attributable to Class A via the Company's OpCo stake",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 3.7554,
+        "legacy_base_per_share": 3.76,
+        "range_width_per_share": 5.1475,
+        "scenario_assumptions": "Unit-NAV leg of component_owner_cash_and_unit_nav. Booked non-producing reserves only; unbooked acreage is deliberately uncredited."
+      },
+      {
         "component_id": "pdp_royalty_cash_stream",
         "label": "Producing Marcellus and Haynesville royalty cash stream, attributable to Class A via the Company's OpCo stake",
         "valuation_status": "bounded_estimate",
@@ -1959,15 +1953,6 @@
         "legacy_base_per_share": 5.01,
         "range_width_per_share": 1.5448,
         "scenario_assumptions": "Owner-cash leg of component_owner_cash_and_unit_nav. Declining perpetuity on attributable CAFD, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume it does not own."
-      },
-      {
-        "component_id": "non_producing_reserve_inventory",
-        "label": "Proved developed non-producing and proved undeveloped mineral reserves, attributable to Class A via the Company's OpCo stake",
-        "valuation_status": "bounded_estimate",
-        "base_per_share": 0.7077,
-        "legacy_base_per_share": 0.71,
-        "range_width_per_share": 0.4282,
-        "scenario_assumptions": "Unit-NAV leg of component_owner_cash_and_unit_nav. Booked non-producing reserves only; unbooked acreage is deliberately uncredited."
       }
     ],
     "reverse_expectations": null
@@ -1984,7 +1969,7 @@
     },
     "all_material_components_priced": true,
     "calculation_errors": [],
-    "aggregate_proof_hash": "ad5755d0fc11836df10071b43c14bc3e37d905897e7f806a8a0e183737d5861f"
+    "aggregate_proof_hash": "6d2383278d89de1162319a3d5deb447237b1d87ade29f3c0f65d9ee0d5d98d5b"
   },
   "source_lineage": [
     {
@@ -2033,25 +2018,25 @@
       "source_id": "2b4e9a5b1c992e8778b3b0d0f80b3774802c68eca5ed24a1f81a8f8e70d98f36"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
-      "node_id": "proved_pdnp_mmcfe",
+      "component_id": "undeveloped_location_inventory",
+      "node_id": "undeveloped_locations_gross",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-      "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+      "locator": "Gross and net locations by region or basin: Appalachian 2,792, Haynesville 1,581, Mid-Continent 3,952, Other 458. Only 430 are included in proved reserves; the other 8,353 were audited and approved by CG&A per footnote (3)",
       "as_of": "2025-12-31",
       "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-      "source_id": "12d33b1121991d484d08c765184425b57512b705898e8afd23b010853eedfc07"
+      "source_id": "bfe17b767baf8dc2e337c5362fff3c048f78114e0c99ba0670f71f020c4ae32e"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
-      "node_id": "proved_pud_mmcfe",
+      "component_id": "undeveloped_location_inventory",
+      "node_id": "undeveloped_locations_net",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-      "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+      "locator": "Gross and net locations by region or basin, Net Undeveloped Location Count: Appalachian 8.7, Haynesville 3.1, Mid-Continent 14.1, Other 2.1",
       "as_of": "2025-12-31",
       "content_sha256": "c22443a93de65c12d559a35726ce722318af5e8cf1ebd40932e6ad78cfe98506",
-      "source_id": "a20b29002d0986094fa9f307787365f1f38d84c22dd52992e7eae3b60f7fcd26"
+      "source_id": "dbeec7f98732de33a3d068000476ac6440642cb67f5345d90785f987e9792fcd"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
+      "component_id": "undeveloped_location_inventory",
       "node_id": "total_proved_mmcfe",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
       "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved reserves Total (MMcfe): 206,473",
@@ -2060,7 +2045,7 @@
       "source_id": "f8fbd27b871f55b60dcf8fcfef954151d6bd86f0aa9476f538dece12c34dd506"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
+      "component_id": "undeveloped_location_inventory",
       "node_id": "pv10_m",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
       "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, PV-10: $293,690 thousand, at $3.387/MMBtu Henry Hub and $65.34/bbl WTI SEC pricing",
@@ -2069,7 +2054,7 @@
       "source_id": "a1f6c74652416b614a9863cedb549f76cc2dd52ade35a2faff9a7c45d984e09f"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
+      "component_id": "undeveloped_location_inventory",
       "node_id": "standardized_measure_m",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
       "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Standardized Measure: $266,326 thousand",
@@ -2078,7 +2063,7 @@
       "source_id": "43388d4aec91cfb84b32476c3b9d6eeed4c49bae8b47ea186ccab5a03fa771fd"
     },
     {
-      "component_id": "non_producing_reserve_inventory",
+      "component_id": "undeveloped_location_inventory",
       "node_id": "class_a_shares",
       "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
       "locator": "Our Organizational Structure: we will own 22,996,579 OpCo Interests, held one-for-one against Class A common stock",
@@ -2105,7 +2090,7 @@
   "monitoring": {
     "falsifiers": [
       "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report; or the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here; or a declared dividend sets an annualised Class A rate above $1.30 per share, which no sustainable distribution consistent with this decline band supports.",
-      "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on."
+      "The FY2026 reserve report or an updated location census carries fewer than 6,000 gross undeveloped locations against the 8,783 booked here, or fewer than 20 net locations against 28.0, either of which removes the inventory this component exists to value; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which resets the unit value it is built on; or operators convert inventory into production fast enough that the producing component's decline shallows, which would mean the partition double-counts."
     ],
     "required_refresh_triggers": [
       "new filing or material operating update",
@@ -2115,7 +2100,7 @@
     ]
   },
   "change_control": {
-    "model_hash": "7857c867e1d0e63357bd0ac2a9d705721ab8e9efc6925c01c43af6a37ea91a5c",
+    "model_hash": "f4a19a497274a8eec4f6e2f8ddf4985f64ace5a89bccc45a33f896bdcb68fcf0",
     "method_versions": [
       "net_asset_value@1.0",
       "owner_cash_or_dividend_discount@1.0"
@@ -2127,12 +2112,12 @@
   "authority": "universal_valuation_contract",
   "legacy_reference_present": true,
   "falsifier_coverage": {
-    "typed": 4,
+    "typed": 6,
     "prose_only": 0,
     "untestable": 0,
     "invalid": 0,
     "unanchored": 0,
-    "resolvable": 4,
+    "resolvable": 6,
     "unresolvable": 0,
     "spec_ref": "WHK/research/falsifier_specs.json",
     "enforcement_enabled": false
