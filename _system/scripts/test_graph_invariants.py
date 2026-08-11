@@ -625,5 +625,273 @@ class RealRepoTests(unittest.TestCase):
                             "E2 must name the typed population it judged")
 
 
+def seed_lens_plane(root: Path) -> None:
+    """Clean lens-plane layer on the graph_build fixture: canonical vocab and
+    derived-artifact registries, canonical persona registries, and TST fully
+    classified with a fresh lens plane (agreeing with the fixture registry's
+    archetype=compounder so no surface conflicts)."""
+    from persona_groups import INDEPENDENCE_GROUPS
+    config = load_config(root)
+    config["classification_vocab"] = {
+        "sentinels": ["", "pending", "unknown", "-"],
+        "fields": {
+            "archetype": ["croupier", "compounder", "serial_acquirer",
+                          "platform", "holding_co", "optionality",
+                          "turnaround", "infrastructure"],
+            "payoff_lens": ["operating", "asset", "event", "levered"],
+            "moat": ["widening", "stable", "eroding", "unproven", "n/a"],
+            "dhando": ["full", "partial", "none"],
+        },
+    }
+    config["derived_artifacts"] = {
+        "lenses": {"source": "research/valuation.json",
+                   "derived": "research/lenses.json",
+                   "missing_when": "decision_grade",
+                   "healer": "persona_lens.py --all"},
+        "valuation_route": {"source": "research/valuation.json",
+                            "derived": "research/valuation_route.json",
+                            "missing_when": "never",
+                            "healer": "power_zone_router.py"},
+    }
+    save_config(root, config)
+    persona_ids = sorted(INDEPENDENCE_GROUPS)
+    test_graph_build.write_json(
+        root / "_system" / "lenses" / "personas.json",
+        {"personas": {pid: {} for pid in persona_ids}})
+    test_graph_build.write_json(
+        root / "_system" / "frameworks" / "power_zones.json",
+        {"zones": {pid: {} for pid in persona_ids}})
+    research = root / "TST" / "research"
+    test_graph_build.write_json(research / "valuation.json", {
+        "as_of": "2026-08-01",
+        "payoff_lens": "asset",
+        "classification_inputs": {"archetype": "compounder",
+                                  "moat": "stable", "dhando": "partial"},
+    })
+    test_graph_build.write_json(research / "lenses.json", {
+        "as_of": "2026-08-01",
+        "consensus": {"stance": "watch"},
+        "valuation_blend": {"contributors": [{"persona": "hk"},
+                                             {"persona": "stahl"}]},
+    })
+    test_graph_build.write_json(research / "valuation_route.json",
+                                {"as_of": "2026-08-01"})
+
+
+class LensPlaneTests(unittest.TestCase):
+    """L1-L6: clean seeded fixture is green with non-vacuous notes, and every
+    invariant gets a planted violation proving it fires."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        make_fixture(self.root)
+        seed_lens_plane(self.root)
+        git_commit_all(self.root, "fixture files")
+
+    def edit_json(self, rel: str, mutate) -> None:
+        path = self.root / rel
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        mutate(doc)
+        test_graph_build.write_json(path, doc)
+
+    def test_clean_lens_plane_green_and_not_vacuous(self):
+        results, exit_code = run_invariants(self.root)
+        self.assertEqual(exit_code, 0)
+        for inv_id in ("L1", "L2", "L3", "L4", "L5", "L6"):
+            self.assertEqual(results[inv_id].count, 0, inv_id)
+            self.assertNotIn("vacuous", results[inv_id].note, inv_id)
+        self.assertIn("1/1 tickers resolve", results["L1"].note)
+
+    def test_l1_fires_when_no_surface_classifies(self):
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc.pop("payoff_lens"),
+            doc.__setitem__("classification_inputs", {})))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L1"].count, 1)
+        self.assertIn("TST", results["L1"].violations[0])
+
+    def test_l1_resolves_through_classification_inputs(self):
+        # The shadowed-classification heal: classification_inputs alone must
+        # count as classified (the old persona reader looked top-level only).
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc.pop("payoff_lens"),
+            doc["classification_inputs"].__setitem__("payoff_lens", "asset")))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L1"].count, 0)
+        self.assertIn("classification_inputs 1", results["L1"].note)
+
+    def test_l2_fires_on_conflicting_surfaces(self):
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc["classification_inputs"].__setitem__("payoff_lens",
+                                                     "operating")))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L2"].count, 1)
+        self.assertIn("payoff_lens", results["L2"].violations[0])
+
+    def test_l2_registry_default_is_not_a_conflict(self):
+        self.edit_json("_system/portfolio/registry.json", lambda doc: (
+            doc["holdings"]["TST"]["classification"].__setitem__(
+                "archetype", "unknown")))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L2"].count, 0)
+
+    def test_l3_fires_on_stale_and_missing(self):
+        self.edit_json("TST/research/lenses.json", lambda doc: (
+            doc.__setitem__("as_of", "2026-07-01")))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L3"].count, 1)
+        self.assertIn("lenses.json behind", results["L3"].violations[0])
+        (self.root / "TST" / "research" / "lenses.json").unlink()
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L3"].count, 1)
+        self.assertIn("missing for a decision_grade",
+                      results["L3"].violations[0])
+
+    def test_l3_missing_route_is_not_judged(self):
+        (self.root / "TST" / "research" / "valuation_route.json").unlink()
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L3"].count, 0)
+
+    def test_l3_undated_artifacts_are_violations_not_skips(self):
+        # The P6 rule: what cannot be judged fresh must never read as fresh.
+        self.edit_json("TST/research/lenses.json", lambda doc: (
+            doc.pop("as_of"),))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L3"].count, 1)
+        self.assertIn("can never be judged fresh", results["L3"].violations[0])
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc.pop("as_of"),))
+        results, _ = run_invariants(self.root)
+        self.assertIn("valuation.json has no as_of",
+                      "\n".join(results["L3"].violations))
+
+    def test_lens_scan_survives_malformed_shapes(self):
+        # A string where a dict belongs degrades to unclassified, never a
+        # crashed suite with no report written.
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc.pop("payoff_lens"),
+            doc.__setitem__("classification_inputs", "not-a-dict")))
+        results, exit_code = run_invariants(self.root)
+        self.assertEqual(results["L1"].count, 1)
+
+    def test_l4_fires_on_noncanon_and_narrower_lens(self):
+        self.edit_json("_system/lenses/personas.json", lambda doc: (
+            doc["personas"].__setitem__("stahl", {"criteria": [
+                {"id": "a", "check": "archetype_any", "values": ["bank"]}]})))
+        self.edit_json("_system/frameworks/power_zones.json", lambda doc: (
+            doc["zones"].__setitem__("stahl", {"rules": {
+                "archetype": ["croupier", "optionality"]}})))
+        self.edit_json("TST/research/valuation.json", lambda doc: (
+            doc["classification_inputs"].__setitem__("moat", "narrow")))
+        results, _ = run_invariants(self.root)
+        violations = "\n".join(results["L4"].violations)
+        self.assertIn("'bank' not canonical", violations)
+        self.assertIn("moat value 'narrow' not canonical", violations)
+        self.assertIn("stahl archetype lens misses zone values"
+                      " croupier, optionality", violations)
+
+    def test_l5_fires_on_low_coverage_stance(self):
+        self.edit_json("TST/research/lenses.json", lambda doc: (
+            doc.__setitem__("valuation_blend",
+                            {"contributors": [{"persona": "hk"}]})))
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L5"].count, 1)
+        self.assertIn("1 contributing persona", results["L5"].violations[0])
+
+    def test_l6_fires_on_registry_gap_and_collided_committee(self):
+        self.edit_json("_system/lenses/personas.json", lambda doc: (
+            doc["personas"].__setitem__("new_guy", {})))
+        test_graph_build.write_json(
+            self.root / "TST" / "research" / "committee_work" / "2026-08-01"
+            / "manifest.json",
+            {"ticker": "TST", "stage": "round_one_open", "selected_raters": [
+                {"persona": "hohn"}, {"persona": "buffett_weschler"},
+                {"persona": "munger"}]})
+        results, _ = run_invariants(self.root)
+        violations = "\n".join(results["L6"].violations)
+        self.assertIn("'new_guy' has no entry", violations)
+        self.assertIn("collapse to 2 canonical group(s)", violations)
+
+    def test_l6_unknown_rater_cannot_mint_a_group(self):
+        # [hohn, typo_a, typo_b] must FAIL, not pass with 3 minted groups.
+        test_graph_build.write_json(
+            self.root / "TST" / "research" / "committee_work" / "2026-08-01"
+            / "manifest.json",
+            {"ticker": "TST", "stage": "round_one_open", "selected_raters": [
+                {"persona": "hohn"}, {"persona": "typo_a"},
+                {"persona": "typo_b"}]})
+        results, _ = run_invariants(self.root)
+        self.assertIn("outside the canonical registry",
+                      "\n".join(results["L6"].violations))
+
+    def test_l6_superseded_manifest_not_judged(self):
+        test_graph_build.write_json(
+            self.root / "TST" / "research" / "committee_work" / "2026-08-01"
+            / "manifest.json",
+            {"ticker": "TST", "stage": "superseded", "selected_raters": [
+                {"persona": "hohn"}, {"persona": "buffett_weschler"},
+                {"persona": "munger"}]})
+        results, _ = run_invariants(self.root)
+        self.assertEqual(results["L6"].count, 0)
+
+
+class BaselineRatchetTests(unittest.TestCase):
+    """The committed baseline gates report-severity counts: a rise fails the
+    run even though nothing is hard severity; equal or falling counts pass."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        make_fixture(self.root)
+        seed_lens_plane(self.root)
+        git_commit_all(self.root, "fixture files")
+
+    def write_baseline(self, counts: dict) -> None:
+        test_graph_build.write_json(
+            self.root / "_system" / "graph" / "invariants_baseline.json",
+            {"as_of": "2026-08-11", "counts": counts})
+
+    def plant_l1(self) -> None:
+        path = self.root / "TST" / "research" / "valuation.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc.pop("payoff_lens")
+        doc["classification_inputs"] = {}
+        test_graph_build.write_json(path, doc)
+
+    def test_regression_fails_run(self):
+        self.write_baseline({"L1": 0})
+        self.plant_l1()
+        results, exit_code = run_invariants(self.root)
+        self.assertEqual(results["L1"].count, 1)
+        self.assertEqual(exit_code, 1)
+        md = (self.root / "_system" / "graph" / "INVARIANTS.md").read_text(
+            encoding="utf-8")
+        self.assertIn("RATCHET REGRESSION", md)
+
+    def test_count_at_or_below_baseline_passes(self):
+        self.write_baseline({"L1": 1})
+        self.plant_l1()
+        _, exit_code = run_invariants(self.root)
+        self.assertEqual(exit_code, 0)
+
+    def test_unarmed_id_never_gates(self):
+        self.write_baseline({"L5": 0})
+        self.plant_l1()
+        _, exit_code = run_invariants(self.root)
+        self.assertEqual(exit_code, 0)
+
+    def test_absent_baseline_disarms(self):
+        self.plant_l1()
+        results, exit_code = run_invariants(self.root)
+        self.assertEqual(results["L1"].count, 1)
+        self.assertEqual(exit_code, 0)
+        md = (self.root / "_system" / "graph" / "INVARIANTS.md").read_text(
+            encoding="utf-8")
+        self.assertIn("Ratchet disarmed", md)
+
+
 if __name__ == "__main__":
     unittest.main()

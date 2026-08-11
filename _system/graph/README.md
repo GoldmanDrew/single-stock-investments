@@ -146,6 +146,44 @@ surface: their counts must be monotonically non-increasing across cycles.
   a local feed being down must be loud without blocking a merge by someone
   who cannot see that host.
 
+**Lens plane (added 2026-08-11; the WHK finding generalised):**
+The persona/consensus layer looked like multi-lens validation but was
+single-lens: 542/721 valued tickers had no payoff_lens anywhere, 130 more
+stored it where the persona reader never looked, criteria referenced enum
+values no data emits, lenses.json went stale whenever anything but a full
+marvin refresh rewrote valuation.json, and two divergent GROUPS maps seated
+31 committees whose raters collapse to two independence groups under the
+canonical map. Filesystem/config scans in the P4/P6 style; registries
+`classification_vocab` and `derived_artifacts` live in `graph_sources.json`;
+the canonical persona map is `_system/scripts/persona_groups.py`.
+
+- **L1** (report): every valued ticker resolves a `payoff_lens` through the
+  classification chain (top-level -> `classification_inputs` -> registry).
+  Unroutable tickers silence every asset/event persona before judgment.
+- **L2** (report): no shadowed classification — surfaces that assert a value
+  must agree (registry defaults mean *unfilled*, and do not conflict).
+- **L3** (report): derived lens-plane artifacts (`lenses.json`,
+  `valuation_route.json`) at least as fresh as their source valuation; each
+  registry entry names its healer. Missing `lenses.json` is judged only for
+  decision_grade contracts.
+- **L4** (report): vocabulary closure — criteria and data use canonical
+  values, and no persona lens is strictly narrower than its own power zone
+  on a shared axis (the stahl-omits-optionality class).
+- **L5** (report): no lens consensus stance carried by fewer than 2
+  contributing personas (a stance on 0–1 contributors is the compiler's own
+  number wearing a consensus badge).
+- **L6** (report): persona registries equal everywhere, no re-defined GROUPS
+  literal, and no active committee whose raters collapse below the
+  independence quorum under the canonical map.
+
+**Baseline ratchet (CI-enforced).** The report-severity "must not grow" rule
+was prose until 2026-08-11; now `_system/graph/invariants_baseline.json`
+pins counts for opt-in invariant ids (the L-series at introduction), any
+rise fails the suite exactly like a hard violation, and lowering the bar
+requires a reviewed `--update-baseline` commit — the
+`check_evidence_integrity.py` pattern applied to the graph. Ids absent from
+the baseline (organically-growing counts like E6) stay unarmed.
+
 **Epistemic (self-compounding):**
 - **E1** (report): decision-grade components carrying a *typed* falsifier
   (`metric, comparator, threshold, unit, due`). Coverage %, per method.

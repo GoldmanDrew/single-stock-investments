@@ -52,7 +52,7 @@ E2_GRACE_DAYS = 14          # spec: outcome required within 14 days of due
 E4_HISTORY_WINDOW = 15      # commits touching MEMORY.md the E4 baseline spans
 LANE_REF_ENV = "GRAPH_LANE_REF"
 RECEIPT_NAME = re.compile(r"(^|_)run_\d{4}-\d{2}-\d{2}")
-PREV_ROW = re.compile(r"^\|\s*([PE]\d)\s*\|[^|]*\|\s*(\d+)\s*\|")
+PREV_ROW = re.compile(r"^\|\s*([PEL]\d)\s*\|[^|]*\|\s*(\d+)\s*\|")
 TABLE_STATUS = re.compile(r"^`?(active|superseded|disproven)\s+\d{4}-\d{2}-\d{2}")
 
 BASE_SEVERITY = {
@@ -60,6 +60,13 @@ BASE_SEVERITY = {
     "P6": "hard", "P7": "report",
     "E1": "report", "E2": "hard", "E3": "hard", "E4": "hard", "E5": "hard",
     "E6": "report",
+    # L-series: the classification/lens plane (spec in _system/graph/README.md).
+    # All report severity with a committed baseline ratchet
+    # (_system/graph/invariants_baseline.json): live counts at introduction
+    # were far too large to gate hard without freezing the factory, so the
+    # ratchet makes any RISE fail CI while the debt is worked down.
+    "L1": "report", "L2": "report", "L3": "report", "L4": "report",
+    "L5": "report", "L6": "report",
 }
 
 TITLES = {
@@ -77,6 +84,17 @@ TITLES = {
     "E6": "Proposals with no DECIDED_AS decision (silent-drop detector)",
     "P6": "every registered data feed is fresher than its window",
     "P7": "every registered live feed has published inside its window",
+    "L1": "every valued ticker resolves a payoff_lens through the"
+          " classification chain",
+    "L2": "classification surfaces agree (no shadowed classification)",
+    "L3": "derived lens-plane artifacts are as fresh as their source"
+          " valuation",
+    "L4": "classification vocabulary is closed (criteria and data use"
+          " canonical values; no lens narrower than its power zone)",
+    "L5": "no lens consensus stance rests on fewer than 2 contributing"
+          " personas",
+    "L6": "persona registry, groups, and committee independence stay"
+          " canonical",
 }
 
 
@@ -414,6 +432,62 @@ def inv_e6(conn, root, today) -> Result:
                   [f"{r['as_of']} {r['label'][:80]}" for r in rows])
 
 
+def _dig(doc, dotted: str):
+    """Walk a dotted path through nested dicts. Missing -> None."""
+    node = doc
+    for part in str(dotted).split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def _content_violations(name: str, doc: dict, feed: dict, healer: str) -> tuple:
+    """Assert declared fields INSIDE a feed, not just its stamp.
+
+    A freshness window only proves the builder ran. It cannot see a builder
+    that ran perfectly and wrote a file whose columns are dead: Yahoo answered
+    200 for ^VIX3M for sixteen sessions while returning a series that stopped,
+    so `vol_metrics_latest.json` was rewritten daily with a fresh
+    `generated_at` and a term-structure complex that had gone dark. P6 passed
+    every one of those days. The stamp was never the thing worth checking.
+
+    Returns ``(violations, details)``. Violation text is built only from the
+    feed name, the field and the CONFIGURED bound -- never from the observed
+    value -- because waivers match by exact string equality (see
+    ``_apply_overrides``). Folding the live count into the text would mean a
+    waiver written at five dark symbols silently stops applying at six, which
+    is the worst possible moment for a check to change its mind. Observed
+    values ride in ``details`` and surface in the note, exactly as feed ages do.
+    """
+    checks = feed.get("assert_fields")
+    if not isinstance(checks, dict):
+        return [], []
+    out, details = [], []
+    for field, spec in sorted(checks.items()):
+        if not isinstance(spec, dict):
+            continue
+        value = _dig(doc, field)
+        why = ascii_safe(str(spec.get("why", "")))[:120]
+        if "not_in" in spec and value in list(spec["not_in"]):
+            out.append(f"{name}: {field} holds a disallowed value"
+                       f" -- {why} -- heal: {healer}")
+            details.append(f"{name}.{field}='{ascii_safe(str(value))[:40]}'")
+        if "equals" in spec and value != spec["equals"]:
+            out.append(f"{name}: {field} does not equal"
+                       f" '{spec['equals']}' -- {why} -- heal: {healer}")
+            details.append(f"{name}.{field}='{ascii_safe(str(value))[:40]}'")
+        if "max_count" in spec:
+            count = len(value) if isinstance(value, (list, dict)) else 0
+            if count > int(spec["max_count"]):
+                out.append(f"{name}: {field} exceeds its limit of"
+                           f" {spec['max_count']} -- {why} -- heal: {healer}")
+                members = sorted(value) if isinstance(value, (list, dict)) else []
+                details.append(f"{name}.{field}={count}"
+                               f" [{ascii_safe(', '.join(map(str, members)))[:60]}]")
+    return out, details
+
+
 def inv_p6(conn, root, today) -> Result:
     """Data-feed freshness (self-healing detector for the risk dashboard).
 
@@ -422,7 +496,11 @@ def inv_p6(conn, root, today) -> Result:
     violation text is deliberately STABLE across days (feed + window, ages
     live in the note) so waivers with dated notes can target it exactly.
     A missing file or unparseable stamp is always a violation - a feed that
-    cannot be judged fresh must never read as fresh."""
+    cannot be judged fresh must never read as fresh.
+
+    A feed may also declare ``assert_fields`` to have its CONTENTS checked;
+    see ``_content_violations`` for why a fresh stamp is not evidence of a
+    live feed."""
     config = graph_build.load_json(
         root / "_system" / "graph" / "graph_sources.json") or {}
     feeds = config.get("data_feeds", {}) if isinstance(config, dict) else {}
@@ -450,8 +528,13 @@ def inv_p6(conn, root, today) -> Result:
             continue
         age_h = (now - when).total_seconds() / 3600.0
         ages.append(f"{name} {age_h:.0f}h")
+        content, detail = _content_violations(name, doc, feed, healer)
+        ages.extend(detail)
         if age_h > window:
             violations.append(f"{name}: stale (window {window:.0f}h)")
+            violations.extend(content)
+        elif content:
+            violations.extend(content)
         else:
             fresh += 1
     return Result("P6", len(violations), violations,
@@ -574,8 +657,466 @@ def inv_p7(conn, root, today) -> Result:
     return Result("P7", len(violations), violations, note=note)
 
 
+# --------------------------------------------------------------------------- #
+# L-series: the classification/lens plane
+#
+# Born 2026-08-11 from the WHK finding that generalised: the persona/consensus
+# layer LOOKED like multi-lens validation but was single-lens -- 542/721
+# valued tickers had no payoff_lens anywhere, 130 more stored it where the
+# persona reader never looked, criteria referenced enum values no data emits,
+# lenses.json went stale the moment anything but a full marvin refresh
+# rewrote valuation.json, and two divergent GROUPS maps seated 31 committees
+# whose raters collapse to two independence groups under the canonical map.
+# Every one of these is a missing/broken link nothing could see; these
+# invariants make each a countable defect. Filesystem/config scans in the
+# P4/P6 style (graph_build projects none of these surfaces yet).
+# --------------------------------------------------------------------------- #
+
+_LENS_SCAN_CACHE: dict = {}
+
+# Registry defaults cannot 'disagree' -- they mean unfilled, not asserted.
+_CLASS_SENTINELS = {"", "pending", "unknown", "-"}
+_REGISTRY_DEFAULTS = {"archetype": "unknown", "moat": "unproven",
+                      "dhando": "pending", "payoff_lens": "pending"}
+
+
+def _class_value(raw) -> str | None:
+    text = str(raw if raw is not None else "").strip().lower()
+    return text if text and text not in _CLASS_SENTINELS else None
+
+
+def _lens_plane_scan(root: Path) -> list[dict]:
+    """One pass over every ticker dir carrying research/valuation.json;
+    shared by L1/L2/L3/L5 so each valuation.json parses once per run.
+    run() clears the cache before executing the suite."""
+    cached = _LENS_SCAN_CACHE.get(root)
+    if cached is not None:
+        return cached
+    registry = graph_build.load_json(
+        root / "_system" / "portfolio" / "registry.json") or {}
+    entries = {**(registry.get("watchlist") or {}),
+               **(registry.get("holdings") or {})}
+    reg_class = {name: (entry or {}).get("classification") or {}
+                 for name, entry in entries.items()}
+    rows: list[dict] = []
+    for tdir in sorted(root.iterdir()):
+        if not tdir.is_dir() or tdir.name.startswith((".", "_")) \
+                or tdir.name in ("dashboard", "investing-docs", "node_modules"):
+            continue
+        val_path = tdir / "research" / "valuation.json"
+        if not val_path.is_file():
+            continue
+        val = graph_build.load_json(val_path)
+        parse_failed = not isinstance(val, dict)
+        val = val if isinstance(val, dict) else {}
+        # Shape hardening: a string where a dict belongs must degrade to
+        # "unclassified", never crash the suite (the E2 _parse_due lesson --
+        # an uncaught exception here means no INVARIANTS.md at all).
+        ci = val.get("classification_inputs")
+        ci = ci if isinstance(ci, dict) else {}
+        reg = reg_class.get(tdir.name, {})
+        reg = reg if isinstance(reg, dict) else {}
+        lenses = graph_build.load_json(tdir / "research" / "lenses.json")
+        lenses = lenses if isinstance(lenses, dict) else None
+        route = graph_build.load_json(
+            tdir / "research" / "valuation_route.json")
+        route = route if isinstance(route, dict) else None
+        contract = graph_build.load_json(
+            tdir / "research" / "valuation_contract.json")
+        contract = contract if isinstance(contract, dict) else {}
+        blend = (lenses or {}).get("valuation_blend")
+        blend = blend if isinstance(blend, dict) else {}
+        consensus = (lenses or {}).get("consensus")
+        consensus = consensus if isinstance(consensus, dict) else {}
+        contributors = blend.get("contributors")
+        contributors = contributors if isinstance(contributors, list) else []
+        rows.append({
+            "ticker": tdir.name,
+            "parse_failed": parse_failed,
+            "val_as_of": str(val.get("as_of") or "")[:10],
+            "surfaces": {
+                "payoff_lens": {
+                    "top-level": val.get("payoff_lens"),
+                    "classification_inputs": ci.get("payoff_lens"),
+                    "registry": reg.get("payoff_lens"),
+                },
+                "archetype": {
+                    "classification_inputs": ci.get("archetype"),
+                    "registry": reg.get("archetype"),
+                },
+                "moat": {
+                    "classification_inputs": ci.get("moat"),
+                    "registry": reg.get("moat"),
+                },
+                "dhando": {
+                    "classification_inputs": ci.get("dhando"),
+                    "registry": reg.get("dhando"),
+                },
+            },
+            "contract_status": str(contract.get("status") or ""),
+            "lenses_present": lenses is not None,
+            "lenses_as_of": str((lenses or {}).get("as_of") or "")[:10],
+            "consensus_stance": consensus.get("stance") if lenses else None,
+            "blend_contributors": len(contributors) if lenses else None,
+            "route_present": route is not None,
+            "route_as_of": str((route or {}).get("as_of") or "")[:10],
+        })
+    _LENS_SCAN_CACHE.clear()
+    _LENS_SCAN_CACHE[root] = rows
+    return rows
+
+
+def inv_l1(conn, root, today) -> Result:
+    """A ticker whose payoff_lens resolves nowhere routes to no valuation
+    toolkit and silences every asset/event persona before judgment starts.
+    542/721 at introduction."""
+    rows = _lens_plane_scan(root)
+    if not rows:
+        return Result("L1", 0, [], note="vacuously green (no valued tickers)")
+    violations = []
+    by_source = {"top-level": 0, "classification_inputs": 0, "registry": 0}
+    for row in rows:
+        if row["parse_failed"]:
+            violations.append(f"{row['ticker']}: valuation.json unparseable --"
+                              " can never be judged classified")
+            continue
+        surfaces = row["surfaces"]["payoff_lens"]
+        resolved = None
+        for source in ("top-level", "classification_inputs", "registry"):
+            if _class_value(surfaces[source]):
+                resolved = source
+                break
+        if resolved:
+            by_source[resolved] += 1
+        else:
+            violations.append(f"{row['ticker']}: no payoff_lens on any surface"
+                              " (top-level, classification_inputs, registry)")
+    resolved_n = sum(by_source.values())
+    return Result("L1", len(violations), violations,
+                  note=f"{resolved_n}/{len(rows)} tickers resolve"
+                       f" (top-level {by_source['top-level']},"
+                       f" classification_inputs"
+                       f" {by_source['classification_inputs']},"
+                       f" registry {by_source['registry']})")
+
+
+def inv_l2(conn, root, today) -> Result:
+    """Shadowed classification: two surfaces asserting different values means
+    every reader's answer depends on which file it happened to open (the
+    us_ticker_config-shadows-registry failure class, one plane over).
+    Registry defaults are 'unfilled', not assertions, and do not conflict."""
+    rows = _lens_plane_scan(root)
+    if not rows:
+        return Result("L2", 0, [], note="vacuously green (no valued tickers)")
+    violations = []
+    tickers_hit = set()
+    for row in rows:
+        if row["parse_failed"]:
+            continue
+        for field, surfaces in row["surfaces"].items():
+            asserted: dict[str, str] = {}
+            for source, raw in surfaces.items():
+                value = _class_value(raw)
+                if value is None:
+                    continue
+                if source == "registry" and value == _REGISTRY_DEFAULTS.get(field):
+                    continue
+                asserted[source] = value
+            if len(set(asserted.values())) > 1:
+                tickers_hit.add(row["ticker"])
+                detail = " vs ".join(f"{source}='{value}'"
+                                     for source, value in sorted(asserted.items()))
+                violations.append(f"{row['ticker']}: {field} {detail}")
+    return Result("L2", len(violations), violations,
+                  note=f"{len(tickers_hit)} tickers carry a conflict")
+
+
+def inv_l3(conn, root, today) -> Result:
+    """Derived lens-plane artifacts behind their source valuation: the WHK
+    class (re-underwritten 2026-08-11, lenses.json still 2026-08-05, nightly
+    dashboard bakes the stale file). Registry-driven like P6: entries in
+    graph_sources.json derived_artifacts, each naming its healer."""
+    config = graph_build.load_json(
+        root / "_system" / "graph" / "graph_sources.json") or {}
+    artifacts = config.get("derived_artifacts", {}) \
+        if isinstance(config, dict) else {}
+    artifacts = {name: spec for name, spec in sorted(artifacts.items())
+                 if not name.startswith("_") and isinstance(spec, dict)}
+    if not artifacts:
+        return Result("L3", 0, [],
+                      note="vacuously green (no derived_artifacts registered)")
+    rows = _lens_plane_scan(root)
+    if not rows:
+        return Result("L3", 0, [], note="vacuously green (no valued tickers)")
+    violations = []
+    stale_n = missing_n = undated_n = 0
+    # A source that cannot be dated can never have its derived artifacts
+    # judged fresh -- that is a violation, not a silent skip (the P6 rule).
+    for row in rows:
+        if row["parse_failed"]:
+            continue
+        if not row["val_as_of"]:
+            undated_n += 1
+            violations.append(f"{row['ticker']}: research/valuation.json has"
+                              " no as_of -- derived freshness can never be"
+                              " judged")
+    for name, spec in artifacts.items():
+        healer = ascii_safe(spec.get("healer", ""))[:120]
+        derived_rel = str(spec.get("derived") or "")
+        missing_when = str(spec.get("missing_when") or "never")
+        present_key, as_of_key = {
+            "research/lenses.json": ("lenses_present", "lenses_as_of"),
+            "research/valuation_route.json": ("route_present", "route_as_of"),
+        }.get(derived_rel, (None, None))
+        if present_key is None:
+            violations.append(f"{name}: unrecognised derived path"
+                              f" '{derived_rel}' -- can never be judged fresh")
+            continue
+        for row in rows:
+            if row["parse_failed"] or not row["val_as_of"]:
+                continue
+            if not row[present_key]:
+                if missing_when == "decision_grade" \
+                        and row["contract_status"] == "decision_grade":
+                    missing_n += 1
+                    violations.append(
+                        f"{row['ticker']}: {derived_rel} missing for a"
+                        f" decision_grade contract -- heal: {healer}")
+                continue
+            if not row[as_of_key]:
+                undated_n += 1
+                violations.append(f"{row['ticker']}: {derived_rel} has no"
+                                  " as_of -- can never be judged fresh --"
+                                  f" heal: {healer}")
+            elif row[as_of_key] < row["val_as_of"]:
+                stale_n += 1
+                violations.append(f"{row['ticker']}: {derived_rel} behind"
+                                  f" {spec.get('source')} -- heal: {healer}")
+    return Result("L3", len(violations), violations,
+                  note=f"{stale_n} stale, {missing_n} missing where required,"
+                       f" {undated_n} undatable, over {len(rows)} tickers x"
+                       f" {len(artifacts)} artifacts")
+
+
+def _criteria_value_sites(root: Path) -> list[tuple[str, str, str]]:
+    """(field, value, site) triples for every enum value referenced by the
+    persona lenses and the power zones."""
+    sites: list[tuple[str, str, str]] = []
+    check_fields = {"archetype_any": "archetype", "moat_any": "moat",
+                    "dhando_any": "dhando", "dhando_not": "dhando",
+                    "payoff_lens_any": "payoff_lens"}
+    personas = graph_build.load_json(
+        root / "_system" / "lenses" / "personas.json") or {}
+    for pid, spec in (personas.get("personas") or {}).items():
+        for criterion in (spec.get("criteria") or []):
+            field = check_fields.get(str(criterion.get("check") or ""))
+            if not field:
+                continue
+            for value in criterion.get("values") or []:
+                sites.append((field, str(value).lower(),
+                              f"personas.json:{pid}:{criterion.get('id')}"))
+    zones_doc = graph_build.load_json(
+        root / "_system" / "frameworks" / "power_zones.json") or {}
+    for zid, zone in (zones_doc.get("zones") or {}).items():
+        rules = zone.get("rules") or {}
+        for field in ("archetype", "moat", "dhando", "payoff_lens"):
+            for value in rules.get(field) or []:
+                sites.append((field, str(value).lower(),
+                              f"power_zones.json:zone:{zid}"))
+    for prof_id, profile in (zones_doc.get("valuation_profiles") or {}).items():
+        for value in profile.get("preferred_archetypes") or []:
+            sites.append(("archetype", str(value).lower(),
+                          f"power_zones.json:profile:{prof_id}"))
+    return sites
+
+
+def inv_l4(conn, root, today) -> Result:
+    """Vocabulary closure. A criterion referencing a value no surface emits is
+    dead -- its persona goes silent with nothing saying so (9 such values at
+    introduction). A data value outside the canon routes nowhere. And a
+    persona lens strictly narrower than its own power zone (stahl omitting
+    optionality while 57 tickers carry it) silences the specialist on exactly
+    the names routed to it."""
+    config = graph_build.load_json(
+        root / "_system" / "graph" / "graph_sources.json") or {}
+    vocab = config.get("classification_vocab", {}) \
+        if isinstance(config, dict) else {}
+    fields = {name: {str(v).lower() for v in values}
+              for name, values in (vocab.get("fields") or {}).items()}
+    if not fields:
+        return Result("L4", 0, [],
+                      note="vacuously green (no classification_vocab"
+                           " registered)")
+    sentinels = {str(v).lower() for v in vocab.get("sentinels") or []}
+    violations = []
+    # (a) criteria values outside the canon
+    criteria_bad = 0
+    for field, value, site in _criteria_value_sites(root):
+        canon = fields.get(field)
+        if canon is not None and value not in canon and value not in sentinels:
+            criteria_bad += 1
+            violations.append(f"criteria: {site} {field} '{value}'"
+                              " not canonical")
+    # (b) data values outside the canon (distinct value per field, counts in
+    # the note so the violation text stays waiver-stable)
+    rows = _lens_plane_scan(root)
+    data_bad: dict[tuple[str, str], int] = {}
+    for row in rows:
+        if row["parse_failed"]:
+            continue
+        for field, surfaces in row["surfaces"].items():
+            canon = fields.get(field)
+            if canon is None:
+                continue
+            for raw in surfaces.values():
+                value = _class_value(raw)
+                if value is not None and value not in canon:
+                    data_bad[(field, value)] = data_bad.get(
+                        (field, value), 0) + 1
+                    break
+    for (field, value) in sorted(data_bad):
+        violations.append(f"data: {field} value '{value}' not canonical")
+    # (c) persona lens narrower than its own power zone on a shared axis
+    check_fields = {"archetype_any": "archetype", "moat_any": "moat",
+                    "dhando_any": "dhando", "payoff_lens_any": "payoff_lens"}
+    personas = graph_build.load_json(
+        root / "_system" / "lenses" / "personas.json") or {}
+    zones_doc = graph_build.load_json(
+        root / "_system" / "frameworks" / "power_zones.json") or {}
+    zones = zones_doc.get("zones") or {}
+    narrower = 0
+    for pid, spec in (personas.get("personas") or {}).items():
+        zone_rules = (zones.get(pid) or {}).get("rules") or {}
+        for criterion in (spec.get("criteria") or []):
+            field = check_fields.get(str(criterion.get("check") or ""))
+            if not field or field not in zone_rules:
+                continue
+            lens_values = {str(v).lower() for v in criterion.get("values") or []}
+            zone_values = {str(v).lower() for v in zone_rules.get(field) or []}
+            canon = fields.get(field) or set()
+            missing = sorted((zone_values & canon) - lens_values)
+            if missing:
+                narrower += 1
+                violations.append(
+                    f"narrower-than-zone: persona {pid} {field} lens misses"
+                    f" zone values {', '.join(missing)}")
+    note = (f"{criteria_bad} non-canonical criteria values,"
+            f" {len(data_bad)} non-canonical data values"
+            f" ({sum(data_bad.values())} ticker-field hits),"
+            f" {narrower} lenses narrower than their zone")
+    return Result("L4", len(violations), violations, note=note)
+
+
+def inv_l5(conn, root, today) -> Result:
+    """Display honesty: a consensus stance carried by fewer than two
+    contributing personas is the compiler's own number wearing a consensus
+    badge. The zero-contributor case is structurally possible (build_consensus
+    accepts verdict-only personas the blend excludes) and the SPA renders the
+    stance badge unconditionally."""
+    rows = _lens_plane_scan(root)
+    judged = [row for row in rows if row["lenses_present"]]
+    if not judged:
+        return Result("L5", 0, [], note="vacuously green (no lenses.json)")
+    violations = []
+    for row in judged:
+        stance = str(row["consensus_stance"] or "").lower()
+        if stance in ("", "pending", "silent"):
+            continue
+        contributors = row["blend_contributors"] or 0
+        if contributors < 2:
+            violations.append(f"{row['ticker']}: consensus stance '{stance}'"
+                              f" with {contributors} contributing persona(s)")
+    return Result("L5", len(violations), violations,
+                  note=f"{len(judged)} tickers with lenses.json")
+
+
+def inv_l6(conn, root, today) -> Result:
+    """The canonical persona map holds everywhere: registries equal, no
+    re-defined GROUPS literal, and no active committee whose raters collapse
+    below the independence quorum under the canonical map (31 manifests had
+    already been seated with two quality_reinvestment raters when the
+    divergent copies were found)."""
+    personas = graph_build.load_json(
+        root / "_system" / "lenses" / "personas.json") or {}
+    persona_ids = set(personas.get("personas") or {})
+    if not persona_ids:
+        return Result("L6", 0, [],
+                      note="vacuously green (no personas.json)")
+    try:
+        from persona_groups import INDEPENDENCE_GROUPS, INDEPENDENCE_QUORUM
+    except ImportError:
+        return Result("L6", 1, ["persona_groups.py missing -- canonical map"
+                                " unavailable"])
+    violations = []
+    canonical_ids = set(INDEPENDENCE_GROUPS)
+    for pid in sorted(persona_ids - canonical_ids):
+        violations.append(f"registry: personas.json persona '{pid}' has no"
+                          " entry in persona_groups.INDEPENDENCE_GROUPS")
+    for pid in sorted(canonical_ids - persona_ids):
+        violations.append(f"registry: persona_groups persona '{pid}' missing"
+                          " from personas.json")
+    zones_doc = graph_build.load_json(
+        root / "_system" / "frameworks" / "power_zones.json") or {}
+    zone_ids = set(zones_doc.get("zones") or {})
+    if zone_ids:
+        for pid in sorted(zone_ids ^ canonical_ids):
+            violations.append(f"registry: power_zones.json zones and"
+                              f" persona_groups disagree on '{pid}'")
+    groups_literal = re.compile(r"^(GROUPS|INDEPENDENCE_GROUPS)\s*=\s*\{",
+                                re.MULTILINE)
+    scripts_dir = root / "_system" / "scripts"
+    if scripts_dir.is_dir():
+        for path in sorted(scripts_dir.glob("*.py")):
+            if path.name == "persona_groups.py":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if groups_literal.search(text):
+                violations.append(f"literal: {path.name} re-defines a GROUPS"
+                                  " map instead of importing persona_groups")
+    manifest_n = collided = 0
+    for manifest_path in sorted(root.glob(
+            "*/research/committee_work/*/manifest.json")):
+        manifest = graph_build.load_json(manifest_path)
+        if not isinstance(manifest, dict):
+            continue
+        if str(manifest.get("stage") or "") == "superseded":
+            continue
+        raters = [str(row.get("persona") or "")
+                  for row in manifest.get("selected_raters") or []
+                  if isinstance(row, dict)]
+        if not raters:
+            continue
+        manifest_n += 1
+        ticker = str(manifest.get("ticker") or manifest_path.parents[3].name)
+        # No .get(p, p) fallback here: minting an unknown id its own group is
+        # the exact defect this check exists to catch -- a typo'd rater would
+        # otherwise inflate the count past quorum.
+        unknowns = sorted({p for p in raters if p not in INDEPENDENCE_GROUPS})
+        canonical_groups = {INDEPENDENCE_GROUPS[p] for p in raters
+                            if p in INDEPENDENCE_GROUPS}
+        if unknowns:
+            collided += 1
+            violations.append(
+                f"committee: {ticker}@{manifest_path.parent.name} rater id(s)"
+                f" outside the canonical registry: {', '.join(unknowns)} --"
+                " independence cannot be proven")
+        elif len(canonical_groups) < INDEPENDENCE_QUORUM:
+            collided += 1
+            violations.append(
+                f"committee: {ticker}@{manifest_path.parent.name} raters"
+                f" {', '.join(raters)} collapse to {len(canonical_groups)}"
+                " canonical group(s)")
+    note = (f"{len(persona_ids)} personas, {manifest_n} active manifests,"
+            f" {collided} below quorum under the canonical map")
+    return Result("L6", len(violations), violations, note=note)
+
+
 INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6, inv_p7,
-              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6]
+              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6,
+              inv_l1, inv_l2, inv_l3, inv_l4, inv_l5, inv_l6]
 
 
 # --------------------------------------------------------------------------- #
@@ -638,6 +1179,53 @@ def _set_lane_ref(root: Path) -> bool:
     return True
 
 
+BASELINE_REL = "_system/graph/invariants_baseline.json"
+
+
+def baseline_ratchet(results: list[Result], root: Path) -> tuple[list[str], dict]:
+    """CI-enforced ratchet for opt-in report-severity invariants, copying the
+    check_evidence_integrity.py precedent: a committed baseline whose counts
+    may only fall; any rise fails the run. Only ids PRESENT in the baseline
+    file are armed (E6-style organically-growing counts stay unarmed), and an
+    absent baseline file disarms the ratchet entirely. The Delta column
+    compares against HEAD and is display-only; this compares against the
+    pinned baseline and gates."""
+    baseline = graph_build.load_json(root / BASELINE_REL) or {}
+    counts = baseline.get("counts") if isinstance(baseline, dict) else None
+    if not isinstance(counts, dict):
+        return [], {}
+    regressions = []
+    for result in results:
+        if result.id in counts and result.count > int(counts[result.id]):
+            regressions.append(f"{result.id}: {result.count} > baseline"
+                               f" {counts[result.id]}"
+                               f" ({ascii_safe(TITLES[result.id])})")
+    return regressions, baseline
+
+
+def write_baseline(results: list[Result], root: Path,
+                   today: date) -> Path:
+    """Record current counts for the armed ids (or arm the L-series when no
+    baseline exists yet). Deliberately an explicit flag, never automatic: the
+    ratchet is only honest if lowering the bar is a reviewed act."""
+    path = root / BASELINE_REL
+    existing = graph_build.load_json(path) or {}
+    armed = list((existing.get("counts") or {})) if isinstance(existing, dict) \
+        else []
+    if not armed:
+        armed = [r.id for r in results if r.id.startswith("L")]
+    by_id = {r.id: r.count for r in results}
+    payload = {
+        "as_of": today.isoformat(),
+        "counts": {inv_id: by_id.get(inv_id, 0) for inv_id in sorted(armed)},
+        "note": "Ratchet baseline for the armed invariant ids. Counts may"
+                " only fall; a rise fails the suite. Re-record with"
+                " graph_invariants.py --update-baseline.",
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def previous_counts(root: Path) -> dict[str, int]:
     try:
         text = subprocess.run(
@@ -684,6 +1272,23 @@ def render_markdown(results: list[Result], meta: dict,
                      if note else
                      f"| {r.id} | {severity} | {r.count} | {r.delta} |"
                      f" {r.status} | {TITLES[r.id]} |")
+    ratchet = meta.get("ratchet") or {}
+    lines.append("")
+    if ratchet.get("armed"):
+        if ratchet.get("regressions"):
+            lines.append("**RATCHET REGRESSION** (baseline"
+                         f" {ratchet.get('baseline_as_of')}): "
+                         + "; ".join(ratchet["regressions"])
+                         + " -- the run fails; fix the regression or"
+                         " re-record the baseline in a reviewed commit"
+                         " (`--update-baseline`).")
+        else:
+            lines.append(f"Ratchet armed for {', '.join(ratchet['armed'])}"
+                         f" against baseline {ratchet.get('baseline_as_of')};"
+                         " no count rose.")
+    else:
+        lines.append("Ratchet disarmed (no"
+                     " `_system/graph/invariants_baseline.json`).")
     detail = [r for r in results if r.violations or r.waived]
     if detail:
         lines += ["", "## Violations", ""]
@@ -711,6 +1316,7 @@ def run(root: Path | None = None, db_path: Path | None = None,
     root = root or ROOT
     out_dir = out_dir or root / "_system" / "graph"
     today = today or date.today()
+    _LENS_SCAN_CACHE.clear()
     lane_ref_set_here = _set_lane_ref(root)
     try:
         builder = graph_build.build(root, db_path)
@@ -731,14 +1337,21 @@ def run(root: Path | None = None, db_path: Path | None = None,
         if result.id in prev:
             diff = result.count - prev[result.id]
             result.delta = f"{diff:+d}" if diff else "0"
-    exit_code = 1 if any(r.severity == "hard" and r.count for r in results) \
-        else 0
+    regressions, baseline = baseline_ratchet(results, root)
+    exit_code = 1 if (any(r.severity == "hard" and r.count for r in results)
+                      or regressions) else 0
     meta = {
         "run_date": today.isoformat(),
         "git_head": builder.git_head(),
         "nodes": len(builder.nodes),
         "edges": len(builder.edges),
         "exit_code": exit_code,
+        "ratchet": {
+            "armed": sorted((baseline.get("counts") or {}))
+            if isinstance(baseline, dict) else [],
+            "baseline_as_of": (baseline or {}).get("as_of"),
+            "regressions": regressions,
+        },
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "INVARIANTS.md").write_text(
@@ -761,8 +1374,16 @@ def main() -> int:
     parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None,
                         help="report directory (default _system/graph)")
+    parser.add_argument("--update-baseline", action="store_true",
+                        help="re-record the ratchet baseline at the current"
+                             " counts for the armed ids (arms the L-series"
+                             " when no baseline exists)")
     args = parser.parse_args()
     results, exit_code, meta = run(args.root, args.db, args.out)
+    if args.update_baseline:
+        path = write_baseline(results, args.root, date.today())
+        print("baseline re-recorded: %s" % path)
+        results, exit_code, meta = run(args.root, args.db, args.out)
     print("graph invariants @ %s (git %s)" % (meta["run_date"],
                                               meta["git_head"][:12]))
     for r in results:
@@ -773,8 +1394,11 @@ def main() -> int:
         print(line)
     out = args.out or args.root / "_system" / "graph"
     print("report: %s" % (out / "INVARIANTS.md"))
+    ratchet = meta.get("ratchet") or {}
+    if ratchet.get("regressions"):
+        print("RATCHET REGRESSIONS: " + "; ".join(ratchet["regressions"]))
     if exit_code:
-        print("HARD INVARIANT VIOLATIONS -- see the report above")
+        print("HARD INVARIANT OR RATCHET VIOLATIONS -- see the report above")
     return exit_code
 
 

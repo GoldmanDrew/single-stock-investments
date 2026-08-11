@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-08-10",
+  "updated": "2026-08-11",
   "notes": [
     "Config for _system/scripts/graph_build.py. Lane regexes match git commit subjects (one git log call, bounded window).",
     "The guard registry maps correction row ids (date + first-40-chars-of-error slug, computed by graph_build.correction_slug) to the executable asserts that guard them and the scripts that enforce those asserts.",
@@ -178,6 +178,29 @@
           "_system/scripts/tests/test_memory_triage.py"
         ]
       }
+    ],
+    "2026-08-11-kept-two-hand-synced-copies-of-the-perso": [
+      {
+        "id": "canonical-persona-groups",
+        "label": "persona_groups.py is the single source of the persona->independence-group map; L6 asserts registry equality, no re-defined GROUPS literal, and quorum under the canonical map for every active committee manifest",
+        "script": "_system/scripts/persona_groups.py",
+        "function": "INDEPENDENCE_GROUPS / graph_invariants.inv_l6",
+        "enforced_by": [
+          "_system/scripts/test_graph_invariants.py"
+        ]
+      }
+    ],
+    "2026-08-11-regenerated-lenses-json-only-inside-full": [
+      {
+        "id": "lens-plane-freshness",
+        "label": "power-zone-universe regenerates lenses.json before the dashboard-row refresh; extract_shared_context reads layered classification + contract returns; L1/L3 count the remaining debt under the baseline ratchet",
+        "script": "_system/scripts/persona_lens_common.py",
+        "function": "resolve_classification / extract_shared_context / graph_invariants.inv_l1,inv_l3",
+        "enforced_by": [
+          "_system/scripts/test_graph_invariants.py",
+          "_system/scripts/test_persona_lens.py"
+        ]
+      }
     ]
   },
   "falsifier_enforcement": {
@@ -192,7 +215,7 @@
     "overrides": {
       "P2": {
         "severity": "report",
-        "todo": "2026-08-10 TODO: 6 of 12 guards are enforced only by test suites (test_committee_livelock.py, test_memory_triage.py, test_contract_backfill_lane.py, test_build_review_queue_rollup.py, test_valuation_readiness_automation.py) that no CI workflow invokes. Wiring five real test suites into CI is its own change with its own failure modes, not a mechanical fix, so P2 is report-severity until they are wired; re-harden it in the same commit that wires them."
+        "todo": "2026-08-10 TODO (count updated 2026-08-11: 6 of 14 after the two lens-plane guards, both wired via test_graph_invariants.py): 6 guards are enforced only by test suites (test_committee_livelock.py, test_memory_triage.py, test_contract_backfill_lane.py, test_build_review_queue_rollup.py, test_valuation_readiness_automation.py) that no CI workflow invokes. Wiring five real test suites into CI is its own change with its own failure modes, not a mechanical fix, so P2 is report-severity until they are wired; re-harden it in the same commit that wires them."
       }
     },
     "waivers": {
@@ -246,6 +269,62 @@
       "stamp_field": "published_at",
       "max_age_hours": 100,
       "healer": "start the Windows scheduled task that runs _system/scripts/run_databento_flow_monitor.ps1 (it now supervises the python monitor and restarts it, bounded to 6 restarts/hour)"
+    }
+  },
+  "classification_vocab": {
+    "_doc": "L4 registry: canonical enum values per classification field, mirrored from _system/frameworks/classification.md (the prose authority). Sentinels mean 'not yet classified' and are exempt everywhere. Criteria surfaces (personas.json criteria, power_zones.json zone rules and profile preferred_archetypes) may only reference canonical values; data surfaces (valuation.json classification_inputs, portfolio registry) may only carry canonical values or sentinels. L4 also asserts no persona lens is strictly narrower than its own power zone on a shared axis -- the stahl-omits-optionality class.",
+    "sentinels": [
+      "",
+      "pending",
+      "unknown",
+      "-"
+    ],
+    "fields": {
+      "archetype": [
+        "croupier",
+        "compounder",
+        "serial_acquirer",
+        "platform",
+        "holding_co",
+        "optionality",
+        "turnaround",
+        "infrastructure"
+      ],
+      "payoff_lens": [
+        "operating",
+        "asset",
+        "event",
+        "levered"
+      ],
+      "moat": [
+        "widening",
+        "stable",
+        "eroding",
+        "unproven",
+        "n/a"
+      ],
+      "dhando": [
+        "full",
+        "partial",
+        "none"
+      ]
+    }
+  },
+  "derived_artifacts": {
+    "_doc": "L3 registry: per-ticker derived artifacts that must be at least as fresh as their source (as_of string compare, YYYY-MM-DD). stale = derived exists with as_of behind the source; missing_when limits the absent-file check ('decision_grade' = only tickers whose valuation_contract.json status is decision_grade; 'never' = absence is not judged). Born from WHK 2026-08-11: re-underwritten same day, lenses.json and the embedded lens_consensus block still 2026-08-05, and the nightly dashboard bakes whatever stale lenses.json is committed.",
+    "lenses": {
+      "source": "research/valuation.json",
+      "derived": "research/lenses.json",
+      "stamp_field": "as_of",
+      "missing_when": "decision_grade",
+      "healer": "python _system/scripts/persona_lens.py --all --skip-valuation (power-zone-universe lane; Makefile persona-lens for the full local refresh)"
+    },
+    "valuation_route": {
+      "source": "research/valuation.json",
+      "derived": "research/valuation_route.json",
+      "stamp_field": "as_of",
+      "missing_when": "never",
+      "healer": "python _system/scripts/power_zone_router.py --scope valued (power-zone-universe cron 30 5 * * 1; ls-algo lane daily)"
     }
   }
 }
