@@ -46,6 +46,16 @@ on:
       - "_system/research/**"
       - "_system/data/runs/**"
       - "_system/reviews/**"
+      # Lens-plane judged surfaces (L1-L6): classification and persona
+      # registries, lenses, and the canonical groups module
+      # (**/research/valuation.json is already listed above).
+      - "**/research/lenses.json"
+      - "**/research/valuation_route.json"
+      - "_system/lenses/**"
+      - "_system/frameworks/power_zones.json"
+      - "_system/portfolio/registry.json"
+      - "_system/scripts/persona_groups.py"
+      - "_system/scripts/persona_lens_common.py"
   pull_request:
     branches: [main]
     paths:
@@ -98,6 +108,12 @@ on:
       # review tree P4 scans.
       - "_system/data/runs/**"
       - "_system/reviews/**"
+      # Lens-plane judged surfaces (L1-L6) outside **/research/**.
+      - "_system/lenses/**"
+      - "_system/frameworks/power_zones.json"
+      - "_system/portfolio/registry.json"
+      - "_system/scripts/persona_groups.py"
+      - "_system/scripts/persona_lens_common.py"
 
 permissions:
   contents: read
@@ -203,7 +219,14 @@ jobs:
               /(^|\/)research\/(valuation_contract|falsifier_specs)\.json$/.test(name) ||
               /^_system\/research\//.test(name) ||
               /^_system\/data\/runs\//.test(name) ||
-              /^_system\/reviews\//.test(name)
+              /^_system\/reviews\//.test(name) ||
+              // Lens-plane judged surfaces (L1-L6): classification and
+              // persona registries, lenses, the canonical groups module.
+              /(^|\/)research\/(valuation|lenses)\.json$/.test(name) ||
+              /^_system\/lenses\//.test(name) ||
+              name === '_system/frameworks/power_zones.json' ||
+              name === '_system/portfolio/registry.json' ||
+              /^_system\/scripts\/(persona_groups|persona_lens_common)\.py$/.test(name)
             );
             core.setOutput('prompt_sync', String(promptSync));
             core.setOutput('research_lint', String(researchLint));

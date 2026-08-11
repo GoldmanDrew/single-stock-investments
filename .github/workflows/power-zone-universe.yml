@@ -92,10 +92,20 @@ jobs:
             test_llm_workflow_governance
           python build_valuation_method_registry.py --check
 
+      # persona_lens.py had ZERO CI invokers before 2026-08-11, so lenses.json
+      # went stale the moment anything but a full local marvin refresh rewrote
+      # valuation.json, and the nightly dashboard rebuilds (data-pipeline
+      # lanes run build_dashboard_data.py, the sole lens consumer) baked the
+      # stale committed file (invariant L3). Regenerating and COMMITTING
+      # lenses.json here, right after the valuations move, is what keeps
+      # those rebuilds fresh. --skip-valuation keeps CI from rewriting
+      # valuation.json (no self-trigger risk; the embedded lens_consensus
+      # block is refreshed by full marvin runs instead).
       - name: Process canonical universe
         run: |
           python _system/scripts/build_valuation_method_registry.py
           python _system/scripts/run_security_decision_pipeline.py --scope all --skip-dashboard
+          python _system/scripts/persona_lens.py --all --skip-valuation
           python _system/scripts/refresh_valuation_dashboard_rows.py
           python _system/scripts/validate_dashboard_data.py
 
@@ -107,6 +117,8 @@ jobs:
                          '*/research/valuation_contract.json' \
                          '*/research/valuation_workbench.json' \
                          '*/research/pricing_analysis.json' \
+                         '*/research/lenses.json' \
+                         '_system/lenses/universe_percentiles.json' \
                          '_system/data/runs/power_zone_universe_run_*.json' \
                          dashboard/data/valuation_method_registry.json \
                          dashboard/data/power_zones.json \
