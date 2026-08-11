@@ -18,7 +18,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +44,10 @@ ALLOWANCE_TAGS = (
     "ValuationAllowanceDeferredTaxAssets",
     "DeferredTaxAssetsValuationAllowance",
 )
+# A cover-page share count older than this cannot price a current market cap;
+# it almost always means the ticker maps to a stale or superseded CIK.
+SHARES_MAX_AGE_DAYS = 450
+
 SHARES_TAGS = (
     "CommonStockSharesOutstanding",
     "EntityCommonStockSharesOutstanding",
@@ -159,22 +163,58 @@ def latest_usd_fact(facts: dict, tags: tuple[str, ...]) -> tuple[float | None, s
 
 
 def latest_shares_fact(facts: dict) -> tuple[float | None, str | None]:
-    """Return most recent shares-outstanding fact (unit contains 'share')."""
-    best_date = ""
-    best_val: float | None = None
-    us_gaap = facts.get("facts", {}).get("us-gaap", {})
-    for tag in SHARES_TAGS:
-        block = us_gaap.get(tag)
-        if not block:
-            continue
-        for unit_key, entries in (block.get("units") or {}).items():
-            if "share" not in unit_key.lower():
+    """Return most recent shares-outstanding fact (unit contains 'share').
+
+    Searches BOTH XBRL namespaces. ``EntityCommonStockSharesOutstanding`` is a
+    ``dei`` (cover page) tag, not ``us-gaap``, so looking for it only under
+    us-gaap meant it could never be found however many filings carried it --
+    Newell reports 425,900,000 there as of 2026-07-27 and the screener read
+    None, which cost it a market cap, and with no market cap there is no
+    Section 382 limit and the row was blocked outright. 25 of 89 rows were
+    blocked this way: a namespace bug wearing the costume of missing data.
+
+    dei is preferred over us-gaap when both carry a value. The cover-page count
+    is the current, entity-level share count; ``us-gaap:CommonStockSharesOutstanding``
+    is a balance-sheet fact that can be scoped to a single class or, as with
+    VTRS, carry an obviously wrong value (100 shares) that produced a $1,620
+    market cap and a 47-million-year absorption estimate.
+    """
+    def scan(block_map: dict) -> tuple[float | None, str]:
+        best_date, best_val = "", None
+        for tag in SHARES_TAGS:
+            block = block_map.get(tag)
+            if not block:
                 continue
-            val, end = _pick_best_entry(entries)
-            if val is not None and end and end >= best_date:
-                best_date = end
-                best_val = val
-    return best_val, best_date or None
+            for unit_key, entries in (block.get("units") or {}).items():
+                if "share" not in unit_key.lower():
+                    continue
+                val, end = _pick_best_entry(entries)
+                if val is not None and end and end >= best_date:
+                    best_date, best_val = end, val
+        return best_val, best_date
+
+    all_facts = facts.get("facts", {}) or {}
+    dei_val, dei_date = scan(all_facts.get("dei", {}) or {})
+    if dei_val is None:
+        dei_val, dei_date = scan(all_facts.get("us-gaap", {}) or {})
+    if dei_val is None:
+        return None, None
+
+    # A share count only makes a market cap when it is CURRENT. PARA maps to
+    # CIK 0000813828, whose newest cover-page share fact is 2010-04-30, and
+    # GPRO's is 2014-06-30 -- pricing today's shares off a sixteen-year-old
+    # count would manufacture a confident, wrong market cap and with it a
+    # confident, wrong Section 382 limit. Refusing is the better failure: the
+    # row stays blocked with a reason that names the real problem, a stale
+    # ticker-to-CIK mapping, instead of silently producing a number.
+    if dei_date:
+        try:
+            age_days = (datetime.now(timezone.utc).date() - date.fromisoformat(dei_date[:10])).days
+        except ValueError:
+            age_days = None
+        if age_days is not None and age_days > SHARES_MAX_AGE_DAYS:
+            return None, f"stale:{dei_date}"
+    return dei_val, dei_date or None
 
 
 def fetch_yahoo_price(symbol: str) -> tuple[float | None, str | None]:
@@ -431,6 +471,12 @@ def section_382_profile(sec: dict, mcap: float | None) -> dict:
     # input rather than spotted in the output.
     if mcap is not None and 0 < mcap < IMPLAUSIBLE_MCAP_FLOOR_USD:
         blockers.append("implausible_market_cap_check_price_feed")
+    # latest_shares_fact refuses a cover-page count older than SHARES_MAX_AGE_DAYS
+    # and returns the date prefixed `stale:`. Name the real cause -- a stale or
+    # superseded ticker-to-CIK mapping -- rather than letting it read as an
+    # unexplained missing market cap, which is a different and cheaper problem.
+    if str(sec.get("shares_as_of") or "").startswith("stale:"):
+        blockers.append("stale_cik_mapping_share_count_is_years_old")
     # A carryforward that needs more than a few horizons to absorb is not being
     # used by anyone: the limit is too small relative to the loss, so the
     # ratio saturates at the ceiling while the absolute recovery stays trivial.
