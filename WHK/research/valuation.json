@@ -1,15 +1,13 @@
 {
   "ticker": "WHK",
-  "as_of": "2026-08-07",
+  "as_of": "2026-08-10",
   "method": "component_owner_cash_and_unit_nav",
-  "irr_method": "pending",
+  "irr_method": "scarce_asset_optionality",
   "lawrence_bucket": "other",
   "classification_inputs": {
     "archetype": "croupier",
-    "moat": "unproven",
-    "dhando": "pending",
-    "cycle": "-",
-    "payoff_lens": "operating"
+    "valuation_profile": "scarce_asset_optionality",
+    "method_source": "reviewed_override"
   },
   "inputs": {
     "notes": "424B4 prospectus (filed 2026-06-09, accession 0001193125-26-264014) pulled into evidence 2026-08-05. Business, share count, cash, debt, revenue, Adjusted EBITDA, and Cash Available for Distribution are now locked from the prospectus (see fields below). No dividend/distribution has been declared or paid as a public company, so payout ratio and a full owner-earnings IRR remain [HUMAN REVIEW]. No 10-Q has been filed as a public company as of this refresh.",
@@ -53,7 +51,8 @@
     "income_statement_source": "424B4 'Prospectus Summary \u2014 Summary Historical and Pro Forma Condensed Consolidated Financial and Other Data' and 'Non-GAAP Financial Measures' reconciliation tables. Pro forma FY2025 net loss of $(32.330) million is dominated by one-time Internalization-related items (loss on extinguishment of debt $21.017M, pro forma management-fee true-up $21.795M) and is not a run-rate operating figure; Adjusted EBITDA and Cash Available for Distribution back these out and are the better owner-earnings proxies pending a dividend policy.",
     "restatement_disclosure": "[HUMAN REVIEW] On 2026-04-22 the company concluded its audited FY2025 consolidated financial statements could no longer be relied upon due to material accounting errors: (i) recording of management fees and (ii) misclassification of pre-closing-date and post-effective-date monies received related to acquisitions. The company identified material weaknesses in internal control over financial reporting as of 2026-12-31 [sic, 2025-12-31] and concluded disclosure controls and procedures were not effective at a reasonable assurance level as of that date. Source: 424B4 'Prospectus Summary \u2014 Restatement' and 'Risk Factors'.",
     "no_dividend_declared_as_public_company": true,
-    "reserve_data_available_not_yet_modeled": "424B4 contains a 'SUMMARY RESERVE DATA' section (proved reserves as of 2025-12-31 and 2024-12-31 from CG&A, Schaper Energy, and Ryder Scott reserve reports) that has not yet been extracted into a decline-curve or reserve-life model. [HUMAN REVIEW]"
+    "reserve_data_available_not_yet_modeled": "424B4 contains a 'SUMMARY RESERVE DATA' section (proved reserves as of 2025-12-31 and 2024-12-31 from CG&A, Schaper Energy, and Ryder Scott reserve reports) that has not yet been extracted into a decline-curve or reserve-life model. [HUMAN REVIEW]",
+    "shares_outstanding": 22996579.0
   },
   "option_scan": [
     {
@@ -214,16 +213,24 @@
   "overlay_results": [],
   "economic_value_analysis": {
     "schema_version": "1.0",
-    "status": "recommended",
+    "status": "complete",
     "trigger": {
-      "required": false,
-      "reasons": [],
+      "required": true,
+      "reasons": [
+        "explicit_component_schedule"
+      ],
       "policy": "A complete economic-value analysis is required when any trigger fires; otherwise it is recommended."
     },
-    "method": "economic_claim_to_risked_present_value",
-    "economic_claim": {},
-    "gaap_role": null,
-    "accounting_reference": null,
+    "method": "component_owner_cash_and_unit_nav",
+    "economic_claim": {
+      "description": "A Class A share is a claim on WhiteHawk Minerals Corp., which owns 22,996,579 of 26,746,579 common OpCo Interests (86.0%) in WhiteHawk OpCo. OpCo owns non-operated mineral and royalty interests in the Marcellus and Haynesville Shales. The holder therefore owns a royalty on gas produced by third-party operators, not an operating business: WhiteHawk funds no drilling capital, bears no lease operating expense and carries no plugging and abandonment obligation. The claim is finite in the proved book - 206,473 MMcfe against 24,548 MMcfe of pro forma annual production, an 8.4-year proved life - and perpetual only to the extent operators keep converting unbooked fee acreage, which is not valued here.",
+      "unit_label": "Class A common share",
+      "unit_count": 22996579.0,
+      "unit_source": "424B4 Dilution: 15,296,579 Class A outstanding before the offering plus 7,700,000 offered = 22,996,579, held one-for-one against the Company's OpCo Interests. Class B (3,750,000) carries votes and no economic rights and is excluded from the unit count.",
+      "enterprise_to_equity_reconciliation": "The bridge is deliberately charged once, not twice. Cash Available for Distribution is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so the producing component is already an equity-level cash flow and the $64.463m of net debt ($75.000m debt less $10.537m cash) and the $30.643m Series B preferred are not deducted from it again. The unit-NAV component therefore carries senior_claims of exactly zero, recorded explicitly rather than omitted. Series D preferred was fully redeemed with IPO proceeds and is zero as-adjusted. The Company's economic interest in OpCo is applied before the per-share division in both components so the 14.0% held by Continuing Equity Owners is never counted as Class A value; low and base further assume the 1,250,000 earnout OpCo Interests issue, cutting the interest to 82.1%."
+    },
+    "gaap_role": "misleading_historical_cost",
+    "accounting_reference": "GAAP understates and misdates this economics in both directions. Pro forma FY2025 net income is a $32.330m loss while pro forma Cash Available for Distribution is $36.317m, because depletion of $36.451m is a historical-cost amortisation of acquisition prices rather than a measure of economic decline. Conversely the balance sheet carries the minerals at the cost of the 2025 PHX and Three Rivers Royalty acquisitions, not at the $293.690m PV-10 of the reserves. Neither the income statement nor the balance sheet is usable as the primary valuation basis; the CG&A reserve report is.",
     "comparable_hierarchy": [
       "issuer_arm_length_transaction",
       "same_asset_transaction",
@@ -232,9 +239,100 @@
       "approved_external_analysis"
     ],
     "gross_comparable_nav_per_share": null,
-    "risked_present_value_per_share": {},
-    "component_groups": [],
-    "valuation_proof": [],
+    "risked_present_value_per_share": {
+      "low": 4.85,
+      "base": 5.72,
+      "high": 6.83
+    },
+    "component_groups": [
+      {
+        "id": "producing_royalty_group",
+        "label": "Producing mineral and royalty interests",
+        "component_ids": [
+          "pdp_royalty_cash_stream"
+        ],
+        "economic_claim": "Royalties on the 178,544 MMcfe of proved developed producing reserves - wells already on production, paying today, at an average net rate of 64,270 Mcfe/d in Q1 2026.",
+        "valuation_basis": "Declining perpetuity on attributable Cash Available for Distribution at a 9%-12% required return, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume the reserve report does not book.",
+        "adjustments": "CAFD is taken at the OpCo level and multiplied by the Company's economic interest before the per-share division. No deduction for net debt or preferred, which CAFD already services. No addition for reinvestment of retained cash into further royalty acquisitions.",
+        "overlap_control": "overlap_key `pdp_producing_royalty_cash`. Bounded by volume: a perpetuity declining at d consumes P/d, so the -13.75% to -13.0% band consumes 178,531 to 188,831 MMcfe against a 178,544 MMcfe producing book. Volumes beyond that belong to the non-producing group and are not double-counted.",
+        "risked_present_value_per_share": {
+          "low": 4.34,
+          "base": 5.01,
+          "high": 5.89
+        }
+      },
+      {
+        "id": "non_producing_inventory_group",
+        "label": "Non-producing and undeveloped mineral reserves",
+        "component_ids": [
+          "non_producing_reserve_inventory"
+        ],
+        "economic_claim": "Royalties on the 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped reserves, which generate no Cash Available for Distribution today.",
+        "valuation_basis": "Unit NAV: the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe), haircut for realisation timing, less the SEC-computed future income tax drag of 9.32%.",
+        "adjustments": "Tax drag taken from the $27.364m difference between PV-10 of $293.690m and the standardized measure of $266.326m. Senior claims explicitly zero to avoid charging debt and preferred a second time. Company economic interest applied before the per-share division.",
+        "overlap_control": "overlap_key `pdnp_and_pud_reserves`. Disjoint from the producing group by definition of the reserve report's own categories: 178,544 + 23,066 + 4,864 = 206,473 MMcfe with no volume in two groups.",
+        "risk_and_timing": {
+          "probability_basis": "Proved reserves only, so SEC reasonable-certainty already applies and no further probability weighting is imposed. Unbooked acreage, which would require a type-curve and risking model, is excluded entirely rather than risked at a guessed probability.",
+          "timing_basis": "Not scheduled well by well. The 0.40/0.55/0.70 realisation haircut on the blended PV-10 unit value stands in for the fact that these volumes sit later in the discount schedule than the producing volumes that dominate PV-10. This is the weakest judgment in the contract and is what the FY2026 reserve report would replace.",
+          "remaining_capital_basis": "Zero, and structurally so. A royalty owner funds none of the development cost; the working-interest operators bear all drilling and completion capital. The haircut is therefore timing and operator-behaviour only, not a capital charge."
+        },
+        "risked_present_value_per_share": {
+          "low": 0.51,
+          "base": 0.71,
+          "high": 0.94
+        }
+      }
+    ],
+    "valuation_proof": [
+      {
+        "component_id": "pdp_royalty_cash_stream",
+        "economic_claim": "Royalties on the 178,544 MMcfe of proved developed producing reserves - wells already on production, paying today, at an average net rate of 64,270 Mcfe/d in Q1 2026.",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "owner_cash_or_dividend_discount",
+        "evidence_tier": "primary_derived",
+        "evidence": "Pro forma Cash Available for Distribution of $36.317m for FY2025 and $9.959m for Q1 2026, from the 424B4 reconciliation. CAFD is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so it is an equity-level cash flow and net debt and the mezzanine preferred are deliberately not subtracted again. The Company's economic interest in WhiteHawk OpCo is applied before the per-share division so that the 14.0% held by Continuing Equity Owners is never counted as Class A value. The decline rate is bounded by the 178,544 MMcfe proved developed producing reserve book.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "CAFD is taken at the OpCo level and multiplied by the Company's economic interest before the per-share division. No deduction for net debt or preferred, which CAFD already services. No addition for reinvestment of retained cash into further royalty acquisitions.",
+        "range_per_share": {
+          "low": 4.34,
+          "base": 5.01,
+          "high": 5.89
+        },
+        "treatment": "additive",
+        "overlap_key": "pdp_producing_royalty_cash",
+        "overlap_control": "overlap_key `pdp_producing_royalty_cash`. Bounded by volume: a perpetuity declining at d consumes P/d, so the -13.75% to -13.0% band consumes 178,531 to 188,831 MMcfe against a 178,544 MMcfe producing book. Volumes beyond that belong to the non-producing group and are not double-counted.",
+        "falsifier": "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report; or the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here; or a declared dividend sets an annualised Class A rate above $1.30 per share, which no sustainable distribution consistent with this decline band supports.",
+        "risk_and_timing": null
+      },
+      {
+        "component_id": "non_producing_reserve_inventory",
+        "economic_claim": "Royalties on the 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped reserves, which generate no Cash Available for Distribution today.",
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "evidence_tier": "primary_derived",
+        "evidence": "23,066 MMcfe of proved developed non-producing plus 4,864 MMcfe of proved undeveloped reserves at 2025-12-31, from the CG&A reserve report in the 424B4. Valued at the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe) less a timing haircut, then less the SEC-computed future income tax drag of 9.32% (PV-10 $293.690m against a standardized measure of $266.326m). These volumes contribute no Cash Available for Distribution today, so they do not overlap the producing component.",
+        "comparable_role": "not_applicable",
+        "comparable_ids": [],
+        "adjustment": "Tax drag taken from the $27.364m difference between PV-10 of $293.690m and the standardized measure of $266.326m. Senior claims explicitly zero to avoid charging debt and preferred a second time. Company economic interest applied before the per-share division.",
+        "range_per_share": {
+          "low": 0.51,
+          "base": 0.71,
+          "high": 0.94
+        },
+        "treatment": "additive",
+        "overlap_key": "pdnp_and_pud_reserves",
+        "overlap_control": "overlap_key `pdnp_and_pud_reserves`. Disjoint from the producing group by definition of the reserve report's own categories: 178,544 + 23,066 + 4,864 = 206,473 MMcfe with no volume in two groups.",
+        "falsifier": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on.",
+        "risk_and_timing": null
+      }
+    ],
     "wisdom_applied": [],
     "limitations": [],
     "complete_component_coverage": true,
@@ -746,19 +844,18 @@
     "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
   },
   "component_valuation_results": {
+    "status": "complete",
+    "decision_rule": "Use the complete low/base/high component schedule. Embedded components are estimated but not added twice. Security equity value per share is floored at 0 (limited liability).",
     "all_material_components_identified": true,
     "additive_components": [
       {
-        "id": "mineral_royalty_cash_stream",
-        "label": "Marcellus and Haynesville mineral and royalty interests, attributable to Class A via the Company's OpCo stake",
-        "category": "real_option",
+        "id": "pdp_royalty_cash_stream",
+        "label": "Producing Marcellus and Haynesville royalty cash stream, attributable to Class A via the Company's OpCo stake",
+        "category": "operating_business",
+        "overlap_key": "pdp_producing_royalty_cash",
         "treatment": "additive",
-        "overlap_key": "opco_royalty_interests",
+        "included_in_component_id": null,
         "method": "owner_cash_or_dividend_discount",
-        "corroboration_gap": "Unit-NAV leg of component_owner_cash_and_unit_nav is unevidenced: no reserve-life or decline-curve model exists, and no 10-K/10-Q has been filed since the 2026-06-10 IPO. Corroborate with royalty_distribution_curve@1.0 once Summary Reserve Data is modelled.",
-        "evidence_tier": "primary_derived",
-        "evidence": "Pro forma Cash Available for Distribution of $36.317m for FY2025 and $9.959m for Q1 2026, from the 424B4 summary financial data. CAFD is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so it is an equity-level cash flow and net debt and the mezzanine preferred are deliberately not subtracted again. The Company's 86.0% economic interest in WhiteHawk OpCo is applied before the per-share division so that the 14.0% held by Continuing Equity Owners is never counted as Class A value.",
-        "falsifier": "A reserve-life / decline-curve model built from the 424B4 Summary Reserve Data, or the first 10-Q, shows net decline outside the -6% to 0% band assumed here; or a declared dividend policy sets a payout that implies a different sustainable distribution than pro forma CAFD.",
         "valuation_status": "bounded_estimate",
         "calculation_proof": {
           "schema_version": "1.0",
@@ -774,7 +871,7 @@
               "unit": "USD_m",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "Summary historical and pro forma financial data, Cash Available for Distribution, Pro Forma Year Ended December 31, 2025: $36,317 thousand",
+                "locator": "Reconciliation of Cash Available for Distribution, Pro Forma Year Ended December 31, 2025: $36,317 thousand",
                 "as_of": "2025-12-31"
               },
               "locked": true
@@ -787,8 +884,34 @@
               "unit": "USD_m",
               "source": {
                 "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-                "locator": "Summary historical and pro forma financial data, Cash Available for Distribution, Pro Forma Three Months Ended March 31, 2026: $9,959 thousand",
+                "locator": "Reconciliation of Cash Available for Distribution, Pro Forma Three Months Ended March 31, 2026: $9,959 thousand",
                 "as_of": "2026-03-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "proved_pdp_mmcfe",
+              "label": "Proved developed producing reserves at 2025-12-31",
+              "kind": "fact",
+              "value": 178544.0,
+              "unit": "MMcfe",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed producing reserves Total (MMcfe): 178,544",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "pf_fy2025_production_mmcfe",
+              "label": "Pro forma FY2025 net production",
+              "kind": "fact",
+              "value": 24548.075,
+              "unit": "MMcfe",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "Pro forma average net daily production of 67,255 Mcfe/d for the year ended December 31, 2025, annualised at 365 days",
+                "as_of": "2025-12-31"
               },
               "locked": true
             },
@@ -817,7 +940,7 @@
                 "high": 39.836
               },
               "unit": "USD_m",
-              "rationale": "Q1 2026 pro forma CAFD annualises to $39.8m against $36.3m for pro forma FY2025, so the disclosed run-rate is rising. One quarter is not a year for a commodity royalty, so the base takes the midpoint rather than the latest quarter.",
+              "rationale": "Q1 2026 pro forma CAFD annualises to $39.8m against $36.3m for pro forma FY2025, so the disclosed run-rate is rising. One quarter is not a year for a commodity royalty, so the base takes the midpoint rather than the latest quarter. Note this is a cash measure struck before depletion: pro forma DD&A of $36.451m is essentially equal to CAFD of $36.317m, and pro forma FY2025 net income is a $32.330m loss.",
               "allowed_range": {
                 "min": 30.0,
                 "max": 42.0
@@ -849,26 +972,26 @@
                 "high": 0.09
               },
               "unit": "ratio",
-              "rationale": "No capex and no operating cost, but full commodity exposure, a single-basin pair, a first-year public company with a restated FY2025 and identified material weaknesses, and no declared dividend policy. The low value case carries the high discount rate.",
+              "rationale": "No capex and no operating cost, but full commodity exposure, a single-basin pair, a first-year public company with a restated FY2025 and identified material weaknesses, and no declared dividend policy. The low value case carries the high discount rate. The 10% base matches the discount rate the SEC prescribes for PV-10, keeping this leg comparable with the NAV leg.",
               "allowed_range": {
                 "min": 0.08,
                 "max": 0.14
               }
             },
             {
-              "id": "net_decline",
-              "label": "Net annual change in attributable CAFD",
+              "id": "pdp_decline",
+              "label": "Net annual decline in attributable producing CAFD",
               "kind": "judgment",
               "values": {
-                "low": -0.06,
-                "base": -0.03,
-                "high": 0.02
+                "low": -0.1375,
+                "base": -0.135,
+                "high": -0.13
               },
               "unit": "ratio",
-              "rationale": "Mineral and royalty interests deplete as wells decline, which sets the low case. But CAFD is struck before acquisition spend, and the stated strategy is to reinvest cash beyond the dividend into more royalties -- royalty revenue ran $12.702m in FY2024, $50.075m in FY2025 and annualises to $102.5m off Q1 2026. Capitalising that as a pure decline would charge depletion while crediting nothing for reinvestment, the mirror of the 'growth without its capital cost' error, so the high case carries modest positive growth. This band is the single largest unverified judgment here and is what the reserve model in the falsifier would replace. For reference, the $26.16 market price implies a ~5.0% cap rate, i.e. roughly +5% perpetual growth at a 10% required return -- above even this high case, so the gap to market is a growth disagreement, not an arithmetic one.",
+              "rationale": "A perpetuity declining at d consumes total volume P/d, so the decline rate is what ties this component to a finite reserve book. Proved developed producing reserves of 178,544 MMcfe against pro forma annual production of 24,548 MMcfe give a 7.27-year producing life and d = 13.75%; against Q1 2026 annualised production of 23,459 MMcfe the life is 7.61 years and d = 13.14%. The band spans those two computed values. Anything shallower reaches into the non-producing and undeveloped volumes that component 2 already counts, or into unbooked acreage that no filed reserve report supports. Observed pro forma volumes fell 4.4% (67,255 to 64,270 Mcfe/d), the difference being new wells converting inventory into production -- value credited in component 2, not here.",
               "allowed_range": {
-                "min": -0.1,
-                "max": 0.05
+                "min": -0.16,
+                "max": -0.1
               }
             }
           ],
@@ -887,7 +1010,7 @@
               "op": "add",
               "args": [
                 1,
-                "net_decline"
+                "pdp_decline"
               ],
               "unit": "ratio"
             },
@@ -905,12 +1028,12 @@
               "op": "subtract",
               "args": [
                 "required_return",
-                "net_decline"
+                "pdp_decline"
               ],
               "unit": "ratio"
             },
             {
-              "id": "attributable_value_m",
+              "id": "pdp_value_m",
               "op": "divide",
               "args": [
                 "next_year_cafd_m",
@@ -919,10 +1042,10 @@
               "unit": "USD_m"
             },
             {
-              "id": "attributable_value",
+              "id": "pdp_value",
               "op": "multiply",
               "args": [
-                "attributable_value_m",
+                "pdp_value_m",
                 1000000
               ],
               "unit": "USD"
@@ -931,7 +1054,7 @@
               "id": "value_per_share",
               "op": "divide",
               "args": [
-                "attributable_value",
+                "pdp_value",
                 "class_a_shares"
               ],
               "unit": "USD_per_share"
@@ -945,16 +1068,948 @@
           "source_lineage": [
             {
               "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
-              "locator": "424B4 filed 2026-06-09, summary financial data and Our Organizational Structure",
+              "locator": "424B4 filed 2026-06-09: Cash Available for Distribution reconciliation, SUMMARY RESERVE DATA, Our Organizational Structure",
               "as_of": "2026-06-09"
             }
           ]
-        }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Pro forma Cash Available for Distribution of $36.317m for FY2025 and $9.959m for Q1 2026, from the 424B4 reconciliation. CAFD is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so it is an equity-level cash flow and net debt and the mezzanine preferred are deliberately not subtracted again. The Company's economic interest in WhiteHawk OpCo is applied before the per-share division so that the 14.0% held by Continuing Equity Owners is never counted as Class A value. The decline rate is bounded by the 178,544 MMcfe proved developed producing reserve book.",
+        "cross_check": "The unit-NAV leg is component `non_producing_reserve_inventory`. Together the two components span the 206,473 MMcfe proved book: 178,544 MMcfe producing here, 27,930 MMcfe non-producing there. As an aggregate check, PV-10 of $293.690m less net debt of $64.463m and the $30.643m Series B preferred, at the 82.1% economic interest, is $6.51 per Class A share before any corporate G&A -- the same order as the sum of the two components, from an independent SEC-prescribed computation.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Owner-cash leg of component_owner_cash_and_unit_nav. Declining perpetuity on attributable CAFD, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume it does not own.",
+        "falsifier": "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report; or the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here; or a declared dividend sets an annualised Class A rate above $1.30 per share, which no sustainable distribution consistent with this decline band supports.",
+        "scenario_assumptions": null,
+        "low_per_share": 4.34,
+        "base_per_share": 5.01,
+        "high_per_share": 5.89
+      },
+      {
+        "id": "non_producing_reserve_inventory",
+        "label": "Proved developed non-producing and proved undeveloped mineral reserves, attributable to Class A via the Company's OpCo stake",
+        "category": "net_assets",
+        "overlap_key": "pdnp_and_pud_reserves",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "proved_pdnp_mmcfe",
+              "label": "Proved developed non-producing reserves at 2025-12-31",
+              "kind": "fact",
+              "value": 23066.0,
+              "unit": "MMcfe",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "proved_pud_mmcfe",
+              "label": "Proved undeveloped reserves at 2025-12-31",
+              "kind": "fact",
+              "value": 4864.0,
+              "unit": "MMcfe",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "total_proved_mmcfe",
+              "label": "Total proved reserves at 2025-12-31",
+              "kind": "fact",
+              "value": 206473.0,
+              "unit": "MMcfe",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved reserves Total (MMcfe): 206,473",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "pv10_m",
+              "label": "PV-10 of total proved reserves at 2025-12-31",
+              "kind": "fact",
+              "value": 293.69,
+              "unit": "USD_m",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, PV-10: $293,690 thousand, at $3.387/MMBtu Henry Hub and $65.34/bbl WTI SEC pricing",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "standardized_measure_m",
+              "label": "Standardized measure of discounted future net cash flows at 2025-12-31",
+              "kind": "fact",
+              "value": 266.326,
+              "unit": "USD_m",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Standardized Measure: $266,326 thousand",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "class_a_shares",
+              "label": "Class A common shares outstanding after the Transactions",
+              "kind": "fact",
+              "value": 22996579.0,
+              "unit": "shares",
+              "source": {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "Our Organizational Structure: we will own 22,996,579 OpCo Interests, held one-for-one against Class A common stock",
+                "as_of": "2026-06-09"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "realization_haircut",
+              "label": "Share of the blended PV-10 unit value realised on non-producing volumes",
+              "kind": "judgment",
+              "values": {
+                "low": 0.4,
+                "base": 0.55,
+                "high": 0.7
+              },
+              "unit": "ratio",
+              "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped volumes are realised later and are therefore worth less per Mcfe. The band brackets that timing discount. A royalty owner funds none of the development cost, so the haircut is timing and operator-behaviour only, not capital.",
+              "allowed_range": {
+                "min": 0.3,
+                "max": 0.8
+              }
+            },
+            {
+              "id": "company_economic_interest",
+              "label": "Company's common economic interest in WhiteHawk OpCo",
+              "kind": "judgment",
+              "values": {
+                "low": 0.821407,
+                "base": 0.821407,
+                "high": 0.859795
+              },
+              "unit": "ratio",
+              "rationale": "Same ownership arithmetic as the producing component: 86.0% today, 82.1% if the 1,250,000 earnout OpCo Interests are issued. Applied before the per-share division so the Continuing Equity Owners' 14.0% is never counted as Class A value.",
+              "allowed_range": {
+                "min": 0.8,
+                "max": 0.86
+              }
+            },
+            {
+              "id": "senior_claims_m",
+              "label": "Senior claims charged against this component",
+              "kind": "judgment",
+              "values": {
+                "low": 0.0,
+                "base": 0.0,
+                "high": 0.0
+              },
+              "unit": "USD_m",
+              "rationale": "Explicitly zero, not omitted. Net debt of $64.463m ($75.000m less $10.537m cash) and the $30.643m Series B preferred are serviced inside Cash Available for Distribution, which is struck after cash interest expense and cash preferred dividends and drives the producing component. Deducting the principal here as well would charge the same claims twice -- the routed profile's 'operating cash flow and NAV counted twice' failure mode.",
+              "allowed_range": {
+                "min": 0.0,
+                "max": 0.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "non_producing_mmcfe",
+              "op": "add",
+              "args": [
+                "proved_pdnp_mmcfe",
+                "proved_pud_mmcfe"
+              ],
+              "unit": "MMcfe"
+            },
+            {
+              "id": "blended_unit_value",
+              "op": "divide",
+              "args": [
+                "pv10_m",
+                "total_proved_mmcfe"
+              ],
+              "unit": "USD_m_per_MMcfe"
+            },
+            {
+              "id": "effective_unit_value",
+              "op": "multiply",
+              "args": [
+                "blended_unit_value",
+                "realization_haircut"
+              ],
+              "unit": "USD_m_per_MMcfe"
+            },
+            {
+              "id": "gross_assets_m",
+              "op": "multiply",
+              "args": [
+                "non_producing_mmcfe",
+                "effective_unit_value"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "tax_drag_m",
+              "op": "subtract",
+              "args": [
+                "pv10_m",
+                "standardized_measure_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "tax_drag_ratio",
+              "op": "divide",
+              "args": [
+                "tax_drag_m",
+                "pv10_m"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "tax_and_realization_costs_m",
+              "op": "multiply",
+              "args": [
+                "gross_assets_m",
+                "tax_drag_ratio"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "assets_after_tax_m",
+              "op": "subtract",
+              "args": [
+                "gross_assets_m",
+                "tax_and_realization_costs_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "net_assets_m",
+              "op": "subtract",
+              "args": [
+                "assets_after_tax_m",
+                "senior_claims_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "attributable_net_assets_m",
+              "op": "multiply",
+              "args": [
+                "net_assets_m",
+                "company_economic_interest"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "attributable_net_assets",
+              "op": "multiply",
+              "args": [
+                "attributable_net_assets_m",
+                1000000
+              ],
+              "unit": "USD"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "attributable_net_assets",
+                "class_a_shares"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          },
+          "source_lineage": [
+            {
+              "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+              "locator": "424B4 filed 2026-06-09: SUMMARY RESERVE DATA (CG&A reserve report at December 31, 2025) and Our Organizational Structure",
+              "as_of": "2026-06-09"
+            }
+          ]
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "23,066 MMcfe of proved developed non-producing plus 4,864 MMcfe of proved undeveloped reserves at 2025-12-31, from the CG&A reserve report in the 424B4. Valued at the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe) less a timing haircut, then less the SEC-computed future income tax drag of 9.32% (PV-10 $293.690m against a standardized measure of $266.326m). These volumes contribute no Cash Available for Distribution today, so they do not overlap the producing component.",
+        "cross_check": "The owner-cash leg is component `pdp_royalty_cash_stream`. The two components partition the 206,473 MMcfe proved book with no volume counted twice. PV-10 is a pre-tax, SEC-prescribed 10% discounting of the same reserve report that sets the producing component's decline rate, so the legs share source data but not method.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Unit-NAV leg of component_owner_cash_and_unit_nav. Booked non-producing reserves only; unbooked acreage is deliberately uncredited.",
+        "falsifier": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on.",
+        "scenario_assumptions": null,
+        "low_per_share": 0.51,
+        "base_per_share": 0.71,
+        "high_per_share": 0.94
       }
     ],
     "embedded_components": [],
-    "partition_note": "WhiteHawk Minerals Corp. holds 22,996,579 OpCo Interests (86.0% of common economic interest); Continuing Equity Owners hold 3,750,000 (14.0%), exchangeable 1:1 into Class A. Class B carries votes and no economic rights, so it is not a claim on value and is excluded from the map. The Company owns all Series B preferred units of OpCo, mirroring its own Series B preferred stock, so that leg is intra-group and nets to zero. Note the prospectus also states IPO purchasers hold 24.8% of OpCo indirectly; 33.5% of the Company x 86.0% is 28.8%, so that figure does not tie. The explicit interest counts are used here and the discrepancy is flagged for human review rather than reconciled by assumption.",
+    "total_equity_value_per_share": {
+      "low": 4.85,
+      "base": 5.72,
+      "high": 6.83
+    },
+    "material_component_count": 2,
+    "additive_component_count": 2,
+    "embedded_component_count": 0,
+    "market_price_per_share": 26.16,
+    "upside_downside_pct": {
+      "low": -81.5,
+      "base": -78.1,
+      "high": -73.9
+    },
+    "partition_note": "WhiteHawk Minerals Corp. holds 22,996,579 OpCo Interests (86.0% of common economic interest); Continuing Equity Owners hold 3,750,000 (14.0%), exchangeable 1:1 into Class A. Class B carries votes and no economic rights, so it is not a claim on value and is excluded from the map. The Company owns all Series B preferred units of OpCo, mirroring its own Series B preferred stock, so that leg is intra-group and nets to zero. Note the prospectus also states IPO purchasers hold 24.8% of OpCo indirectly; 33.5% of the Company x 86.0% is 28.8%, so that figure does not tie. The explicit interest counts are used here and the discrepancy is flagged for human review rather than reconciled by assumption. The two components partition the 206,473 MMcfe proved reserve book: 178,544 MMcfe producing and 27,930 MMcfe non-producing. Unbooked acreage beyond the proved book is not valued in any component.",
     "source": "build_whk_contract_proofs.py",
-    "as_of": "2026-08-07"
+    "as_of": "2026-08-10"
+  },
+  "component_valuation": {
+    "schema_version": "2.0",
+    "all_material_components_identified": true,
+    "coverage_statement": "All material economic claims on Class A are identified. The royalty book is partitioned by production status so no reserve volume is valued twice, and the senior claims (net debt, Series B preferred) are charged once, inside Cash Available for Distribution.",
+    "partition_note": "WhiteHawk Minerals Corp. holds 22,996,579 OpCo Interests (86.0% of common economic interest); Continuing Equity Owners hold 3,750,000 (14.0%), exchangeable 1:1 into Class A. Class B carries votes and no economic rights, so it is not a claim on value and is excluded from the map. The Company owns all Series B preferred units of OpCo, mirroring its own Series B preferred stock, so that leg is intra-group and nets to zero. Note the prospectus also states IPO purchasers hold 24.8% of OpCo indirectly; 33.5% of the Company x 86.0% is 28.8%, so that figure does not tie. The explicit interest counts are used here and the discrepancy is flagged for human review rather than reconciled by assumption. The two components partition the 206,473 MMcfe proved reserve book: 178,544 MMcfe producing and 27,930 MMcfe non-producing. Unbooked acreage beyond the proved book is not valued in any component.",
+    "components": [
+      {
+        "id": "pdp_royalty_cash_stream",
+        "label": "Producing Marcellus and Haynesville royalty cash stream, attributable to Class A via the Company's OpCo stake",
+        "category": "operating_business",
+        "overlap_key": "pdp_producing_royalty_cash",
+        "treatment": "additive",
+        "valuation": {
+          "method": "owner_cash_or_dividend_discount",
+          "basis": "per_share",
+          "low": 4.345,
+          "base": 5.006,
+          "high": 5.8898,
+          "valuation_status": "bounded_estimate",
+          "evidence_tier": "primary_derived",
+          "evidence": "Pro forma Cash Available for Distribution of $36.317m for FY2025 and $9.959m for Q1 2026, from the 424B4 reconciliation. CAFD is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so it is an equity-level cash flow and net debt and the mezzanine preferred are deliberately not subtracted again. The Company's economic interest in WhiteHawk OpCo is applied before the per-share division so that the 14.0% held by Continuing Equity Owners is never counted as Class A value. The decline rate is bounded by the 178,544 MMcfe proved developed producing reserve book.",
+          "assumption_summary": "Owner-cash leg of component_owner_cash_and_unit_nav. Declining perpetuity on attributable CAFD, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume it does not own.",
+          "cross_check": "The unit-NAV leg is component `non_producing_reserve_inventory`. Together the two components span the 206,473 MMcfe proved book: 178,544 MMcfe producing here, 27,930 MMcfe non-producing there. As an aggregate check, PV-10 of $293.690m less net debt of $64.463m and the $30.643m Series B preferred, at the 82.1% economic interest, is $6.51 per Class A share before any corporate G&A -- the same order as the sum of the two components, from an independent SEC-prescribed computation.",
+          "falsifier": "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report; or the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here; or a declared dividend sets an annualised Class A rate above $1.30 per share, which no sustainable distribution consistent with this decline band supports.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "owner_cash_or_dividend_discount",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "pf_fy2025_cafd_m",
+                "label": "Pro forma Cash Available for Distribution, FY2025",
+                "kind": "fact",
+                "value": 36.317,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "Reconciliation of Cash Available for Distribution, Pro Forma Year Ended December 31, 2025: $36,317 thousand",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "pf_q1_2026_cafd_m",
+                "label": "Pro forma Cash Available for Distribution, Q1 2026",
+                "kind": "fact",
+                "value": 9.959,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "Reconciliation of Cash Available for Distribution, Pro Forma Three Months Ended March 31, 2026: $9,959 thousand",
+                  "as_of": "2026-03-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "proved_pdp_mmcfe",
+                "label": "Proved developed producing reserves at 2025-12-31",
+                "kind": "fact",
+                "value": 178544.0,
+                "unit": "MMcfe",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed producing reserves Total (MMcfe): 178,544",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "pf_fy2025_production_mmcfe",
+                "label": "Pro forma FY2025 net production",
+                "kind": "fact",
+                "value": 24548.075,
+                "unit": "MMcfe",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "Pro forma average net daily production of 67,255 Mcfe/d for the year ended December 31, 2025, annualised at 365 days",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "class_a_shares",
+                "label": "Class A common shares outstanding after the Transactions",
+                "kind": "fact",
+                "value": 22996579.0,
+                "unit": "shares",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "Our Organizational Structure: we will own 22,996,579 OpCo Interests, held one-for-one against Class A common stock",
+                  "as_of": "2026-06-09"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "cafd_run_rate_m",
+                "label": "Sustainable annual CAFD at OpCo",
+                "kind": "judgment",
+                "values": {
+                  "low": 36.317,
+                  "base": 38.076,
+                  "high": 39.836
+                },
+                "unit": "USD_m",
+                "rationale": "Q1 2026 pro forma CAFD annualises to $39.8m against $36.3m for pro forma FY2025, so the disclosed run-rate is rising. One quarter is not a year for a commodity royalty, so the base takes the midpoint rather than the latest quarter. Note this is a cash measure struck before depletion: pro forma DD&A of $36.451m is essentially equal to CAFD of $36.317m, and pro forma FY2025 net income is a $32.330m loss.",
+                "allowed_range": {
+                  "min": 30.0,
+                  "max": 42.0
+                }
+              },
+              {
+                "id": "company_economic_interest",
+                "label": "Company's common economic interest in WhiteHawk OpCo",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.821407,
+                  "base": 0.821407,
+                  "high": 0.859795
+                },
+                "unit": "ratio",
+                "rationale": "86.0% today. The Earnout Amount is 25% of the $130.0m Internalization Price, payable in OpCo Interests and matching Class B if Adjusted EBITDA targets are met; at the $26.00 IPO price that is 1,250,000 units, cutting the Company's interest to 82.1%. Given CAFD is already growing, low and base assume the targets are met and the dilution occurs; only the high case keeps 86.0%.",
+                "allowed_range": {
+                  "min": 0.8,
+                  "max": 0.86
+                }
+              },
+              {
+                "id": "required_return",
+                "label": "Required return on a non-operated gas royalty",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.12,
+                  "base": 0.1,
+                  "high": 0.09
+                },
+                "unit": "ratio",
+                "rationale": "No capex and no operating cost, but full commodity exposure, a single-basin pair, a first-year public company with a restated FY2025 and identified material weaknesses, and no declared dividend policy. The low value case carries the high discount rate. The 10% base matches the discount rate the SEC prescribes for PV-10, keeping this leg comparable with the NAV leg.",
+                "allowed_range": {
+                  "min": 0.08,
+                  "max": 0.14
+                }
+              },
+              {
+                "id": "pdp_decline",
+                "label": "Net annual decline in attributable producing CAFD",
+                "kind": "judgment",
+                "values": {
+                  "low": -0.1375,
+                  "base": -0.135,
+                  "high": -0.13
+                },
+                "unit": "ratio",
+                "rationale": "A perpetuity declining at d consumes total volume P/d, so the decline rate is what ties this component to a finite reserve book. Proved developed producing reserves of 178,544 MMcfe against pro forma annual production of 24,548 MMcfe give a 7.27-year producing life and d = 13.75%; against Q1 2026 annualised production of 23,459 MMcfe the life is 7.61 years and d = 13.14%. The band spans those two computed values. Anything shallower reaches into the non-producing and undeveloped volumes that component 2 already counts, or into unbooked acreage that no filed reserve report supports. Observed pro forma volumes fell 4.4% (67,255 to 64,270 Mcfe/d), the difference being new wells converting inventory into production -- value credited in component 2, not here.",
+                "allowed_range": {
+                  "min": -0.16,
+                  "max": -0.1
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "attributable_cafd_m",
+                "op": "multiply",
+                "args": [
+                  "cafd_run_rate_m",
+                  "company_economic_interest"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "growth_factor",
+                "op": "add",
+                "args": [
+                  1,
+                  "pdp_decline"
+                ],
+                "unit": "ratio"
+              },
+              {
+                "id": "next_year_cafd_m",
+                "op": "multiply",
+                "args": [
+                  "attributable_cafd_m",
+                  "growth_factor"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "cap_rate",
+                "op": "subtract",
+                "args": [
+                  "required_return",
+                  "pdp_decline"
+                ],
+                "unit": "ratio"
+              },
+              {
+                "id": "pdp_value_m",
+                "op": "divide",
+                "args": [
+                  "next_year_cafd_m",
+                  "cap_rate"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "pdp_value",
+                "op": "multiply",
+                "args": [
+                  "pdp_value_m",
+                  1000000
+                ],
+                "unit": "USD"
+              },
+              {
+                "id": "value_per_share",
+                "op": "divide",
+                "args": [
+                  "pdp_value",
+                  "class_a_shares"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            },
+            "source_lineage": [
+              {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "424B4 filed 2026-06-09: Cash Available for Distribution reconciliation, SUMMARY RESERVE DATA, Our Organizational Structure",
+                "as_of": "2026-06-09"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "non_producing_reserve_inventory",
+        "label": "Proved developed non-producing and proved undeveloped mineral reserves, attributable to Class A via the Company's OpCo stake",
+        "category": "net_assets",
+        "overlap_key": "pdnp_and_pud_reserves",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": 0.5147,
+          "base": 0.7077,
+          "high": 0.9429,
+          "valuation_status": "bounded_estimate",
+          "evidence_tier": "primary_derived",
+          "evidence": "23,066 MMcfe of proved developed non-producing plus 4,864 MMcfe of proved undeveloped reserves at 2025-12-31, from the CG&A reserve report in the 424B4. Valued at the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe) less a timing haircut, then less the SEC-computed future income tax drag of 9.32% (PV-10 $293.690m against a standardized measure of $266.326m). These volumes contribute no Cash Available for Distribution today, so they do not overlap the producing component.",
+          "assumption_summary": "Unit-NAV leg of component_owner_cash_and_unit_nav. Booked non-producing reserves only; unbooked acreage is deliberately uncredited.",
+          "cross_check": "The owner-cash leg is component `pdp_royalty_cash_stream`. The two components partition the 206,473 MMcfe proved book with no volume counted twice. PV-10 is a pre-tax, SEC-prescribed 10% discounting of the same reserve report that sets the producing component's decline rate, so the legs share source data but not method.",
+          "falsifier": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "net_asset_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "proved_pdnp_mmcfe",
+                "label": "Proved developed non-producing reserves at 2025-12-31",
+                "kind": "fact",
+                "value": 23066.0,
+                "unit": "MMcfe",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved developed non-producing reserves Total (MMcfe): 23,066",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "proved_pud_mmcfe",
+                "label": "Proved undeveloped reserves at 2025-12-31",
+                "kind": "fact",
+                "value": 4864.0,
+                "unit": "MMcfe",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved undeveloped reserves Total (MMcfe): 4,864",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "total_proved_mmcfe",
+                "label": "Total proved reserves at 2025-12-31",
+                "kind": "fact",
+                "value": 206473.0,
+                "unit": "MMcfe",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Estimated proved reserves Total (MMcfe): 206,473",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "pv10_m",
+                "label": "PV-10 of total proved reserves at 2025-12-31",
+                "kind": "fact",
+                "value": 293.69,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, PV-10: $293,690 thousand, at $3.387/MMBtu Henry Hub and $65.34/bbl WTI SEC pricing",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "standardized_measure_m",
+                "label": "Standardized measure of discounted future net cash flows at 2025-12-31",
+                "kind": "fact",
+                "value": 266.326,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "SUMMARY RESERVE DATA, WhiteHawk at December 31, 2025, Standardized Measure: $266,326 thousand",
+                  "as_of": "2025-12-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "class_a_shares",
+                "label": "Class A common shares outstanding after the Transactions",
+                "kind": "fact",
+                "value": 22996579.0,
+                "unit": "shares",
+                "source": {
+                  "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                  "locator": "Our Organizational Structure: we will own 22,996,579 OpCo Interests, held one-for-one against Class A common stock",
+                  "as_of": "2026-06-09"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "realization_haircut",
+                "label": "Share of the blended PV-10 unit value realised on non-producing volumes",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.4,
+                  "base": 0.55,
+                  "high": 0.7
+                },
+                "unit": "ratio",
+                "rationale": "PV-10 of $293.690m spread over 206,473 MMcfe is $1.422 per Mcfe, but that blended rate is dominated by the 178,544 MMcfe already producing, which sit earliest in the discount schedule. The 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped volumes are realised later and are therefore worth less per Mcfe. The band brackets that timing discount. A royalty owner funds none of the development cost, so the haircut is timing and operator-behaviour only, not capital.",
+                "allowed_range": {
+                  "min": 0.3,
+                  "max": 0.8
+                }
+              },
+              {
+                "id": "company_economic_interest",
+                "label": "Company's common economic interest in WhiteHawk OpCo",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.821407,
+                  "base": 0.821407,
+                  "high": 0.859795
+                },
+                "unit": "ratio",
+                "rationale": "Same ownership arithmetic as the producing component: 86.0% today, 82.1% if the 1,250,000 earnout OpCo Interests are issued. Applied before the per-share division so the Continuing Equity Owners' 14.0% is never counted as Class A value.",
+                "allowed_range": {
+                  "min": 0.8,
+                  "max": 0.86
+                }
+              },
+              {
+                "id": "senior_claims_m",
+                "label": "Senior claims charged against this component",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.0,
+                  "base": 0.0,
+                  "high": 0.0
+                },
+                "unit": "USD_m",
+                "rationale": "Explicitly zero, not omitted. Net debt of $64.463m ($75.000m less $10.537m cash) and the $30.643m Series B preferred are serviced inside Cash Available for Distribution, which is struck after cash interest expense and cash preferred dividends and drives the producing component. Deducting the principal here as well would charge the same claims twice -- the routed profile's 'operating cash flow and NAV counted twice' failure mode.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 0.0
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "non_producing_mmcfe",
+                "op": "add",
+                "args": [
+                  "proved_pdnp_mmcfe",
+                  "proved_pud_mmcfe"
+                ],
+                "unit": "MMcfe"
+              },
+              {
+                "id": "blended_unit_value",
+                "op": "divide",
+                "args": [
+                  "pv10_m",
+                  "total_proved_mmcfe"
+                ],
+                "unit": "USD_m_per_MMcfe"
+              },
+              {
+                "id": "effective_unit_value",
+                "op": "multiply",
+                "args": [
+                  "blended_unit_value",
+                  "realization_haircut"
+                ],
+                "unit": "USD_m_per_MMcfe"
+              },
+              {
+                "id": "gross_assets_m",
+                "op": "multiply",
+                "args": [
+                  "non_producing_mmcfe",
+                  "effective_unit_value"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "tax_drag_m",
+                "op": "subtract",
+                "args": [
+                  "pv10_m",
+                  "standardized_measure_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "tax_drag_ratio",
+                "op": "divide",
+                "args": [
+                  "tax_drag_m",
+                  "pv10_m"
+                ],
+                "unit": "ratio"
+              },
+              {
+                "id": "tax_and_realization_costs_m",
+                "op": "multiply",
+                "args": [
+                  "gross_assets_m",
+                  "tax_drag_ratio"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "assets_after_tax_m",
+                "op": "subtract",
+                "args": [
+                  "gross_assets_m",
+                  "tax_and_realization_costs_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "net_assets_m",
+                "op": "subtract",
+                "args": [
+                  "assets_after_tax_m",
+                  "senior_claims_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "attributable_net_assets_m",
+                "op": "multiply",
+                "args": [
+                  "net_assets_m",
+                  "company_economic_interest"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "attributable_net_assets",
+                "op": "multiply",
+                "args": [
+                  "attributable_net_assets_m",
+                  1000000
+                ],
+                "unit": "USD"
+              },
+              {
+                "id": "value_per_share",
+                "op": "divide",
+                "args": [
+                  "attributable_net_assets",
+                  "class_a_shares"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            },
+            "source_lineage": [
+              {
+                "ref": "WHK/investor-documents/sec-edgar/424B4_20260609_rpt_acc0001193125_26_264014.htm",
+                "locator": "424B4 filed 2026-06-09: SUMMARY RESERVE DATA (CG&A reserve report at December 31, 2025) and Our Organizational Structure",
+                "as_of": "2026-06-09"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "change_log": [
+    {
+      "at": "2026-08-11T00:59:06.514864+00:00",
+      "author": "build_whk_contract_proofs.py",
+      "as_of": "2026-08-10",
+      "field": "component_valuation.components",
+      "before": "single component `mineral_royalty_cash_stream` on owner cash, with the unit-NAV leg recorded as an unevidenced corroboration gap",
+      "after": "two non-overlapping components: `pdp_royalty_cash_stream` (owner_cash_or_dividend_discount) and `non_producing_reserve_inventory` (net_asset_value)",
+      "reason": "The routed method component_owner_cash_and_unit_nav is a pairing and requires both legs. The 424B4 SUMMARY RESERVE DATA table supplies the reserve quantities, PV-10 and standardized measure the NAV leg needs, so the gap is closed rather than carried."
+    },
+    {
+      "at": "2026-08-11T00:59:06.514864+00:00",
+      "author": "build_whk_contract_proofs.py",
+      "as_of": "2026-08-10",
+      "field": "assumptions.net_decline -> assumptions.pdp_decline",
+      "before": {
+        "low": -0.06,
+        "base": -0.03,
+        "high": 0.02
+      },
+      "after": {
+        "low": -0.1375,
+        "base": -0.135,
+        "high": -0.13
+      },
+      "reason": "The prior band was unanchored. A perpetuity declining at d consumes P/d of volume, so the +2% high case implied roughly 22.7 years of production against an 8.4-year total proved reserve life and a 7.27-year producing life. The new band is computed from the reserve report: 178,544 MMcfe of PDP over 24,548 MMcfe of pro forma annual production (d = 13.75%) and over 23,459 MMcfe annualised from Q1 2026 (d = 13.14%). This is the reserve-life model the prior falsifier named as the test, and it fires against the old band."
+    },
+    {
+      "at": "2026-08-11T01:06:00.741525+00:00",
+      "author": "build_whk_contract_proofs.py",
+      "as_of": "2026-08-10",
+      "field": "component_valuation.components",
+      "before": "single component `mineral_royalty_cash_stream` on owner cash, with the unit-NAV leg recorded as an unevidenced corroboration gap",
+      "after": "two non-overlapping components: `pdp_royalty_cash_stream` (owner_cash_or_dividend_discount) and `non_producing_reserve_inventory` (net_asset_value)",
+      "reason": "The routed method component_owner_cash_and_unit_nav is a pairing and requires both legs. The 424B4 SUMMARY RESERVE DATA table supplies the reserve quantities, PV-10 and standardized measure the NAV leg needs, so the gap is closed rather than carried."
+    },
+    {
+      "at": "2026-08-11T01:06:00.741525+00:00",
+      "author": "build_whk_contract_proofs.py",
+      "as_of": "2026-08-10",
+      "field": "assumptions.net_decline -> assumptions.pdp_decline",
+      "before": {
+        "low": -0.06,
+        "base": -0.03,
+        "high": 0.02
+      },
+      "after": {
+        "low": -0.1375,
+        "base": -0.135,
+        "high": -0.13
+      },
+      "reason": "The prior band was unanchored. A perpetuity declining at d consumes P/d of volume, so the +2% high case implied roughly 22.7 years of production against an 8.4-year total proved reserve life and a 7.27-year producing life. The new band is computed from the reserve report: 178,544 MMcfe of PDP over 24,548 MMcfe of pro forma annual production (d = 13.75%) and over 23,459 MMcfe annualised from Q1 2026 (d = 13.14%). This is the reserve-life model the prior falsifier named as the test, and it fires against the old band."
+    }
+  ],
+  "schema_version": "3.0",
+  "valuation_methodology": {
+    "primary_method": "component_owner_cash_and_unit_nav",
+    "method_version": "1.0",
+    "automation": "revalidated_existing_approved_proofs",
+    "component_methods": [
+      "net_asset_value",
+      "owner_cash_or_dividend_discount"
+    ]
+  },
+  "economic_value": {
+    "schema_version": "1.0",
+    "method": "component_owner_cash_and_unit_nav",
+    "economic_claim": {
+      "description": "A Class A share is a claim on WhiteHawk Minerals Corp., which owns 22,996,579 of 26,746,579 common OpCo Interests (86.0%) in WhiteHawk OpCo. OpCo owns non-operated mineral and royalty interests in the Marcellus and Haynesville Shales. The holder therefore owns a royalty on gas produced by third-party operators, not an operating business: WhiteHawk funds no drilling capital, bears no lease operating expense and carries no plugging and abandonment obligation. The claim is finite in the proved book - 206,473 MMcfe against 24,548 MMcfe of pro forma annual production, an 8.4-year proved life - and perpetual only to the extent operators keep converting unbooked fee acreage, which is not valued here.",
+      "unit_label": "Class A common share",
+      "unit_count": 22996579.0,
+      "unit_source": "424B4 Dilution: 15,296,579 Class A outstanding before the offering plus 7,700,000 offered = 22,996,579, held one-for-one against the Company's OpCo Interests. Class B (3,750,000) carries votes and no economic rights and is excluded from the unit count.",
+      "enterprise_to_equity_reconciliation": "The bridge is deliberately charged once, not twice. Cash Available for Distribution is defined and reconciled after cash interest expense, cash taxes and cash preferred dividends, so the producing component is already an equity-level cash flow and the $64.463m of net debt ($75.000m debt less $10.537m cash) and the $30.643m Series B preferred are not deducted from it again. The unit-NAV component therefore carries senior_claims of exactly zero, recorded explicitly rather than omitted. Series D preferred was fully redeemed with IPO proceeds and is zero as-adjusted. The Company's economic interest in OpCo is applied before the per-share division in both components so the 14.0% held by Continuing Equity Owners is never counted as Class A value; low and base further assume the 1,250,000 earnout OpCo Interests issue, cutting the interest to 82.1%."
+    },
+    "gaap_role": "misleading_historical_cost",
+    "accounting_reference": "GAAP understates and misdates this economics in both directions. Pro forma FY2025 net income is a $32.330m loss while pro forma Cash Available for Distribution is $36.317m, because depletion of $36.451m is a historical-cost amortisation of acquisition prices rather than a measure of economic decline. Conversely the balance sheet carries the minerals at the cost of the 2025 PHX and Three Rivers Royalty acquisitions, not at the $293.690m PV-10 of the reserves. Neither the income statement nor the balance sheet is usable as the primary valuation basis; the CG&A reserve report is.",
+    "component_groups": [
+      {
+        "id": "producing_royalty_group",
+        "label": "Producing mineral and royalty interests",
+        "component_ids": [
+          "pdp_royalty_cash_stream"
+        ],
+        "economic_claim": "Royalties on the 178,544 MMcfe of proved developed producing reserves - wells already on production, paying today, at an average net rate of 64,270 Mcfe/d in Q1 2026.",
+        "valuation_basis": "Declining perpetuity on attributable Cash Available for Distribution at a 9%-12% required return, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume the reserve report does not book.",
+        "adjustments": "CAFD is taken at the OpCo level and multiplied by the Company's economic interest before the per-share division. No deduction for net debt or preferred, which CAFD already services. No addition for reinvestment of retained cash into further royalty acquisitions.",
+        "overlap_control": "overlap_key `pdp_producing_royalty_cash`. Bounded by volume: a perpetuity declining at d consumes P/d, so the -13.75% to -13.0% band consumes 178,531 to 188,831 MMcfe against a 178,544 MMcfe producing book. Volumes beyond that belong to the non-producing group and are not double-counted."
+      },
+      {
+        "id": "non_producing_inventory_group",
+        "label": "Non-producing and undeveloped mineral reserves",
+        "component_ids": [
+          "non_producing_reserve_inventory"
+        ],
+        "economic_claim": "Royalties on the 23,066 MMcfe of proved developed non-producing and 4,864 MMcfe of proved undeveloped reserves, which generate no Cash Available for Distribution today.",
+        "valuation_basis": "Unit NAV: the blended PV-10 unit value of $1.422 per Mcfe ($293.690m over 206,473 MMcfe), haircut for realisation timing, less the SEC-computed future income tax drag of 9.32%.",
+        "adjustments": "Tax drag taken from the $27.364m difference between PV-10 of $293.690m and the standardized measure of $266.326m. Senior claims explicitly zero to avoid charging debt and preferred a second time. Company economic interest applied before the per-share division.",
+        "overlap_control": "overlap_key `pdnp_and_pud_reserves`. Disjoint from the producing group by definition of the reserve report's own categories: 178,544 + 23,066 + 4,864 = 206,473 MMcfe with no volume in two groups.",
+        "risk_and_timing": {
+          "probability_basis": "Proved reserves only, so SEC reasonable-certainty already applies and no further probability weighting is imposed. Unbooked acreage, which would require a type-curve and risking model, is excluded entirely rather than risked at a guessed probability.",
+          "timing_basis": "Not scheduled well by well. The 0.40/0.55/0.70 realisation haircut on the blended PV-10 unit value stands in for the fact that these volumes sit later in the discount schedule than the producing volumes that dominate PV-10. This is the weakest judgment in the contract and is what the FY2026 reserve report would replace.",
+          "remaining_capital_basis": "Zero, and structurally so. A royalty owner funds none of the development cost; the working-interest operators bear all drilling and completion capital. The haircut is therefore timing and operator-behaviour only, not a capital charge."
+        }
+      }
+    ]
   }
 }

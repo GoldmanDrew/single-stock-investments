@@ -1,18 +1,56 @@
 {
   "schema_version": "1.0",
   "ticker": "WHK",
+  "as_of": "2026-08-10",
+  "note": "Typed against the two-component contract built 2026-08-10. The prior sidecar carried a single untestable spec on the retired component `mineral_royalty_cash_stream`, whose stated blocker was that no reserve-life model existed. The 424B4 SUMMARY RESERVE DATA is now locked into the fact ledger, so every spec below resolves against a locked field_id.",
   "specs": [
     {
-      "component_id": "mineral_royalty_cash_stream",
-      "metric": "net_decline_rate",
+      "component_id": "pdp_royalty_cash_stream",
+      "metric": "normalized_owner_cash",
+      "comparator": "gt",
+      "threshold": 42.0,
+      "unit": "USD millions",
+      "due": "2026-11-16",
+      "source_hint": "normalized_owner_cash",
+      "derived_from": "The first 10-Q reports net production above 67,255 Mcfe/d, implying a producing decline shallower than the 13.14%-13.75% band derived from the reserve report",
+      "untestable": false,
+      "rationale": "Cash Available for Distribution is the ledger-locked observable that carries production through to owner cash. The producing component caps sustainable CAFD at $42.0m (the cafd_run_rate_m judgment's allowed_range max, set by Q1 2026 annualised of $39.836m). A reported CAFD above that means volumes are holding up better than a 13.14%-13.75% producing decline allows, so the component is understated. Testable off the first 10-Q as a public company."
+    },
+    {
+      "component_id": "pdp_royalty_cash_stream",
+      "metric": "pv10_per_mmcfe",
+      "comparator": "gt",
+      "threshold": 0.00242,
+      "unit": "USD millions per MMcfe",
+      "due": "2027-03-31",
+      "source_hint": "unit_value",
+      "derived_from": "the FY2026 reserve report raises PV-10 above $500m against the $293.690m booked here",
+      "untestable": false,
+      "rationale": "PV-10 of $500m over the 206,473 MMcfe booked at 2025-12-31 is $0.00242m per MMcfe. Crossing it means the reserve report has revalued the book far above the $3.387/MMBtu SEC deck this contract is anchored to, which resets both the producing component's discount rate comparability and the NAV component's unit value. Testable off the FY2026 10-K reserve report."
+    },
+    {
+      "component_id": "non_producing_reserve_inventory",
+      "metric": "pv10_unit_value",
+      "comparator": "outside_range",
+      "threshold": [0.001, 0.002],
+      "unit": "USD millions per MMcfe",
+      "due": "2027-03-31",
+      "source_hint": "unit_value",
+      "derived_from": "PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which would reset the unit value this component is built on",
+      "untestable": false,
+      "rationale": "The NAV component values non-producing volumes off the blended PV-10 unit value of $1.422 per Mcfe, haircut for timing. If the next SEC price deck moves that blended rate outside $1.00-$2.00 per Mcfe the component's anchor is gone, in either direction. Testable off the FY2026 10-K reserve report."
+    },
+    {
+      "component_id": "non_producing_reserve_inventory",
+      "metric": "total_proved_reserves",
       "comparator": "lt",
-      "threshold": null,
-      "unit": "unspecified",
-      "due": null,
-      "source_hint": null,
-      "derived_from": "A reserve-life / decline-curve model built from the 424B4 Summary Reserve Data, or the first 10-Q, shows net decline outside the -6% to 0% band assumed here; or a declared dividend policy sets a payout that implies a different sustainable distribution than pro forma CAFD.",
-      "untestable": true,
-      "rationale": "Untestable: the band is quantified (net decline outside -6% to 0%) but 'net decline' is an output of a reserve-life / decline-curve model, not a fact on disk; WHK's ledger locks only net_income_m and its companyfacts evidence (S-1 stage, 5 concepts) carries no decline metric. The dividend-policy leg is a disclosure event, not a measurable quantity."
+      "threshold": 150000.0,
+      "unit": "MMcfe",
+      "due": "2027-03-31",
+      "source_hint": "asset_quantity",
+      "derived_from": "The FY2026 reserve report reclassifies these volumes to producing without a matching fall in the PDP decline rate, which would mean the partition double-counts",
+      "untestable": false,
+      "rationale": "The partition rests on 206,473 MMcfe of proved reserves split 178,544 producing / 27,930 non-producing. A total proved book below 150,000 MMcfe means either the non-producing volumes this component values have been written down, or they were reclassified into production while the producing component still assumes a 7.27-year life -- the double-count the partition exists to prevent. Testable off the FY2026 10-K reserve report."
     }
   ]
 }

@@ -22,6 +22,8 @@ from pathlib import Path
 
 from power_zone_router import build_route
 from calculation_proof import evaluate_calculation_proof
+from marvin_valuation import compute_component_valuation
+from economic_value_framework import build_economic_value_analysis
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "_system" / "scripts"
@@ -442,8 +444,52 @@ def build_fact_ledger(ticker: str, as_of: str) -> dict:
             derived["fx_conversion"] = {k: v for k, v in ocf["fx_conversion"].items()
                                         if k not in ("source_value", "source_unit")}
         facts.append(derived)
+    facts = _merge_curated_facts(ticker, facts)
     return {"schema_version": "1.0", "ticker": ticker, "as_of": as_of, "facts": facts,
             "source_count": len({row["source"]["ref"] for row in facts}), "generated_at": now()}
+
+
+CURATED_FACT_FIELDS = ("field_id", "value", "unit", "source")
+
+
+def _merge_curated_facts(ticker: str, facts: list[dict]) -> list[dict]:
+    """Overlay hand-curated primary-source facts onto the extracted ledger.
+
+    XBRL companyfacts and the prose parser only reach concepts a machine can
+    tag. Several approved methods require inputs that exist only as prospectus
+    or reserve-report tables -- `economic_ownership_map`, `asset_quantity`,
+    `unit_value`, `senior_claims`, `tax_and_realization_costs`. Without an
+    overlay those method inputs can never be satisfied, so the evidence task
+    queue stays `pending_collection` forever and the ticker never compiles.
+
+    A curated row is held to the same bar as an extracted one: it must name a
+    primary source ref that exists on disk, a locator, and an as-of date, and
+    it is content-hashed like any other. Rows failing that stay unlocked so
+    `validate_method_inputs` still rejects them.
+    """
+    path = ROOT / ticker / "research" / "curated_facts.json"
+    payload = read_json(path)
+    rows = payload.get("facts") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        return facts
+    by_id = {row.get("field_id"): row for row in facts}
+    for row in rows:
+        if not isinstance(row, dict) or any(row.get(key) is None for key in CURATED_FACT_FIELDS):
+            continue
+        source = dict(row.get("source") or {})
+        ref = str(source.get("ref") or "")
+        complete = bool(ref and source.get("locator") and source.get("as_of"))
+        content_hash = sha256(ROOT / ref) if ref and (ROOT / ref).is_file() else None
+        if content_hash:
+            source["content_sha256"] = content_hash
+        by_id[row["field_id"]] = {
+            "field_id": row["field_id"], "value": row["value"], "unit": row["unit"],
+            "source": source, "confidence": row.get("confidence") or "medium",
+            "locked": bool(complete and content_hash),
+            "origin": "curated_primary_source",
+            "rationale": row.get("rationale"),
+        }
+    return list(by_id.values())
 
 
 FIELD_REQUIREMENTS = {
@@ -773,6 +819,57 @@ def _compiled_model(ticker: str, as_of: str, identity: dict, method_id: str,
         },
         "economic_value_analysis": {"status": "compiled", "validation_errors": []},
     }
+
+
+def merge_compiled_model(prior: dict, model: dict) -> dict:
+    """Overlay the compiled model onto the prior valuation instead of replacing it.
+
+    `_compiled_model` emits nine keys. A hand-built valuation.json routinely
+    carries far more -- the authored `component_valuation` schedule, scenarios,
+    human_review, catalyst_paths, lens_consensus, change_log. Writing the model
+    straight over the file silently discarded all of it, and because the model's
+    `component_valuation_results` has no totals, no market price and no upside,
+    the dashboard's component panel went null even though the contract was
+    complete.
+
+    Keys the compiler owns still win; everything else survives. When the model
+    came from revalidating this issuer's own approved proofs, the authored
+    schedule is by definition still in agreement with it, so the richer
+    `compute_component_valuation` results are regenerated to restore the
+    summary fields the presentation layer reads.
+    """
+    if not isinstance(prior, dict) or not prior:
+        return model
+    merged = copy.deepcopy(prior)
+    merged.update(model)
+    automation = (model.get("valuation_methodology") or {}).get("automation")
+    schedule = merged.get("component_valuation")
+    if automation != "revalidated_existing_approved_proofs" or not isinstance(schedule, dict):
+        return merged
+    if not schedule.get("components"):
+        return merged
+    try:
+        results = compute_component_valuation(merged)
+    except (ValueError, TypeError, KeyError):
+        return merged
+    if not results:
+        return merged
+    prior_results = prior.get("component_valuation_results") or {}
+    for key in ("partition_note", "coverage_statement", "source"):
+        if prior_results.get(key) is not None:
+            results.setdefault(key, prior_results[key])
+    results["as_of"] = model.get("as_of") or results.get("as_of")
+    merged["component_valuation_results"] = results
+    # `_compiled_model` writes a two-key economic_value_analysis stub. Where the
+    # issuer has an authored `economic_value` specification, rebuild the real
+    # analysis from it rather than letting the stub stand -- otherwise the
+    # economic_claim gate reports blocked forever on a file that has the answer.
+    if isinstance(merged.get("economic_value"), dict) and merged["economic_value"]:
+        try:
+            build_economic_value_analysis(merged)
+        except (ValueError, TypeError, KeyError):
+            pass
+    return merged
 
 
 def _component(component_id: str, label: str, category: str, method_id: str, proof: dict,
@@ -1252,6 +1349,12 @@ def compile_existing_approved_proofs(ticker: str, as_of: str, identity: dict) ->
         },
     )
     model["inputs"] = copy.deepcopy(prior.get("inputs") or {})
+    # These proofs were authored for this issuer and merely revalidated here, so
+    # the routed method stays the recorded method. Stamping "proof_first_automated"
+    # would make the NEXT run's guard above discard them and recompile from the
+    # normalized ledger, silently replacing issuer-specific economics with a
+    # first-pass model on the second run.
+    model["method"] = routed_method
     return model
 
 
@@ -1300,7 +1403,7 @@ def run_ticker(ticker: str, as_of: str, collect: bool, full_rerun: bool) -> dict
             if prior_inputs.get(key) not in (None, ""):
                 merged_inputs[key] = prior_inputs[key]
         model["inputs"] = merged_inputs
-        write_json(research / "valuation.json", model)
+        write_json(research / "valuation.json", merge_compiled_model(prior_valuation, model))
     else:
         if prior_valuation.get("method") == "proof_first_automated":
             (research / "valuation.json").unlink(missing_ok=True)

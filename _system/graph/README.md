@@ -188,7 +188,24 @@ python _system/scripts/graph_build.py            # rebuild _system/graph/graph.d
 python _system/scripts/graph_invariants.py       # health report -> INVARIANTS.md (+ exit 1 on hard violations)
 python _system/scripts/graph_query.py <query>    # canned traversals: chain <correction-id> | lane-freshness | falsifier-coverage | belief <slug>
 python _system/scripts/resolve_falsifiers.py     # score matured falsifiers -> outcomes + calibration
+python _system/scripts/check_evidence_integrity.py   # V1-V7 evidence-chain sweep (ratchet, not the graph)
 ```
+
+**Sibling sweep — `check_evidence_integrity.py`.** Not part of the graph (it
+reads files directly, no projection), but the same idea one plane over: it
+finds tickers whose *evidence* chain is broken while every individual artifact
+reads healthy. The motivating case was WHK, whose contract said
+`decision_grade` with zero blockers while its compiler stage said
+`evidence_blocked` and its eight evidence tasks sat at `attempts: 0`. The
+finding that generalised: `build_contract_backfill_queue.py`,
+`build_evidence_recovery_queue.py` (default `all-blocked` scope) and the
+committee trigger all skip `status == "decision_grade"`, so a contract that
+reaches that status prematurely is treated as finished by every path that
+could have finished it — 124 tickers, none of them in either queue. V6
+overlaps E1 deliberately and at a different grain: E1 is the per-component
+coverage ratchet, V6 the per-ticker triage list. Baseline lives in
+`_system/data/evidence_integrity_baseline.json`; the sweep is report-severity
+and fails CI only when a count rises.
 
 CI: the invariant suite runs in the Research quality workflow (fail-loud on
 hard invariants); the resolver runs weekly in the dedicated
