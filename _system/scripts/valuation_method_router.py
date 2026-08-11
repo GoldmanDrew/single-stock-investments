@@ -112,7 +112,12 @@ ALIASES = {
     "probability_weighted_special_situation": "binary_milestone",
 }
 
-ALL_PERSONAS = sorted({p for profile in PROFILES.values() for p in profile["primary_personas"] + profile["cross_check_personas"]})
+# The silenceable-persona universe is the canonical registry, not the union of
+# profile mentions: deriving it from PROFILES silently exempted lawrence and
+# moi from ever being routed silent.
+from persona_groups import PERSONA_IDS
+
+ALL_PERSONAS = sorted(PERSONA_IDS)
 
 
 def _tokens(data: dict) -> tuple[set[str], set[str]]:

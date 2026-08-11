@@ -15,25 +15,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from build_power_zones import blended_score, calibration_rates, score_ticker_zone
+from persona_groups import INDEPENDENCE_GROUPS as GROUPS
 from valuation_method_router import route_valuation
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 CONFIG_PATH = ROOT / "_system" / "frameworks" / "power_zones.json"
-GROUPS = {
-    "hohn": "competitive_advantage",
-    "buffett_weschler": "quality_reinvestment",
-    "munger": "quality_reinvestment",
-    "lawrence": "quality_reinvestment",
-    "marathon_capital_cycle": "capital_cycle",
-    "marks_credit_cycle": "credit_cycle",
-    "klarman_asset_value": "asset_realization",
-    "hk": "scarce_assets",
-    "stahl": "scarce_assets",
-    "pabrai": "asymmetry_downside",
-    "greenblatt": "special_situations",
-    "moi": "special_situations",
-}
 
 
 def read_json(path: Path, default=None):

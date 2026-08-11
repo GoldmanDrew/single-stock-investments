@@ -48,21 +48,10 @@ from pathlib import Path
 from statistics import median
 
 from build_valuation_workbench import write as write_valuation_workbench
+from persona_groups import INDEPENDENCE_GROUPS as GROUPS
 
 ROOT = Path(__file__).resolve().parents[2]
 DIMS = ("explanatory_strength", "evidence_sufficiency", "downside_control", "return_vs_alternatives")
-GROUPS = {
-    "hohn": "competitive_advantage",
-    "buffett_weschler": "quality_reinvestment",
-    "marathon_capital_cycle": "capital_cycle",
-    "marks_credit_cycle": "credit_cycle",
-    "klarman_asset_value": "asset_realization",
-    "hk": "scarce_assets",
-    "stahl": "scarce_assets",
-    "pabrai": "asymmetry_downside",
-    "greenblatt": "special_situations",
-    "moi": "special_situations",
-}
 DEFAULT_RATERS = ("hohn", "pabrai", "marks_credit_cycle")
 BASELINE_LLM_CALLS = 5
 MAXIMUM_LLM_CALLS = 9
@@ -307,7 +296,12 @@ def select_raters(valuation: dict) -> list[dict]:
     selected = []
     groups: set[str] = set()
     for persona in ranked:
-        group = GROUPS.get(persona, persona)
+        if persona not in GROUPS:
+            # An id outside the canonical registry cannot prove independence;
+            # minting it a private group is how 31 committees seated two
+            # quality_reinvestment raters (corrections.md 2026-08-11).
+            continue
+        group = GROUPS[persona]
         if group in groups:
             continue
         if persona in route_ranked:
