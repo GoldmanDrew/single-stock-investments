@@ -144,14 +144,92 @@
   // One series: LPPLS criticality. The pressure/exhaustion polylines were
   // deleted - the intraday flow history they read has never been fed on this
   // deployment, so they drew nothing while the legend promised three series.
-  function historyChart(details) {
-    const criticality = details?.history?.criticality || [];
-    const width = 820; const height = 180;
-    const criticalPoints = points(criticality, (row) => row.score ?? row.criticality_score, width, height);
-    if (!criticalPoints) return '<div class="risk-empty">History will build automatically as signed live snapshots arrive.</div>';
-    return `<svg class="risk-history-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="SPY LPPLS criticality score history, 0 to 100">
-      <line x1="8" y1="90" x2="812" y2="90" class="risk-grid-line"></line>
-      <polyline points="${criticalPoints}" class="risk-line risk-line-criticality"></polyline></svg>`;
+  //
+  // What survived that deletion was a bare 820x180 polyline with a single
+  // unlabelled gridline hard-coded at y=90 and no axis of any kind. On a 0-100
+  // scale with the score at 18.2 the line pins to the floor and reads as flat;
+  // the unlabelled rule reads as a trend line rather than the 50 mark. Worse,
+  // the number it draws so confidently is supported by 7 qualified fits out of
+  // 25 attempted, with a critical-time window spanning 60 to 201 trading days -
+  // and a hairline at 18 was drawn with exactly the authority of a hairline at
+  // 80. Everything below exists to stop that: labelled scale, dated axis,
+  // called-out current value, and support rendered so that weak support looks
+  // weak.
+  const CRITICALITY_GRIDS = [0, 25, 50, 75, 100];
+
+  function historyChart(details, reading, escapeHtml) {
+    const esc = escapeHtml || escapeFallback;
+    const criticality = (details?.history?.criticality || []).slice().reverse();
+    const series = criticality
+      .map((row) => ({
+        value: finite(row.score ?? row.criticality_score),
+        date: String(row.as_of || row.date || '').slice(0, 10),
+      }))
+      .filter((row) => row.value != null);
+    if (series.length < 2) {
+      return '<div class="risk-empty">Fewer than two stored criticality snapshots, so there is no history to draw yet. It builds automatically as signed snapshots arrive.</div>';
+    }
+
+    const width = 820;
+    const height = 210;
+    const padLeft = 34;
+    const padRight = 92;
+    const padTop = 12;
+    const padBottom = 30;
+    const plotWidth = width - padLeft - padRight;
+    const plotHeight = height - padTop - padBottom;
+    const xOf = (i) => padLeft + (i / Math.max(1, series.length - 1)) * plotWidth;
+    const yOf = (v) => padTop + plotHeight - (Math.max(0, Math.min(100, v)) / 100) * plotHeight;
+
+    const grids = CRITICALITY_GRIDS.map((v) => `
+      <line class="risk-grid-line" x1="${padLeft}" y1="${yOf(v).toFixed(1)}" x2="${(padLeft + plotWidth).toFixed(1)}" y2="${yOf(v).toFixed(1)}"></line>
+      <text class="risk-axis-label" x="${padLeft - 6}" y="${(yOf(v) + 3).toFixed(1)}" text-anchor="end">${v}</text>`).join('');
+
+    const line = series.map((row, i) => `${xOf(i).toFixed(1)},${yOf(row.value).toFixed(1)}`).join(' ');
+    const last = series[series.length - 1];
+
+    // Date axis: first, middle, last. Three labels is enough to place the
+    // series in time and few enough not to collide at this width.
+    const tickIndexes = [0, Math.floor((series.length - 1) / 2), series.length - 1]
+      .filter((v, i, all) => all.indexOf(v) === i);
+    const ticks = tickIndexes.map((i, n) => `<text class="risk-axis-label" x="${xOf(i).toFixed(1)}"
+      y="${(padTop + plotHeight + 16).toFixed(1)}" text-anchor="${n === 0 ? 'start' : n === tickIndexes.length - 1 ? 'end' : 'middle'}">${esc(series[i].date)}</text>`).join('');
+
+    // The critical-time window is the model's OWN statement of how little it
+    // knows: p10-p90 of the qualified fits. Drawn to scale against the series
+    // so a 141-day dispersion cannot be mistaken for a date.
+    const ct = reading?.critical_time || {};
+    const p10 = finite(ct.p10);
+    const p90 = finite(ct.p90);
+    const median = finite(ct.median);
+    const bandNote = (p10 == null || p90 == null)
+      ? ''
+      : `<p class="risk-chart-band">Critical-time ensemble spans <b>${Math.round(p10)}–${Math.round(p90)} trading days</b>${median == null ? '' : ` (median ${Math.round(median)})`} — a ${Math.round(p90 - p10)}-session window, which is a statement of uncertainty, not a date.</p>`;
+
+    const qualified = finite(reading?.qualified_count);
+    const attempted = finite(reading?.attempted_count);
+    const share = (qualified != null && attempted) ? qualified / attempted : null;
+    // Opacity carries support: a line drawn from 7 of 25 fits must not look
+    // like one drawn from 25 of 25.
+    const strength = share == null ? 1 : Math.max(0.28, Math.min(1, 0.2 + share));
+    const supportNote = (qualified == null || !attempted)
+      ? ''
+      : `<p class="risk-chart-support ${share < 0.5 ? 'is-weak' : ''}"><b>${Math.round(share * 100)}% support</b> — ${Math.round(qualified)} of ${Math.round(attempted)} LPPLS fits qualified.${share < 0.5 ? ' Most fits were rejected, so the line is drawn faint: this score rests on a minority of the ensemble.' : ''}</p>`;
+
+    return `<div class="risk-chart-wrap">
+      <svg class="risk-history-chart" viewBox="0 0 ${width} ${height}" role="img"
+        aria-label="SPY LPPLS criticality score, 0 to 100, ${series.length} snapshots from ${esc(series[0].date)} to ${esc(last.date)}, latest ${last.value.toFixed(1)}">
+        ${grids}
+        <polyline points="${line}" class="risk-line risk-line-criticality" style="opacity:${strength.toFixed(2)}"></polyline>
+        <circle class="risk-line-dot" cx="${xOf(series.length - 1).toFixed(1)}" cy="${yOf(last.value).toFixed(1)}" r="3.5"></circle>
+        <line class="risk-current-rule" x1="${padLeft}" y1="${yOf(last.value).toFixed(1)}" x2="${(padLeft + plotWidth + 6).toFixed(1)}" y2="${yOf(last.value).toFixed(1)}"></line>
+        <text class="risk-current-label" x="${(padLeft + plotWidth + 12).toFixed(1)}" y="${(yOf(last.value) + 4).toFixed(1)}">${esc(last.value.toFixed(1))}</text>
+        <text class="risk-axis-caption" x="${padLeft - 6}" y="${(padTop - 3).toFixed(1)}" text-anchor="end">score</text>
+        ${ticks}
+      </svg>
+      ${bandNote}
+      ${supportNote}
+    </div>`;
   }
 
   function compactNumber(value, unit) {
@@ -200,15 +278,75 @@
     return { state, label: meta[0], cls: meta[1] };
   }
 
+  function pct(value, digits) {
+    const number = finite(value);
+    return number == null ? '—' : `${(number * 100).toFixed(digits == null ? 0 : digits)}%`;
+  }
+
+  // A dollar total is not a stress reading. $218M of forced close-auction flow
+  // is nothing in SPY and catastrophic in a $40M-ADV microcap, and the payload
+  // has always carried the denominator that settles it -- net_moc_pct_auction_
+  // volume per underlying, and peak_abs_pct_auction_volume across them. Both
+  // were computed and thrown away at render time, leaving the tile showing the
+  // one number that cannot be interpreted on its own.
+  //
+  // The peak needs a health gate of its own: it is a ratio, and the names
+  // driving it (SOEZ at 655% of auction volume) carry tradable_float_quality
+  // 'missing'. A flow-to-volume ratio built on an absent denominator is a
+  // division artifact, not a signal, and must never be the headline.
+  function letfLiquidity(item, escapeHtml) {
+    const top = Array.isArray(item.top) ? item.top : [];
+    const pctOf = (row) => finite(row.net_moc_pct_auction_volume
+      ?? row.estimated_close_rebalance_pct_auction_volume);
+    const rated = top.filter((row) => pctOf(row) != null);
+    const trusted = rated.filter((row) => row.tradable_float_quality
+      && row.tradable_float_quality !== 'missing');
+    const untrusted = rated.length - trusted.length;
+    const headline = trusted.slice().sort((a, b) => Math.abs(pctOf(b)) - Math.abs(pctOf(a)))[0];
+    const peak = finite(item.peak_abs_pct_auction_volume);
+
+    const rows = trusted.slice()
+      .sort((a, b) => Math.abs(pctOf(b)) - Math.abs(pctOf(a))).slice(0, 5)
+      .map((row) => `<li><b>${escapeHtml(String(row.underlying || '—'))}</b>
+        <em>${escapeHtml(pctOf(row).toFixed(1))}% of auction</em>
+        <small>${compactNumber(row.net_moc_dollars ?? row.estimated_net_close_rebalance_dollars, 'USD')}</small></li>`).join('');
+
+    return `<div class="letf-liquidity">
+      <div class="letf-liquidity-head"><span class="criticality-kicker">Flow as a share of that name's closing auction</span></div>
+      ${headline
+        ? `<p class="letf-headline">Largest float-verified name: <b>${escapeHtml(String(headline.underlying))}</b> at
+           <b>${escapeHtml(pctOf(headline).toFixed(1))}%</b> of its own closing-auction volume.</p>
+           <ul class="letf-top">${rows}</ul>`
+        : '<p class="letf-headline is-void">No underlying in this snapshot has a verified tradable float, so no flow-to-liquidity ratio can be stated.</p>'}
+      ${peak == null ? '' : `<p class="letf-peak ${untrusted ? 'is-void' : ''}">Reported peak across all names: ${escapeHtml(peak.toFixed(0))}% of auction volume${untrusted
+        ? ` — <b>not usable.</b> ${escapeHtml(String(untrusted))} of the ${escapeHtml(String(rated.length))} ranked names carry <code>tradable_float_quality: missing</code>, so this ratio is a division artifact rather than a measurement.`
+        : '.'}</p>`}
+      <p class="letf-assumptions"><b>Estimate, not an observation.</b> Built on two fixed assumptions this tile cannot verify:
+        the closing auction is <b>${escapeHtml(pct(item.auction_share_assumption))}</b> of daily volume, and
+        <b>${escapeHtml(pct(item.swap_hedge_share_assumption))}</b> of leveraged exposure is swap-hedged.
+        Method: <code>${escapeHtml(String(item.method || 'not recorded'))}</code></p>
+    </div>`;
+  }
+
   function componentDetail(item, escapeHtml) {
     if (item.component.startsWith('letf_rebalance')) {
+      const buys = finite(item.buy_underlyings);
+      const sells = finite(item.sell_underlyings);
       return `<dl><div><dt>Net close flow</dt><dd>${compactNumber(item.net_dollars ?? item.value, 'USD')}</dd></div>
         <div><dt>Gross flow</dt><dd>${compactNumber(item.gross_dollars, 'USD')}</dd></div>
-        <div><dt>Coverage</dt><dd>${whole(item.underlyings)} underlyings</dd></div></dl>`;
+        <div><dt>Direction breadth</dt><dd>${buys == null ? '—' : `${whole(buys)} buy / ${whole(sells)} sell`}</dd></div>
+        <div><dt>Coverage</dt><dd>${whole(item.underlyings ?? (buys == null ? null : buys + (sells || 0)))} underlyings</dd></div></dl>
+        ${letfLiquidity(item, escapeHtml)}`;
     }
     if (item.component === 'volatility_borrow') {
-      return `<dl><div><dt>Median 20d RV</dt><dd>${compactNumber(item.median_underlying_rv_20d_annual, 'annualized_volatility')}</dd></div>
-        <div><dt>Borrow spikes</dt><dd>${whole(item.borrow_spiking_count)}</dd></div><div><dt>Products</dt><dd>${whole(item.products)}</dd></div></dl>`;
+      // The raw 75.9% median RV says nothing without its own distribution; the
+      // percentile sits in the same payload and was never drawn.
+      const rvPct = finite(item.median_underlying_rv_20d_percentile);
+      return `<dl><div><dt>Median 20d RV</dt><dd>${compactNumber(item.median_underlying_rv_20d_annual, 'annualized_volatility')}${rvPct == null ? '' : `<small>${pct(rvPct)} of its own history</small>`}</dd></div>
+        <div><dt>Median borrow fee</dt><dd>${compactNumber(item.median_borrow_fee_annual, 'annualized_volatility')}</dd></div>
+        <div><dt>Median beta</dt><dd>${compactNumber(item.median_beta)}</dd></div>
+        <div><dt>Borrow spikes</dt><dd>${whole(item.borrow_spiking_count)}</dd></div>
+        <div><dt>Products</dt><dd>${whole(item.products)}</dd></div></dl>`;
     }
     if (item.component === 'options_stress') {
       return `<dl><div><dt>Latest skew</dt><dd>${compactNumber(item.latest?.skew_z, 'z_score')}</dd></div>
@@ -228,6 +366,48 @@
         <div><dt>Severe</dt><dd>${finite(item.severe_share) == null ? '—' : `${(Number(item.severe_share) * 100).toFixed(1)}%`}</dd></div><div><dt>Stocks</dt><dd>${whole(item.available)}</dd></div></dl>`;
     }
     return `<p>${escapeHtml(item.description || 'This source is not connected.')}</p>`;
+  }
+
+  // The intraday estimate and the close figure are two measurements of the SAME
+  // event -- today's leveraged-ETF close rebalance -- produced by different
+  // methods. On 2026-08-10 they read -$7.2B and +$218M: $7.4B apart and
+  // opposite in sign. They sat side by side as independent tiles with nothing
+  // saying they were even comparable, so a reader had no way to know that one
+  // of them was badly wrong, or which. Drawing the disagreement is the whole
+  // value: it is the only calibration signal either tile has.
+  function letfReconciliation(components, escapeHtml) {
+    const find = (name) => (components || []).find((item) => item.component === name);
+    const intraday = find('letf_rebalance_intraday');
+    const close = find('letf_rebalance_close');
+    if (!intraday || !close) return '';
+    const forecast = finite(intraday.net_dollars ?? intraday.value);
+    const realized = finite(close.net_dollars ?? close.value);
+    if (forecast == null || realized == null) return '';
+
+    const sameDay = String(intraday.as_of || '').slice(0, 10) === String(close.as_of || '').slice(0, 10);
+    const gap = forecast - realized;
+    const signFlip = (forecast < 0) !== (realized < 0);
+    // Relative error against the LARGER magnitude: dividing by a near-zero
+    // realized figure manufactures an infinite error out of a small miss.
+    const scale = Math.max(Math.abs(forecast), Math.abs(realized));
+    const relative = scale > 0 ? Math.abs(gap) / scale : null;
+    const severe = signFlip || (relative != null && relative > 0.5);
+
+    return `<div class="letf-recon ${severe ? 'is-severe' : 'is-agreeing'}">
+      <div class="letf-recon-head"><span class="criticality-kicker">Same event, two methods</span>
+        <b>${severe ? 'These two tiles disagree' : 'These two tiles agree'}</b></div>
+      <dl>
+        <div><dt>Intraday estimate</dt><dd>${compactNumber(forecast, 'USD')}<small>${escapeHtml(String(intraday.as_of || '').replace('T', ' ').slice(0, 16))}</small></dd></div>
+        <div><dt>Close figure</dt><dd>${compactNumber(realized, 'USD')}<small>${escapeHtml(String(close.as_of || '').replace('T', ' ').slice(0, 16))}</small></dd></div>
+        <div><dt>Difference</dt><dd>${compactNumber(gap, 'USD')}${relative == null ? '' : `<small>${(relative * 100).toFixed(0)}% of the larger</small>`}</dd></div>
+      </dl>
+      <p>${sameDay
+        ? `Both describe the leveraged-ETF close rebalance for <b>${escapeHtml(String(close.as_of || '').slice(0, 10))}</b>.`
+        : '<b>Different dates</b> — these are not directly comparable today; the intraday tile has not yet been settled by a close figure.'}
+        ${signFlip ? ' They do not even agree on <b>direction</b>: one estimates net buying and the other net selling. At least one is wrong, and the page cannot tell you which.' : ''}
+        ${sameDay && !signFlip && relative != null && relative > 0.5 ? ' The gap exceeds half the larger figure.' : ''}
+        The intraday number is a forecast built from a blended return proxy; the close figure is computed from realised underlying returns. Until this comparison is tracked over many sessions, neither tile has an established accuracy.</p>
+    </div>`;
   }
 
   // A component with no dataset behind it is not rendered at all. Dead tiles
@@ -251,6 +431,7 @@
       <p>Each tile retains its source cadence and quality. Only connected sources are drawn.</p></div>
       <div class="risk-coverage"><strong>${counts.ready || 0} current</strong><span>${counts.delayed || 0} delayed · ${counts.stale || 0} stale · ${dead.length} not connected</span></div></header>
       ${deadNote}
+      ${letfReconciliation(live, escapeHtml)}
       <div class="risk-component-grid">${market.map((item) => { const q = componentQuality(item); return `<article class="risk-component-card">
         <div class="risk-component-head"><div><span>${escapeHtml(String(item.component).replace(/_/g, ' '))}</span><h4>${escapeHtml(item.label || item.symbol)}</h4></div><b class="${q.cls}">${escapeHtml(q.label)}</b></div>
         <div class="risk-component-value">${compactNumber(item.value, item.unit)}${finite(item.score) == null ? '' : `<small>stress ${whole(item.score)} / 100</small>`}</div>
@@ -631,11 +812,25 @@
     const asOf = String(volLatest?.as_of || '').slice(0, 10);
     const parts = [];
 
+    // A DEAD feed outranks the worst merely-late one and belongs first in the
+    // trust line: the vendor answers 200 the whole time it is dark, so nothing
+    // upstream raises an error and the only place it surfaces is here.
+    const dark = Object.keys(coverage.metrics_dark || {});
+    if (dark.length) {
+      parts.push(`${dark.length} vol feed${dark.length === 1 ? ' is' : 's are'} DARK, not late (${dark.map((m) => m.toUpperCase().replace(/_/g, ' ')).sort().join(', ')})`);
+    }
+
     const worst = Object.entries(lagging)
       .map(([metric, lag]) => ({ metric, behind: finite(lag?.sessions_behind) || 0, date: String(lag?.last_value_date || '').slice(0, 10) }))
       .sort((a, b) => b.behind - a.behind)[0];
     if (!worst) parts.push('every vol feed printed on the snapshot date');
     else parts.push(`worst feed lag is ${worst.metric.toUpperCase().replace(/_/g, ' ')} at ${worst.behind} session${worst.behind === 1 ? '' : 's'} behind (last print ${worst.date})`);
+
+    // A term state read off the chain instead of the listed complex is still a
+    // real reading, but the reader has to know which instrument answered.
+    if (volLatest?.regime?.term_state_is_fallback) {
+      parts.push('term state is the SPX-chain fallback, not VIX/VIX3M');
+    }
 
     // An interior gap is a hole that has since closed - invisible in
     // metrics_lagging, which only reports feeds whose LAST print is old.
@@ -676,6 +871,67 @@
     </section>`;
   }
 
+  // The journal fetched `open=false&limit=100` and rendered the first 12 rows
+  // in arrival order with no timestamps at all, so every visible entry read
+  // "SYMBOL - RESOLVED - CRITICAL" and an episode from March was indis-
+  // tinguishable from one that fired an hour ago. Worse, the four OPEN alerts
+  // - the only ones that can still matter - were shuffled in among resolved
+  // ones with identical styling. Open first, newest first, always dated.
+  function alertAge(iso, now = new Date()) {
+    if (!iso) return null;
+    const then = new Date(iso);
+    if (Number.isNaN(then.getTime())) return null;
+    const minutes = Math.max(0, Math.round((now - then) / 60000));
+    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 1440) return `${Math.round(minutes / 60)}h ago`;
+    return `${Math.round(minutes / 1440)}d ago`;
+  }
+
+  function alertDuration(alert) {
+    const from = alert.opened_at || alert.fired_at || alert.created_at || alert.as_of;
+    const to = alert.resolved_at || alert.closed_at;
+    if (!from || !to) return null;
+    const a = new Date(from);
+    const b = new Date(to);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+    const minutes = Math.max(0, Math.round((b - a) / 60000));
+    return minutes < 60 ? `${minutes}m` : `${(minutes / 60).toFixed(1)}h`;
+  }
+
+  function alertJournal(alerts, escapeHtml) {
+    if (!alerts.length) {
+      return `<section class="risk-card"><h3>Alert journal</h3>
+        <div class="risk-empty">No alert episodes recorded. Alerts come from the Databento flow monitor, a local scheduled task that runs outside CI—if that task is not running, this journal stays empty even during market stress.</div></section>`;
+    }
+    const stamp = (alert) => alert.opened_at || alert.fired_at || alert.created_at || alert.as_of || '';
+    const isOpen = (alert) => !(alert.resolved_at || alert.closed_at)
+      && String(alert.status || '').toLowerCase() !== 'resolved';
+    const ordered = alerts.slice().sort((a, b) => {
+      if (isOpen(a) !== isOpen(b)) return isOpen(a) ? -1 : 1;
+      return String(stamp(b)).localeCompare(String(stamp(a)));
+    });
+    const open = ordered.filter(isOpen);
+    const undated = ordered.filter((alert) => !stamp(alert)).length;
+
+    return `<section class="risk-card"><header class="risk-alert-head"><h3>Alert journal</h3>
+        <span class="risk-alert-count ${open.length ? 'is-open' : ''}">${open.length} open · ${ordered.length - open.length} resolved</span></header>
+      ${undated ? `<p class="risk-alert-note">${escapeHtml(String(undated))} of ${escapeHtml(String(ordered.length))} episodes carry no timestamp from the monitor, so they cannot be placed in time and sort last.</p>` : ''}
+      <div class="risk-alerts">${ordered.slice(0, 12).map((alert) => {
+        const when = stamp(alert);
+        const age = alertAge(when);
+        const held = alertDuration(alert);
+        const openNow = isOpen(alert);
+        return `<article class="${openNow ? 'is-open' : 'is-resolved'}">
+          <strong>${escapeHtml(alert.symbol || '—')} · ${escapeHtml(String(openNow ? 'open' : (alert.state || 'resolved')).replace(/_/g, ' '))}</strong>
+          <span class="risk-severity risk-severity-${escapeHtml(alert.severity || 'unknown')}">${escapeHtml(alert.severity || 'unknown')}</span>
+          <time class="risk-alert-when">${when ? `${escapeHtml(String(when).replace('T', ' ').slice(0, 16))}${age ? ` · ${escapeHtml(age)}` : ''}` : 'no timestamp recorded'}${held ? ` · held ${escapeHtml(held)}` : ''}</time>
+          <small>${escapeHtml((alert.reason_codes || []).join(' · '))}</small>
+        </article>`;
+      }).join('')}</div>
+      ${ordered.length > 12 ? `<p class="risk-alert-note">Showing the 12 most recent of ${escapeHtml(String(ordered.length))} fetched episodes.</p>` : ''}
+    </section>`;
+  }
+
   function renderRiskView(payload, details = {}, options = {}) {
     const escapeHtml = options.escapeHtml || escapeFallback;
     const health = details.health || {};
@@ -692,13 +948,13 @@
       ${render(payload, { ...options, open: true, expandSectors: true })}
       ${componentStack(payload, escapeHtml)}
       <div class="risk-grid">
-        <section class="risk-card risk-history"><header><h3>SPY criticality history</h3><div class="risk-legend"><span class="criticality-positive">LPPLS criticality score</span></div></header>${historyChart(details)}</section>
+        <section class="risk-card risk-history"><header><h3>SPY criticality history</h3><div class="risk-legend"><span class="criticality-positive">LPPLS criticality score · 0–100</span></div></header>${historyChart(details, resolveReading(payload).spy, escapeHtml)}</section>
         <section class="risk-card"><h3>Feed health</h3><dl class="risk-health">
           <div><dt>Last signed ingest</dt><dd>${escapeHtml(ingest.received_at ? String(ingest.received_at).replace('T', ' ').slice(0, 19) + ' UTC' : 'Awaiting first live snapshot')}</dd></div>
           <div><dt>Latest flow</dt><dd>${escapeHtml(health.snapshots?.latest_flow_at || '—')}</dd></div>
           <div><dt>Stored snapshots</dt><dd>${whole(health.snapshots?.criticality_count)} criticality · ${whole(health.snapshots?.flow_count)} flow · ${whole(health.snapshots?.component_count)} components</dd></div>
           <div><dt>Open alerts</dt><dd>${whole(health.alerts?.open_count)}</dd></div></dl></section>
-        <section class="risk-card"><h3>Alert journal</h3>${alerts.length ? `<div class="risk-alerts">${alerts.slice(0, 12).map((alert) => `<article><strong>${escapeHtml(alert.symbol)} · ${escapeHtml(alert.state.replace(/_/g, ' '))}</strong><span class="risk-severity risk-severity-${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span><small>${escapeHtml((alert.reason_codes || []).join(' · '))}</small></article>`).join('')}</div>` : '<div class="risk-empty">No alert episodes recorded. Alerts come from the Databento flow monitor, a local scheduled task that runs outside CI—if that task is not running, this journal stays empty even during market stress.</div>'}</section>
+        ${alertJournal(alerts, escapeHtml)}
       </div>
       <section class="risk-method"><h3>Interpretation guardrails</h3><p><strong>Criticality</strong> asks whether price dynamics resemble an unstable LPPLS regime. <strong>Pressure</strong> estimates mechanical stress consistent with volatility-sensitive deleveraging. <strong>Exhaustion</strong> requires stabilization evidence and persistence, and is only a capitulation reading once the ladder has reached its stress threshold — below that the score describes ordinary bar mechanics and is shown struck through. A critical time is a probability window, not a scheduled crash; all outputs remain research-only until shadow validation establishes calibration and false-positive behavior.</p></section>`;
   }

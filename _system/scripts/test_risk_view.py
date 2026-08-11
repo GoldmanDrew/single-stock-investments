@@ -83,6 +83,35 @@ const html = CriticalityViz.renderRiskView(payload, details, options);
 const verdictHtml = CriticalityViz.renderRegimeVerdict(options);
 const resolved = CriticalityViz.resolveCapitulation(capitulation, payload, details);
 
+// The committed feeds carry no criticality history and no alerts - those come
+// from the live /api/v1/market-risk endpoints, which a test must not depend
+// on. Both are still rendering surfaces with real invariants (a 0-100 chart
+// that must label its scale; a journal that must rank open above resolved), so
+// they get a synthetic details payload rather than going untested. Shapes are
+// copied from the live API, and the SPY reading is the real committed one.
+const detailFixture = {
+  health: { status: 'operational', snapshots: { criticality_count: 97 }, alerts: { open_count: 2 } },
+  history: {
+    criticality: [
+      { as_of: '2026-08-10', score: 18.2 }, { as_of: '2026-08-07', score: 17.4 },
+      { as_of: '2026-08-06', score: 16.9 }, { as_of: '2026-08-05', score: 15.1 },
+      { as_of: '2026-08-04', score: 14.8 }, { as_of: '2026-08-03', score: 14.2 },
+    ],
+    flow: [],
+  },
+  alerts: {
+    items: [
+      { symbol: 'XLRE', state: 'stress', severity: 'high', opened_at: '2026-08-11T13:05:00Z',
+        reason_codes: ['exhaustion_evidence'] },
+      { symbol: 'SPY', state: 'stress', severity: 'critical', opened_at: '2026-03-02T14:10:00Z',
+        resolved_at: '2026-03-02T19:40:00Z', reason_codes: ['confirmation:volume_cooling'] },
+      { symbol: 'QQQ', state: 'observe', severity: 'medium', reason_codes: ['confirmation:volume_cooling'] },
+    ],
+  },
+};
+const detailHtml = CriticalityViz.renderRiskView(payload, detailFixture,
+  Object.assign({}, options, { details: detailFixture }));
+
 const results = [];
 function check(name, ok, detail) { results.push({ name, ok: !!ok, detail: String(detail) }); }
 
@@ -268,10 +297,39 @@ check('trust line names the worst feed lag from coverage',
   verdictHtml.includes(worstLag[0].toUpperCase() + ' at ' + worstLag[1].sessions_behind + ' sessions behind')
     && verdictHtml.includes(worstLag[1].last_value_date),
   worstLag[0] + ' ' + worstLag[1].sessions_behind + ' behind, last ' + worstLag[1].last_value_date);
-check('trust line names the interior gap that metrics_lagging cannot see',
-  verdictHtml.includes(interior.length + ' metrics had an interior gap')
-    && verdictHtml.includes('closed 2026-08-07'),
-  interior.length + ' metrics with a closed interior gap');
+// An interior gap is a hole that has since CLOSED. Whether any exists on a
+// given day is a property of the feed, not of the renderer - pinning
+// 'closed 2026-08-07' here made this assertion expire the day the holes became
+// trailing rather than interior. Assert the branch the data actually selects.
+if (interior.length) {
+  const deepest = interior.slice().sort((a, b) => b[1].sessions_missing - a[1].sessions_missing)[0];
+  const closed = interior.slice().sort((a, b) => String(b[1].last_missing).localeCompare(String(a[1].last_missing)))[0];
+  check('trust line names the interior gap that metrics_lagging cannot see',
+    verdictHtml.includes(interior.length + ' metric')
+      && verdictHtml.includes('interior gap of up to ' + deepest[1].sessions_missing + ' sessions')
+      && verdictHtml.includes('closed ' + String(closed[1].last_missing).slice(0, 10)),
+    interior.length + ' metrics with a closed interior gap');
+} else {
+  check('trust line states plainly that there are no closed interior gaps',
+    verdictHtml.includes('no interior gaps in the reported window'),
+    'no closed interior gaps in this snapshot; the absence is stated, not omitted');
+}
+
+// A dark feed is the single most important thing the trust line can say: the
+// vendor answers 200 the whole time, so this is the only surface that knows.
+const darkFeeds = Object.keys(volLatest.coverage.metrics_dark || {});
+if (darkFeeds.length) {
+  check('trust line leads with the dark feeds, not the worst lag',
+    verdictHtml.includes(darkFeeds.length + ' vol feeds are DARK, not late')
+      && darkFeeds.every((m) => verdictHtml.includes(m.toUpperCase().replace(/_/g, ' ')))
+      && verdictHtml.indexOf('DARK, not late') < verdictHtml.indexOf('worst feed lag'),
+    darkFeeds.length + ' dark: ' + darkFeeds.join(', '));
+}
+if (volLatest.regime.term_state_is_fallback) {
+  check('trust line discloses that term state came from the chain fallback',
+    verdictHtml.includes('term state is the SPX-chain fallback, not VIX/VIX3M'),
+    'fallback disclosed in the trust line');
+}
 check('trust line discloses that the capitulation reading is the daily model',
   verdictHtml.includes('the capitulation reading is the daily model, not the live intraday feed'),
   'daily disclosure present in the trust line');
@@ -299,6 +357,89 @@ check('the SPY history card advertises one series, not three',
   !html.includes('risk-line-pressure') && !html.includes('risk-line-exhaustion')
     && html.includes('SPY criticality history'),
   'flow polylines removed');
+
+// ---- (9b) the criticality chart is readable -----------------------------
+// It was an 820x180 polyline with one unlabelled gridline hard-coded at y=90
+// and no axis at all, so a score of 18.2 on a 0-100 scale pinned to the floor
+// and read as flat, and the 50 mark read as a trend line.
+const spyReading = payload.by_symbol.SPY;
+const snapshots = detailFixture.history.criticality;
+if (snapshots.length >= 2) {
+  check('the criticality chart labels its 0-100 scale',
+    [0, 25, 50, 75, 100].every((v) => detailHtml.includes('>' + v + '</text>'))
+      && detailHtml.includes('risk-axis-caption'),
+    'all five gridline labels drawn');
+  check('the criticality chart is dated, not floating in time',
+    detailHtml.includes('risk-axis-label') && /\d{4}-\d{2}-\d{2}<\/text>/.test(detailHtml),
+    'date ticks present on the x axis');
+  check('the current value is called out, not left to be read off a hairline',
+    detailHtml.includes('risk-current-label') && detailHtml.includes('risk-current-rule'),
+    'current-value rule and label drawn');
+  const share = spyReading.qualified_count / spyReading.attempted_count;
+  check('weak support is rendered as weak, not as a confident line',
+    detailHtml.includes(Math.round(share * 100) + '% support')
+      && detailHtml.includes(spyReading.qualified_count + ' of ' + spyReading.attempted_count + ' LPPLS fits qualified')
+      && (share >= 0.5 || detailHtml.includes('is-weak')),
+    Math.round(share * 100) + '% support (' + spyReading.qualified_count + '/' + spyReading.attempted_count + ')');
+  check('the critical-time window is shown as a span, never as a date',
+    detailHtml.includes(Math.round(spyReading.critical_time.p10) + '–'
+      + Math.round(spyReading.critical_time.p90) + ' trading days')
+      && detailHtml.includes('statement of uncertainty, not a date'),
+    'p10-p90 span drawn with its dispersion stated');
+}
+
+// ---- (9c) alert journal ranks open above resolved -----------------------
+const alertItems = detailFixture.alerts.items;
+if (alertItems.length) {
+  const openCount = alertItems.filter((a) => !(a.resolved_at || a.closed_at)
+    && String(a.status || '').toLowerCase() !== 'resolved').length;
+  check('the journal counts open vs resolved instead of showing an undated list',
+    detailHtml.includes(openCount + ' open · ' + (alertItems.length - openCount) + ' resolved'),
+    openCount + ' open of ' + alertItems.length);
+  check('open and resolved episodes are visually distinct',
+    (openCount === 0 || detailHtml.includes('article class="is-open"'))
+      && (openCount === alertItems.length || detailHtml.includes('article class="is-resolved"')),
+    'open/resolved styling applied per episode');
+  check('every rendered episode is placed in time or says it cannot be',
+    detailHtml.includes('risk-alert-when')
+      && detailHtml.includes('no timestamp recorded'),
+    'timestamps or an explicit no-timestamp note on each row');
+}
+
+// ---- (9d) LETF flow carries its liquidity denominator -------------------
+const letfClose = payload.components.find((c) => c.component === 'letf_rebalance_close');
+const letfIntra = payload.components.find((c) => c.component === 'letf_rebalance_intraday');
+if (letfClose) {
+  check('LETF flow is normalised by the auction volume it has to clear',
+    html.includes("Flow as a share of that name's closing auction"),
+    'liquidity denominator drawn, not just the dollar total');
+  check('the two hard-coded model assumptions are disclosed on the tile',
+    html.includes('is <b>' + Math.round(letfClose.auction_share_assumption * 100) + '%</b> of daily volume')
+      && html.includes('<b>' + Math.round(letfClose.swap_hedge_share_assumption * 100) + '%</b> of leveraged exposure is swap-hedged'),
+    'auction share and swap-hedge share stated');
+  const ranked = (letfClose.top || []).filter((t) => t.net_moc_pct_auction_volume != null);
+  const unfloated = ranked.filter((t) => !t.tradable_float_quality || t.tradable_float_quality === 'missing');
+  if (unfloated.length) {
+    check('a peak ratio built on a missing float is voided, not headlined',
+      html.includes('not usable.') && html.includes('tradable_float_quality: missing')
+        && html.includes('division artifact'),
+      unfloated.length + ' of ' + ranked.length + ' ranked names have no tradable float');
+  }
+}
+if (letfClose && letfIntra) {
+  const forecast = letfIntra.net_dollars, realized = letfClose.net_dollars;
+  const flip = (forecast < 0) !== (realized < 0);
+  check('the two estimates of the same close are reconciled, not left side by side',
+    html.includes('Same event, two methods')
+      && html.includes(flip ? 'These two tiles disagree' : 'These two tiles agree'),
+    'forecast ' + forecast + ' vs realized ' + realized);
+  if (flip) {
+    check('a sign disagreement is called out explicitly',
+      html.includes('do not even agree on <b>direction</b>')
+        && html.includes('At least one is wrong'),
+      'opposite signs: one estimates net buying, the other net selling');
+  }
+}
 
 // ---- (10) degraded path -------------------------------------------------
 const noCapHtml = CriticalityViz.renderRiskView(payload, details,

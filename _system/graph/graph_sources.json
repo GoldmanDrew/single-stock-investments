@@ -168,17 +168,6 @@
         ]
       }
     ],
-    "2026-08-09-ran-build-memory-triage-py-sync-promo": [
-      {
-        "id": "backfill-attribution-constant",
-        "label": "the back-sync path stamps a constant by: backfill and ignores --by entirely; attribution follows who decided, not who executed",
-        "script": "_system/scripts/build_memory_triage.py",
-        "function": "BACKFILL_BY",
-        "enforced_by": [
-          "_system/scripts/tests/test_memory_triage.py"
-        ]
-      }
-    ],
     "2026-08-11-kept-two-hand-synced-copies-of-the-perso": [
       {
         "id": "canonical-persona-groups",
@@ -199,6 +188,17 @@
         "enforced_by": [
           "_system/scripts/test_graph_invariants.py",
           "_system/scripts/test_persona_lens.py"
+        ]
+      }
+    ],
+    "2026-08-09-ran-build-memory-triage-py-sync-promo": [
+      {
+        "id": "backfill-attribution-constant",
+        "label": "the back-sync path stamps a constant by: backfill and ignores --by entirely; attribution follows who decided, not who executed",
+        "script": "_system/scripts/build_memory_triage.py",
+        "function": "BACKFILL_BY",
+        "enforced_by": [
+          "_system/scripts/tests/test_memory_triage.py"
         ]
       }
     ]
@@ -224,11 +224,21 @@
           "violation": "belief:the-drive-intake-root-is-admin-intake-not-the-vic-child-f -> source:Admin/Intake",
           "note": "2026-08-10: 'Admin/Intake' is a Google Drive folder path quoted inside the belief text, not a repo path, so exists-on-disk cannot apply; MEMORY.md is human-owned and the bullet cannot be reworded by an agent (that would itself violate E4). E5 stays hard for every other belief source."
         }
+      ],
+      "P6": [
+        {
+          "violation": "vol_metrics: coverage.symbols_dark exceeds its limit of 0 -- a symbol whose newest 3+ sessions are all null is a dead vendor feed; the fetch returns 200 so only the column shows it -- heal: python _system/scripts/build_vol_metrics.py (data-pipeline technicals lane, cron 15 2 * * 1-5)",
+          "note": "2026-08-11: TRUE and not repairable from this repo. Yahoo chart-v8 stopped serving ^VIX3M ^VIX9D ^VIX6M ^VIX1D ^MOVE after 2026-07-17 while still answering 200, so the builder cannot heal it -- there is nothing to re-fetch. This check was ADDED on 2026-08-11 to surface an outage that had already run silent for 16 sessions; waiving it on day one keeps CI honest about every other feed rather than training the lane red. The live symbol list prints in the P6 note even while waived. Term state now falls back to the SPX chain so the page is correct meanwhile. REVIEW 2026-09-15: if Yahoo has resumed, this waiver self-reports as stale and must be deleted; if it has not, decide between a paid rates/vol source and retiring the ^MOVE and VIX-complex rows outright."
+        },
+        {
+          "violation": "podcast_catalog: stale (window 240h)",
+          "note": "2026-08-11: TRUE. The catalog was last built 2026-07-28 by a one-off manual run; it had no scheduler and no P6 registration, which is why nothing noticed for 14 days. Both are added in this change (podcast-refresh.yml, cron 0 7 * * 1). The first scheduled run is Monday 2026-08-17 and will clear this; `gh workflow run podcast-refresh.yml` clears it sooner. REVIEW 2026-08-18: delete this waiver -- if it is still needed then, the new cron itself is broken and that is the finding."
+        }
       ]
     }
   },
   "data_feeds": {
-    "_doc": "P6 registry: dashboard/risk data feeds with an expected freshness window and the healer that refills them. Windows span weekends for weekday-cadence feeds. A feed whose stamp is unparseable can never be judged fresh and is always a violation.",
+    "_doc": "P6 registry: dashboard/risk data feeds with an expected freshness window and the healer that refills them. Windows span weekends for weekday-cadence feeds. A feed whose stamp is unparseable can never be judged fresh and is always a violation. A feed may also declare 'assert_fields' (dotted path -> not_in / equals / max_count + why) to have its CONTENTS checked: a freshness window only proves the builder ran, and on 2026-07-20..08-11 vol_metrics was rewritten daily with a fresh stamp while five of its nine feeds were dark, so P6 passed every day of a three-week outage.",
     "criticality_summary": {
       "path": "dashboard/data/criticality_summary.json",
       "stamp_field": "generated_at",
@@ -251,63 +261,41 @@
       "path": "dashboard/data/vol_metrics_latest.json",
       "stamp_field": "generated_at",
       "max_age_hours": 100,
-      "healer": "python _system/scripts/build_vol_metrics.py (data-pipeline technicals lane, cron 15 2 * * 1-5)"
+      "healer": "python _system/scripts/build_vol_metrics.py (data-pipeline technicals lane, cron 15 2 * * 1-5)",
+      "assert_fields": {
+        "coverage.symbols_dark": {
+          "max_count": 0,
+          "why": "a symbol whose newest 3+ sessions are all null is a dead vendor feed; the fetch returns 200 so only the column shows it"
+        }
+      }
     },
     "spx_surface": {
       "path": "dashboard/data/spx_surface_latest.json",
       "stamp_field": "generated_at",
       "max_age_hours": 100,
-      "healer": "python _system/scripts/build_spx_surface.py (data-pipeline technicals lane, cron 15 2 * * 1-5)"
-    }
-  },
-  "live_feeds": {
-    "_doc": "P7 registry: feeds published through the HMAC ingest rather than committed as files, so the only local evidence they ran is the publisher's own log. evidence_path may be absolute or ~-rooted (machine-local, by design) or repo-relative. P7 is REPORT severity and its skip rule differs from P6's: an evidence file that is ABSENT is SKIPPED with a reason (a CI checkout has no local monitor logs, and an invariant that reddens on every CI run is one everybody learns to ignore), while an evidence file that EXISTS and is stale, or whose stamp cannot be parsed, is a violation. Windows span weekends, as in data_feeds: the flow monitor only publishes when minute bars arrive.",
-    "databento_flow_monitor": {
-      "name": "databento_flow_monitor",
-      "description": "Databento minute-bar forced-flow snapshots signed and POSTed to the market-risk ingest every ~60s; feeds the dashboard flow rails, the sector pressure/exhaustion columns and the alert journal. Died 2026-08-03 12:15 on an uncaught urlopen timeout in its publish path and was not noticed for seven days.",
-      "evidence_path": "~/.magis-market-risk/logs/databento-flow-monitor.out.log",
-      "stamp_field": "published_at",
-      "max_age_hours": 100,
-      "healer": "start the Windows scheduled task that runs _system/scripts/run_databento_flow_monitor.ps1 (it now supervises the python monitor and restarts it, bounded to 6 restarts/hour)"
+      "healer": "python _system/scripts/build_spx_surface.py (data-pipeline technicals lane, cron 15 2 * * 1-5)",
+      "assert_fields": {
+        "quality_state": {
+          "not_in": ["stale", "unavailable", "error"],
+          "why": "the chain snapshot is now the term-state fallback when VIX3M is dark, so its own health cannot go unwatched"
+        }
+      }
+    },
+    "podcast_catalog": {
+      "path": "dashboard/data/insights/podcasts.json",
+      "stamp_field": "generated_at",
+      "max_age_hours": 240,
+      "healer": "python _system/scripts/podcast_cloud_refresh.py --date YYYY-MM-DD (podcast-refresh.yml, cron 0 7 * * 1)"
     }
   },
   "classification_vocab": {
     "_doc": "L4 registry: canonical enum values per classification field, mirrored from _system/frameworks/classification.md (the prose authority). Sentinels mean 'not yet classified' and are exempt everywhere. Criteria surfaces (personas.json criteria, power_zones.json zone rules and profile preferred_archetypes) may only reference canonical values; data surfaces (valuation.json classification_inputs, portfolio registry) may only carry canonical values or sentinels. L4 also asserts no persona lens is strictly narrower than its own power zone on a shared axis -- the stahl-omits-optionality class.",
-    "sentinels": [
-      "",
-      "pending",
-      "unknown",
-      "-"
-    ],
+    "sentinels": ["", "pending", "unknown", "-"],
     "fields": {
-      "archetype": [
-        "croupier",
-        "compounder",
-        "serial_acquirer",
-        "platform",
-        "holding_co",
-        "optionality",
-        "turnaround",
-        "infrastructure"
-      ],
-      "payoff_lens": [
-        "operating",
-        "asset",
-        "event",
-        "levered"
-      ],
-      "moat": [
-        "widening",
-        "stable",
-        "eroding",
-        "unproven",
-        "n/a"
-      ],
-      "dhando": [
-        "full",
-        "partial",
-        "none"
-      ]
+      "archetype": ["croupier", "compounder", "serial_acquirer", "platform", "holding_co", "optionality", "turnaround", "infrastructure"],
+      "payoff_lens": ["operating", "asset", "event", "levered"],
+      "moat": ["widening", "stable", "eroding", "unproven", "n/a"],
+      "dhando": ["full", "partial", "none"]
     }
   },
   "derived_artifacts": {
@@ -325,6 +313,17 @@
       "stamp_field": "as_of",
       "missing_when": "never",
       "healer": "python _system/scripts/power_zone_router.py --scope valued (power-zone-universe cron 30 5 * * 1; ls-algo lane daily)"
+    }
+  },
+  "live_feeds": {
+    "_doc": "P7 registry: feeds published through the HMAC ingest rather than committed as files, so the only local evidence they ran is the publisher's own log. evidence_path may be absolute or ~-rooted (machine-local, by design) or repo-relative. P7 is REPORT severity and its skip rule differs from P6's: an evidence file that is ABSENT is SKIPPED with a reason (a CI checkout has no local monitor logs, and an invariant that reddens on every CI run is one everybody learns to ignore), while an evidence file that EXISTS and is stale, or whose stamp cannot be parsed, is a violation. Windows span weekends, as in data_feeds: the flow monitor only publishes when minute bars arrive.",
+    "databento_flow_monitor": {
+      "name": "databento_flow_monitor",
+      "description": "Databento minute-bar forced-flow snapshots signed and POSTed to the market-risk ingest every ~60s; feeds the dashboard flow rails, the sector pressure/exhaustion columns and the alert journal. Died 2026-08-03 12:15 on an uncaught urlopen timeout in its publish path and was not noticed for seven days.",
+      "evidence_path": "~/.magis-market-risk/logs/databento-flow-monitor.out.log",
+      "stamp_field": "published_at",
+      "max_age_hours": 100,
+      "healer": "start the Windows scheduled task that runs _system/scripts/run_databento_flow_monitor.ps1 (it now supervises the python monitor and restarts it, bounded to 6 restarts/hour)"
     }
   }
 }

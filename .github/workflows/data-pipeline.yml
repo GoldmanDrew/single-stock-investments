@@ -155,9 +155,14 @@ jobs:
         # the delayed CBOE chain needs. Both builders preserve their prior
         # rows and stamp quality_state='stale' on a source hiccup, so a
         # vendor outage cannot fail the lane.
+        #
+        # ORDER MATTERS: the surface builds FIRST. build_vol_metrics reads
+        # spx_surface_latest.json to resolve term_state when ^VIX3M has no
+        # print, so running it first made the fallback read yesterday's chain.
+        # build_spx_surface has no dependency on vol metrics, so this is free.
         run: |
-          python _system/scripts/build_vol_metrics.py
           python _system/scripts/build_spx_surface.py
+          python _system/scripts/build_vol_metrics.py
           python _system/scripts/build_capitulation_daily.py --workers 6
       - name: Commit technical snapshots
         uses: ./.github/actions/commit-main

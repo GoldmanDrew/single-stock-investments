@@ -199,8 +199,16 @@ def write_insights_shards(insights_doc: dict | None, data_dir: Path) -> int:
     }
     (insights_dir / "manifest.json").write_text(_dump(manifest), encoding="utf-8")
     count = 1
+    # Every shard carries the parent doc's stamp. Without it a shard cannot be
+    # registered as a P6 data feed at all: podcasts.json held 3,561 episodes and
+    # no date, so nothing could tell that its newest episode was 2026-07-28 and
+    # the pipeline had not run since. A feed with no stamp cannot go stale --
+    # it can only be noticed by a human reading the page.
+    stamp = insights_doc.get("generated_at")
     for name, keys in INSIGHTS_SHARDS.items():
         shard = {k: insights_doc.get(k) for k in keys}
+        if stamp is not None:
+            shard["generated_at"] = stamp
         (insights_dir / f"{name}.json").write_text(_dump(shard), encoding="utf-8")
         count += 1
     return count

@@ -171,6 +171,125 @@
     </svg></div>`;
   }
 
+  // ---------------------------------------------------------------------
+  // (a2) long-history strip
+  //
+  // The daily strip above is capped at 120 sessions because below roughly 6px
+  // a cell and its row label degrade into noise. The file holds 1,528 sessions
+  // back to 2020-07-13 and the browser now receives all of them, so the answer
+  // is not to shrink the cells -- 1,528 columns across 832px is half a pixel
+  // each -- but to change the unit. One cell per MONTH is ~73 columns at 11px,
+  // which is legible, and a monthly mean of a daily z-score is a fair summary
+  // of a regime as long as it is labelled as one and the underlying daily
+  // strip stays available directly above it. Months with no prints hatch.
+  // ---------------------------------------------------------------------
+
+  // Named episodes, so a wall of colour has anchors a reader can navigate by.
+  // Dates are the month the episode peaked, which is the resolution of the
+  // strip; nothing here is derived from the data, it is context laid over it.
+  const VOL_EVENTS = [
+    { month: '2018-02', label: 'Volmageddon' },
+    { month: '2020-03', label: 'COVID' },
+    { month: '2020-11', label: 'vaccine' },
+    { month: '2021-02', label: 'meme squeeze' },
+    { month: '2022-01', label: 'rate repricing' },
+    { month: '2022-10', label: 'bear low' },
+    { month: '2023-03', label: 'SVB' },
+    { month: '2024-08', label: 'yen carry unwind' },
+    { month: '2025-04', label: 'tariff shock' },
+  ];
+
+  function monthlyRows(rows) {
+    const buckets = new Map();
+    tailRows(rows, null).forEach((row) => {
+      const month = shortDate(row.date).slice(0, 7);
+      if (month.length !== 7) return;
+      if (!buckets.has(month)) buckets.set(month, { month, sums: {}, counts: {} });
+      const bucket = buckets.get(month);
+      METRIC_ORDER.forEach((metric) => {
+        const z = finite(row[`${metric}_z1y`]);
+        if (z == null) return;
+        bucket.sums[metric] = (bucket.sums[metric] || 0) + z;
+        bucket.counts[metric] = (bucket.counts[metric] || 0) + 1;
+      });
+    });
+    return Array.from(buckets.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map((bucket) => {
+        const out = { month: bucket.month, sessions: {} };
+        METRIC_ORDER.forEach((metric) => {
+          const n = bucket.counts[metric] || 0;
+          out[metric] = n ? bucket.sums[metric] / n : null;
+          out.sessions[metric] = n;
+        });
+        return out;
+      });
+  }
+
+  function longHeatmap(rows, escapeHtml) {
+    const months = monthlyRows(rows);
+    if (months.length < 6) return '';
+
+    const labelWidth = 150;
+    const plotLeft = 154;
+    const plotRight = 986;
+    const plotWidth = plotRight - plotLeft;
+    const plotTop = 22;
+    const rowPitch = 17;
+    const cellHeight = 15;
+    const height = plotTop + METRIC_ORDER.length * rowPitch + 40;
+    const pitch = plotWidth / months.length;
+    const cellWidth = Math.max(1, pitch - 0.8);
+
+    const cells = [];
+    METRIC_ORDER.forEach((metric, rowIndex) => {
+      const y = plotTop + rowIndex * rowPitch;
+      const label = METRIC_LABELS[metric] || metric;
+      cells.push(`<text class="vol-heat-row-label" x="${labelWidth}" y="${(y + cellHeight / 2 + 3.4).toFixed(1)}">${escapeHtml(label)}</text>`);
+      months.forEach((bucket, colIndex) => {
+        const x = plotLeft + colIndex * pitch;
+        const mean = finite(bucket[metric]);
+        const bin = zBin(mean);
+        const n = bucket.sessions[metric] || 0;
+        const tip = `${label} · ${bucket.month} · ${bin == null ? 'no print in this month' : `mean z1y ${signed(mean, 2)} over ${n} session${n === 1 ? '' : 's'}`}`;
+        const fill = bin == null
+          ? 'class="vol-heat-cell vol-heat-null" fill="url(#vol-null-hatch-long)"'
+          : `class="vol-heat-cell vol-heat-${bin}"`;
+        cells.push(`<rect ${fill} x="${x.toFixed(2)}" y="${y}" width="${cellWidth.toFixed(2)}" height="${cellHeight}" rx="1"><title>${escapeHtml(tip)}</title></rect>`);
+      });
+    });
+
+    // Year boundaries carry the axis; a monthly tick would collide at 73 cells.
+    const axisY = plotTop + METRIC_ORDER.length * rowPitch + 15;
+    const ticks = [];
+    months.forEach((bucket, index) => {
+      if (!bucket.month.endsWith('-01') && index !== 0) return;
+      const x = plotLeft + index * pitch;
+      ticks.push(`<line class="vol-year-rule" x1="${x.toFixed(1)}" y1="${plotTop - 4}" x2="${x.toFixed(1)}" y2="${(plotTop + METRIC_ORDER.length * rowPitch).toFixed(1)}"></line>`);
+      ticks.push(`<text class="vol-heat-axis-label" x="${(x + 2).toFixed(1)}" y="${axisY}" text-anchor="start">${escapeHtml(bucket.month.slice(0, 4))}</text>`);
+    });
+
+    const marks = VOL_EVENTS.map((event) => {
+      const index = months.findIndex((bucket) => bucket.month === event.month);
+      if (index < 0) return '';
+      const x = plotLeft + index * pitch + cellWidth / 2;
+      return `<line class="vol-event-rule" x1="${x.toFixed(1)}" y1="${plotTop - 6}" x2="${x.toFixed(1)}" y2="${(plotTop + METRIC_ORDER.length * rowPitch + 2).toFixed(1)}"></line>
+        <text class="vol-event-label" x="${x.toFixed(1)}" y="${(plotTop - 9).toFixed(1)}" text-anchor="middle">${escapeHtml(event.label)}</text>`;
+    }).join('');
+
+    return `<details class="vol-long-view" open><summary>Full history · ${escapeHtml(String(months.length))} months, ${escapeHtml(shortDate(months[0].month))} to ${escapeHtml(months[months.length - 1].month)}</summary>
+      <p class="vol-note">One cell per calendar month, coloured by the <b>mean</b> of that month's daily one-year z-scores — a summary of the regime, not a reading of any single session. The daily strip above is the unsmoothed version of the most recent 120 sessions. Hover any cell for the mean and how many sessions it averages.</p>
+      <div class="vol-chart-scroll"><svg class="vol-heat-chart" viewBox="0 0 1000 ${height}" preserveAspectRatio="xMidYMid meet" role="img"
+        aria-label="Monthly mean z-score heatmap: ${escapeHtml(String(METRIC_ORDER.length))} volatility metrics over ${escapeHtml(String(months.length))} months from ${escapeHtml(months[0].month)} to ${escapeHtml(months[months.length - 1].month)}">
+        <defs><pattern id="vol-null-hatch-long" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <path class="vol-heat-null-line" d="M0,0 L0,4"></path>
+        </pattern></defs>
+        ${cells.join('')}
+        ${ticks.join('')}
+        ${marks}
+      </svg></div></details>`;
+  }
+
   function heatLegend(escapeHtml) {
     const swatches = [
       ['n3', '≤ −2'], ['n2', '−2 to −1'], ['n1', '−1 to −0.5'],
@@ -296,6 +415,14 @@
   // (c) regime tiles
   // ---------------------------------------------------------------------
 
+  function quantile(sorted, q) {
+    if (!sorted.length) return null;
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+
   function sparkline(rows, metric, escapeHtml) {
     const series = tailRows(rows, 90).map((row) => finite(row[metric]));
     const valid = series.filter((value) => value != null);
@@ -305,6 +432,27 @@
     const span = (max - min) || 1;
     const width = 132;
     const height = 26;
+
+    // The tile states a percentile ("17.1% of the last year") in words; the
+    // sparkline drew 90 sessions with no reference at all, so the two never
+    // met. Shade the trailing-year 10th-90th band behind the line and rule the
+    // median, and the sentence becomes something you can see. Built from the
+    // full trailing year on file, not from the 90 sessions drawn.
+    const yearly = tailRows(rows, 252).map((row) => finite(row[metric]))
+      .filter((value) => value != null).sort((a, b) => a - b);
+    const band = (() => {
+      if (yearly.length < 30) return '';
+      const p10 = quantile(yearly, 0.1);
+      const p50 = quantile(yearly, 0.5);
+      const p90 = quantile(yearly, 0.9);
+      const yOfValue = (v) => height - 3 - ((v - min) / span) * (height - 6);
+      const top = Math.max(0, yOfValue(p90));
+      const bottom = Math.min(height, yOfValue(p10));
+      if (!(bottom > top)) return '';
+      const mid = yOfValue(p50);
+      return `<rect class="vol-spark-band" x="0" y="${top.toFixed(1)}" width="${width}" height="${(bottom - top).toFixed(1)}"></rect>
+        ${mid >= 0 && mid <= height ? `<line class="vol-spark-median" x1="0" y1="${mid.toFixed(1)}" x2="${width}" y2="${mid.toFixed(1)}"></line>` : ''}`;
+    })();
     let lastPoint = null;
     const segments = [];
     let current = [];
@@ -321,7 +469,8 @@
     });
     if (current.length > 1) segments.push(current.join(' '));
     if (!segments.length) return '';
-    return `<svg class="vol-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(`${METRIC_LABELS[metric] || metric} over the last ${series.length} sessions, ${min.toFixed(2)} to ${max.toFixed(2)}`)}">
+    return `<svg class="vol-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(`${METRIC_LABELS[metric] || metric} over the last ${series.length} sessions, ${min.toFixed(2)} to ${max.toFixed(2)}${band ? ', with the trailing-year 10th to 90th percentile band shaded behind it' : ''}`)}">
+      ${band}
       ${segments.map((points) => `<polyline class="vol-spark-line" points="${points}"></polyline>`).join('')}
       ${lastPoint ? `<circle class="vol-spark-dot" cx="${lastPoint[0].toFixed(1)}" cy="${lastPoint[1].toFixed(1)}" r="2.6"></circle>` : ''}
     </svg>`;
@@ -350,6 +499,50 @@
     </article>`;
   }
 
+  // The term-state tile is the one place on this panel where a null in the
+  // primary feed does not have to mean a null on the page. ^VIX3M went dark
+  // after 2026-07-17 and this tile read "Unknown" for sixteen sessions while
+  // the term-structure chart directly below it drew an unambiguous curve off a
+  // chain snapshot that was current to the hour. The builder now resolves the
+  // state off that same chain when the index feed is silent; this renders WHICH
+  // basis answered, so a fallback reading can never be mistaken for a primary
+  // one, and the tile still refuses to guess when the chain is inconclusive.
+  function termTile(regime, slopeEntry, lagging, history, escapeHtml) {
+    const isFallback = !!regime.term_state_is_fallback;
+    const source = String(regime.term_state_source || 'none');
+    const chain = regime.chain_term_detail || {};
+    const state = String(regime.term_state || 'unknown').replace(/_/g, ' ');
+    const chainRatio = finite(regime.chain_term_ratio ?? chain.ratio);
+
+    const sub = isFallback
+      ? `SPX chain ${finite(chain.near_dte) ?? '—'}d/${finite(chain.far_dte) ?? '—'}d ATM ${num(chainRatio, 3)}`
+      : `VIX/VIX3M ${num(regime.slope_vix_3m ?? slopeEntry.value, 3)}`;
+
+    // A fallback state carries no z-score: the chain series is two snapshots
+    // deep, so there is no distribution to sit against. Say that instead of
+    // showing the primary metric's stale z next to a chain-derived state.
+    const z = isFallback
+      ? 'no z-score — the chain series is too short to have a distribution'
+      : `z1y ${zText(slopeEntry.z1y ?? slopeEntry.last_z1y)}`;
+
+    const badge = isFallback
+      ? '<b class="vol-fallback-flag">Chain fallback — VIX3M is dark</b>'
+      : source === 'none'
+        ? '<b class="vol-unknown-flag">No basis available</b>'
+        : '';
+
+    return `<article class="vol-tile ${isFallback ? 'is-fallback' : ''}">
+      <span class="vol-tile-label">Term state</span>
+      <strong class="vol-tile-value">${escapeHtml(state)}</strong>
+      <span class="vol-tile-sub">${escapeHtml(sub)}</span>
+      <span class="vol-tile-z">${escapeHtml(z)}</span>
+      ${badge}
+      <small class="vol-basis">${escapeHtml(String(regime.term_state_basis || 'no basis recorded'))}</small>
+      ${lagNote('slope_vix_3m', slopeEntry, lagging, escapeHtml)}
+      ${isFallback ? '' : sparkline(history, 'slope_vix_3m', escapeHtml)}
+    </article>`;
+  }
+
   function regimeTiles(volLatest, history, escapeHtml) {
     const metrics = volLatest?.metrics || {};
     const regime = volLatest?.regime || {};
@@ -359,8 +552,6 @@
     const vvixEntry = metrics.vvix_vix_ratio || {};
     const ivrvEntry = metrics.iv_rv_spread || {};
     const slopeEntry = metrics.slope_vix_3m || {};
-
-    const termState = String(regime.term_state || 'unknown').replace(/_/g, ' ');
 
     return `<div class="vol-tile-row">
       ${tile({
@@ -372,15 +563,7 @@
         note: lagNote('vix', vixEntry, lagging, escapeHtml),
         spark: sparkline(history, 'vix', escapeHtml),
       })}
-      ${tile({
-        escapeHtml,
-        label: 'Term state',
-        value: termState,
-        sub: `VIX/VIX3M ${num(regime.slope_vix_3m ?? slopeEntry.value, 3)}`,
-        z: `z1y ${zText(slopeEntry.z1y ?? slopeEntry.last_z1y)}`,
-        note: `<small class="vol-basis" title="${escapeHtml(String(regime.term_state_basis || ''))}">${escapeHtml(String(regime.term_state_basis || 'no basis recorded'))}</small>${lagNote('slope_vix_3m', slopeEntry, lagging, escapeHtml)}`,
-        spark: sparkline(history, 'slope_vix_3m', escapeHtml),
-      })}
+      ${termTile(regime, slopeEntry, lagging, history, escapeHtml)}
       ${tile({
         escapeHtml,
         label: 'VVIX / VIX',
@@ -406,6 +589,84 @@
   // strip that sat beside it. The heatmap's table view carries the same
   // z-scores in an accessible form, and a lagging feed still declares itself in
   // the banner, the tiles and the hatched cells.
+
+  // ---------------------------------------------------------------------
+  // (c2) forward conditioning
+  //
+  // The panel states that IV-RV sits at the 12.75th percentile of its year and
+  // then stops, which leaves the only question a reader actually has -- so what
+  // usually happens next? -- unanswered on a page holding ten years of the
+  // answer. This shows the realised forward path of every historical session
+  // that sat in the same bucket.
+  //
+  // The finding in the current sample is mostly NEGATIVE: at 21 sessions the
+  // buckets are indistinguishable, and at 63 sessions the gradient is real but
+  // small and rests on four to five independent windows per bucket. A panel
+  // that dressed that up as a signal would be worse than no panel, so the
+  // separation is computed here and reported as whatever it is.
+  // ---------------------------------------------------------------------
+
+  const BUCKET_LABELS = {
+    cheapest: 'cheapest 20%', cheap: '20–40%', middle: '40–60%',
+    rich: '60–80%', richest: 'richest 20%',
+  };
+  const BUCKET_ORDER = ['cheapest', 'cheap', 'middle', 'rich', 'richest'];
+
+  function forwardPanel(conditioning, escapeHtml) {
+    const byHorizon = conditioning?.buckets_by_horizon || {};
+    const horizons = Object.keys(byHorizon).sort((a, b) => Number(a) - Number(b));
+    if (!horizons.length) return '';
+    const current = String(conditioning.current_bucket || '');
+    const currentPct = finite(conditioning.current_pct1y);
+
+    const tables = horizons.map((horizon) => {
+      const block = byHorizon[horizon];
+      const buckets = block.buckets || {};
+      const drawdowns = BUCKET_ORDER
+        .map((name) => finite(buckets[name]?.median_max_drawdown_pct))
+        .filter((value) => value != null);
+      // Does the bucketing separate anything? Spread of the bucket medians
+      // against the typical bucket median. Stated, never assumed.
+      const spread = drawdowns.length >= 2
+        ? Math.max(...drawdowns) - Math.min(...drawdowns) : null;
+      const typical = drawdowns.length
+        ? Math.abs(drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length) : null;
+      const separates = spread != null && typical ? (spread / typical) > 0.35 : false;
+      const minIndependent = Math.min(...BUCKET_ORDER
+        .map((name) => finite(buckets[name]?.independent_windows) ?? 0));
+
+      return `<div class="vol-forward-block">
+        <h4>Next ${escapeHtml(String(block.horizon_sessions))} sessions</h4>
+        <div class="vol-table-scroll"><table class="vol-matrix vol-forward-table">
+          <caption>Realised outcome of every past session whose trailing IV−RV percentile fell in each band. ${escapeHtml(String(block.truncated_sessions))} recent sessions are excluded because their forward window has not finished.</caption>
+          <thead><tr><th scope="col">IV−RV band</th><th scope="col">Median drawdown</th><th scope="col">Worst</th><th scope="col">Chance of &gt;5% drawdown</th><th scope="col">Median realised vol</th><th scope="col">Independent windows</th></tr></thead>
+          <tbody>${BUCKET_ORDER.map((name) => {
+            const row = buckets[name] || {};
+            const isNow = name === current;
+            const share = finite(row.share_drawdown_over_5pct);
+            return `<tr class="${isNow ? 'is-current' : ''}">
+              <th scope="row">${escapeHtml(BUCKET_LABELS[name] || name)}${isNow ? ' <b>← today</b>' : ''}</th>
+              <td>${escapeHtml(num(row.median_max_drawdown_pct, 2))}%</td>
+              <td>${escapeHtml(num(row.worst_max_drawdown_pct, 2))}%</td>
+              <td>${share == null ? '—' : escapeHtml(`${(share * 100).toFixed(0)}%`)}</td>
+              <td>${escapeHtml(num(row.median_realized_vol, 2))}</td>
+              <td>${escapeHtml(num(row.independent_windows, 1))}<small class="vol-lag">${escapeHtml(String(row.observations || 0))} overlapping</small></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+        <p class="vol-forward-read ${separates ? 'is-separating' : 'is-flat'}">${separates
+          ? `<b>The bands separate.</b> Median drawdown ranges ${escapeHtml(spread.toFixed(2))} points across them, against a typical bucket median of ${escapeHtml(typical.toFixed(2))}%. With as few as ${escapeHtml(minIndependent.toFixed(1))} independent windows in the thinnest band this is a tendency in one sample, not an estimate with a confidence interval.`
+          : `<b>The bands do not separate.</b> Median drawdown varies by only ${escapeHtml((spread ?? 0).toFixed(2))} points across the whole percentile range, which is noise at this sample size. At this horizon, knowing where IV−RV sits told you nothing useful about what followed.`}</p>
+      </div>`;
+    }).join('');
+
+    return `<section class="risk-card vol-forward-card">
+      <header class="vol-card-head"><div><h3>What followed readings like today's</h3>
+        <p>Today IV−RV sits at <b>${currentPct == null ? 'an unknown percentile' : `the ${escapeHtml(currentPct.toFixed(1))}th percentile`}</b> of its trailing year${current ? ` — the <b>${escapeHtml(BUCKET_LABELS[current] || current)}</b> band` : ''}. Every past session in the same band is scored by what the S&amp;P actually did over the following weeks. Sessions are bucketed on the percentile that was knowable <em>on that date</em>, so the grouping carries no look-ahead; the outcome is pure hindsight, which is the point.</p></div></header>
+      ${tables}
+      <p class="vol-caveat"><b>Read the independent-windows column before anything else.</b> ${escapeHtml(String(conditioning.caveat || ''))} A band showing 300 observations and 4.8 independent windows has been measured four or five times, not three hundred. Nothing here is a forecast, and one market over one decade is a single sample.</p>
+    </section>`;
+  }
 
   // ---------------------------------------------------------------------
   // (d) SPX surface card
@@ -491,15 +752,33 @@
   // panel
   // ---------------------------------------------------------------------
 
-  function laggingBanner(volLatest, escapeHtml) {
+  // Two different conditions used to share one banner, and the more serious one
+  // was the quieter of the two. A feed that is a session late (^SKEW most
+  // weeks) is routine. A feed that has printed nothing for three-plus sessions
+  // is DEAD, and the request that fetched it still returned 200 — that is only
+  // visible in the column, which is why the builder now flags it separately.
+  // Ranking them together buried five dead feeds among eight "lagging" ones.
+  function feedBanners(volLatest, escapeHtml) {
     const lagging = volLatest?.coverage?.metrics_lagging || {};
-    const names = Object.keys(lagging);
-    if (!names.length) return '';
-    const parts = names.sort().map((metric) => {
-      const lag = lagging[metric] || {};
-      return `${METRIC_LABELS[metric] || metric} — last print ${shortDate(lag.last_value_date)}, ${behindText(lag.sessions_behind)}`;
-    });
-    return `<p class="vol-lag-banner"><b>Lagging feeds (${names.length}).</b> ${escapeHtml(parts.join(' · '))}. These metrics have no print for the snapshot date; their tiles, rows and heatmap cells show the absence rather than carrying the previous value forward.</p>`;
+    const dark = volLatest?.coverage?.metrics_dark || {};
+    const darkNames = Object.keys(dark).filter((metric) => METRIC_LABELS[metric]);
+    const laggingOnly = Object.keys(lagging).filter((metric) => !dark[metric]);
+
+    const darkBanner = darkNames.length
+      ? `<p class="vol-dark-banner"><b>Dark feeds (${darkNames.length}) — not merely late.</b> ${escapeHtml(darkNames.sort().map((metric) => {
+        const entry = dark[metric] || {};
+        return `${METRIC_LABELS[metric] || metric} — last print ${shortDate(entry.last_value_date)}, ${behindText(entry.sessions_dark)}`;
+      }).join(' · '))}. The vendor answered every one of these requests and returned a series that simply stops, so no fetch error was ever raised; the gap is only visible in the data. This snapshot is marked <b>stale</b> and these symbols are excluded from the healthy list.</p>`
+      : '';
+
+    const lagBanner = laggingOnly.length
+      ? `<p class="vol-lag-banner"><b>Lagging feeds (${laggingOnly.length}).</b> ${escapeHtml(laggingOnly.sort().map((metric) => {
+        const lag = lagging[metric] || {};
+        return `${METRIC_LABELS[metric] || metric} — last print ${shortDate(lag.last_value_date)}, ${behindText(lag.sessions_behind)}`;
+      }).join(' · '))}. These metrics have no print for the snapshot date; their tiles, rows and heatmap cells show the absence rather than carrying the previous value forward.</p>`
+      : '';
+
+    return `${darkBanner}${lagBanner}`;
   }
 
   function renderVolPanel(volLatest, volHistory, surfaceLatest, options = {}) {
@@ -535,7 +814,7 @@
         </div>
       </div>
 
-      ${laggingBanner(volLatest, escapeHtml)}
+      ${feedBanners(volLatest, escapeHtml)}
 
       ${volLatest ? regimeTiles(volLatest, history, escapeHtml) : ''}
 
@@ -544,12 +823,15 @@
           <p>Each cell is one metric on one session, coloured by its trailing one-year z-score. Blue is below the one-year mean, red is above, grey is within half a sigma of it. A hatched cell means the vendor did not print that day — it is deliberately not the same as zero. Hover any cell for the exact 1y and 5y z. Only metrics that are not near-copies of VIX are drawn: the nine dropped rows ran 0.92–0.97 correlated with a row that stays, or were arithmetic derivatives of one.</p></div></header>
         ${heatLegend(escapeHtml)}
         ${heatmap(history, lagging, escapeHtml)}
+        ${longHeatmap(history, escapeHtml)}
         ${heatTable(history, escapeHtml)}
       </section>
 
       <section class="risk-card vol-term-card"><header class="vol-card-head"><div><h3>SPX term structure</h3>
         <p>At-the-money implied vol by actual days to expiry from the latest chain snapshot. The curve's state — contango or backwardation — is the tile above; this is the shape behind it.</p></div></header>
         ${termStructure(surfaceLatest, priorSurface, volLatest, escapeHtml)}</section>
+
+      ${volLatest?.forward_conditioning ? forwardPanel(volLatest.forward_conditioning, escapeHtml) : ''}
 
       ${surfaceCard(surfaceLatest, escapeHtml)}
 

@@ -1,0 +1,157 @@
+name: Podcast Refresh
+
+# The podcast pipeline had no scheduler of any kind. `podcast_cloud_refresh.py`
+# was written to be run on a cadence, PODCAST.md documents it as the entry
+# point, and it was invoked by hand exactly once -- commit eac90f82d78 on
+# 2026-07-28 -- after which the catalog sat frozen at 3,561 episodes while the
+# dashboard went on presenting it as current. Nothing detected that: the shard
+# carried no timestamp, so it was not registered as a P6 data feed and could
+# not go stale. Both halves are fixed together; a cron with no staleness check
+# fails silently the first time the job errors, and a staleness check with no
+# cron just reports the same violation forever.
+
+on:
+  # Weekly, Monday 07:00 UTC. The upstream shows publish on their own
+  # schedules through the week and the fetch is rate-limited against iTunes and
+  # the Podcast Index, so a daily run would spend most of its budget
+  # re-discovering episodes it already has. Offset from the top of the hour is
+  # unnecessary here: nothing else in this repo runs at 07:00.
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Full harvest (all-watchlist discover, published-first fetch, Whisper backlog)"
+        type: boolean
+        default: false
+      whisper_batch:
+        description: "Whisper backlog items to drain after fetch (0 to skip)"
+        type: string
+        default: "20"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: podcast-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: data-commit-main
+      cancel-in-progress: false
+    env:
+      # Discovery falls back to iTunes search when these are absent, so a
+      # missing secret degrades coverage rather than failing the lane. Both
+      # spellings are read by discover_podcasts.py; set whichever exists.
+      PODCASTINDEX_API_KEY: ${{ secrets.PODCASTINDEX_API_KEY }}
+      PODCASTINDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
+      PODCAST_INDEX_API_KEY: ${{ secrets.PODCASTINDEX_API_KEY }}
+      PODCAST_INDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Checkout workspace (full)
+        run: bash _system/scripts/ci_checkout_workspace.sh full
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install transcript dependencies
+        run: pip install -r _system/scripts/requirements-transcripts.txt
+
+      - name: Record the pre-run catalog state
+        id: before
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          path = Path("dashboard/data/insights/podcasts.json")
+          doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+          rows = doc.get("podcast_index") or []
+          dates = sorted(r.get("published") or "" for r in rows if r.get("published"))
+          print(f"episodes={len(rows)}")
+          print(f"newest={dates[-1] if dates else 'none'}")
+          PY
+
+      - name: Refresh podcast catalog
+        shell: bash
+        env:
+          BACKFILL: ${{ inputs.backfill }}
+          WHISPER_BATCH: ${{ inputs.whisper_batch || '20' }}
+        run: |
+          set -euo pipefail
+          args=(--date "$(date -u +%Y-%m-%d)" --whisper-batch "${WHISPER_BATCH}")
+          if [ "${BACKFILL}" = "true" ]; then
+            args+=(--backfill)
+          fi
+          python _system/scripts/podcast_cloud_refresh.py "${args[@]}"
+
+      - name: Verify the catalog actually moved
+        shell: bash
+        env:
+          BEFORE_EPISODES: ${{ steps.before.outputs.episodes }}
+          BEFORE_NEWEST: ${{ steps.before.outputs.newest }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          path = Path("dashboard/data/insights/podcasts.json")
+          if not path.exists():
+              sys.exit("podcasts.json was not written; the refresh did not complete")
+          doc = json.loads(path.read_text(encoding="utf-8"))
+          rows = doc.get("podcast_index") or []
+          dates = sorted(r.get("published") or "" for r in rows if r.get("published"))
+          newest = dates[-1] if dates else "none"
+          before_n = int(os.environ.get("BEFORE_EPISODES") or 0)
+          before_newest = os.environ.get("BEFORE_NEWEST") or "none"
+          stamp = doc.get("generated_at")
+
+          print(f"episodes {before_n} -> {len(rows)}")
+          print(f"newest   {before_newest} -> {newest}")
+          print(f"generated_at {stamp}")
+
+          # A run that exits 0 having written nothing is the exact failure this
+          # workflow exists to catch: the last one did that for fourteen days
+          # by not existing at all. An unstamped shard is equally bad -- P6
+          # cannot age a feed that carries no date, so it would silently pass.
+          if not stamp:
+              sys.exit("podcasts.json carries no generated_at; P6 cannot age it")
+          when = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+          if when.tzinfo is None:
+              when = when.replace(tzinfo=timezone.utc)
+          if datetime.now(timezone.utc) - when > timedelta(hours=6):
+              sys.exit(f"generated_at {stamp} was not refreshed by this run")
+
+          # Episode counts legitimately stay flat in a quiet week, so a flat
+          # count is a warning, not a failure. Going BACKWARDS is not.
+          if len(rows) < before_n:
+              sys.exit(f"catalog shrank: {before_n} -> {len(rows)} episodes")
+          if len(rows) == before_n:
+              print("::warning::No new episodes discovered this run.")
+          PY
+
+      - name: Commit podcast catalog
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore(podcasts): weekly catalog refresh $(date -u +%Y-%m-%d)"

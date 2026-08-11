@@ -35,7 +35,18 @@ backwardation** (stress):
 * ``slope_3m_6m   = VIX3M / VIX6M`` (3-month vs 6-month)
 
 ``regime.term_state`` is read off ``slope_vix_3m`` with a +/- 2% dead band:
-below 0.98 contango, above 1.02 backwardation, otherwise flat.
+below 0.98 contango, above 1.02 backwardation, otherwise flat. When ^VIX3M has
+no print for the session the state falls back to the committed SPX chain
+snapshot (30d ATM IV / 91d ATM IV) under a wider +/- 5% band -- see
+``resolve_term_state`` -- and stamps ``term_state_source`` /
+``term_state_is_fallback`` so the basis is never ambiguous.
+
+Feed health is read off the COLUMN, not the request. A vendor that answers 200
+with a series that simply stopped produces no fetch exception, so
+``symbols_ok`` used to keep naming a feed that had been dark for weeks. Any
+metric whose newest ``DARK_SESSION_THRESHOLD`` sessions are all null is listed
+in ``coverage.symbols_dark`` / ``coverage.metrics_dark``, drops out of
+``symbols_ok``, and forces ``quality_state='stale'``.
 
 ``spx_rv20`` is the 20-trading-day close-to-close realized vol of ^GSPC from
 log returns, annualized by sqrt(252) and expressed in vol points (x100) so it
@@ -88,18 +99,55 @@ SCHEMA_VERSION = 1
 MODEL_VERSION = "vol-metrics-v1"
 # Recent-window size for interior-gap detection (see build_latest).
 GAP_WINDOW_SESSIONS = 25
+# Consecutive trailing nulls after which a metric's column is DARK, not merely
+# lagging. A vendor that publishes a session or two late (^SKEW routinely, and
+# ^MOVE historically) is normal; a column that has printed nothing for three
+# straight sessions is a dead feed and must not be reported as healthy. See
+# `dark_metrics` in build_latest for why a 200-OK fetch is not evidence of one.
+DARK_SESSION_THRESHOLD = 3
 DEFAULT_OUTPUT_DIR = ROOT / "dashboard" / "data"
 HISTORY_NAME = "vol_metrics_history.jsonl"
 LATEST_NAME = "vol_metrics_latest.json"
 COMPONENTS_NAME = "market_risk_components.json"
+SURFACE_NAME = "spx_surface_latest.json"
 
-LOOKBACK_DAYS = 365 * 6 + 30
+# Ten years, not six. Six started the file at 2020-07-13 -- AFTER the March
+# 2020 crash -- so the whole archive described a single post-COVID regime and
+# the two most instructive "implied vol was cheap right up until it wasn't"
+# episodes sat outside it: Feb 2018 (Volmageddon) and Feb-Mar 2020. Yahoo
+# serves ^VIX from 1990 and ^VIX3M / ^VVIX from 2007, so ~2016 is reachable
+# without a paid source. Going further is a data-size decision, not a coverage
+# one: the history file is ~1.2KB per session, so 10y is ~3MB against 1.8MB
+# today, and 20y (which would reach 2008) would be ~6MB shipped to every
+# browser on load. If 2008 is wanted, the right shape is a pre-aggregated
+# monthly file for the long strip plus a daily tail, not a bigger JSONL.
+#
+# ONE-TIME EFFECT: the builder rewrites the whole history deterministically,
+# and z-scores are strictly trailing, so rows in 2020-2021 whose 252/1260
+# windows are currently truncated will be RECOMPUTED against the fuller
+# window on the next run. Those numbers change because they were incomplete,
+# not because the method changed; later rows are unaffected.
+LOOKBACK_DAYS = 365 * 10 + 30
 TRADING_DAYS = 252
 WINDOW_1Y = 252
 WINDOW_5Y = 1260
 MIN_OBSERVATIONS = 30
 RV_WINDOW = 20
 TERM_DEAD_BAND = 0.02
+# The chain fallback measures a DIFFERENT thing from VIX/VIX3M: an ATM IV ratio
+# against a variance-strip ratio. On 2026-08-11 the chain read 0.828 where the
+# last real VIX/VIX3M print (2026-07-17) was 0.914 -- the strip carries the
+# skew, the ATM point does not, so the chain ratio runs systematically lower.
+# The 2% dead band calibrated on VIX/VIX3M therefore cannot be reused here. A
+# wider band means the fallback answers only when the reading is unambiguous
+# under any plausible calibration offset, and says `unknown` when it is not.
+CHAIN_TERM_DEAD_BAND = 0.05
+# Target constant maturities the chain fallback tries to match, in days. The
+# nearest listed tenor is used and its ACTUAL dte is reported.
+CHAIN_NEAR_TARGET_DTE = 30
+CHAIN_FAR_TARGET_DTE = 91
+# Widest acceptable miss against those targets before the pair is unusable.
+CHAIN_MAX_DTE_ERROR = 45
 
 # metric key -> Yahoo symbol. ``spx_close`` is an input for realized vol and is
 # carried on each row for reproducibility; it is not z-scored.
@@ -348,6 +396,242 @@ def read_spx_0dte(components_path: Path) -> dict:
     return block
 
 
+def read_chain_term(surface_path: Path) -> dict:
+    """Near/far ATM implied vol from the committed SPX chain snapshot.
+
+    This is the fallback input for ``term_state`` when the listed term-structure
+    complex goes dark. It reads the SAME artifact the risk page already draws,
+    so the tile and the term-structure chart below it can never disagree.
+
+    Absent or unusable snapshot -> a block of nulls with a status saying why;
+    nothing here is ever inferred from the index feeds it is standing in for.
+    """
+    block = {
+        "ratio": None,
+        "near_dte": None,
+        "far_dte": None,
+        "near_atm_iv": None,
+        "far_atm_iv": None,
+        "source_as_of": None,
+        "available": False,
+        "status": "chain_not_read",
+    }
+    if not surface_path.exists():
+        block["status"] = "surface_file_missing"
+        return block
+    try:
+        payload = json.loads(surface_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        block["status"] = f"surface_unreadable:{str(exc)[:80]}"
+        return block
+    block["source_as_of"] = payload.get("as_of")
+    tenors = [
+        {"dte": _finite(item.get("dte")), "iv": _finite(item.get("atm_iv"))}
+        for item in (payload.get("tenors") or [])
+        if isinstance(item, dict)
+    ]
+    tenors = [item for item in tenors if item["dte"] is not None and item["iv"] is not None]
+    if len(tenors) < 2:
+        block["status"] = "surface_has_fewer_than_two_priced_tenors"
+        return block
+
+    def nearest(target):
+        return min(tenors, key=lambda item: abs(item["dte"] - target))
+
+    near = nearest(CHAIN_NEAR_TARGET_DTE)
+    far = nearest(CHAIN_FAR_TARGET_DTE)
+    if near["dte"] == far["dte"]:
+        block["status"] = "surface_near_and_far_resolve_to_the_same_tenor"
+        return block
+    near_miss = abs(near["dte"] - CHAIN_NEAR_TARGET_DTE)
+    far_miss = abs(far["dte"] - CHAIN_FAR_TARGET_DTE)
+    if near_miss > CHAIN_MAX_DTE_ERROR or far_miss > CHAIN_MAX_DTE_ERROR:
+        block["status"] = (
+            f"surface_tenors_too_far_from_target:near_off_{near_miss}d_far_off_{far_miss}d"
+        )
+        return block
+    ratio = _ratio(near["iv"], far["iv"])
+    if ratio is None:
+        block["status"] = "surface_ratio_not_computable"
+        return block
+    block.update(
+        {
+            "ratio": _round(ratio, 6),
+            "near_dte": int(near["dte"]),
+            "far_dte": int(far["dte"]),
+            "near_atm_iv": _round(near["iv"], 6),
+            "far_atm_iv": _round(far["iv"], 6),
+            "available": True,
+            "status": "ok",
+        }
+    )
+    return block
+
+
+FORWARD_HORIZONS = (21, 63)
+# Percentile edges for the conditioning buckets. Deliberately coarse: the
+# effective sample size (see below) is a few dozen independent windows, which
+# cannot support decile resolution without inventing precision.
+FORWARD_BUCKETS = (
+    ("cheapest", 0.0, 20.0),
+    ("cheap", 20.0, 40.0),
+    ("middle", 40.0, 60.0),
+    ("rich", 60.0, 80.0),
+    ("richest", 80.0, 100.01),
+)
+
+
+def _forward_window_stats(closes: list, start: int, horizon: int) -> dict | None:
+    """Realised drawdown and vol over ``closes[start : start+horizon]``."""
+    end = start + horizon
+    if end >= len(closes):
+        return None
+    window = closes[start:end + 1]
+    if any(value is None or value <= 0 for value in window):
+        return None
+    peak = window[0]
+    worst = 0.0
+    for value in window:
+        peak = max(peak, value)
+        worst = min(worst, value / peak - 1.0)
+    returns = [
+        math.log(window[i] / window[i - 1])
+        for i in range(1, len(window))
+    ]
+    vol = (
+        statistics.stdev(returns) * math.sqrt(TRADING_DAYS) * 100.0
+        if len(returns) > 1
+        else None
+    )
+    return {
+        "max_drawdown_pct": worst * 100.0,
+        "realized_vol": vol,
+        "total_return_pct": (window[-1] / window[0] - 1.0) * 100.0,
+    }
+
+
+def build_forward_conditioning(rows: list, metric: str = "iv_rv_spread") -> dict:
+    """What happened NEXT, historically, at today's percentile of ``metric``.
+
+    A z-score says where a reading sits in its own distribution. It says
+    nothing about what followed, which is the only question a reader actually
+    has when the page reports that implied vol is at the 13th percentile of
+    the last year. This buckets every session by its POINT-IN-TIME trailing
+    percentile -- the same `_pct1y` the tiles already show, computed from data
+    available on that date, so the bucketing carries no look-ahead -- and
+    reports the realised forward outcome of each bucket.
+
+    Three honesty constraints, all of which the numbers are useless without:
+
+    * The forward windows OVERLAP. Consecutive sessions share 20 of their 21
+      forward days, so 300 observations in a bucket are nowhere near 300
+      independent trials. `independent_windows` divides by the horizon and is
+      the number to reason about; `observations` is reported beside it only so
+      the ratio is visible.
+    * The last `horizon` sessions have no forward window and are EXCLUDED, not
+      zero-filled. `truncated_sessions` says how many.
+    * This is hindsight by construction. It describes what followed similar
+      readings in this sample; it is not a forecast, and the sample is one
+      market over one decade.
+    """
+    ordered = sorted(rows, key=lambda row: row.get("date") or "")
+    closes = [_finite(row.get(SPX_KEY)) for row in ordered]
+    out = {
+        "metric": metric,
+        "buckets_by_horizon": {},
+        "basis": (
+            "sessions bucketed by their own trailing 1-year percentile of"
+            f" {metric} (point-in-time, no look-ahead); outcome is the realised"
+            " forward path of spx_close"
+        ),
+        "caveat": (
+            "Overlapping windows: consecutive sessions share all but one"
+            " forward day, so independent_windows -- not observations -- is the"
+            " effective sample size. Hindsight by construction; not a forecast."
+        ),
+        "research_only": True,
+    }
+
+    for horizon in FORWARD_HORIZONS:
+        buckets = {
+            name: {"drawdowns": [], "vols": [], "returns": []}
+            for name, _, _ in FORWARD_BUCKETS
+        }
+        truncated = 0
+        unusable = 0
+        for index, row in enumerate(ordered):
+            pct = _finite(row.get(f"{metric}_pct1y"))
+            if pct is None:
+                continue
+            if index + horizon >= len(ordered):
+                truncated += 1
+                continue
+            stats = _forward_window_stats(closes, index, horizon)
+            if stats is None:
+                unusable += 1
+                continue
+            for name, low, high in FORWARD_BUCKETS:
+                if low <= pct < high:
+                    buckets[name]["drawdowns"].append(stats["max_drawdown_pct"])
+                    buckets[name]["vols"].append(stats["realized_vol"])
+                    buckets[name]["returns"].append(stats["total_return_pct"])
+                    break
+
+        summary = {}
+        for name, low, high in FORWARD_BUCKETS:
+            drawdowns = buckets[name]["drawdowns"]
+            vols = [v for v in buckets[name]["vols"] if v is not None]
+            returns = buckets[name]["returns"]
+            count = len(drawdowns)
+            summary[name] = {
+                "percentile_range": [low, min(high, 100.0)],
+                "observations": count,
+                # Overlap correction: n distinct start dates sharing a horizon-day
+                # window contribute roughly n/horizon independent draws.
+                "independent_windows": round(count / horizon, 1) if count else 0.0,
+                "median_max_drawdown_pct": _round(statistics.median(drawdowns), 2) if count else None,
+                "worst_max_drawdown_pct": _round(min(drawdowns), 2) if count else None,
+                "median_realized_vol": _round(statistics.median(vols), 2) if vols else None,
+                "median_total_return_pct": _round(statistics.median(returns), 2) if returns else None,
+                "share_drawdown_over_5pct": (
+                    _round(sum(1 for d in drawdowns if d <= -5.0) / count, 3) if count else None
+                ),
+            }
+        out["buckets_by_horizon"][str(horizon)] = {
+            "horizon_sessions": horizon,
+            "buckets": summary,
+            "truncated_sessions": truncated,
+            "unusable_sessions": unusable,
+        }
+    return out
+
+
+def current_forward_bucket(pct) -> str | None:
+    """Which conditioning bucket a live percentile falls in (None if absent)."""
+    value = _finite(pct)
+    if value is None:
+        return None
+    for name, low, high in FORWARD_BUCKETS:
+        if low <= value < high:
+            return name
+    return None
+
+
+def trailing_dark_sessions(rows: list, key: str) -> int:
+    """Consecutive trailing sessions on which ``key`` did not print.
+
+    Counts backwards from the newest row and stops at the first observation, so
+    a metric that printed today is zero sessions dark no matter how many holes
+    sit behind it. Interior gaps are reported separately by ``metrics_with_gaps``.
+    """
+    count = 0
+    for row in reversed(rows):
+        if _finite(row.get(key)) is not None:
+            break
+        count += 1
+    return count
+
+
 # --------------------------------------------------------------------------
 # series assembly
 # --------------------------------------------------------------------------
@@ -437,15 +721,92 @@ def attach_zscores(rows: list) -> None:
             row[f"{key}_pct1y"] = _round(pct[index], 2)
 
 
-def term_state(slope_vix_3m) -> str:
+def term_state(slope_vix_3m, dead_band: float = TERM_DEAD_BAND) -> str:
+    """Near/far ratio -> regime label. Below 1 is contango, above is stress."""
     slope = _finite(slope_vix_3m)
     if slope is None:
         return "unknown"
-    if slope < 1.0 - TERM_DEAD_BAND:
+    if slope < 1.0 - dead_band:
         return "contango"
-    if slope > 1.0 + TERM_DEAD_BAND:
+    if slope > 1.0 + dead_band:
         return "backwardation"
     return "flat"
+
+
+def resolve_term_state(slope_vix_3m, chain: dict) -> dict:
+    """Term state from VIX/VIX3M, falling back to the SPX chain when it is dark.
+
+    The primary basis is the listed complex. When Yahoo stops printing ^VIX3M --
+    which it did after 2026-07-17, without ever failing a request -- the tile
+    used to read `unknown` while the term-structure chart directly beneath it
+    showed an unambiguous curve built from a chain snapshot that WAS current.
+    Two panels on one page cannot disagree about whether the answer exists.
+
+    The fallback is deliberately conservative: it answers only outside a 5%
+    dead band (see CHAIN_TERM_DEAD_BAND), because an ATM ratio is not the same
+    measurement as a variance-strip ratio and the primary thresholds are not
+    transferable. Inside that band it returns `unknown` and says why, rather
+    than reporting a state it cannot support.
+    """
+    block = {
+        "term_state": "unknown",
+        "term_state_source": "none",
+        "term_state_basis": "no term-structure input is available from either the listed complex or the chain",
+        "term_state_is_fallback": False,
+        "slope_vix_3m": _round(_finite(slope_vix_3m), 6),
+        "chain_term_ratio": chain.get("ratio"),
+        "chain_term_detail": chain,
+    }
+    primary = _finite(slope_vix_3m)
+    if primary is not None:
+        block.update(
+            {
+                "term_state": term_state(primary),
+                "term_state_source": "vix_vix3m",
+                "term_state_basis": (
+                    "slope_vix_3m = VIX/VIX3M; <0.98 contango, >1.02 backwardation"
+                ),
+            }
+        )
+        return block
+
+    if not chain.get("available"):
+        block["term_state_basis"] = (
+            "VIX3M has no print for this session and the SPX chain fallback is unusable "
+            f"({chain.get('status')}), so no term state is claimed"
+        )
+        return block
+
+    ratio = _finite(chain.get("ratio"))
+    state = term_state(ratio, CHAIN_TERM_DEAD_BAND)
+    near = chain.get("near_dte")
+    far = chain.get("far_dte")
+    stamp = str(chain.get("source_as_of") or "unknown date")[:10]
+    if state in ("unknown", "flat"):
+        # `flat` under the wide band means "inside the uncertainty", not "the
+        # curve is flat" -- publishing it as a state would overstate the fallback.
+        block["term_state_basis"] = (
+            f"VIX3M is dark, and the SPX chain ratio ({near}d/{far}d ATM IV = "
+            f"{'n/a' if ratio is None else format(ratio, '.4f')}, snapshot {stamp}) sits inside the "
+            f"+/-{CHAIN_TERM_DEAD_BAND:.0%} band where an ATM ratio cannot be mapped onto the "
+            "VIX/VIX3M thresholds with confidence, so no term state is claimed"
+        )
+        return block
+    block.update(
+        {
+            "term_state": state,
+            "term_state_source": "spx_chain_atm",
+            "term_state_is_fallback": True,
+            "term_state_basis": (
+                f"FALLBACK -- VIX3M has no print for this session. State read off the SPX chain "
+                f"instead: {near}d ATM IV / {far}d ATM IV = {ratio:.4f} (snapshot {stamp}); "
+                f"<{1 - CHAIN_TERM_DEAD_BAND:.2f} contango, >{1 + CHAIN_TERM_DEAD_BAND:.2f} backwardation. "
+                "The band is wider than the VIX/VIX3M one because an ATM ratio carries no skew "
+                "and runs systematically below the variance-strip ratio it stands in for."
+            ),
+        }
+    )
+    return block
 
 
 def build_history_rows(series_map: dict, prior_rows: list, stale: dict, failed: dict) -> list:
@@ -464,7 +825,14 @@ def build_history_rows(series_map: dict, prior_rows: list, stale: dict, failed: 
     return rows
 
 
-def build_latest(rows: list, spx_0dte: dict, stale: dict, failed: dict, generated_at: str) -> dict:
+def build_latest(
+    rows: list,
+    spx_0dte: dict,
+    stale: dict,
+    failed: dict,
+    generated_at: str,
+    chain: dict | None = None,
+) -> dict:
     latest = rows[-1]
     metrics = {}
     lagging = {}
@@ -518,12 +886,37 @@ def build_latest(rows: list, spx_0dte: dict, stale: dict, failed: dict, generate
                 # case becomes the one case this check cannot see.
                 "window_fully_missing": len(missing) == len(window),
             }
+    # A 200-OK fetch is not evidence of a live feed. Yahoo kept answering for
+    # ^VIX3M / ^VIX9D / ^VIX6M / ^VIX1D / ^MOVE after 2026-07-17 while returning
+    # a series that simply stopped -- no exception, no empty payload, so
+    # `collect_series` recorded no failure and `symbols_ok` went on naming every
+    # one of them for sixteen sessions. Health has to be read off the COLUMN,
+    # not off the request: a metric whose newest DARK_SESSION_THRESHOLD sessions
+    # are all null is a dead feed regardless of what the transport said.
+    dark = {}
+    for key in FETCH_KEYS:
+        sessions = trailing_dark_sessions(rows, key)
+        if sessions >= DARK_SESSION_THRESHOLD:
+            dark[key] = {
+                "symbol": LEVEL_SYMBOLS.get(key, SPX_SYMBOL),
+                "sessions_dark": sessions,
+                "last_value_date": metrics.get(key, {}).get("last_value_date"),
+                "detected_by": "column_trailing_nulls",
+                "note": (
+                    "the fetch did not fail; the vendor answered and the series "
+                    "stopped, so this is only visible in the data"
+                ),
+            }
     ok = [
         LEVEL_SYMBOLS.get(key, SPX_SYMBOL)
         for key in FETCH_KEYS
-        if key not in stale and key not in failed
+        if key not in stale and key not in failed and key not in dark
     ]
-    quality = "stale" if (stale or failed) else "ready"
+    quality = "stale" if (stale or failed or dark) else "ready"
+    regime = resolve_term_state(
+        latest.get("slope_vix_3m"),
+        chain if chain is not None else {"available": False, "status": "chain_not_supplied", "ratio": None},
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -536,14 +929,29 @@ def build_latest(rows: list, spx_0dte: dict, stale: dict, failed: dict, generate
         "regime": {
             "vix": latest.get("vix"),
             "vix_pct1y": latest.get("vix_pct1y"),
-            "term_state": term_state(latest.get("slope_vix_3m")),
-            "term_state_basis": "slope_vix_3m = VIX/VIX3M; <0.98 contango, >1.02 backwardation",
+            "term_state": regime["term_state"],
+            "term_state_basis": regime["term_state_basis"],
+            "term_state_source": regime["term_state_source"],
+            "term_state_is_fallback": regime["term_state_is_fallback"],
+            "chain_term_ratio": regime["chain_term_ratio"],
+            "chain_term_detail": regime["chain_term_detail"],
             "slope_vix_3m": latest.get("slope_vix_3m"),
             "vvix_vix_ratio": latest.get("vvix_vix_ratio"),
             "iv_rv_spread": latest.get("iv_rv_spread"),
             "spx_rv20": latest.get("spx_rv20"),
         },
         "spx_0dte": spx_0dte,
+        "forward_conditioning": {
+            **build_forward_conditioning(rows),
+            "current_bucket": current_forward_bucket(
+                metrics.get("iv_rv_spread", {}).get("pct1y")
+                or metrics.get("iv_rv_spread", {}).get("last_pct1y")
+            ),
+            "current_pct1y": (
+                metrics.get("iv_rv_spread", {}).get("pct1y")
+                or metrics.get("iv_rv_spread", {}).get("last_pct1y")
+            ),
+        },
         "coverage": {
             "symbols_ok": sorted(ok),
             "symbols_stale": sorted(
@@ -552,8 +960,11 @@ def build_latest(rows: list, spx_0dte: dict, stale: dict, failed: dict, generate
             "rows": len(rows),
             "first_date": rows[0]["date"],
             "last_date": latest["date"],
+            "symbols_dark": sorted(LEVEL_SYMBOLS.get(key, SPX_SYMBOL) for key in dark),
             "metrics_lagging": lagging,
             "metrics_with_gaps": gaps,
+            "metrics_dark": dark,
+            "dark_threshold_sessions": DARK_SESSION_THRESHOLD,
             "stale_detail": {LEVEL_SYMBOLS.get(k, SPX_SYMBOL): v for k, v in stale.items()},
             "unavailable_detail": {LEVEL_SYMBOLS.get(k, SPX_SYMBOL): v for k, v in failed.items()},
         },
@@ -567,12 +978,14 @@ def build(
     fetcher=None,
     dry_run: bool = False,
     components_path: Path | None = None,
+    surface_path: Path | None = None,
 ) -> dict:
     output_dir = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     fetcher = fetcher or fetch_close_series
     history_path = output_dir / HISTORY_NAME
     latest_path = output_dir / LATEST_NAME
     components = components_path if components_path else output_dir / COMPONENTS_NAME
+    surface = surface_path if surface_path else output_dir / SURFACE_NAME
 
     prior_rows = read_history(history_path)
     series_map, stale, failed = collect_series(fetcher, prior_rows)
@@ -581,8 +994,9 @@ def build(
         raise SystemExit("no trading dates available from any source and no prior history")
 
     spx_0dte = read_spx_0dte(Path(components))
+    chain = read_chain_term(Path(surface))
     generated_at = datetime.now(timezone.utc).isoformat()
-    latest = build_latest(rows, spx_0dte, stale, failed, generated_at)
+    latest = build_latest(rows, spx_0dte, stale, failed, generated_at, chain=chain)
 
     history_text = "".join(_dump(row) + "\n" for row in rows)
     if not dry_run:
@@ -607,6 +1021,8 @@ def summarize(result: dict) -> dict:
         "quality_state": latest["quality_state"],
         "symbols_ok": len(latest["coverage"]["symbols_ok"]),
         "symbols_stale": len(latest["coverage"]["symbols_stale"]),
+        "symbols_dark": len(latest["coverage"].get("symbols_dark") or []),
+        "term_state_source": latest["regime"]["term_state_source"],
         "vix": latest["metrics"]["vix"]["value"],
         "vix_z1y": latest["metrics"]["vix"]["z1y"],
         "vix_z5y": latest["metrics"]["vix"]["z5y"],
