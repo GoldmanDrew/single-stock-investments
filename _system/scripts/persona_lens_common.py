@@ -10,6 +10,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 PERSONAS_PATH = ROOT / "_system" / "lenses" / "personas.json"
 UNIVERSE_STATS_PATH = ROOT / "_system" / "lenses" / "universe_percentiles.json"
+REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 
 STANCES = ["accumulate", "hold", "watch", "pass", "pending", "silent"]
 STANCE_RANK = {s: i for i, s in enumerate(["accumulate", "hold", "watch", "pass", "pending", "silent"])}
@@ -39,8 +40,59 @@ def list_tickers_with_valuation() -> list[str]:
     return sorted(tickers)
 
 
-def extract_shared_context(val: dict) -> dict:
+_registry_class_cache: dict[str, dict] | None = None
+
+
+def registry_classification(ticker: str) -> dict:
+    """Portfolio-registry classification for a ticker ({} when absent).
+    Cached module-wide so --all runs load registry.json once."""
+    global _registry_class_cache
+    if _registry_class_cache is None:
+        registry = load_json(REGISTRY_PATH) or {}
+        entries = {**(registry.get("watchlist") or {}), **(registry.get("holdings") or {})}
+        _registry_class_cache = {
+            name: (entry or {}).get("classification") or {}
+            for name, entry in entries.items()
+        }
+    return _registry_class_cache.get(ticker, {})
+
+
+_UNCLASSIFIED = {"", "pending", "unknown", "-"}
+
+
+def _first_classified(*values):
+    for value in values:
+        if value is None:
+            continue
+        if str(value).strip().lower() in _UNCLASSIFIED:
+            continue
+        return value
+    return None
+
+
+def resolve_classification(val: dict, registry_class: dict | None = None) -> dict:
+    """Layered classification read: explicit top-level valuation keys win,
+    then classification_inputs, then the portfolio registry. The old
+    top-level-only payoff_lens read left 130 tickers' classifications --
+    41 asset names among them -- invisible to the personas built for them."""
     ci = val.get("classification_inputs") or {}
+    reg = registry_class or {}
+    return {
+        field: _first_classified(val.get(field), ci.get(field), reg.get(field))
+        for field in ("archetype", "moat", "dhando", "payoff_lens", "cycle")
+    }
+
+
+def load_contract(ticker: str) -> dict:
+    """The universal valuation contract, when one exists ({} otherwise)."""
+    contract = load_json(ROOT / ticker / "research" / "valuation_contract.json")
+    return contract if isinstance(contract, dict) else {}
+
+
+def extract_shared_context(val: dict, registry_class: dict | None = None,
+                           contract: dict | None = None) -> dict:
+    ci = val.get("classification_inputs") or {}
+    resolved = resolve_classification(val, registry_class)
     inputs = val.get("inputs") or {}
     results = val.get("results") or val.get("results_lawrence_legacy") or {}
     scenarios = val.get("scenarios") or {}
@@ -60,6 +112,21 @@ def extract_shared_context(val: dict) -> dict:
         bear = _num(implied.get("bear_pct"))
     if bull is None:
         bull = _num(implied.get("bull_pct"))
+
+    # Contract fallback: contract-first compilers (the scarce-asset and other
+    # routed methods) leave the legacy results/implied_return fields empty and
+    # write returns to valuation_contract.json instead; without this fallback
+    # every persona sits at 'pending' on exactly those tickers (WHK class).
+    # Fallback only -- explicit legacy numbers keep precedence.
+    return_source = "valuation"
+    if base is None and bear is None and bull is None:
+        contract_returns = ((contract or {}).get("valuation") or {}).get(
+            "annualized_return_at_price_pct") or {}
+        base = _num(contract_returns.get("base"))
+        bear = _num(contract_returns.get("low"))
+        bull = _num(contract_returns.get("high"))
+        if base is not None or bear is not None or bull is not None:
+            return_source = "contract"
 
     synthesis_pct = _num(synthesis.get("total_synthesis_pct"))
     if synthesis_pct is None:
@@ -91,17 +158,19 @@ def extract_shared_context(val: dict) -> dict:
         "predictive" in str(q.get("factor", "")).lower() or "catalyst" in str(q.get("factor", "")).lower()
         for q in qual
     )
-    catalyst_present = val.get("payoff_lens") in ("asset", "event") or predictive_attribute
+    payoff_lens = str(resolved["payoff_lens"] or "pending").lower()
+    catalyst_present = payoff_lens in ("asset", "event") or predictive_attribute
     capex = _num(inputs.get("capex") or inputs.get("capital_expenditures"))
     revenue = _num(inputs.get("revenue") or inputs.get("sales"))
     capex_to_sales = capex / revenue if capex is not None and revenue and revenue > 0 else None
 
     return {
-        "archetype": (ci.get("archetype") or "unknown").lower(),
-        "moat": (ci.get("moat") or "unproven").lower(),
-        "dhando": (ci.get("dhando") or "pending").lower(),
-        "cycle": ci.get("cycle"),
-        "payoff_lens": (val.get("payoff_lens") or "pending").lower(),
+        "return_source": return_source,
+        "archetype": str(resolved["archetype"] or "unknown").lower(),
+        "moat": str(resolved["moat"] or "unproven").lower(),
+        "dhando": str(resolved["dhando"] or "pending").lower(),
+        "cycle": resolved["cycle"] if resolved["cycle"] is not None else ci.get("cycle"),
+        "payoff_lens": payoff_lens,
         "lawrence_bucket": (val.get("lawrence_bucket") or "other").lower(),
         "irr_method": (val.get("method") or val.get("irr_method") or "pending").lower(),
         "price": price,
@@ -151,7 +220,8 @@ def build_universe_stats(tickers: list[str] | None = None) -> dict:
         val = load_json(ROOT / t / "research" / "valuation.json")
         if not isinstance(val, dict):
             continue
-        ctx = extract_shared_context(val)
+        ctx = extract_shared_context(val, registry_classification(t),
+                                     load_contract(t))
         if ctx["fcf_yield"] is not None:
             fcf_yields.append(ctx["fcf_yield"])
         if ctx["base_return_pct"] is not None:
@@ -548,7 +618,8 @@ def build_lenses_for_ticker(ticker: str, stats: dict | None = None) -> dict | No
 
     personas_cfg = load_personas()
     stats = stats or load_json(UNIVERSE_STATS_PATH) or build_universe_stats()
-    ctx = extract_shared_context(val)
+    ctx = extract_shared_context(val, registry_classification(ticker),
+                                 load_contract(ticker))
     richness = valuation_richness(ctx)
     portfolio_bar = float(personas_cfg.get("portfolio_bar_pct", 15))
     max_high = int(personas_cfg.get("max_high_relevance", 3))
