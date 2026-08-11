@@ -23,4 +23,5 @@ Rules:
 4. Use `insufficient_evidence` or `outside_power_zone` when appropriate; abstention is valid.
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
-7. Return only one JSON object matching the committee schema vote definition.
+7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "2a9cc2a60fa3eacd3d50be6f31d6da04a29b176ed658868867dfc412b0de127c"`. A vote whose evidence_hash does not match the packet it answers is rejected.

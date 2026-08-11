@@ -29,6 +29,15 @@ on:
         type: string
         default: "20"
 
+# Whisper backlog, measured 2026-08-11: 1,563 episodes have no text transcript
+# and need audio transcription. Draining 20 a week never finishes it -- that is
+# 78 weeks, and the backlog grows as shows publish. Treat the two as separate
+# problems: this cron keeps the catalog CURRENT (new episodes, text transcripts
+# where the show publishes them), and the historical audio gap needs either a
+# dedicated long-running backfill (`--backfill`, run manually off-CI where a
+# 120-minute job limit does not apply) or a paid transcription API. Raising
+# whisper_batch here just makes the weekly job time out and land nothing.
+
 permissions:
   contents: write
 
