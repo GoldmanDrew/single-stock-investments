@@ -773,6 +773,15 @@
   .darwin-table th, .darwin-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
   .darwin-table th { font-size: 10px; text-transform: uppercase; color: var(--text-muted); }
   .darwin-table tr.nol-row-muted td { opacity: 0.55; }
+  /* The two structural limits sit above the table, not in a tooltip: the whole
+     screen is misread without them. */
+  .nol-tax-reality { margin: 6px 0 12px; padding: 10px 12px; border-left: 3px solid var(--warning); background: rgba(245,158,11,.07); }
+  .nol-tax-reality > summary { color: var(--warning); cursor: pointer; font-size: 12px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; }
+  .nol-tax-reality p { margin: 8px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.65; max-width: 100ch; }
+  .nol-tax-reality b { color: var(--text-primary); }
+  .nol-ceiling { padding: 7px 9px; border-left: 2px solid var(--negative); background: rgba(239,68,68,.07); }
+  .nol-not-modelled, .nol-disclaimer { color: var(--text-muted) !important; font-size: 11px !important; }
+  .badge-muted { background: rgba(148,163,184,.16); color: var(--text-muted); }
 
   /* Magis / World Model strip */
   .world-model-strip { margin-bottom: 18px; max-width: 1100px; }
@@ -4030,30 +4039,83 @@ function renderWatchlistQueueBody() {
 }
 
 function renderWatchlistNolBody() {
+  // The screen is read as "big DTA on a small market cap = cheap tax asset",
+  // which the code does not permit. State the two structural limits above the
+  // table rather than leaving them to be inferred from a ranking.
+  const nolTaxReality = (n) => {
+    const t = n.tax_reality;
+    if (!t) return '';
+    const a = t.assumptions || {};
+    const ceiling = (a.section_382_rate != null)
+      ? (a.section_382_rate * (1 - Math.pow(1 + a.pv_discount_rate, -a.pv_horizon_years)) / a.pv_discount_rate
+         * a.federal_corporate_rate * a.post_2017_income_offset_cap * 100)
+      : null;
+    const tally = n.blocker_tally || {};
+    const blocked = Object.entries(tally).sort((x, y) => y[1] - x[1]);
+    return `<details class="nol-tax-reality" open>
+      <summary>What tax law actually allows here</summary>
+      <p><b>Whose losses are they?</b> ${escapeHtml(t.who_can_use_it || '')}</p>
+      <p><b>Section 382.</b> ${escapeHtml(t.section_382 || '')}</p>
+      ${ceiling != null ? `<p class="nol-ceiling"><b>The ceiling.</b> Because the §382 limit is a fixed percentage <em>of the price paid</em>, the recoverable shield converges on
+        <b>${ceiling.toFixed(2)}% of whatever you pay</b> — at ${(a.section_382_rate * 100).toFixed(2)}% (${escapeHtml(String(a.section_382_rate_as_of || ''))}),
+        a ${a.pv_horizon_years}-year horizon at ${(a.pv_discount_rate * 100).toFixed(0)}%, a ${(a.federal_corporate_rate * 100).toFixed(0)}% federal rate and the
+        ${(a.post_2017_income_offset_cap * 100).toFixed(0)}% post-2017 offset cap. No carryforward, however large, raises it.</p>` : ''}
+      <p><b>DTA is not NOL.</b> ${escapeHtml(t.dta_is_not_nol || '')}</p>
+      <p><b>Valuation allowance.</b> ${escapeHtml(t.valuation_allowance || '')}</p>
+      ${blocked.length ? `<p><b>Why rows are blocked:</b> ${blocked.map(([k, v]) =>
+        `${escapeHtml(String(v))} × ${escapeHtml(k.replace(/_/g, ' '))}`).join(' · ')}</p>` : ''}
+      ${(t.not_modelled || []).length ? `<p class="nol-not-modelled"><b>Not modelled:</b> ${escapeHtml((t.not_modelled || []).join('; '))}.</p>` : ''}
+      <p class="nol-disclaimer">${escapeHtml(t.not_tax_advice || '')}</p>
+    </details>`;
+  };
   const nol = data.nol_screener || {};
   const nolRows = nol.rows || [];
   const hideZeroRealizable = localStorage.getItem('nolHideZeroRealizable') === '1';
   const filterNolRows = (rows) => hideZeroRealizable
-    ? rows.filter(r => r.is_actionable === true)
+    ? rows.filter(r => r.usability !== 'blocked')
     : rows;
-  const nolRowHtml = (r) => `
-          <tr class="${r.fully_reserved ? 'nol-row-muted' : ''}">
-            <td class="mono">${escapeHtml(r.ticker)}${r.in_holdings ? ' <span class="badge badge-ok" title="Already a holding">H</span>' : ''}${r.in_watchlist ? ' <span class="badge badge-warn" title="On watchlist">W</span>' : ''}${r.is_actionable ? ' <span class="badge badge-ok" title="Actionable realizable DTA">A</span>' : ''}</td>
+  // Blocker codes are the screen's honest answer to "why can't I use this".
+  const NOL_BLOCKER_LABELS = {
+    management_fully_reserves_it: 'Management fully reserves it — their auditor says realization is not more likely than not',
+    dta_is_mostly_timing_differences: 'DTA is mostly timing differences (leases, accruals), not a transferable loss',
+    no_nol_component_reported: 'No NOL component reported — the DTA may not be a loss carryforward at all',
+    no_market_cap_so_382_limit_unknown: 'No market cap, so the §382 annual limit cannot be computed',
+    implausible_market_cap_check_price_feed: 'Market cap looks like a bad price feed, not a real nano-cap',
+    carryforward_far_exceeds_what_the_382_limit_can_absorb: 'Carryforward dwarfs what the §382 limit can ever absorb',
+  };
+  const usabilityBadge = (r) => {
+    if (r.usability === 'material_after_382') return '<span class="badge badge-ok" title="Survives the §382 throttle at a material size">usable</span>';
+    if (r.usability === 'immaterial_after_382') return '<span class="badge badge-warn" title="Real but small after the §382 throttle">thin</span>';
+    return '<span class="badge badge-muted" title="Structurally blocked">blocked</span>';
+  };
+  const nolRowHtml = (r) => {
+    const blockers = (r.blockers || []).map((b) => NOL_BLOCKER_LABELS[b] || b);
+    return `
+          <tr class="${r.usability === 'blocked' ? 'nol-row-muted' : ''}">
+            <td class="mono">${escapeHtml(r.ticker)}${r.in_holdings ? ' <span class="badge badge-ok" title="Already a holding">H</span>' : ''}${r.in_watchlist ? ' <span class="badge badge-warn" title="On watchlist">W</span>' : ''}</td>
             <td>${escapeHtml(r.company)}</td>
-            <td style="font-size:11px;color:var(--text-secondary);max-width:180px">${escapeHtml(r.notes || '—')}</td>
-            <td><span class="badge ${r.is_small_cap ? 'badge-sleeve' : 'badge-warn'}">${escapeHtml(r.cap_bucket || '—')}</span></td>
+            <td>${usabilityBadge(r)}</td>
             <td class="mono">${escapeHtml(r.market_cap_display || '—')}</td>
-            <td class="mono">${escapeHtml(r.dta_to_mcap_display || '—')}</td>
-            <td class="mono">${escapeHtml(r.dta_realizable_display || '—')}</td>
-            <td class="mono">${escapeHtml(r.dta_per_share_display || '—')}</td>
+            <td class="mono" title="Gross NOL carryforward (${escapeHtml(r.gross_nol_basis || 'unknown basis')})">${r.gross_nol_usd != null ? '$' + (r.gross_nol_usd / 1e6).toFixed(0) + 'M' : '—'}</td>
+            <td class="mono" title="Most the acquirer may use per year after an ownership change">${r.section_382_annual_limit_usd != null ? '$' + (r.section_382_annual_limit_usd / 1e6).toFixed(1) + 'M' : '—'}</td>
+            <td class="mono">${r.section_382_years_to_absorb != null ? escapeHtml(String(r.section_382_years_to_absorb)) + 'y' : '—'}</td>
+            <td class="mono" title="Present value of the federal tax actually shielded">${r.acquirer_tax_shield_pv_usd != null ? '$' + (r.acquirer_tax_shield_pv_usd / 1e6).toFixed(1) + 'M' : '—'}</td>
+            <td class="mono"><b>${r.tax_shield_pv_to_mcap_pct != null ? escapeHtml(r.tax_shield_pv_to_mcap_pct.toFixed(2)) + '%' : '—'}</b>${r.pct_of_382_ceiling != null ? `<small style="display:block;color:var(--text-muted)">${escapeHtml(String(r.pct_of_382_ceiling))}% of ceiling</small>` : ''}</td>
             <td class="mono">${escapeHtml(r.allowance_pct_display || '—')}</td>
-            <td class="mono">${escapeHtml(r.nol_dta_display || '—')}</td>
+            <td style="font-size:11px;color:var(--warning);max-width:230px">${blockers.length ? escapeHtml(blockers.join(' · ')) : '<span style="color:var(--text-muted)">—</span>'}</td>
             <td class="mono" style="font-size:11px">${escapeHtml(r.filing_as_of || '—')}</td>
             <td>${r.in_holdings ? '<span class="form-hint">holding</span>' : `<button type="button" class="btn-secondary btn-sm" data-nol-watch="${escapeHtml(r.ticker)}"
               data-company="${escapeHtml(r.company)}" data-market="${escapeHtml(r.market)}">+ Watchlist</button>`}</td>
           </tr>`;
+  };
   const nolHead = `<thead><tr>
-        <th>Ticker</th><th>Company</th><th>Notes</th><th>Cap</th><th>Mkt cap</th><th>DTA/mcap</th><th>Realizable DTA</th><th>DTA/sh</th><th>Allowance</th><th>NOL DTA</th><th>Filing</th><th></th>
+        <th>Ticker</th><th>Company</th><th title="After the Section 382 throttle">Usable?</th><th>Mkt cap</th>
+        <th title="Gross NOL carryforward, not the tax-effected DTA">Gross NOL</th>
+        <th title="Section 382 annual limit = equity value x long-term tax-exempt rate">§382 /yr</th>
+        <th title="Years for the 382 limit to absorb the carryforward">Absorb</th>
+        <th title="PV of federal tax shielded, after the 382 limit and the 80% offset cap">Shield PV</th>
+        <th title="Shield PV as a share of the price paid. This is the number that matters.">Shield / price</th>
+        <th>Allowance</th><th>Why not</th><th>Filing</th><th></th>
       </tr></thead>`;
   const visibleRows = filterNolRows(nolRows);
   const smallRows = visibleRows.filter(r => r.is_small_cap);
@@ -4072,7 +4134,8 @@ function renderWatchlistNolBody() {
     : '<p class="form-hint">NOL screener not built. Run: python _system/scripts/build_nol_screener.py --write</p>';
   return `
     <div class="watchlist-section">
-      <h3>NOL carryforward screener (${nolRows.length}${nol.small_cap_count != null ? ` · ${nol.small_cap_count} small/micro` : ''}${actionableCount != null ? ` · ${actionableCount} actionable` : ''})</h3>
+      <h3>NOL carryforward screener (${nolRows.length}${nol.small_cap_count != null ? ` · ${nol.small_cap_count} small/micro` : ''}${actionableCount != null ? ` · ${actionableCount} usable after §382` : ''})</h3>
+      ${nolTaxReality(nol)}
       <p class="form-hint" style="margin-bottom:10px">${escapeHtml(nol.criteria || 'Deferred tax asset screen from SEC companyfacts + seed list.')}</p>
       ${nolTable}
       <p class="form-hint" style="margin-top:10px">Seed: <code>${escapeHtml(nol.seed_path || '_system/reference/market-data/screens/nol_seed.csv')}</code> · Rebuild: <code>python _system/scripts/build_nol_screener.py --write</code></p>

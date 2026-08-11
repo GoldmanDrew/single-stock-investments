@@ -71,3 +71,19 @@ AMR/investor-documents/ir-amr/a0385b14-49ec-446b-8996-3ad09f364239.pdf
 AMR/investor-documents/ir-amr/b7c2a924-c78a-41f9-b57e-bbaae65ab7c8.pdf
 AMR/investor-documents/ir-amr/AMR-022624-10-K.pdf
 AMR/investor-documents/ir-amr/5ef6ee56-35a3-4634-b006-88943c834e39.pdf
+
+# Monolithic dashboard payloads: BUILD INTERMEDIATES, not artifacts.
+# dashboard_data.json (76MB) and insights.json (73MB) are rewritten on every
+# build and duplicate data already committed as core.json + the per-ticker and
+# per-section shards, which are what the SPA actually loads. Committing them
+# added ~149MB per rebuild and is most of why .git reached 19GB.
+#
+# They are still WRITTEN and still read within a single build run. What made
+# untracking safe is that the anti-clobber guards no longer depend on the
+# committed copies: build_dashboard_data.load_prior_rows() and
+# build_insights.load_prior_insights() reconstruct their baseline from the
+# committed shards when the monolith is absent. Without those fallbacks,
+# deleting these files SILENTLY DISABLES every sparse-rebuild guard, because a
+# missing prior reads as "nothing to protect".
+dashboard/data/dashboard_data.json
+dashboard/data/insights.json

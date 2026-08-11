@@ -469,11 +469,43 @@ def letter_corpus_floor(document: dict | None) -> int:
     return MIN_CLASSIFIED_LETTER_CORPUS if policy_version >= 4 else MIN_LETTER_CORPUS
 
 
-def should_preserve_letter_corpus(prior: dict | None, vault_count: int) -> tuple[bool, str]:
+# A rebuilt corpus may be LARGER and still worse. Discussant attribution is the
+# expensive part -- a letter only yields a discussant if its position passes
+# strong_letter_ticker_evidence -- and an unclassified bulk import raises the
+# letter count while producing almost none. Observed 2026-08-11: the vault went
+# 12,808 -> 18,889 letters and ticker_discussants collapsed 648 -> 130, because
+# `vault_count >= prior_count` returned "vault corpus current" and handed the
+# richer field over to the poorer rebuild. Count is a proxy for the corpus;
+# it is not a proxy for what the corpus yields.
+DISCUSSANT_REGRESSION_RATIO = 0.75
+
+
+def prior_discussant_count(prior: dict | None) -> int:
+    return len((prior or {}).get("ticker_discussants") or {})
+
+
+def should_preserve_letter_corpus(
+    prior: dict | None,
+    vault_count: int,
+    rebuilt_discussants: int | None = None,
+) -> tuple[bool, str]:
     prior_count = prior_letter_count(prior)
     corpus_floor = letter_corpus_floor(prior)
     if prior_count < corpus_floor:
         return False, f"prior corpus {prior_count} below preserve floor {corpus_floor}"
+    # Quality check runs BEFORE the count check: a bigger corpus that yields
+    # materially fewer discussants is a regression wearing a growth costume.
+    prior_disc = prior_discussant_count(prior)
+    if (
+        rebuilt_discussants is not None
+        and prior_disc > 0
+        and rebuilt_discussants < int(prior_disc * DISCUSSANT_REGRESSION_RATIO)
+    ):
+        return True, (
+            f"rebuild yields {rebuilt_discussants} ticker_discussants vs prior "
+            f"{prior_disc} (vault {vault_count} letters vs prior {prior_count}); "
+            "corpus grew but attribution regressed"
+        )
     if vault_count >= prior_count:
         return False, "vault corpus current"
     if vault_count < corpus_floor:
@@ -495,6 +527,42 @@ def load_preserved_letter_records() -> list[dict]:
         return []
     records = archive.get("records") or []
     return [record for record in records if record.get("source") == "superinvestor_letter"]
+
+
+def load_prior_insights() -> dict | None:
+    """Prior payload for the corpus-preservation checks.
+
+    insights.json is a 72MB monolith that duplicates the per-section shards
+    already committed under dashboard/data/insights/. Dropping it outright is
+    not safe: `prior` is the baseline `should_preserve_letter_corpus` and the
+    ticker_discussants guard compare against, and with no prior every check
+    reads as "nothing to protect" -- so a sparse or unclassified rebuild would
+    replace a good corpus unopposed. Reconstruct the handful of fields those
+    checks need from the shards when the monolith is absent.
+    """
+    prior = load_json(OUTPUT)
+    if isinstance(prior, dict) and prior:
+        return prior
+
+    shard_dir = OUTPUT.parent / "insights"
+    if not shard_dir.is_dir():
+        return None
+    merged: dict = {}
+    for name in ("letters", "consensus", "registry", "profiles", "tickers"):
+        shard = load_json(shard_dir / f"{name}.json")
+        if isinstance(shard, dict):
+            merged.update({k: v for k, v in shard.items() if k != "generated_at"})
+    if not merged:
+        return None
+    merged.setdefault("letter_count", len(merged.get("letter_index") or []))
+    print(
+        f"prior insights reconstructed from committed shards "
+        f"(letters={merged['letter_count']}, "
+        f"ticker_discussants={len(merged.get('ticker_discussants') or {})}); "
+        f"{OUTPUT.name} absent",
+        file=sys.stderr,
+    )
+    return merged
 
 
 def preserved_letter_payload_fields(prior: dict) -> dict:
@@ -3418,13 +3486,15 @@ def build_provenance(
 def main() -> int:
     records: list[dict] = []
 
-    prior = load_json(OUTPUT)
-    prior = prior if isinstance(prior, dict) else None
+    prior = load_prior_insights()
     letters_source_doc = load_json(LETTERS_INSIGHTS) or {"letters": []}
     vault_count = count_vault_letters()
     preserve, preserve_reason = should_preserve_letter_corpus(prior, vault_count)
     classification_policy_version = int(letters_source_doc.get("classification_policy_version") or 0)
-    if can_replace_preserved_letter_corpus(letters_source_doc, vault_count):
+    intentional_reclassification = can_replace_preserved_letter_corpus(
+        letters_source_doc, vault_count
+    )
+    if intentional_reclassification:
         preserve = False
         preserve_reason = "intentional classified-letter corpus rebuild"
     if preserve:
@@ -3590,6 +3660,34 @@ def main() -> int:
     if preserved_fields:
         payload.update(preserved_fields)
         payload["letter_count"] = letter_count_value
+
+    # Post-hoc attribution guard. `should_preserve_letter_corpus` has to decide
+    # before ticker_discussants exists, so it cannot see a corpus that grew
+    # while its attribution collapsed -- the exact 2026-08-11 case, 18,889
+    # letters yielding 130 discussants against a prior 648. Re-check once the
+    # real number is known and keep the richer map, saying so loudly. This
+    # never blocks an intentional reclassification: that path sets
+    # `preserve = False` via can_replace_preserved_letter_corpus and is
+    # exempted here for the same reason.
+    if not preserve and not intentional_reclassification:
+        prior_disc = prior_discussant_count(prior)
+        new_disc = len(payload.get("ticker_discussants") or {})
+        if prior_disc > 0 and new_disc < int(prior_disc * DISCUSSANT_REGRESSION_RATIO):
+            payload["ticker_discussants"] = (prior or {}).get("ticker_discussants") or {}
+            payload["ticker_discussants_preserved"] = {
+                "reason": "rebuild attribution regressed",
+                "rebuilt_count": new_disc,
+                "preserved_count": prior_disc,
+                "vault_letters": vault_count,
+                "prior_letters": prior_letter_count(prior),
+            }
+            print(
+                f"PRESERVE ticker_discussants: rebuild yielded {new_disc} vs prior "
+                f"{prior_disc} (vault {vault_count} letters); keeping the prior map. "
+                "A larger corpus that attributes less is a regression, not an update.",
+                file=sys.stderr,
+            )
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     serialized_payload = json.dumps(payload, separators=(",", ":")) + "\n"
     _atomic_write(OUTPUT, serialized_payload)

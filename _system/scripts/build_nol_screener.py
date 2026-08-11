@@ -279,6 +279,195 @@ def fmt_per_share(val: float | None) -> str | None:
     return f"${val:.3f}"
 
 
+# ---------------------------------------------------------------------------
+# Section 382 and what an acquirer can actually use
+#
+# The screen used to rank on realizable DTA / market cap and call anything with
+# a positive realizable DTA "actionable". Both are misleading for the question
+# the list is built to answer -- is this worth acquiring for its tax attributes:
+#
+#   1. WRONG TAXPAYER. A C-corp's NOLs offset that corporation's own taxable
+#      income. They do nothing for capital gains held personally or in a fund,
+#      and under the consolidated-return SRLY rules an acquired subsidiary's
+#      pre-change losses generally shelter only income that subsidiary itself
+#      generates. "Buy an NOL shell to shelter my gains" is not a structure the
+#      code permits; the gains have to already sit inside a corporation that can
+#      absorb the loss company.
+#
+#   2. SECTION 382 THROTTLE. An ownership change -- more than 50 percentage
+#      points among 5% shareholders over a rolling three years, which any
+#      takeover triggers -- caps annual use of pre-change NOLs at roughly
+#      (equity value immediately before the change) x (long-term tax-exempt
+#      rate). So the asset is not the carryforward; it is an annuity whose
+#      size is set by the PRICE PAID, which is why a large DTA on a small
+#      market cap is close to worthless rather than a bargain. Buying $77.8M
+#      of DTA at a $47M market cap yields ~$2M of usable NOL per year.
+#
+#   3. DTA IS NOT NOL. DeferredTaxAssetsGross includes lease/ROU liabilities,
+#      accruals, reserves and credits that reverse through normal operations
+#      and are not a transferable loss asset. Ranking on total DTA put a
+#      retailer with $1.4M of loss carryforward at the top of the screen.
+#
+# Everything below is an ESTIMATE for triage, not tax advice, and the payload
+# says so. Real cases turn on NUBIG/NUBIL, 382(l)(5)/(l)(6), SRLY, 383 credits
+# and state conformity, none of which XBRL exposes.
+# ---------------------------------------------------------------------------
+
+# IRS publishes the long-term tax-exempt rate monthly (Rev. Rul. tables); it is
+# the ceiling used in the 382 limitation. Stored as an explicit, dated
+# assumption rather than buried in a formula so it can be refreshed.
+SECTION_382_RATE = 0.0450
+SECTION_382_RATE_AS_OF = "2026-08"
+SECTION_382_RATE_SOURCE = "IRS long-term tax-exempt rate (Section 382(f)); update monthly"
+FEDERAL_CORPORATE_RATE = 0.21
+# Post-TCJA, NOLs arising after 2017 offset at most 80% of taxable income.
+POST_2017_INCOME_OFFSET_CAP = 0.80
+# Discount rate for the PV of the throttled annual stream.
+NOL_PV_DISCOUNT_RATE = 0.10
+# Carryforwards arising after 2017 are indefinite; cap the PV horizon anyway.
+NOL_PV_HORIZON_YEARS = 20
+# Below this, the "DTA" is overwhelmingly timing differences, not losses.
+NOL_SHARE_OF_DTA_FLOOR = 0.40
+# At or above this valuation allowance, management and their auditor have said
+# realization is not more likely than not. That is their judgment, not ours.
+FULLY_RESERVED_ALLOWANCE_PCT = 90.0
+# A row counts as material when it recovers at least this share of the
+# theoretical ceiling. Judging against a flat percentage is a trap: the ceiling
+# is ~6% of the price, so any threshold above that is unreachable by
+# construction and the screen reports zero candidates forever.
+SECTION_382_MATERIAL_FRACTION_OF_CEILING = 0.60
+# Below this a reported market cap is a bad price feed, not a nano-cap.
+IMPLAUSIBLE_MCAP_FLOOR_USD = 1_000_000.0
+
+
+def section_382_ceiling_ratio() -> float:
+    """Most of the purchase price any acquirer can ever recover as tax shield.
+
+    The 382 limit is a fixed percentage OF THE PRICE PAID, so paying more buys
+    a proportionally larger allowance and the ratio is scale-invariant. With an
+    unlimited carryforward it converges to:
+
+        rate x annuity_factor(horizon, discount) x corporate_rate x offset_cap
+
+    which is roughly 6% under the assumptions above. This is why "big NOL, tiny
+    market cap" is not a bargain: shrinking the price shrinks the annual
+    allowance in exact proportion.
+    """
+    annuity = sum(
+        1.0 / ((1 + NOL_PV_DISCOUNT_RATE) ** y)
+        for y in range(1, NOL_PV_HORIZON_YEARS + 1)
+    )
+    return (
+        SECTION_382_RATE * annuity * FEDERAL_CORPORATE_RATE * POST_2017_INCOME_OFFSET_CAP
+    )
+
+
+def section_382_profile(sec: dict, mcap: float | None) -> dict:
+    """Estimate what an acquirer could actually use, and name what blocks it."""
+    nol_dta = sec.get("nol_dta_usd")
+    dta_gross = sec.get("dta_gross_usd")
+    realizable = sec.get("dta_realizable_usd")
+    allowance_pct = sec.get("allowance_pct")
+
+    blockers: list[str] = []
+
+    # Is the DTA actually a loss asset?
+    nol_share = None
+    if nol_dta is not None and dta_gross:
+        nol_share = round(nol_dta / dta_gross, 3)
+        if nol_share < NOL_SHARE_OF_DTA_FLOOR:
+            blockers.append("dta_is_mostly_timing_differences")
+    elif nol_dta is None:
+        blockers.append("no_nol_component_reported")
+
+    if allowance_pct is not None and allowance_pct >= FULLY_RESERVED_ALLOWANCE_PCT:
+        blockers.append("management_fully_reserves_it")
+
+    # The 382 limit throttles the GROSS carryforward, not the tax-effected
+    # asset. nol_dta_usd is already net of the tax rate -- SIRI reports
+    # $1,447.2M of NOL DTA against $7,844M of gross carryforward, a ratio of
+    # 18%, i.e. roughly the corporate rate. Multiplying the DTA by 21% again to
+    # get a "shield" double-counts the rate and understates every row by ~5x.
+    # Prefer the reported gross carryforward; gross the DTA up only as a
+    # fallback, and say which was used.
+    gross_nol = sec.get("operating_loss_carryforward_usd")
+    nol_basis = "reported_carryforward"
+    if not gross_nol or gross_nol <= 0:
+        if nol_dta and nol_dta > 0:
+            gross_nol = nol_dta / FEDERAL_CORPORATE_RATE
+            nol_basis = "grossed_up_from_dta"
+        else:
+            gross_nol = None
+            nol_basis = "unavailable"
+
+    annual_limit = None
+    years_to_absorb = None
+    usable_pv = None
+    shield_pv = None
+    if mcap and mcap > 0:
+        # 382 limit is based on the equity value of the loss corporation
+        # immediately BEFORE the ownership change; market cap is the closest
+        # observable proxy and ignores any control premium actually paid.
+        annual_limit = mcap * SECTION_382_RATE
+        if gross_nol and gross_nol > 0 and annual_limit > 0:
+            years_to_absorb = round(gross_nol / annual_limit, 1)
+            # PV of an annuity of `annual_limit`, running until the carryforward
+            # is exhausted or the horizon ends, whichever comes first.
+            years = min(NOL_PV_HORIZON_YEARS, max(0.0, gross_nol / annual_limit))
+            whole = int(years)
+            pv = sum(annual_limit / ((1 + NOL_PV_DISCOUNT_RATE) ** y) for y in range(1, whole + 1))
+            frac = years - whole
+            if frac > 0:
+                pv += (annual_limit * frac) / ((1 + NOL_PV_DISCOUNT_RATE) ** (whole + 1))
+            usable_pv = pv
+            shield_pv = pv * FEDERAL_CORPORATE_RATE * POST_2017_INCOME_OFFSET_CAP
+    else:
+        blockers.append("no_market_cap_so_382_limit_unknown")
+
+    # A market cap below this is a data error, not a nano-cap: VTRS (Viatris, a
+    # multi-billion company) priced out under $1M here and produced a
+    # 47,000,000-year absorption estimate. Ratios stay scale-invariant and so
+    # look fine, which is exactly why the absurdity has to be caught on the
+    # input rather than spotted in the output.
+    if mcap is not None and 0 < mcap < IMPLAUSIBLE_MCAP_FLOOR_USD:
+        blockers.append("implausible_market_cap_check_price_feed")
+    # A carryforward that needs more than a few horizons to absorb is not being
+    # used by anyone: the limit is too small relative to the loss, so the
+    # ratio saturates at the ceiling while the absolute recovery stays trivial.
+    if years_to_absorb is not None and years_to_absorb > NOL_PV_HORIZON_YEARS * 3:
+        blockers.append("carryforward_far_exceeds_what_the_382_limit_can_absorb")
+
+    # Because the 382 limit is a fixed percentage OF THE PRICE PAID, the
+    # recoverable shield saturates: once the carryforward is big enough to run
+    # the whole horizon, shield/price converges on a constant that no amount of
+    # additional NOL can raise. That ceiling is the single most useful number
+    # on this screen -- it is the most any acquirer can get back, ever -- and
+    # materiality has to be judged against it, not against an arbitrary
+    # percentage that sits above it and can never be reached.
+    ratio = None if shield_pv is None or not mcap else shield_pv / mcap
+    ceiling = section_382_ceiling_ratio()
+    if blockers:
+        usability = "blocked"
+    elif ratio is not None and ratio >= SECTION_382_MATERIAL_FRACTION_OF_CEILING * ceiling:
+        usability = "material_after_382"
+    else:
+        usability = "immaterial_after_382"
+
+    return {
+        "nol_share_of_dta": nol_share,
+        "gross_nol_usd": gross_nol,
+        "gross_nol_basis": nol_basis,
+        "section_382_annual_limit_usd": annual_limit,
+        "section_382_years_to_absorb": years_to_absorb,
+        "acquirer_usable_nol_pv_usd": usable_pv,
+        "acquirer_tax_shield_pv_usd": shield_pv,
+        "tax_shield_pv_to_mcap_pct": (None if ratio is None else round(100.0 * ratio, 2)),
+        "pct_of_382_ceiling": (None if ratio is None else round(100.0 * ratio / ceiling, 0)),
+        "usability": usability,
+        "blockers": blockers,
+    }
+
+
 def enrich_metrics(
     sec: dict,
     price: float | None,
@@ -309,13 +498,15 @@ def enrich_metrics(
         and sec.get("dta_gross_usd", 0) > 0
         and (realizable is None or realizable <= 0)
     )
-    is_actionable = (
-        realizable is not None
-        and realizable > 0
-        and not fully_reserved
-    )
+    # `is_actionable` used to mean "realizable DTA is a positive number", which
+    # 24 of 89 rows satisfied including a retailer whose loss carryforward was
+    # $1.4M and eight biotechs their own auditors fully reserve. It now means
+    # the 382-throttled shield is material against the price you would pay.
+    profile = section_382_profile(sec, mcap)
+    is_actionable = profile["usability"] == "material_after_382"
 
     return {
+        **profile,
         "price_usd": price,
         "market_cap_usd": mcap,
         "market_cap_display": fmt_mcap(mcap),
@@ -394,13 +585,17 @@ def build_rows() -> list[dict]:
         row.pop("cap_tier_seed", None)
         out.append(row)
 
-    bucket_rank = {"micro": 0, "small": 1, "mid": 2, "large": 3}
+    # Rank by the 382-throttled shield against the price paid, not by raw
+    # DTA/mcap. The old key put micro-caps first by construction, which is
+    # backwards: a small market cap SHRINKS the annual 382 limit, so a big DTA
+    # on a tiny company is the least usable combination on the screen, not the
+    # most. Blocked rows sort last regardless of how large their DTA looks.
+    usability_rank = {"material_after_382": 0, "immaterial_after_382": 1, "blocked": 2}
     out.sort(
         key=lambda r: (
-            0 if r.get("is_actionable") else 1,
-            bucket_rank.get(r.get("cap_bucket") or "", 9),
-            -(r.get("dta_to_mcap_pct") or 0),
-            -(r.get("dta_realizable_usd") or r.get("dta_gross_usd") or 0),
+            usability_rank.get(r.get("usability") or "", 9),
+            -(r.get("tax_shield_pv_to_mcap_pct") or 0),
+            -(r.get("acquirer_tax_shield_pv_usd") or 0),
             r["ticker"],
         ),
     )
@@ -415,18 +610,74 @@ def main() -> int:
     rows = build_rows()
     small_count = sum(1 for r in rows if r.get("is_small_cap"))
     actionable_count = sum(1 for r in rows if r.get("is_actionable"))
+    blocker_tally: dict[str, int] = {}
+    for row in rows:
+        for blocker in row.get("blockers") or []:
+            blocker_tally[blocker] = blocker_tally.get(blocker, 0) + 1
     payload = {
         "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "criteria": (
             "US deferred tax assets (SEC companyfacts) + market cap (SEC shares × Yahoo chart price). "
             "Realizable DTA ≈ gross − valuation allowance; NOL DTA from DeferredTaxAssetsOperatingLossCarryforwards. "
-            "Sorted by actionable realizable DTA / market cap; small/micro caps prioritized for takeover tax-attribute optionality. "
+            "Ranked by the Section 382-throttled tax shield against the price paid, NOT by DTA/market cap. "
             "Seed: _system/reference/market-data/screens/nol_seed.csv."
         ),
+        # The two facts that decide whether any row on this screen is usable.
+        # They belong in the payload, not only in a UI string, so any consumer
+        # of this artifact carries them.
+        "tax_reality": {
+            "who_can_use_it": (
+                "A C corporation's NOLs offset that corporation's own taxable income. They do not "
+                "shelter capital gains held personally or in a fund, and under the consolidated-return "
+                "SRLY rules an acquired subsidiary's pre-change losses generally offset only income "
+                "that subsidiary itself generates. Acquiring an NOL company to shelter unrelated gains "
+                "is not a structure the code permits."
+            ),
+            "section_382": (
+                "Any takeover triggers an ownership change (>50 percentage points among 5% holders over "
+                "three years), which caps annual use of pre-change NOLs at roughly the loss "
+                "corporation's equity value immediately before the change times the long-term "
+                "tax-exempt rate. The asset is an annuity whose size is set by the price paid, so a "
+                "large DTA on a small market cap is the LEAST usable combination on this screen."
+            ),
+            "dta_is_not_nol": (
+                "DeferredTaxAssetsGross includes lease/ROU liabilities, accruals and reserves that "
+                "reverse through normal operations and transfer no loss asset. nol_share_of_dta below "
+                f"{NOL_SHARE_OF_DTA_FLOOR:.0%} means the headline DTA is mostly timing differences."
+            ),
+            "valuation_allowance": (
+                f"An allowance at or above {FULLY_RESERVED_ALLOWANCE_PCT:.0f}% is management and their "
+                "auditor stating realization is not more likely than not. Treat it as their answer, "
+                "not as a discount."
+            ),
+            "assumptions": {
+                "section_382_rate": SECTION_382_RATE,
+                "section_382_rate_as_of": SECTION_382_RATE_AS_OF,
+                "section_382_rate_source": SECTION_382_RATE_SOURCE,
+                "federal_corporate_rate": FEDERAL_CORPORATE_RATE,
+                "post_2017_income_offset_cap": POST_2017_INCOME_OFFSET_CAP,
+                "pv_discount_rate": NOL_PV_DISCOUNT_RATE,
+                "pv_horizon_years": NOL_PV_HORIZON_YEARS,
+            },
+            "not_modelled": [
+                "NUBIG / NUBIL adjustments to the 382 limit",
+                "Section 382(l)(5) bankruptcy and 382(l)(6) exceptions",
+                "Section 383 credit and capital loss carryforwards",
+                "state NOL conformity and separate-company limits",
+                "existing NOL rights plans / poison pills that block a change of control",
+                "control premium actually paid, which raises the 382 limit above market cap",
+            ],
+            "research_only": True,
+            "not_tax_advice": (
+                "Triage estimates from XBRL tags. Every real case turns on facts XBRL does not expose. "
+                "Not tax or investment advice."
+            ),
+        },
         "seed_path": str(SEED_PATH.relative_to(ROOT)).replace("\\", "/"),
         "row_count": len(rows),
         "small_cap_count": small_count,
         "actionable_count": actionable_count,
+        "blocker_tally": blocker_tally,
         "rows": rows,
     }
 

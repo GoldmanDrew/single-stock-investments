@@ -363,23 +363,53 @@ def preserve_infra_from_prior(rows: list[dict], prior_by_ticker: dict[str, dict]
     return restored
 
 
+# A sparse rebuild does not zero the infra columns, it THINS them, and the old
+# guard only tripped at exactly zero. On 2026-08-11 a CI run without the ticker
+# trees published total_pdfs=7 (from 8,614) and took readme 830->0,
+# index_file 833->0, download_script 825->0, last_download 815->0 and
+# sec_filings 555->0 with it. Every one of those passed `total_pdfs == 0`.
+# Only research_dir and completeness survived, which is exactly what the old
+# `with_research` half of the test looked at, so the guard read healthy while
+# six of eight infra columns were gone. It reached origin/main and the
+# validator caught one symptom afterwards -- by which point the artifact was
+# already committed and the deploy silently skipped.
+#
+# Judge each preserved column on its own, by RATIO against the prior payload,
+# and keep an absolute floor on total_pdfs that matches
+# validate_dashboard_data.py. A cheap pre-write check must not be weaker than
+# the expensive post-commit one.
+_INFRA_COLLAPSE_RATIO = 0.25     # new < 25% of prior population = collapsed
+_INFRA_PRIOR_MIN = 20            # prior must have had this many to judge at all
+_TOTAL_PDFS_FLOOR = 100          # mirrors validate_dashboard_data.py
+
+
 def refuse_infra_collapse(payload: dict, prior_by_ticker: dict[str, dict]) -> None:
-    """Abort write when a sparse rebuild would publish empty holdings infra."""
+    """Abort write when a sparse rebuild would publish thinned holdings infra."""
     summary = payload.get("summary") or {}
-    total_pdfs = int(summary.get("total_pdfs") or 0)
-    with_research = int(summary.get("with_research") or 0)
-    ticker_count = int(summary.get("ticker_count") or 0)
-    prior_pdfs = sum(int(r.get("pdf_count") or 0) for r in prior_by_ticker.values())
-    prior_research = sum(1 for r in prior_by_ticker.values() if r.get("research_dir"))
-    if ticker_count < 50:
+    rows = payload.get("tickers") or []
+    ticker_count = int(summary.get("ticker_count") or len(rows))
+    if ticker_count < 50 or len(prior_by_ticker) < 50:
         return
-    collapsed = total_pdfs == 0 and with_research < max(20, ticker_count // 10)
-    prior_healthy = prior_pdfs >= 100 or prior_research >= max(20, ticker_count // 10)
-    if collapsed and prior_healthy:
+
+    def populated(records, key):
+        return sum(1 for r in records if r.get(key))
+
+    failures = []
+    for key in _INFRA_PRESERVE_KEYS:
+        prior_n = populated(prior_by_ticker.values(), key)
+        now_n = populated(rows, key)
+        if prior_n >= _INFRA_PRIOR_MIN and now_n < prior_n * _INFRA_COLLAPSE_RATIO:
+            failures.append(f"{key} {prior_n}->{now_n}")
+
+    total_pdfs = int(summary.get("total_pdfs") or 0)
+    prior_pdfs = sum(int(r.get("pdf_count") or 0) for r in prior_by_ticker.values())
+    if prior_pdfs >= _TOTAL_PDFS_FLOOR and total_pdfs < _TOTAL_PDFS_FLOOR:
+        failures.append(f"total_pdfs {prior_pdfs}->{total_pdfs} (floor {_TOTAL_PDFS_FLOOR})")
+
+    if failures:
         raise SystemExit(
             "Refusing to write dashboard_data.json: sparse/empty ticker checkout would "
-            f"clobber infra stats (new pdfs={total_pdfs} research={with_research}; "
-            f"prior pdfs={prior_pdfs} research={prior_research}). "
+            f"clobber infra stats over {ticker_count} tickers -- " + "; ".join(failures) + ". "
             "Rebuild with ticker trees present, or deploy committed dashboard/ as-is."
         )
 
@@ -3084,11 +3114,56 @@ def build_research_memory() -> dict | None:
     return _load_json(RESEARCH_MEMORY_PATH)
 
 
+def load_prior_rows() -> dict[str, dict]:
+    """Prior per-ticker rows for the anti-clobber guards and infra restore.
+
+    dashboard_data.json is the historical source, but it is a 76MB monolith
+    that duplicates artifacts already committed (core.json + the per-ticker
+    shards) and is rewritten on every build, which is most of why .git is 19GB.
+    It cannot simply be dropped: `prior_by_ticker` is what
+    `refuse_infra_collapse` and `restore_infra_fields` compare against, and
+    both return early when the prior has fewer than 50 rows -- so untracking
+    the monolith without this fallback would silently DISABLE the guards in a
+    fresh CI checkout, which is the opposite of the intent.
+
+    Fall back to the committed shards, which carry the same rows: core.json for
+    the summary fields, per-ticker shards for everything else.
+    """
+    payload = _load_json(OUTPUT) or {}
+    rows = payload.get("tickers") or []
+    if rows:
+        return {str(r.get("ticker")): r for r in rows if r.get("ticker")}
+
+    merged: dict[str, dict] = {}
+    core = _load_json(DATA_DIR / "core.json") or {}
+    for row in core.get("tickers") or []:
+        if row.get("ticker"):
+            merged[str(row["ticker"])] = dict(row)
+    shard_dir = DATA_DIR / "tickers"
+    if shard_dir.is_dir():
+        for path in shard_dir.glob("*.json"):
+            shard = _load_json(path) or {}
+            ticker = str(shard.get("ticker") or "")
+            if not ticker:
+                continue
+            # Shard wins on keys it carries (recent_files lives only there);
+            # core fills the rest.
+            merged.setdefault(ticker, {}).update(
+                {k: v for k, v in shard.items() if v not in (None, "", [], {})}
+            )
+    if merged:
+        print(
+            f"prior rows reconstructed from committed shards ({len(merged)} tickers); "
+            f"{OUTPUT.name} absent",
+            file=sys.stderr,
+        )
+    return merged
+
+
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     equity_payload = build_equity_models()
-    prior_payload = _load_json(OUTPUT) or {}
-    prior_by_ticker = {str(row.get("ticker")): row for row in prior_payload.get("tickers") or [] if row.get("ticker")}
+    prior_by_ticker = load_prior_rows()
     document_registry = build_document_registry()
     document_catalog = build_document_catalog(document_registry)
     insights_doc = _load_json(DATA_DIR / "insights.json")
@@ -3181,7 +3256,8 @@ def main() -> None:
         payload["summary"]["activist_tickers_with_hits"] = (activist_feed.get("summary") or {}).get(
             "tickers_with_hits", 0
         )
-    payload = merge_sparse_payload(payload, prior_payload)
+    # Same prior, shard-reconstructed when the monolith is absent.
+    payload = merge_sparse_payload(payload, {"tickers": list(prior_by_ticker.values())})
     OUTPUT.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
     write_oauth_config()
     print(f"Wrote {OUTPUT} ({payload['summary']['ticker_count']} tickers)")
