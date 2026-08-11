@@ -190,6 +190,62 @@ class ScanTickerTests(unittest.TestCase):
         self.assertEqual(self.scan(), {})
 
 
+class TruncatedFilingTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.research = Path(self.tmp.name) / "T" / "research"
+        healthy(self.research)
+        self.evidence = self.research / "evidence"
+        self.addCleanup(self.tmp.cleanup)
+
+    def inventory(self, coverage):
+        write(self.evidence / "document_inventory.json",
+              {"documents": [{"tier": "full", "coverage": coverage}]})
+
+    def test_measured_truncation_fires(self):
+        self.inventory({"truncated": True, "coverage_pct": 23.4,
+                        "sections_missing": ["liquidity_and_capital_resources"]})
+        detail = cei.truncated_filings(self.research)
+        self.assertIn("23.4%", detail)
+        self.assertIn("liquidity_and_capital_resources", detail)
+
+    def test_measured_complete_does_not_fire(self):
+        self.inventory({"truncated": False, "coverage_pct": 100.0, "sections_missing": []})
+        self.assertIsNone(cei.truncated_filings(self.research))
+
+    def test_legacy_cache_at_cap_without_marker_fires(self):
+        cache = self.evidence / "_text"
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / "big.txt").write_text("x" * cei.LEGACY_CHAR_CAP, encoding="utf-8")
+        self.assertIn("legacy", cei.truncated_filings(self.research))
+
+    def test_legacy_cache_with_marker_does_not_fire(self):
+        # Already measured and marked -> known, not silent.
+        cache = self.evidence / "_text"
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / "big.txt").write_text(
+            "x" * cei.LEGACY_CHAR_CAP + "\n" + cei.TRUNCATION_MARKER + " kept ...]",
+            encoding="utf-8")
+        self.assertIsNone(cei.truncated_filings(self.research))
+
+    def test_small_cache_files_are_ignored(self):
+        cache = self.evidence / "_text"
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / "small.txt").write_text("short", encoding="utf-8")
+        self.assertIsNone(cei.truncated_filings(self.research))
+
+    def test_no_evidence_dir_is_not_a_finding(self):
+        self.assertIsNone(cei.truncated_filings(Path(self.tmp.name) / "nope" / "research"))
+
+    def test_measured_metadata_wins_over_legacy_heuristic(self):
+        # A re-extracted ticker keeps a big cache file; metadata says complete.
+        cache = self.evidence / "_text"
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / "big.txt").write_text("x" * 400_000, encoding="utf-8")
+        self.inventory({"truncated": False, "coverage_pct": 100.0, "sections_missing": []})
+        self.assertIsNone(cei.truncated_filings(self.research))
+
+
 class WorklistTests(unittest.TestCase):
     def test_orders_by_breakage_then_trapped_then_held(self):
         report = {

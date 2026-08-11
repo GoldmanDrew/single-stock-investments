@@ -29,6 +29,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SKIP_DIRS = {"_system", "dashboard", ".git", ".github", ".cursor", "research"}
 TODAY = date.today().isoformat()
 
+# Sized from the corpus, not guessed: the largest full-tier documents clean to
+# ~1.28M chars (WHK 424B4, 4.4MB HTML) and ~885K (AAL 10-K). 1.5M covers the
+# observed distribution with headroom. `_text/` is a gitignored derived cache,
+# so the cost of a larger cap is local disk, not repository weight.
+FULL_TIER_CHAR_CAP = 1_500_000
+
 # Higher = more important for full read
 TYPE_SCORE = {
     "10-k": 100,
@@ -204,7 +210,33 @@ def _strip_html_keep_lines(text: str) -> str:
     return clean
 
 
-def extract_html(path: Path, max_chars: int = 120_000) -> str:
+# Sections whose absence means the extract is starved rather than complete.
+# Probed for reporting only -- `truncated` below is the authoritative signal,
+# because a section name can legitimately appear once in a table of contents
+# and once as a heading, and counting occurrences produced false positives
+# (AAPL's real Liquidity section appears exactly once).
+SECTION_PROBES = {
+    "mdna": r"management'?s discussion and analysis",
+    "liquidity_and_capital_resources": r"liquidity and capital resources",
+    "controls_and_procedures": r"controls and procedures",
+    "notes_to_financial_statements": r"notes to (the )?consolidated financial statements",
+    "debt_covenants": r"(covenant|credit agreement|revolving credit facilit)",
+    "derivatives_hedging": r"(derivative instrument|commodity derivative|hedg(e|ing))",
+    "income_taxes": r"income tax(es)?",
+}
+
+TRUNCATION_MARKER = "[EXTRACT TRUNCATED: kept {kept:,} of {total:,} chars ({pct:.1f}%)]"
+
+
+def clean_filing_text(path: Path) -> str:
+    """Full clean text of an HTML filing, uncapped.
+
+    Split out from `extract_html` so the caller can know the *true* size of
+    the document before any cap is applied. Without that number a truncated
+    extract is indistinguishable from a complete one, which is exactly how a
+    4.4MB prospectus silently became a 300K extract whose Liquidity section
+    and financial-statement notes were never in evidence.
+    """
     text = path.read_text(encoding="utf-8", errors="ignore")
     if "<ix:nonFraction" in text or "xmlns:ix=" in text:
         snippets = []
@@ -222,9 +254,42 @@ def extract_html(path: Path, max_chars: int = 120_000) -> str:
                 if "Member" not in name and "Axis" not in name:
                     snippets.append(f"{name.split(':')[-1]}: {val}")
         ix_block = "\n".join(snippets[:2000])
-        clean = _strip_html_keep_lines(text)
-        return (ix_block + "\n\n" + clean[:max_chars])[:max_chars]
-    return _strip_html_keep_lines(text)[:max_chars]
+        return ix_block + "\n\n" + _strip_html_keep_lines(text)
+    return _strip_html_keep_lines(text)
+
+
+def apply_char_cap(text: str, max_chars: int) -> str:
+    """Cap the text, leaving an explicit marker when anything was dropped.
+
+    A capped extract must never be able to pass as a whole document, either to
+    a human reading the cache file or to a regex walking it.
+    """
+    if len(text) <= max_chars:
+        return text
+    kept = text[:max_chars].rstrip()
+    return kept + "\n" + TRUNCATION_MARKER.format(
+        kept=max_chars, total=len(text), pct=100.0 * max_chars / len(text))
+
+
+def coverage_record(source_chars: int, extracted: str, cap: int) -> dict:
+    """What of the source actually made it into evidence."""
+    present, missing = [], []
+    lowered = extracted.lower()
+    for name, pattern in SECTION_PROBES.items():
+        (present if re.search(pattern, lowered) else missing).append(name)
+    return {
+        "source_chars": source_chars,
+        "extracted_chars": len(extracted),
+        "char_cap": cap,
+        "truncated": source_chars > cap,
+        "coverage_pct": round(100.0 * min(cap, source_chars) / source_chars, 1) if source_chars else None,
+        "sections_present": present,
+        "sections_missing": missing,
+    }
+
+
+def extract_html(path: Path, max_chars: int = 120_000) -> str:
+    return apply_char_cap(clean_filing_text(path), max_chars)
 
 
 def extract_pdf(path: Path, max_pages: int) -> str:
@@ -260,19 +325,29 @@ def process_doc(ticker_dir: Path, doc: dict, tier: str) -> dict:
         if path.suffix.lower() == ".pdf":
             pages = 120 if tier == "full" else (15 if tier == "partial" else 3)
             text = extract_pdf(path, pages)
+            result["coverage"] = {"source_chars": None, "extracted_chars": len(text),
+                                  "page_cap": pages, "truncated": None,
+                                  "coverage_pct": None, "sections_present": [],
+                                  "sections_missing": []}
         else:
-            # Full tier needs to reach MD&A / Liquidity / Controls, which sit
-            # deep in a 10-K; 120K chars cut them off and silently starved the
-            # SSI section-diff engine.
-            cap = 300_000 if tier == "full" else (30_000 if tier == "partial" else 8_000)
-            text = extract_html(path, cap)
+            # Full tier must reach MD&A / Liquidity / Controls / the notes,
+            # which sit deep in a 10-K or prospectus. 120K chars cut them off;
+            # 300K still did for anything large (WHK's 424B4 cleans to 1.28M
+            # chars, AAL's 10-K to 885K), and the cap was applied silently so
+            # nothing downstream could tell a starved extract from a whole one.
+            cap = FULL_TIER_CHAR_CAP if tier == "full" else (30_000 if tier == "partial" else 8_000)
+            source = clean_filing_text(path)
+            text = apply_char_cap(source, cap)
+            result["coverage"] = coverage_record(len(source), text, cap)
         result["chars"] = len(text)
         result["snippets"] = keyword_snippets(text, 50 if tier == "full" else 20)
         if tier == "full":
             cache = ticker_dir / "research" / "evidence" / "_text"
             cache.mkdir(parents=True, exist_ok=True)
             safe = re.sub(r"[^\w.-]", "_", doc["filename"])[:80]
-            (cache / f"{safe}.txt").write_text(text[:320_000], encoding="utf-8")
+            # Write exactly what was extracted, marker included. The old
+            # `text[:320_000]` re-truncated the cache below the extract itself.
+            (cache / f"{safe}.txt").write_text(text, encoding="utf-8")
     except Exception as e:
         result["error"] = str(e)
     return result

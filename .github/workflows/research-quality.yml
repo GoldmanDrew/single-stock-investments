@@ -32,6 +32,8 @@ on:
       - "_system/scripts/test_graph_invariants.py"
       - "_system/scripts/check_evidence_integrity.py"
       - "_system/scripts/test_check_evidence_integrity.py"
+      - "_system/scripts/build_filing_evidence.py"
+      - "_system/scripts/test_build_filing_evidence.py"
       - "_system/data/evidence_integrity_baseline.json"
       - "_system/memory/**"
       # Judged surfaces of the graph invariants: contracts and typed
@@ -86,6 +88,8 @@ on:
       - "_system/scripts/test_graph_invariants.py"
       - "_system/scripts/check_evidence_integrity.py"
       - "_system/scripts/test_check_evidence_integrity.py"
+      - "_system/scripts/build_filing_evidence.py"
+      - "_system/scripts/test_build_filing_evidence.py"
       - "_system/data/evidence_integrity_baseline.json"
       - "_system/memory/**"
       # Graph-invariant judged surfaces not already covered by the
@@ -192,6 +196,7 @@ jobs:
               // The evidence-integrity sweep shares this job (same full
               // checkout) and must trigger on its own sources and baseline.
               /^_system\/scripts\/(test_)?check_evidence_integrity\.py$/.test(name) ||
+              /^_system\/scripts\/(test_)?build_filing_evidence\.py$/.test(name) ||
               name === '_system/data/evidence_integrity_baseline.json' ||
               /(^|\/)research\/(valuation_route|valuation_fact_ledger|evidence_task_queue|valuation_automation_state)\.json$/.test(name) ||
               /^_system\/memory\//.test(name) ||
@@ -499,7 +504,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Evidence integrity unit tests
         working-directory: _system/scripts
-        run: python -m unittest -v test_check_evidence_integrity
+        run: python -m unittest -v test_check_evidence_integrity test_build_filing_evidence
       - name: Evidence integrity sweep (ratchet; fails only on regression)
         # Shares this job because it needs the same full tree: the sweep reads
         # every ticker's contract, route, ledger, queue and automation state

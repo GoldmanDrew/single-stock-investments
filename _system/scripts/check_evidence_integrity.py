@@ -96,7 +96,14 @@ CHECKS = {
     "V5": "component results present but no totals (dashboard renders null)",
     "V6": "decision_grade with no typed falsifier (monitoring cannot fire)",
     "V7": "decision_grade whose routed method inputs are absent from the ledger",
+    "V8": "full-tier filings truncated, so evidence was never extracted",
 }
+
+# The pre-2026-08-11 full-tier cap. Extracts written before coverage metadata
+# existed carry no `truncated` flag, so a file sitting at that cap without a
+# truncation marker is the fallback signature.
+LEGACY_CHAR_CAP = 300_000
+TRUNCATION_MARKER = "[EXTRACT TRUNCATED"
 
 # Mirrors METHOD_INPUT_SCHEMAS in automate_valuation_readiness.py. Kept as a
 # literal rather than imported so this sweep stays runnable if that module is
@@ -122,6 +129,53 @@ REQUIRED_INPUTS = {
         "excess_return_duration", "stress_losses_m", "senior_claims_m",
         "shares_outstanding"],
 }
+
+def truncated_filings(research: Path) -> str | None:
+    """Full-tier filings whose text was cut off before it reached evidence.
+
+    A truncated extract is the most dangerous kind of missing evidence,
+    because everything downstream still succeeds: the fact parser runs, the
+    contract compiles, the report renders. It just never saw the section that
+    mattered. WHK's 424B4 cleans to 1.28M characters and was being cut to
+    300K, so Liquidity and Capital Resources and the notes to the financial
+    statements -- the covenants, the hedge book, the tax detail -- were absent
+    from every downstream artifact while nothing reported a problem.
+
+    Prefers the coverage metadata that `build_filing_evidence.py` now records.
+    Falls back to the on-disk signature for the 532 tickers whose inventories
+    predate it: a cache file sitting at the legacy cap with no marker.
+    """
+    inventory = read_json(research / "evidence" / "document_inventory.json")
+    docs = [d for d in (inventory.get("documents") or [])
+            if isinstance(d, dict) and d.get("tier") == "full"]
+    measured = [d for d in docs if isinstance(d.get("coverage"), dict)]
+    if measured:
+        cut = [d for d in measured if d["coverage"].get("truncated")]
+        if not cut:
+            return None
+        worst = min((d["coverage"].get("coverage_pct") or 100.0) for d in cut)
+        lost = sorted({s for d in cut for s in d["coverage"].get("sections_missing") or []})
+        detail = f"{len(cut)}/{len(measured)} full-tier filings truncated, worst {worst}% of source"
+        return detail + (f"; sections absent: {', '.join(lost[:4])}" if lost else "")
+
+    cache = research / "evidence" / "_text"
+    if not cache.is_dir():
+        return None
+    starved = []
+    for path in cache.glob("*.txt"):
+        try:
+            if path.stat().st_size < LEGACY_CHAR_CAP - 1_000:
+                continue
+            if TRUNCATION_MARKER not in path.read_text(
+                    encoding="utf-8", errors="replace")[-400:]:
+                starved.append(path.name)
+        except OSError:
+            continue
+    if not starved:
+        return None
+    return (f"{len(starved)} cached extract(s) at the legacy {LEGACY_CHAR_CAP:,}-char cap"
+            f" with no coverage metadata; re-run build_filing_evidence.py")
+
 
 def route_satisfied(routed: str, proof_methods: set[str]) -> bool:
     """Exact mirror of ``compile_existing_approved_proofs``'s route_supported.
@@ -270,6 +324,10 @@ def scan_ticker(ticker: str, research: Path, wave: set[str], today: date) -> dic
                 shown = ",".join(missing[:3]) + ("..." if len(missing) > 3 else "")
                 found["V7"] = (f"{routed} missing {len(missing)}/{len(needed)}"
                                f" locked inputs ({shown})")
+
+    starved = truncated_filings(research)
+    if starved:
+        found["V8"] = starved
 
     return found
 

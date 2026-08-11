@@ -207,6 +207,15 @@ coverage ratchet, V6 the per-ticker triage list. Baseline lives in
 `_system/data/evidence_integrity_baseline.json`; the sweep is report-severity
 and fails CI only when a count rises.
 
+V8 is the sharpest of the set: 531 tickers had filing text silently cut at a
+300K-character cap, so Liquidity and Capital Resources and the notes to the
+financial statements were never extracted — while the fact parser, the
+contract compiler and the committee all ran green on what remained. The method
+is written up in [`_system/prompts/evidence_integrity_runbook.md`](../prompts/evidence_integrity_runbook.md):
+name the contradiction rather than the symptom, measure prevalence before
+building the check, mirror the real rule instead of approximating it, and
+ratchet rather than gate.
+
 CI: the invariant suite runs in the Research quality workflow (fail-loud on
 hard invariants); the resolver runs weekly in the dedicated
 `.github/workflows/falsifier-resolution.yml` workflow (Saturday 13:00 UTC).
