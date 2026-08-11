@@ -9,16 +9,35 @@ lens regeneration wired into the power-zone-universe lane, WHK reclassified
 optionality/asset, all 721 lenses regenerated, ratchet baseline armed). The items
 below change judgment, not plumbing, and belong to the human.
 
-## 1. Re-seat or park the 23 collided committees (L6 = 23)
+## 1. Re-seat the 23 collided committees — **DONE 2026-08-11** (L6 23 → 0)
 
 31 of 76 manifests seated `[buffett_weschler, hohn, munger]` — two
-`quality_reinvestment` seats under the canonical map; 23 are active, including
-**8697.T at `committee_complete_decision_pending`** (a decision is about to be made
-on a non-independent committee) and 21 `round_one_open` (ADBE, AMZN, GOOGL, SPGI,
-CSU, ICE, FRMO, …). Future seatings are already fixed by the shared GROUPS import.
-Options per manifest: supersede + re-seat with a distinct third group (marks/pabrai
-are eligible), or accept the recorded committee with a note. Recommend re-seat for
-8697.T before any decision is recorded.
+`quality_reinvestment` seats under the canonical map; 23 were active, including
+**8697.T at `committee_complete_decision_pending`** (a decision about to be made on
+a non-independent committee) and 21 `round_one_open` (ADBE, AMZN, GOOGL, SPGI, CSU,
+ICE, FRMO, …). Future seatings were already fixed by the shared GROUPS import.
+
+Resolved by owner direction (skip the 8697.T human decision; re-seat rather than
+park) via `_system/scripts/reseat_collided_committees.py --apply`. All 23 re-seated
+to `marathon_capital_cycle` in the third seat — route-driven, not hand-picked: every
+one routes to `quality_reinvestment`, whose cross-checks are
+`[munger, marathon_capital_cycle]`, and munger now shares buffett's group. Zero
+unfixable.
+
+Preservation, verified after the run: **145/145 vote files byte-identical, none
+deleted** (the 7 munger votes across 7176.T, 8697.T, ADBE, AMZN survive as orphans —
+real opinions that no longer count toward a quorum they never legitimately formed);
+the 3 assembled records built on the old seating renamed to
+`committee_<date>-superseded-<hash8>.json`, which breaks the reader glob while
+staying on disk; the frozen packet and its hash untouched, so the surviving raters'
+votes stay valid. 8697.T reverted `committee_complete_decision_pending` →
+`round_one_open` with **no `human_decision.json` written** — the pending decision is
+skipped, not recorded.
+
+**Open follow-up (lane work, not a gate):** all 23 now need round-one votes from the
+newly seated rater; the committee lane dispatches them. `marathon_capital_cycle` is
+outside its power zone on several of these compounders and may legitimately vote
+`outside_power_zone` — that is an honest committee output, not a failure.
 
 ## 2. Independence-group split for hk vs stahl (scarce-asset names)
 
