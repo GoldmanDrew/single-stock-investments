@@ -374,11 +374,25 @@ def discover(
             rss_count = len(eps)
             feed_cap = rss_count >= FEED_HOST_CAP_WARN
             if feed_cap:
+                # `rss_count == cap` is a heuristic for truncation and cannot
+                # tell a genuinely capped feed from one that happens to hold
+                # exactly that many episodes. The Podcast Index cross-check
+                # below is the evidence, and it is not always a fix: for
+                # capital_allocators (feed 222998) the index holds 815 episodes
+                # ending 2024-09-30 against 1,000 in the RSS, so pagination
+                # recovered 2. Prescribing pagination as the remedy sent the
+                # reader after a source that is smaller and staler than the one
+                # already read. State the observation; let the added-count that
+                # follows say whether anything was actually missing.
                 errors.append(
                     {
                         "show_id": show.get("show_id"),
                         "error": f"feed_host_cap_warn:{rss_count}",
-                        "hint": "RSS likely truncated; use Podcast Index pagination",
+                        "hint": (
+                            "RSS returned exactly the host cap, which MAY mean truncation. "
+                            "The podcast_index_added count for this show is the evidence: a "
+                            "low number means little was missing, not that the check failed."
+                        ),
                     }
                 )
             if feed_cap and paginate_capped_feeds:

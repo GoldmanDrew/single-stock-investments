@@ -81,6 +81,31 @@ jobs:
       - name: Install transcript dependencies
         run: pip install -r _system/scripts/requirements-transcripts.txt
 
+      - name: Check Podcast Index credentials are present
+        # discover_podcasts.podcast_index_auth_headers() returns None when either
+        # half is missing and the caller silently falls back to iTunes search,
+        # which caps at 1000 items per feed. That degradation is invisible in a
+        # scheduled run: the job still exits 0 and still commits, just with a
+        # truncated back catalog. Both halves are needed -- the Authorization
+        # header is sha1(key + secret + timestamp), so a present key with a
+        # missing secret authenticates as nothing.
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${PODCASTINDEX_API_KEY:-}" ] || [ -z "${PODCASTINDEX_API_SECRET:-}" ]; then
+            echo "::warning title=Podcast Index credentials missing::Discovery will fall back to iTunes search and cap capped feeds at 1000 items. Set PODCASTINDEX_API_KEY and PODCASTINDEX_API_SECRET as repo secrets."
+          else
+            python - <<'PY'
+          import sys
+          sys.path.insert(0, "_system/scripts")
+          from discover_podcasts import podcast_index_auth_headers
+          h = podcast_index_auth_headers()
+          if not h:
+              raise SystemExit("::error::credentials are set in the environment but the auth header could not be built")
+          print(f"Podcast Index auth headers built: {sorted(h)}")
+          PY
+          fi
+
       - name: Record the pre-run catalog state
         id: before
         shell: bash
