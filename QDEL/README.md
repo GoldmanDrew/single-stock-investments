@@ -53,7 +53,10 @@ Logs append to **`_download_log.txt`** at the QDEL root.
 
 ## Research Notes
 
-- **`investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf`** — Third-party commentary (context tier; not primary IRR)
+- **`investor-documents/research-notes/McIntyre_Partnerships_Q1_2026_Letter.pdf`** — Approved third party (blend 28 May 2026)
+- **`investor-documents/research-notes/McIntyre_Partnerships_Q2_2026_Letter.pdf`** — Same publisher; $100 RemainCo update (3 Aug 2026)
+- **`investor-documents/research-notes/Jefferies_QDEL_2026-08-06_Guide_Cut_Worse_Than_Expected.pdf`** — **[PENDING APPROVAL]** Hold / $12
+- **`research/cross_check_McIntyre_vs_Jefferies_2026-08-11.md`** — Reconciliation of those two views vs Q2 print
 - **`research/valuation_model.html`** — Interactive segment SOTP model (Marvin independent)
 - **`research/valuation_assumption_ledger.md`** — Step-by-step assumption trace (every input + math)
 - **`research/qdel_data.json`** — Model inputs and filing sources
