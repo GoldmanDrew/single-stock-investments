@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-08-11",
+  "updated": "2026-08-12",
   "notes": [
     "Config for _system/scripts/graph_build.py. Lane regexes match git commit subjects (one git log call, bounded window).",
     "The guard registry maps correction row ids (date + first-40-chars-of-error slug, computed by graph_build.correction_slug) to the executable asserts that guard them and the scripts that enforce those asserts.",
@@ -206,7 +206,9 @@
   "falsifier_enforcement": {
     "typed_coverage_threshold": 0.8,
     "enforcement_enabled": false,
-    "note": "Typed-falsifier-required for decision_grade stays OFF until E1 coverage crosses the threshold; flipping 189 contracts to evidence_blocked overnight would freeze the factory."
+    "prospective_enforcement_enabled": true,
+    "prospective_since": "2026-08-12",
+    "note": "Book-wide enforcement remains off to avoid retroactive gridlock. From 2026-08-12, only new or materially changed decision-grade components must carry an anchored v2 forecast (or an explicit untestable declaration) before readiness can advance."
   },
   "invariants": {
     "notes": [
@@ -282,6 +284,26 @@
       "stamp_field": "generated_at",
       "max_age_hours": 240,
       "healer": "python _system/scripts/podcast_cloud_refresh.py --date YYYY-MM-DD (podcast-refresh.yml, cron 0 7 * * 1)"
+    },
+    "warrant_monitor": {
+      "path": "dashboard/data/warrants.json",
+      "stamp_field": "generated_at",
+      "max_age_hours": 100,
+      "healer": "python _system/scripts/refresh_warrant_universe.py --refresh-market --capture-cohort && python _system/scripts/build_warrant_dashboard.py (data-pipeline nightly + Monday discovery)",
+      "assert_fields": {
+        "health.status": {
+          "not_in": ["unhealthy"],
+          "why": "repeated SEC failures, stale last-successful market refreshes, and stale active marks must be loud"
+        },
+        "health.structural_errors": {
+          "max_count": 0,
+          "why": "contract identity, immutable versions, and gate ordering must remain structurally valid"
+        },
+        "health.stale_active_quotes": {
+          "max_count": 0,
+          "why": "an active warrant with no delayed mark for more than five days cannot be silently presented as current"
+        }
+      }
     }
   },
   "classification_vocab": {

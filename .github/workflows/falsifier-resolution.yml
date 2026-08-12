@@ -1,7 +1,7 @@
 name: Falsifier Resolution
 
 # Weekly epistemic-ratchet resolver (spec: _system/graph/README.md): score
-# typed falsifiers whose due date has passed into the append-only outcomes
+# typed falsifiers whose observable date has passed into the append-only outcomes
 # ledger and rebuild the descriptive calibration store. Calibration never
 # changes weights automatically; it informs humans and prompts.
 #
@@ -38,11 +38,13 @@ jobs:
             _system/scripts
             _system/research
             _system/graph
+            _system/portfolio/registry.json
             .github/actions/commit-main
             */research/falsifier_specs.json
             */research/valuation_fact_ledger.json
             */research/valuation_contract.json
             */research/valuation_route.json
+            */research/security_identity.json
             */research/evidence/sec_companyfacts.json
           sparse-checkout-cone-mode: false
           fetch-depth: 1
@@ -57,7 +59,15 @@ jobs:
         # with no flag.
         run: |
           set -euo pipefail
+          python _system/scripts/refresh_falsifier_evidence.py
           python _system/scripts/resolve_falsifiers.py --apply
+
+      - name: Resolver vertical integration tests
+        working-directory: _system/scripts
+        run: >-
+          python -m unittest -v test_falsifier_specs test_resolve_falsifiers
+          test_refresh_falsifier_evidence test_calibration_brief
+          test_epistemic_loop_integration
 
       - name: Ensure staged paths exist
         # Belt and braces with resolve_falsifiers.py --apply (which always
@@ -79,6 +89,9 @@ jobs:
           git_add: >-
             _system/research/falsifier_outcomes.jsonl
             _system/research/falsifier_calibration.json
+            _system/research/calibration_brief.json
+            */research/evidence/sec_companyfacts.json
+            */research/valuation_fact_ledger.json
 
   graph-invariants:
     # Time-based invariants (P3 lane staleness, E2 falsifier maturation) only

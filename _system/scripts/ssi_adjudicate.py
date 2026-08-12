@@ -42,6 +42,7 @@ sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 EVAL = ROOT / "_eval"
 GOLD = EVAL / "ssi_skeptic_gold.jsonl"
 ALERTS = EVAL / "ssi_alert_adjudications.jsonl"
+QUEUE = EVAL / "ssi_adjudication_queue.json"
 
 GOLD_VERDICTS = ("generator_error", "skeptic_error", "ambiguous")
 ALERT_VERDICTS = ("real", "noise")
@@ -225,16 +226,51 @@ def cmd_status(args) -> int:
     return 0
 
 
+def queue_payload(gold_limit: int = 5, alert_limit: int = 20) -> dict:
+    """Bounded, issuer-diverse weekly human-ground-truth work queue."""
+    done = _adjudicated_alert_ids()
+    alerts = [row for row in _emitted_alerts()
+              if str(row.get("claim_id")) not in done][:alert_limit]
+    gold = _pending_gold()[:gold_limit]
+    return {
+        "schema_version": "1.0",
+        "generated_on": date.today().isoformat(),
+        "service_level_days": 7,
+        "gold_pending_total": len(_pending_gold()),
+        "alerts_pending_total": len([row for row in _emitted_alerts()
+                                     if str(row.get("claim_id")) not in done]),
+        "gold_sample": gold,
+        "alert_sample": alerts,
+        "issuer_count": len({row.get("issuer") for row in alerts}),
+        "human_ground_truth_required": True,
+        "rule": "Never infer a verdict. A human checks the cited filing and records one with ssi_adjudicate.py.",
+    }
+
+
+def cmd_queue(args) -> int:
+    payload = queue_payload(min(args.limit, 5), args.limit)
+    if args.write:
+        QUEUE.parent.mkdir(parents=True, exist_ok=True)
+        QUEUE.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n",
+                         encoding="utf-8")
+        print(QUEUE)
+    else:
+        print(json.dumps(payload, indent=2, ensure_ascii=True))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("gold", cmd_gold), ("alerts", cmd_alerts), ("status", cmd_status)):
+    for name, fn in (("gold", cmd_gold), ("alerts", cmd_alerts),
+                     ("status", cmd_status), ("queue", cmd_queue)):
         p = sub.add_parser(name)
         p.add_argument("--limit", type=int, default=10)
         p.add_argument("--set", nargs=2, metavar=("CLAIM_ID", "VERDICT"))
         p.add_argument("--note", default="")
         p.add_argument("--issuer", default="")
         p.add_argument("--date", default=date.today().isoformat())
+        p.add_argument("--write", action="store_true")
         p.set_defaults(fn=fn)
     args = ap.parse_args(argv)
     return args.fn(args)

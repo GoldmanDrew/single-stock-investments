@@ -79,13 +79,16 @@ def make_fixture(root: Path) -> None:
     })
     write_json(root / "TST" / "research" / "falsifier_specs.json", {
         "specs": [
-            {"component_id": "core", "metric": "owner_cash_m", "comparator": "<",
+            {"component_id": "core", "metric": "owner_cash_m", "comparator": "lt",
              "threshold": 100, "unit": "USD millions", "due": "2026-06-30",
-             "source_hint": "companyfacts", "derived_from": "prose",
+             "source_hint": "cash_m",
+             "derived_from": "Primary evidence shows worse than low case.",
              "untestable": False, "rationale": "typed"},
-            {"component_id": "core", "metric": "vibes", "comparator": None,
-             "threshold": None, "unit": None, "due": None, "source_hint": None,
-             "derived_from": None, "untestable": True, "rationale": "prose"}],
+            {"component_id": "core", "metric": "vibes", "comparator": "lt",
+             "threshold": None, "unit": "qualitative", "due": None,
+             "source_hint": None,
+             "derived_from": "Extra monitoring falsifier.",
+             "untestable": True, "rationale": "No deterministic source."}],
     })
     write_json(root / "TST" / "research" / "valuation_fact_ledger.json", {
         "schema_version": "1.0", "ticker": "TST", "facts": [

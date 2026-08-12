@@ -1,6 +1,6 @@
 # The workspace graph — procedural + epistemic memory, executed
 
-**Status:** live spec (v1, 2026-08-10). Implemented by `_system/scripts/graph_build.py`
+**Status:** live spec (v2, 2026-08-12). Implemented by `_system/scripts/graph_build.py`
 (projection), `_system/scripts/graph_invariants.py` (health), and
 `_system/scripts/resolve_falsifiers.py` (epistemic resolver). The latest health
 report is committed at [`INVARIANTS.md`](INVARIANTS.md); the database itself is
@@ -185,10 +185,11 @@ requires a reviewed `--update-baseline` commit — the
 the baseline (organically-growing counts like E6) stay unarmed.
 
 **Epistemic (self-compounding):**
-- **E1** (report): decision-grade components carrying a *typed* falsifier
-  (`metric, comparator, threshold, unit, due`). Coverage %, per method.
-- **E2** (hard once >0 typed): every matured typed falsifier (due date past)
-  has a `RESOLVED_BY` outcome within 14 days.
+- **E1** (report): decision-grade components carrying a valid, anchored,
+  resolvable typed falsifier. Coverage %, per method.
+- **E2** (hard once >0 typed): every matured typed falsifier has a
+  `RESOLVED_BY` outcome by its explicit resolution deadline. Measurement
+  period, first-observable date, and terminal deadline are separate fields.
 - **E3** (hard): every `Outcome` carries a `SCORES` edge and appears in the
   calibration store.
 - **E4** (hard): no promoted `Belief` text rewritten in place (diff vs git
@@ -196,6 +197,8 @@ the baseline (organically-growing counts like E6) stay unarmed.
 - **E5** (hard): every `Belief`'s `SUPPORTED_BY` source exists on disk.
 - **E6** (report): `Proposal`s with no `DECIDED_AS` decision (silent-drop
   detector; the 1,014-item backlog class).
+- **E7** (hard): parser artifacts, ephemeral outputs, and company observations
+  never wait in belief review; new durable proposals close within 30 days.
 
 ## The two ratchet loops
 
@@ -218,6 +221,28 @@ Enforcement (typed-falsifier-required for decision_grade) stays OFF until
 coverage crosses the threshold recorded in `graph_sources.json` — flipping 189
 contracts to evidence_blocked overnight would freeze the factory, which is a
 worse failure than the debt.
+
+### Version 2 compounding contract (2026-08-12)
+
+Forecasts now carry immutable `spec_id`, revision, payload hash, authored
+contract hash, analysis run, frozen method and power-zone attribution, severity,
+and an ex-ante probability. `measurement_period_end`, `observable_after`, and
+`resolution_deadline` are distinct. Missing evidence is retried until the
+deadline; it is not immediately turned into a terminal outcome.
+
+`_system/research/calibration_brief.json` is the only agent-facing calibration
+consumer and is frozen into committee packets. A same-route bucket remains
+`insufficient_outcomes` below 20 observations. Eligible history supplies a
+named challenge, never an automatic weight, formula change, decision, or sizing
+rule. Book-wide falsifier enforcement remains off; prospective enforcement is
+on for components introduced or materially changed after 2026-08-12.
+
+The proposal loop has one canonical queue,
+`_system/reviews/pending/memory_triage.md`. Proposals are classified as durable
+belief, company observation, process learning, ephemeral output, or parse
+artifact. The ledger records promoted/routed/rejected/dropped, a reason code,
+source, and destination. The weekly workflow also emits a bounded SSI
+adjudication sample; its verdicts remain human ground truth.
 
 ## Commands
 

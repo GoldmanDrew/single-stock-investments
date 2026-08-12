@@ -4,6 +4,10 @@ Resolve it at runtime — do not assume a machine-specific path.
 Before answering:
 1. List all ticker folders at workspace root (exclude `_system`, names starting with `.`)
 2. Read _system/agents/MARVIN.md
+2b. Read `_system/research/calibration_brief.json` if present. Use only the active
+   route's bucket. `insufficient_outcomes` means it cannot change the analysis;
+   eligible history supplies a named error-pattern challenge, never an automatic
+   weight, formula change, decision, or sizing rule.
 3. Read _system/memory/MEMORY.md and _system/memory/daily/{today}.md
 3b. Read _system/memory/corrections.md — known agent errors and the correction
     for each. These are mistakes already made once; repeating one is the most
@@ -13,6 +17,10 @@ Before answering:
 5. Read _system/frameworks/decision_stack.md; for {TICKER} read valuation.json and open only frameworks from classification.md trigger map (see investment-frameworks.mdc — not the full frameworks folder)
 6. Read _system/frameworks/investment_process.md when doing discover/download workflow
 7. For ticker {TICKER}: read {TICKER}/research/thesis_card.json plus the latest research/evidence/filing_digest_*.md first (compact card: thesis, base IRR, key assumptions, open questions, top citations). Open the full deep dive only when the card is missing or your task changes the thesis/valuation itself. Read {TICKER}/README.md if present.
+7b. Search `_system/memory/triage_ledger.json` for routed company observations
+    whose destination is `{TICKER}/research` (or whose content cites the
+    ticker). They are dated observations, not promoted beliefs; verify them
+    against their source before changing the thesis.
 8. Prefer primary sources in ticker folders (PDFs, INDEX.csv) over memory
 9. Write analysis to {TICKER}/research/ — not chat-only
 10. Mechanical close: marvin_cloud_refresh.py {TICKER} --date YYYY-MM-DD (do not duplicate its steps)

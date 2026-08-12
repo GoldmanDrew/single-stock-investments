@@ -354,3 +354,50 @@ def test_mark_records_previous_decision_from_the_cli(tmp_path, monkeypatch):
     prior = ledger["decisions"][ident]["previous_decision"]
     assert prior["decision"] == "promoted"
     assert prior["reversed_by"] == "agent"      # stamped from --by
+
+
+def test_inline_proposal_keeps_indented_continuation_without_container_artifact(tmp_path):
+    path = _daily(tmp_path, "2026-08-09.md", """### [PROPOSED COMPANY]
+
+- [PROPOSED COMPANY] QDEL: guidance was cut.
+  Evidence: management filing, page 4.
+  Implication: conversion is below the prior case.
+""")
+    items = triage.parse_file(path)
+    assert len(items) == 1
+    assert len(items[0]["body"]) == 3
+    assert "Implication" in items[0]["body"][2]
+
+
+def test_retention_taxonomy_separates_artifacts_observations_and_beliefs():
+    assert triage.proposal_kind(_item(body=("---",))) == "parse_artifact"
+    assert triage.proposal_kind(_item(
+        lens="COMPANY", body=("QDEL: guidance was cut.",))) == "company_observation"
+    assert triage.proposal_kind(_item(
+        lens="MUNGER", body=("Invert the thesis before underwriting.",))) == "durable_belief"
+
+
+def test_routed_disposition_records_full_content_and_destination(tmp_path, monkeypatch):
+    ticker = tmp_path / "QDEL/research"
+    ticker.mkdir(parents=True)
+    monkeypatch.setattr(triage, "ROOT", tmp_path)
+    ledger, item = _ledger(), _item(
+        lens="COMPANY", body=("QDEL: guidance was cut.", "Evidence: filing."))
+    assert triage.record(ledger, item, "routed", "company observation", "agent",
+                         "2026-08-12", reason_code="company_observation_routed")
+    entry = ledger["decisions"][triage.fingerprint(item)]
+    assert entry["destination"] == "QDEL/research"
+    assert "Evidence: filing." in entry["content"]
+
+
+def test_route_uses_cited_ticker_and_existing_ledger_fallback(tmp_path, monkeypatch):
+    (tmp_path / "8697.T/research").mkdir(parents=True)
+    (tmp_path / "_system/memory").mkdir(parents=True)
+    (tmp_path / "_system/memory/triage_ledger.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(triage, "ROOT", tmp_path)
+    cited = _item(lens="COMPANY", body=(
+        "FY2025 volume rose. — `8697.T/02_Quarterly/release.pdf`",))
+    unknown = _item(lens="COMPANY", body=("Classified as a croupier.",))
+    assert triage.route_destination(cited, "company_observation") == "8697.T/research"
+    assert triage.route_destination(unknown, "company_observation") == \
+        "_system/memory/triage_ledger.json"

@@ -17,28 +17,37 @@ summary forward as ``contract["falsifier_coverage"]`` (see
 ``coverage_summary``), mirroring the ``curated_evidence_blockers()`` pattern:
 the sidecar is the readiness authority, the contract is a projection of it.
 
-Coverage is NEVER a blocker while ``falsifier_enforcement.enforcement_enabled``
-is false in ``_system/graph/graph_sources.json``.  Flipping the decision-grade
-book to evidence_blocked overnight would freeze the factory, which is a worse
-failure than the coverage debt (see _system/graph/README.md, "The two ratchet
-loops").
+Book-wide coverage remains a report-only ratchet while ``enforcement_enabled``
+is false. ``prospective_enforcement_enabled`` separately requires an anchored
+v2 record for components introduced or materially changed after its cutover.
 
 Sidecar format
 --------------
 ::
 
     {
-      "schema_version": "1.0",
+      "schema_version": "2.0",
       "ticker": "AXTI",
       "specs": [
         {
+          "spec_id": "axti-cash-floor-2026q4",
+          "spec_revision": 1,
+          "authored_at": "2026-08-12T12:00:00Z",
+          "analysis_run_id": "axti-refresh-2026-08-12",
+          "contract_hash": "<sha256>",
+          "method_id": "sum_of_parts",
+          "power_zone": "asset_backed_optionality",
           "component_id": "cash_and_liquidity",
           "metric": "cash_and_short_term_investments",
           "comparator": "lt",
           "threshold": 400000000,
           "unit": "USD",
-          "due": "2026-12-31",
+          "measurement_period_end": "2026-09-30",
+          "observable_after": "2026-11-15",
+          "resolution_deadline": "2026-12-31",
           "source_hint": "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+          "probability_fires": 0.25,
+          "severity": 4,
           "derived_from": "HK listing fails or PE redemptions drain parent cash before listing",
           "untestable": false,
           "rationale": "The cash bridge assumes the April 2026 raise survives to the listing window."
@@ -65,9 +74,9 @@ Field semantics:
 ``unit``
     The unit the threshold is denominated in (documentation for humans and
     the resolver's outcome record; the resolver does not convert units).
-``due``
-    ISO date (YYYY-MM-DD) at which the spec matures and the resolver may
-    score it.  May be null only when ``untestable`` is true.
+``measurement_period_end`` / ``observable_after`` / ``resolution_deadline``
+    The economic period tested, first expected evidence date, and terminal
+    deadline. Missing evidence between the latter two is retryable.
 ``source_hint``
     Where the resolver finds the value: either a fact-ledger ``field_id``
     (e.g. ``cash_m``) resolved from the ticker's
@@ -92,13 +101,14 @@ Resolution outcomes are append-only in
 """
 from __future__ import annotations
 
+import hashlib
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "2.0"
 COMPARATORS = {"lt", "lte", "gt", "gte", "outside_range"}
 GRAPH_SOURCES = ROOT / "_system" / "graph" / "graph_sources.json"
 
@@ -127,6 +137,35 @@ def parse_due(value) -> date | None:
         return date.fromisoformat(value[:10])
     except ValueError:
         return None
+
+
+def is_v2_spec(spec: dict) -> bool:
+    """V2 forecasts are immutable, attributable records with explicit ids."""
+    return isinstance(spec, dict) and bool(spec.get("spec_id"))
+
+
+def forecast_dates(spec: dict) -> tuple[date | None, date | None, date | None]:
+    """Return (measurement period end, observable after, terminal deadline).
+
+    V1 compatibility treats ``due`` as all three concepts with the historical
+    14-day grace added by callers. New writes must use the explicit V2 fields.
+    """
+    if is_v2_spec(spec):
+        return (
+            parse_due(spec.get("measurement_period_end")),
+            parse_due(spec.get("observable_after")),
+            parse_due(spec.get("resolution_deadline")),
+        )
+    due = parse_due(spec.get("due"))
+    return due, due, None
+
+
+def spec_payload_hash(spec: dict) -> str:
+    """Hash the immutable forecast payload; outcomes pin this exact version."""
+    ignored = {"supersedes_spec_id"}
+    payload = {key: value for key, value in spec.items() if key not in ignored}
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def _is_number(value) -> bool:
@@ -217,12 +256,60 @@ def spec_errors(spec, index: int = 0, contract: dict | None = None) -> list[str]
     unit = spec.get("unit")
     if not isinstance(unit, str) or not unit.strip():
         errors.append(f"{prefix}.unit: non-empty string required")
-    due = spec.get("due")
-    if due is None:
-        if not untestable:
-            errors.append(f"{prefix}.due: ISO date required for testable specs")
-    elif parse_due(due) is None:
-        errors.append(f"{prefix}.due: not a valid ISO date (YYYY-MM-DD)")
+    if is_v2_spec(spec):
+        for field in ("spec_id", "analysis_run_id", "author", "model_id",
+                      "prompt_version", "method_id", "power_zone"):
+            value = spec.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{prefix}.{field}: non-empty string required")
+        revision = spec.get("spec_revision")
+        if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+            errors.append(f"{prefix}.spec_revision: positive integer required")
+        authored = spec.get("authored_at")
+        try:
+            datetime.fromisoformat(str(authored).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            errors.append(f"{prefix}.authored_at: ISO datetime required")
+        contract_hash = spec.get("contract_hash")
+        if not isinstance(contract_hash, str) or len(contract_hash) != 64 \
+                or any(ch not in "0123456789abcdefABCDEF" for ch in contract_hash):
+            errors.append(f"{prefix}.contract_hash: 64-character hex sha256 required")
+        probability = spec.get("probability_fires")
+        if untestable:
+            if probability is not None:
+                errors.append(f"{prefix}.probability_fires: null required when untestable")
+        elif probability is None and spec.get("calibration_eligible") is False:
+            pass  # honest migration: historical forecasts lacked ex-ante odds
+        elif not _is_number(probability) or not 0 <= float(probability) <= 1:
+            errors.append(f"{prefix}.probability_fires: number from 0 to 1 required")
+        severity = spec.get("severity")
+        if not isinstance(severity, int) or isinstance(severity, bool) or not 1 <= severity <= 5:
+            errors.append(f"{prefix}.severity: integer from 1 to 5 required")
+        measurement, observable, deadline = forecast_dates(spec)
+        for field, parsed in (
+            ("measurement_period_end", measurement),
+            ("observable_after", observable),
+            ("resolution_deadline", deadline),
+        ):
+            raw = spec.get(field)
+            if raw is None and untestable:
+                continue
+            if parsed is None:
+                errors.append(f"{prefix}.{field}: ISO date required for testable specs")
+        if measurement and observable and measurement > observable:
+            errors.append(f"{prefix}: measurement_period_end must not follow observable_after")
+        if observable and deadline and observable > deadline:
+            errors.append(f"{prefix}: observable_after must not follow resolution_deadline")
+        supersedes = spec.get("supersedes_spec_id")
+        if supersedes is not None and (not isinstance(supersedes, str) or not supersedes.strip()):
+            errors.append(f"{prefix}.supersedes_spec_id: non-empty string or null required")
+    else:
+        due = spec.get("due")
+        if due is None:
+            if not untestable:
+                errors.append(f"{prefix}.due: ISO date required for testable specs")
+        elif parse_due(due) is None:
+            errors.append(f"{prefix}.due: not a valid ISO date (YYYY-MM-DD)")
     source_hint = spec.get("source_hint")
     if source_hint is None:
         if not untestable:
@@ -250,8 +337,14 @@ def validate_sidecar(doc, ticker: str | None = None) -> list[str]:
     if not isinstance(specs, list):
         errors.append("specs: list required")
         return errors
+    seen_ids = set()
     for index, spec in enumerate(specs):
         errors.extend(spec_errors(spec, index))
+        spec_id = spec.get("spec_id") if isinstance(spec, dict) else None
+        if spec_id:
+            if spec_id in seen_ids:
+                errors.append(f"specs[{index}].spec_id: duplicate {spec_id}")
+            seen_ids.add(spec_id)
     return errors
 
 

@@ -23,7 +23,14 @@ sys.path.insert(0, str(SCRIPTS))
 
 from build_power_zone_pricing import build_contract_pricing  # noqa: E402
 from build_valuation_workbench import write as write_workbench  # noqa: E402
-from falsifier_specs import coverage_summary as falsifier_coverage_summary  # noqa: E402
+from falsifier_specs import (  # noqa: E402
+    anchor_errors as falsifier_anchor_errors,
+    coverage_summary as falsifier_coverage_summary,
+    enforcement_config as falsifier_enforcement_config,
+    is_v2_spec,
+    load_sidecar as load_falsifier_sidecar,
+    spec_errors as falsifier_spec_errors,
+)
 from investment_committee_pipeline import initialize as initialize_committee  # noqa: E402
 from power_zone_router import build_route, registry_entries, write_json  # noqa: E402
 from universal_valuation_contract import build_universal_valuation_contract  # noqa: E402
@@ -90,7 +97,55 @@ def curated_evidence_blockers(ticker: str) -> list[str]:
     return sorted(set(blockers))
 
 
-def current_contract(ticker: str, valuation: dict, route: dict, reviewed: dict) -> dict:
+def _component_map(contract: dict) -> dict[str, dict]:
+    return {str(row.get("component_id")): row for row in contract.get("economic_ownership_map") or []
+            if isinstance(row, dict) and row.get("component_id")}
+
+
+def apply_prospective_falsifier_gate(ticker: str, contract: dict,
+                                     reviewed: dict, as_of: str) -> dict:
+    """Gate only components introduced or materially changed after cutover."""
+    config = falsifier_enforcement_config(ROOT)
+    since = str(config.get("prospective_since") or "9999-12-31")[:10]
+    if (not config.get("prospective_enforcement_enabled")
+            or as_of[:10] < since or contract.get("status") != "decision_grade"):
+        return contract
+    before = _component_map(reviewed)
+    now = _component_map(contract)
+    changed = {
+        component_id for component_id, component in now.items()
+        if component_id not in before
+        or json.dumps(component, sort_keys=True) != json.dumps(before[component_id], sort_keys=True)
+    }
+    if not changed:
+        return contract
+    sidecar = load_falsifier_sidecar(ticker, ROOT)
+    covered = set()
+    for index, spec in enumerate(sidecar.get("specs") or []):
+        if (not isinstance(spec, dict) or not is_v2_spec(spec)
+                or spec.get("component_id") not in changed
+                or falsifier_spec_errors(spec, index)
+                or falsifier_anchor_errors(spec, contract, index)):
+            continue
+        covered.add(str(spec.get("component_id")))
+    missing = sorted(changed - covered)
+    if missing:
+        blockers = (contract.setdefault("evidence", {}).setdefault("blockers", []))
+        blockers.append(
+            "prospective_falsifier_gate: new/materially changed components lack "
+            "anchored v2 forecasts or explicit untestable declarations: " + ", ".join(missing))
+        contract["evidence"]["blockers"] = sorted(set(blockers))
+        contract["evidence"]["unresolved_count"] = len(contract["evidence"]["blockers"])
+        contract["status"] = "evidence_blocked"
+    contract.setdefault("falsifier_coverage", {})["prospective_gate"] = {
+        "since": since, "changed_components": sorted(changed),
+        "covered_components": sorted(covered), "missing_components": missing,
+    }
+    return contract
+
+
+def current_contract(ticker: str, valuation: dict, route: dict, reviewed: dict,
+                     as_of: str | None = None) -> dict:
     """Recompute financial fields while retaining explicit review metadata."""
     contract = build_universal_valuation_contract(valuation, route.get("profile_id"))
     blockers = sorted(set((contract.get("evidence") or {}).get("blockers") or []) | set(curated_evidence_blockers(ticker)))
@@ -113,7 +168,8 @@ def current_contract(ticker: str, valuation: dict, route: dict, reviewed: dict) 
     # falsifier_enforcement.enforcement_enabled is false (flipping the
     # decision-grade book to evidence_blocked would freeze the factory).
     contract["falsifier_coverage"] = falsifier_coverage_summary(ticker, contract, root=ROOT)
-    return contract
+    return apply_prospective_falsifier_gate(
+        ticker, contract, reviewed, (as_of or date.today().isoformat())[:10])
 
 
 def stage_routes(tickers: list[str], as_of: str, dry_run: bool) -> dict:
@@ -201,7 +257,7 @@ def stage_contracts(tickers: list[str], dry_run: bool, as_of: str | None = None)
             valuation = read_json(valuation_path)
             route = read_json(research / "valuation_route.json") or build_route(ticker)
             reviewed = read_json(research / "valuation_contract.json")
-            contract = current_contract(ticker, valuation, route, reviewed)
+            contract = current_contract(ticker, valuation, route, reviewed, as_of)
             if not dry_run:
                 write_json(research / "valuation_contract.json", contract)
             written.append({"ticker": ticker, "status": contract.get("status")})

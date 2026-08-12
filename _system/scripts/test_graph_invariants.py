@@ -101,7 +101,7 @@ class CleanFixtureTests(unittest.TestCase):
         self.assertEqual(self.results["P1"].severity, "report")
 
     def test_hard_invariants_green(self):
-        for inv_id in ("P2", "P3", "P4", "E2", "E3", "E4", "E5"):
+        for inv_id in ("P2", "P3", "P4", "E2", "E3", "E4", "E5", "E7"):
             self.assertEqual(self.results[inv_id].count, 0, inv_id)
             self.assertEqual(self.results[inv_id].severity, "hard", inv_id)
 
@@ -159,6 +159,16 @@ class PlantedViolationTests(unittest.TestCase):
         results, exit_code = run_invariants(self.root)
         self.assertEqual(results["P2"].count, 1)
         self.assertIn("unwired-guard", results["P2"].violations[0])
+        self.assertEqual(exit_code, 1)
+
+    def test_e7_company_observation_cannot_wait_in_belief_review(self):
+        daily = self.root / "_system/memory/daily/2026-08-12.md"
+        daily.write_text(
+            "- [PROPOSED COMPANY] TST: a new dated filing observation.\n",
+            encoding="utf-8")
+        results, exit_code = run_invariants(self.root, date(2026, 8, 12))
+        self.assertEqual(results["E7"].count, 1)
+        self.assertIn("company_observation", results["E7"].violations[0])
         self.assertEqual(exit_code, 1)
 
     def test_p6_stale_feed_fires_fresh_feed_passes(self):

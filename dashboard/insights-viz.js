@@ -527,12 +527,21 @@
 
   function renderMemorySummary(memory, escapeHtml) {
     const summary = memory?.summary || {};
-    if (!summary.claim_count) return '';
+    const loop = memory?.learning_loop || {};
+    const forecast = loop.forecast_loop || {};
+    const proposals = loop.proposal_loop || {};
+    const decisions = loop.decision_loop || {};
+    const fast = loop.fast_feedback_loop || {};
+    if (!summary.claim_count && !loop.as_of) return '';
     return `
       <div class="metric-grid" style="margin-bottom:12px">
         <div class="metric"><div class="k">Claims</div><div class="v mono">${summary.claim_count || 0}</div></div>
         <div class="metric"><div class="k">Sources</div><div class="v mono">${summary.source_count || 0}</div></div>
         <div class="metric"><div class="k">Review queue</div><div class="v mono">${summary.review_queue_count || 0}</div></div>
+        <div class="metric"><div class="k">Typed forecasts</div><div class="v mono">${forecast.testable || 0}</div><div class="tier-sub">${forecast.resolved || 0} resolved · ${forecast.pending_evidence || 0} awaiting evidence</div></div>
+        <div class="metric"><div class="k">Knowledge decisions</div><div class="v mono">${proposals.undecided || 0}</div><div class="tier-sub">undecided · p90 ${proposals.p90_age_days || 0} days</div></div>
+        <div class="metric"><div class="k">Owner outcomes</div><div class="v mono">${decisions.resolved_committee_outcomes || 0}</div><div class="tier-sub">${decisions.pending_owner_decisions || 0} decisions pending</div></div>
+        <div class="metric"><div class="k">Weekly ground truth</div><div class="v mono">${fast.weekly_sample_size || 0}</div><div class="tier-sub">human-adjudicated sample</div></div>
         <div class="metric"><div class="k">13F records</div><div class="v mono">${summary.ownership_record_count || 0}</div></div>
         <div class="metric"><div class="k">Biotech quant</div><div class="v mono">${summary.biotech_quant_universe_count || summary.biotech_related_ticker_count || 0}</div></div>
       </div>`;

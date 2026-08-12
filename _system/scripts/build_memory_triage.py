@@ -55,9 +55,10 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -68,6 +69,7 @@ DAILY = ROOT / "_system" / "memory" / "daily"
 MEMORY = ROOT / "_system" / "memory" / "MEMORY.md"
 LEDGER = ROOT / "_system" / "memory" / "triage_ledger.json"
 DEFAULT_OUT = ROOT / "_system" / "reviews" / "pending" / "memory_triage.md"
+SUMMARY_OUT = ROOT / "_system" / "reviews" / "pending" / "memory_triage_summary.json"
 
 HEADING = re.compile(r"^#{2,4}\s*\[PROPOSED([^\]]*)\]\s*(.*)$")
 # Daily logs tag proposals two ways: a heading, or an inline bullet. A bullet
@@ -97,7 +99,11 @@ ROW_ID = re.compile(r"`([0-9a-f]{12})`\s*$")
 # stamped promoted and then suppressed from every future build with nothing in
 # MEMORY.md to check it against. `dropped` is that third state: decided, kept out
 # of the queue, and explicitly *not* claiming a belief exists.
-DECISIONS = ("promoted", "rejected", "dropped")
+DECISIONS = ("promoted", "routed", "rejected", "dropped")
+KINDS = ("durable_belief", "company_observation", "process_learning",
+         "ephemeral_output", "parse_artifact")
+TICKER_PREFIX = re.compile(r"^(?:\*\*)?([A-Z0-9][A-Z0-9.\-]{0,11})(?:\*\*)?\s*[:\-]")
+TICKER_CITATION = re.compile(r"`([A-Z0-9][A-Z0-9.\-]{0,11})/")
 
 # The back-sync path (`--sync-promoted-from-memory`) does not make a judgement —
 # it observes that a belief is already in MEMORY.md and back-marks the proposal
@@ -112,12 +118,18 @@ def parse_file(path: Path) -> list[dict]:
     day = DATED.search(path.name)
     items: list[dict] = []
     current: dict | None = None
+    inline: dict | None = None
+
+    def finish(value: dict | None) -> None:
+        if value and value["body"]:
+            items.append(value)
     for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = raw.rstrip()
         match = HEADING.match(line.strip())
         if match:
-            if current and current["body"]:
-                items.append(current)
+            finish(inline)
+            inline = None
+            finish(current)
             current = {
                 "lens": (match.group(1) or "").strip() or "GENERIC",
                 "title": match.group(2).strip(),
@@ -130,26 +142,33 @@ def parse_file(path: Path) -> list[dict]:
         # it sits inside a heading block.
         bullet = BULLET.match(line.strip())
         if bullet and bullet.group(2).strip():
-            items.append({
+            finish(inline)
+            inline = {
                 "lens": (bullet.group(1) or "").strip() or "GENERIC",
                 "title": "",
                 "day": day.group(1) if day else path.stem,
                 "file": path.name,
                 "body": [bullet.group(2).strip()],
-            })
+            }
+            current = None
             continue
+        if inline is not None:
+            if line.startswith((" ", "\t")) and line.strip():
+                inline["body"].append(line.strip())
+                continue
+            finish(inline)
+            inline = None
         if current is None:
             continue
         # A non-PROPOSED heading closes the block.
         if ANY_HEADING.match(line):
-            if current["body"]:
-                items.append(current)
+            finish(current)
             current = None
             continue
         if line.strip():
             current["body"].append(line.strip())
-    if current and current["body"]:
-        items.append(current)
+    finish(current)
+    finish(inline)
     return items
 
 
@@ -191,6 +210,44 @@ def is_mechanical(item: dict) -> bool:
     return len(body) == 1 and bool(MECHANICAL_READOUT.match(body[0].strip()))
 
 
+def proposal_kind(item: dict) -> str:
+    """Classify retention needs without making a promotion judgement."""
+    body = " ".join(item.get("body") or []).strip()
+    normalized = re.sub(r"\s+", " ", body.lower()).strip()
+    title = str(item.get("title") or "").lower()
+    if (normalized in {"---", "--", "status: promoted", "status promoted"}
+            or normalized.startswith("status: promoted ")
+            or normalized.startswith("--- | prior dive")
+            or "run summary" in title
+            or re.match(r"^(?:run|contract run)\s+(?:complete|summary|receipt)\b", normalized)):
+        return "parse_artifact"
+    if is_mechanical(item) or any(token in normalized for token in (
+            "dashboard build complete", "batch run complete", "receipt written")):
+        return "ephemeral_output"
+    lens = str(item.get("lens") or "").upper()
+    if lens == "COMPANY" or TICKER_PREFIX.match(body):
+        return "company_observation"
+    if lens in {"MEMORY", "SYSTEM", "PROCESS", "OPS", "WORKFLOW"}:
+        return "process_learning"
+    return "durable_belief"
+
+
+def route_destination(item: dict, kind: str) -> str | None:
+    if kind == "company_observation":
+        body = " ".join(item.get("body") or []).strip()
+        match = TICKER_PREFIX.match(body) or TICKER_CITATION.search(body)
+        ticker = match.group(1).upper() if match else body.split(" ", 1)[0].upper()
+        if ticker and (ROOT / ticker / "research").is_dir():
+            return f"{ticker}/research"
+        # The routed row stores full content in this ledger. This honest
+        # fallback is preferable to inventing a ticker or pointing at a
+        # directory that does not exist.
+        return "_system/memory/triage_ledger.json"
+    if kind == "process_learning":
+        return "_system/memory/corrections.md"
+    return None
+
+
 # --------------------------------------------------------------------------- #
 # decision ledger
 # --------------------------------------------------------------------------- #
@@ -212,7 +269,8 @@ def save_ledger(ledger: dict) -> None:
 
 def record(ledger: dict, item: dict, decision: str, reason: str, by: str,
            when: str, anchor: str | None = None, quiet: bool = False,
-           previous: dict | None = None) -> bool:
+           previous: dict | None = None, reason_code: str | None = None,
+           destination: str | None = None) -> bool:
     """Write one decision. Returns False when the id was already decided.
 
     The ledger is append-only: a decided id is never overwritten in place, so
@@ -237,6 +295,8 @@ def record(ledger: dict, item: dict, decision: str, reason: str, by: str,
                   f"'{decision}' was NOT applied. To reverse a decision, delete "
                   f"the id from {LEDGER.name} and re-run.")
         return False
+    if decision == "routed" and not (destination or route_destination(item, proposal_kind(item))):
+        raise ValueError("routed decisions require a deterministic destination")
     entry = {
         "decision": decision,
         "date": when,
@@ -245,7 +305,13 @@ def record(ledger: dict, item: dict, decision: str, reason: str, by: str,
         "reason": reason,
         "first_seen": item["day"],
         "excerpt": " ".join(item["body"])[:160],
+        "kind": proposal_kind(item),
+        "reason_code": reason_code or "manual_disposition",
+        "source_ref": f"_system/memory/daily/{item['file']}",
     }
+    if decision == "routed":
+        entry["destination"] = destination or route_destination(item, entry["kind"])
+        entry["content"] = "\n".join(item["body"])
     if anchor:
         # Where the belief landed, so `promoted` is checkable against MEMORY.md.
         entry["memory_anchor"] = anchor
@@ -355,6 +421,7 @@ def render(items: list[dict], dropped: int, since: str | None,
         out += [
             f"Suppressed by `_system/memory/triage_ledger.json`: "
             f"**{counts.get('promoted', 0)} promoted**, "
+            f"**{counts.get('routed', 0)} routed**, "
             f"**{counts.get('rejected', 0)} rejected**, "
             f"**{counts.get('dropped', 0)} dropped** (decided, but no belief "
             "claimed) — already decided, so they do not re-surface. Delete an id "
@@ -380,11 +447,12 @@ def render(items: list[dict], dropped: int, since: str | None,
         out.append(f"## {lens} ({len(rows)})")
         out.append("")
         for row in rows:
-            mark = "x" if row.get("_decision") == "promoted" else (
-                "-" if row.get("_decision") == "rejected" else " ")
+            mark = {"promoted": "x", "routed": ">", "rejected": "-",
+                    "dropped": "d"}.get(row.get("_decision"), " ")
             head = f"- [{mark}] **{row['day']}**"
             if row["title"]:
                 head += f" — {row['title']}"
+            head += f" · `{proposal_kind(row)}`"
             out.append(head)
             for line in row["body"][:6]:
                 out.append(f"      {line}")
@@ -404,7 +472,8 @@ def ingest(path: Path) -> dict[str, str]:
         start = ROW_START.match(raw.strip())
         if start:
             mark = start.group(1).strip().lower()
-            pending = {"x": "promoted", "-": "rejected", "r": "rejected"}.get(mark)
+            pending = {"x": "promoted", ">": "routed", "-": "rejected",
+                       "r": "rejected", "d": "dropped"}.get(mark)
             continue
         found = ROW_ID.search(raw.strip())
         if found and pending:
@@ -425,6 +494,123 @@ def collect(since: str | None) -> tuple[list[dict], int]:
     return dedupe(items)
 
 
+def build_learning_loop_summary(items: list[dict], ledger: dict,
+                                duplicate_sightings: int) -> dict:
+    today = date.today()
+    decisions = ledger.get("decisions") or {}
+    undecided = [item for item in items if fingerprint(item) not in decisions]
+    ages = [(today - date.fromisoformat(item["day"])).days for item in undecided]
+    kinds: dict[str, int] = defaultdict(int)
+    for item in undecided:
+        kinds[proposal_kind(item)] += 1
+    disposition_counts: dict[str, int] = defaultdict(int)
+    closed_7d = 0
+    for entry in decisions.values():
+        disposition_counts[str(entry.get("decision") or "unknown")] += 1
+        try:
+            closed_7d += date.fromisoformat(str(entry.get("date"))[:10]) >= today - timedelta(days=7)
+        except ValueError:
+            pass
+    intake_7d = sum(1 for item in items
+                    if date.fromisoformat(item["day"]) >= today - timedelta(days=7))
+
+    outcome_path = ROOT / "_system/research/falsifier_outcomes.jsonl"
+    outcomes = []
+    if outcome_path.exists():
+        for line in outcome_path.read_text(encoding="utf-8").splitlines():
+            try:
+                outcomes.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    resolved_ids = {row.get("spec_id") for row in outcomes if row.get("spec_id")}
+    forecast = {"specs": 0, "v2_specs": 0, "testable": 0, "matured": 0,
+                "resolved": len(outcomes), "pending_evidence": 0, "overdue": 0}
+    for path in ROOT.glob("*/research/falsifier_specs.json"):
+        try:
+            specs = json.loads(path.read_text(encoding="utf-8")).get("specs") or []
+        except (OSError, json.JSONDecodeError):
+            continue
+        for spec in specs:
+            forecast["specs"] += 1
+            forecast["v2_specs"] += bool(spec.get("spec_id"))
+            if spec.get("untestable"):
+                continue
+            forecast["testable"] += 1
+            observable = str(spec.get("observable_after") or spec.get("due") or "")[:10]
+            deadline = str(spec.get("resolution_deadline") or spec.get("due") or "")[:10]
+            if observable and observable <= today.isoformat():
+                forecast["matured"] += 1
+                if spec.get("spec_id") not in resolved_ids:
+                    if deadline and deadline < today.isoformat():
+                        forecast["overdue"] += 1
+                    else:
+                        forecast["pending_evidence"] += 1
+
+    pending_owner = 0
+    for committee_path in ROOT.glob("*/research/committee_????-??-??.json"):
+        try:
+            committee = json.loads(committee_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if committee.get("final_state") != "committee_complete_decision_pending":
+            continue
+        owner = committee_path.parent / "human_decision.json"
+        decision = json.loads(owner.read_text(encoding="utf-8")) if owner.exists() else {}
+        if decision.get("status") != "decided":
+            pending_owner += 1
+    committee_outcomes_path = ROOT / "_system/research/committee_outcomes.jsonl"
+    committee_outcome_count = 0
+    if committee_outcomes_path.exists():
+        committee_outcome_count = sum(
+            1 for line in committee_outcomes_path.read_text(encoding="utf-8").splitlines()
+            if line.strip())
+    try:
+        git_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                  text=True, capture_output=True,
+                                  check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        git_head = ""
+    ssi_queue_path = ROOT / "_eval/ssi_adjudication_queue.json"
+    ssi_queue = json.loads(ssi_queue_path.read_text(encoding="utf-8")) \
+        if ssi_queue_path.exists() else {}
+    return {
+        "schema_version": "1.0",
+        "as_of": today.isoformat(),
+        "git_head": git_head,
+        "forecast_loop": forecast,
+        "decision_loop": {"pending_owner_decisions": pending_owner,
+                          "resolved_committee_outcomes": committee_outcome_count},
+        "proposal_loop": {
+            "total_unique": len(items), "undecided": len(undecided),
+            "undecided_by_kind": dict(sorted(kinds.items())),
+            "duplicate_sightings": duplicate_sightings,
+            "dispositions": dict(sorted(disposition_counts.items())),
+            "intake_last_7d": intake_7d, "closures_last_7d": closed_7d,
+            "oldest_undecided_days": max(ages, default=0),
+            "over_30_days": sum(age > 30 for age in ages),
+            "p90_age_days": sorted(ages)[min(len(ages) - 1, int(len(ages) * .9))]
+            if ages else 0,
+            "sla": {"deterministic_disposition_days": 7,
+                    "durable_human_decision_days": 30,
+                    "target_p90_days": 14},
+        },
+        "calibration": {
+            "falsifier": json.loads((ROOT / "_system/research/falsifier_calibration.json").read_text(encoding="utf-8"))
+            if (ROOT / "_system/research/falsifier_calibration.json").exists() else {},
+            "committee": json.loads((ROOT / "_system/research/committee_calibration.json").read_text(encoding="utf-8"))
+            if (ROOT / "_system/research/committee_calibration.json").exists() else {},
+        },
+        "fast_feedback_loop": {
+            "gold_pending": ssi_queue.get("gold_pending_total", 0),
+            "alerts_pending": ssi_queue.get("alerts_pending_total", 0),
+            "weekly_sample_size": (len(ssi_queue.get("gold_sample") or [])
+                                   + len(ssi_queue.get("alert_sample") or [])),
+            "human_ground_truth_required": True,
+            "service_level_days": ssi_queue.get("service_level_days", 7),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--since", help="only daily logs on/after this YYYY-MM-DD")
@@ -435,6 +621,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="record a decision for --ids and exit")
     ap.add_argument("--ids", help="comma-separated item ids, or @path to a file of ids")
     ap.add_argument("--reason", default="", help="why, recorded in the ledger")
+    ap.add_argument("--reason-code", default="manual_disposition",
+                    help="stable machine-readable disposition reason")
+    ap.add_argument("--destination",
+                    help="existing ownership destination for a routed item")
     ap.add_argument("--by", default="human", help="who decided (human / agent)")
     ap.add_argument("--anchor",
                     help="with --mark promoted: where the belief landed in "
@@ -449,6 +639,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="read [x]/[-] ticks from a rendered queue into the ledger")
     ap.add_argument("--auto-reject-mechanical", action="store_true",
                     help="reject one-line per-ticker stance readouts as a class")
+    ap.add_argument("--auto-dispose-nondurable", action="store_true",
+                    help="drop parse/ephemeral artifacts and route company observations")
+    ap.add_argument("--repair-routes", action="store_true",
+                    help="repair routed destination metadata without changing decisions")
     ap.add_argument("--sync-promoted-from-memory", action="store_true",
                     help="back-mark proposals whose text is already a belief in "
                          f"MEMORY.md (stamped by={BACKFILL_BY!r}, not --by)")
@@ -504,7 +698,9 @@ def main(argv: list[str] | None = None) -> int:
             if prior is not None and prior.get("decision") != args.mark:
                 refused += 1
             if record(ledger, item, args.mark, args.reason, args.by, today,
-                      anchor=args.anchor, previous=previous_decision):
+                      anchor=args.anchor, previous=previous_decision,
+                      reason_code=args.reason_code,
+                      destination=args.destination):
                 written += 1
             else:
                 skipped += 1
@@ -530,7 +726,9 @@ def main(argv: list[str] | None = None) -> int:
             if prior is not None and prior.get("decision") != decision:
                 conflicts += 1
             if record(ledger, item, decision, args.reason or "ingested from queue ticks",
-                      args.by, today, anchor=args.anchor):
+                      args.by, today, anchor=args.anchor,
+                      reason_code=args.reason_code,
+                      destination=args.destination):
                 written += 1
             else:
                 skipped += 1
@@ -557,6 +755,47 @@ def main(argv: list[str] | None = None) -> int:
                 written += 1
         save_ledger(ledger)
         print(f"[ok] {written} mechanical readout(s) recorded as rejected")
+        return 0
+
+    if args.auto_dispose_nondurable:
+        counts: dict[str, int] = defaultdict(int)
+        for item in items:
+            kind = proposal_kind(item)
+            if kind in {"parse_artifact", "ephemeral_output"}:
+                decision, code = "dropped", f"non_durable_{kind}"
+                reason = "deterministic non-durable output; retained in source log, excluded from belief review"
+                destination = None
+            elif kind == "company_observation":
+                decision, code = "routed", "company_observation_routed"
+                reason = "company-specific observation routed to ticker research ownership"
+                destination = route_destination(item, kind)
+            else:
+                continue
+            if record(ledger, item, decision, reason, args.by, today,
+                      quiet=True, reason_code=code, destination=destination):
+                counts[decision] += 1
+        save_ledger(ledger)
+        print(f"[ok] nondurable backfill: {counts['routed']} routed, "
+              f"{counts['dropped']} dropped; durable/process proposals untouched")
+        return 0
+
+    if args.repair_routes:
+        repaired = 0
+        for ident, entry in ledger["decisions"].items():
+            if entry.get("decision") != "routed" or ident not in by_id:
+                continue
+            destination = route_destination(by_id[ident], entry.get("kind") or
+                                            proposal_kind(by_id[ident]))
+            if destination and destination != entry.get("destination"):
+                entry.setdefault("routing_history", []).append({
+                    "destination": entry.get("destination"),
+                    "superseded_on": today,
+                })
+                entry["destination"] = destination
+                entry["routing_repaired_on"] = today
+                repaired += 1
+        save_ledger(ledger)
+        print(f"[ok] repaired {repaired} routed destination(s); decisions unchanged")
         return 0
 
     if args.sync_promoted_from_memory:
@@ -612,6 +851,10 @@ def main(argv: list[str] | None = None) -> int:
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(render(queue, dropped, args.since, ledger), encoding="utf-8")
+    summary = build_learning_loop_summary(items, ledger, dropped)
+    SUMMARY_OUT.parent.mkdir(parents=True, exist_ok=True)
+    SUMMARY_OUT.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
 
     suppressed = len(items) - len(queue)
     try:

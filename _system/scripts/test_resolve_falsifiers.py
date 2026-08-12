@@ -169,12 +169,13 @@ class ResolverTests(unittest.TestCase):
         self.assertEqual(counts["untestable"], 1)
 
         calibration = json.loads((self.root / resolver.CALIBRATION_REL).read_text(encoding="utf-8"))
-        self.assertEqual(calibration["status"], "ready")
+        self.assertEqual(calibration["status"], "insufficient_outcomes")
+        self.assertEqual(calibration["minimum_outcomes"], 20)
         self.assertEqual(calibration["resolved_outcomes"], 3)
         self.assertEqual(calibration["scored_outcomes"], 2)
-        nav = calibration["buckets"]["net_asset_value:capital_cycle"]
+        nav = calibration["buckets"]["net_asset_value|capital_cycle"]
         self.assertEqual((nav["hit"], nav["miss"], nav["unresolvable"]), (1, 0, 1))
-        midcycle = calibration["buckets"]["midcycle_capacity_value:capital_cycle"]
+        midcycle = calibration["buckets"]["midcycle_capacity_value|capital_cycle"]
         self.assertEqual((midcycle["hit"], midcycle["miss"], midcycle["unresolvable"]), (0, 1, 0))
         self.assertIn("weights never change automatically", calibration["warning"])
 

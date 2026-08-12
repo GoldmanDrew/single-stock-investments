@@ -257,6 +257,7 @@ def discover_evidence(ticker: str) -> list[Path]:
         latest(research, "*evidence_reconciliation*.md"),
         latest(research / "evidence", "filing_facts_*.json"),
         latest(research / "evidence", "management_facts_*.json"),
+        ROOT / "_system" / "research" / "calibration_brief.json",
     ]
     seen: set[Path] = set()
     out = []
@@ -342,6 +343,7 @@ Rules:
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
 8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "{packet}"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.
 """
 
 

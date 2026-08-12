@@ -41,6 +41,14 @@ def latest_committee_record(research: Path) -> tuple[Path | None, dict]:
     return (paths[-1], read_json(paths[-1])) if paths else (None, {})
 
 
+def authoritative_owner_decision(research: Path, record: dict) -> dict:
+    """Standalone signed owner decision wins; embedded decision is legacy."""
+    standalone = read_json(research / "human_decision.json")
+    if standalone.get("status") == "decided" and standalone.get("decision"):
+        return standalone
+    return record.get("human_decision") or {}
+
+
 def committee_view(research: Path) -> dict:
     manifests = sorted(research.glob("committee_work/????-??-??/manifest.json"))
     manifest_path = manifests[-1] if manifests else None
@@ -61,9 +69,9 @@ def committee_view(research: Path) -> dict:
     manifest_date = str(manifest.get("as_of") or "")[:10]
     record_is_current = bool(record) and (not manifest_date or record_date >= manifest_date)
     active_record = record if record_is_current else {}
-    owner = active_record.get("human_decision") or {}
+    owner = authoritative_owner_decision(research, active_record)
     stage = str(manifest.get("stage") or "").lower()
-    if owner.get("status") == "complete" and owner.get("decision"):
+    if owner.get("status") in {"complete", "decided"} and owner.get("decision"):
         status = "outcome_tracking"
         next_action = "Measure the recorded decision at each due 6-, 12-, and 24-month horizon."
     elif stage == "parked":
@@ -279,8 +287,9 @@ def ledger_rows() -> list[dict]:
 
 def outcome_view(ticker: str, config: dict, committee: dict, as_of: str) -> dict:
     record = read_json(ROOT / committee["record_ref"]) if committee.get("record_ref") else {}
-    owner = record.get("human_decision") or {}
-    decision_date = owner.get("decided_at") or ((record.get("review") or {}).get("as_of") if owner.get("status") == "complete" else None)
+    owner = authoritative_owner_decision(ROOT / ticker / "research", record)
+    decided = owner.get("status") in {"complete", "decided"}
+    decision_date = owner.get("decided_at") or ((record.get("review") or {}).get("as_of") if decided else None)
     rows = [row for row in ledger_rows() if str(row.get("ticker", "")).upper() == ticker]
     schedule = []
     for months in config.get("measurement_horizons_months") or [6, 12, 24]:

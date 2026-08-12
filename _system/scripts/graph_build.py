@@ -54,6 +54,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_memory_triage  # noqa: E402  (parse_file/dedupe/fingerprint reuse)
+import falsifier_specs  # noqa: E402  (shared forecast schema/identity)
 
 GIT_WINDOW = 400
 VALIDATOR_PREFIXES = ("scan_", "check_", "validate_", "audit_", "calibrate_")
@@ -329,7 +330,7 @@ class GraphBuilder:
                     fals_id = self._prose_falsifier(ticker, text, rel)
                     falsifier_by_text[text.strip()] = fals_id
                     self.edge(cid, fals_id, "ASSERTS")
-            self._project_falsifier_specs(ticker, cid, comp_ids)
+            self._project_falsifier_specs(ticker, cid, comp_ids, contract)
             self._project_blockers(ticker, cid, contract, rel)
             self._project_fact_ledger(ticker, tid)
 
@@ -363,7 +364,7 @@ class GraphBuilder:
             data={"typed": False, "text": text.strip()[:TEXT_LIMIT]})
 
     def _project_falsifier_specs(self, ticker: str, contract_id: str,
-                                 comp_ids: dict[str, str]) -> None:
+                                 comp_ids: dict[str, str], contract: dict) -> None:
         """Optional typed sidecar, schema {specs: [{component_id, metric, ...}]}."""
         path = self.root / ticker / "research" / "falsifier_specs.json"
         if not path.is_file():
@@ -373,21 +374,45 @@ class GraphBuilder:
             self.warnings.append(f"unreadable falsifier_specs: {ticker}")
             return
         rel = str(path.relative_to(self.root)).replace("\\", "/")
-        for spec in sidecar.get("specs", []) or []:
+        for index, spec in enumerate(sidecar.get("specs", []) or []):
             if not isinstance(spec, dict):
                 continue
             comp_key = str(spec.get("component_id", "unknown"))
             metric = str(spec.get("metric", "unknown"))
-            typed = not spec.get("untestable", False)
+            errors = falsifier_specs.spec_errors(spec, index, contract=contract)
+            resolvable, reason = falsifier_specs.metric_resolvable(
+                ticker, spec, self.root)
+            typed = not errors and not spec.get("untestable", False) and resolvable
+            if spec.get("untestable", False):
+                status = "untestable"
+            elif typed:
+                status = "typed"
+            else:
+                status = "invalid"
+            if spec.get("spec_id"):
+                identity = (f"falsifier:{ticker}:spec:{spec['spec_id']}:"
+                            f"r{int(spec.get('spec_revision') or 1)}")
+            else:
+                identity = f"falsifier:{ticker}:spec:{comp_key}:{slugify(metric, 60)}"
+            _measurement, observable, _deadline = falsifier_specs.forecast_dates(spec)
             fals_id = self.node(
-                f"falsifier:{ticker}:spec:{comp_key}:{slugify(metric, 60)}",
+                identity,
                 "knowledge", "Falsifier", ticker=ticker,
                 label=f"{metric} {spec.get('comparator', '')} {spec.get('threshold', '')}".strip(),
-                status="typed" if typed else "untestable",
-                as_of=str(spec.get("due", "")), path=rel,
-                data={"typed": typed, **{k: spec.get(k) for k in (
+                status=status,
+                as_of=(observable.isoformat() if observable else str(spec.get("due", ""))),
+                path=rel,
+                data={"typed": typed, "validation_errors": errors,
+                      "resolvable": resolvable, "resolvability_reason": reason,
+                      "spec_hash": falsifier_specs.spec_payload_hash(spec),
+                      **{k: spec.get(k) for k in (
+                    "spec_id", "spec_revision", "authored_at", "analysis_run_id",
+                    "author", "model_id", "prompt_version",
+                    "contract_hash", "method_id", "power_zone",
                     "component_id", "metric", "comparator", "threshold", "unit",
-                    "due", "source_hint", "derived_from", "untestable", "rationale")}})
+                    "due", "measurement_period_end", "observable_after",
+                    "resolution_deadline", "source_hint", "probability_fires",
+                    "severity", "derived_from", "untestable", "rationale")}})
             self.edge(comp_ids.get(comp_key, contract_id), fals_id, "ASSERTS")
 
     def _project_fact_ledger(self, ticker: str, tid: str) -> None:
@@ -433,17 +458,28 @@ class GraphBuilder:
             ticker = rec.get("ticker")
             outcome_id = self.node(
                 f"outcome:{digest}", "knowledge", "Outcome", ticker=ticker,
-                label=str(rec.get("result", "outcome")),
-                status=str(rec.get("result", "")),
-                as_of=str(rec.get("resolved_at", rec.get("as_of", ""))),
+                label=str(rec.get("verdict", rec.get("result", "outcome"))),
+                status=str(rec.get("verdict", rec.get("result", ""))),
+                as_of=str(rec.get("resolved_on", rec.get("resolved_at", rec.get("as_of", "")))),
                 path="_system/research/falsifier_outcomes.jsonl", data=rec)
             fals_id = rec.get("falsifier_id")
             if fals_id and f"falsifier:{fals_id}" in self.nodes:
                 self.edge(f"falsifier:{fals_id}", outcome_id, "RESOLVED_BY")
+            elif ticker and rec.get("spec_id"):
+                candidate = (f"falsifier:{ticker}:spec:{rec['spec_id']}:"
+                             f"r{int(rec.get('spec_revision') or 1)}")
+                if candidate in self.nodes:
+                    self.edge(candidate, outcome_id, "RESOLVED_BY")
             elif ticker and rec.get("component_id") and rec.get("metric"):
                 candidate = (f"falsifier:{ticker}:spec:{rec['component_id']}:"
                              f"{slugify(str(rec['metric']), 60)}")
                 if candidate in self.nodes:
+                    self.edge(candidate, outcome_id, "RESOLVED_BY")
+            elif ticker and rec.get("component_id") and isinstance(rec.get("spec"), dict):
+                metric = rec["spec"].get("metric")
+                candidate = (f"falsifier:{ticker}:spec:{rec['component_id']}:"
+                             f"{slugify(str(metric), 60)}")
+                if metric and candidate in self.nodes:
                     self.edge(candidate, outcome_id, "RESOLVED_BY")
             method_id = rec.get("method_id")
             power_zone = rec.get("power_zone")
@@ -716,7 +752,9 @@ class GraphBuilder:
                       label=path.stem, status=str(payload.get("status", "")),
                       path=f"_system/research/{name}",
                       data={"kind": "calibration",
-                            "completed_outcomes": payload.get("completed_outcomes"),
+                            "completed_outcomes": (payload.get("completed_outcomes")
+                                                   if payload.get("completed_outcomes") is not None
+                                                   else payload.get("resolved_outcomes")),
                             "warning": str(payload.get("warning", ""))[:TEXT_LIMIT]})
 
     # ------------------------------------------------------------------ #

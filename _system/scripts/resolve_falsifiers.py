@@ -2,8 +2,9 @@
 """Score matured typed falsifiers into outcomes and descriptive calibration.
 
 The epistemic ratchet's resolver (spec: _system/graph/README.md).  Scans every
-ticker sidecar ({TICKER}/research/falsifier_specs.json) for specs whose ``due``
-date has passed, are not marked untestable, and have no recorded outcome yet;
+ticker sidecar ({TICKER}/research/falsifier_specs.json) for specs whose
+``observable_after`` date has passed, are not marked untestable, and have no
+recorded outcome for the immutable spec revision;
 resolves the metric from the fact ledger or companyfacts; compares it against
 the threshold; and appends an outcome row to the append-only ledger
 
@@ -12,10 +13,10 @@ the threshold; and appends an outcome row to the append-only ledger
 Outcome rows: {ticker, component_id, spec, resolved_value, resolved_unit,
 resolved_as_of, verdict: hit|miss|unresolvable, evidence_ref, resolved_on,
 method_id, power_zone}.  "hit" means the falsifier FIRED (the thesis failed
-the test); "miss" means the thesis survived.  Dedupe key is
-(ticker, component_id, due, metric, comparator) so re-runs are idempotent
-while one component may still carry several distinct specs at the same due
-date (e.g. a cash floor AND a debt ceiling).
+the test); "miss" means the thesis survived. Dedupe is
+(ticker, spec_id, revision, payload_hash); legacy v1 rows retain their
+historical composite key. Threshold/unit/source changes therefore cannot
+silently inherit an old outcome.
 
 After appending, the calibration store
 
@@ -34,14 +35,22 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "_system" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from falsifier_specs import anchor_errors, parse_due, read_json, spec_errors  # noqa: E402
+from falsifier_specs import (  # noqa: E402
+    anchor_errors,
+    forecast_dates,
+    is_v2_spec,
+    parse_due,
+    read_json,
+    spec_errors,
+    spec_payload_hash,
+)
 
 OUTCOMES_REL = Path("_system") / "research" / "falsifier_outcomes.jsonl"
 CALIBRATION_REL = Path("_system") / "research" / "falsifier_calibration.json"
@@ -78,7 +87,7 @@ def load_outcomes(path: Path) -> list[dict]:
     return rows
 
 
-def dedupe_key(ticker, component_id, spec: dict) -> tuple[str, str, str, str, str]:
+def dedupe_key(ticker, component_id, spec: dict) -> tuple:
     """Idempotency key for one spec's outcome.
 
     metric and comparator are part of the key because one component may carry
@@ -86,7 +95,16 @@ def dedupe_key(ticker, component_id, spec: dict) -> tuple[str, str, str, str, st
     floor plus a debt-gt ceiling on the same component and due -- keyed on
     (ticker, component_id, due) alone the second spec was silently dropped as
     already_resolved and the genuine hit never scored)."""
+    if spec.get("spec_id"):
+        return (
+            "v2",
+            str(ticker or ""),
+            str(spec.get("spec_id")),
+            int(spec.get("spec_revision") or 1),
+            spec_payload_hash(spec),
+        )
     return (
+        "v1",
         str(ticker or ""),
         str(component_id or ""),
         str(spec.get("due") or ""),
@@ -95,14 +113,17 @@ def dedupe_key(ticker, component_id, spec: dict) -> tuple[str, str, str, str, st
     )
 
 
-def outcome_key(row: dict) -> tuple[str, str, str, str, str]:
+def outcome_key(row: dict) -> tuple:
     spec = dict(row.get("spec")) if isinstance(row.get("spec"), dict) else {}
+    if row.get("spec_id") and not spec.get("spec_id"):
+        spec["spec_id"] = row.get("spec_id")
+        spec["spec_revision"] = row.get("spec_revision") or 1
     if not spec.get("due") and row.get("due"):
         spec["due"] = row.get("due")
     return dedupe_key(row.get("ticker"), row.get("component_id"), spec)
 
 
-def resolve_metric(ticker: str, spec: dict, root: Path) -> dict:
+def resolve_metric(ticker: str, spec: dict, root: Path, today: date) -> dict:
     """Resolve source_hint to a value: fact-ledger locked row first, then the
     latest companyfacts observation at/after the due date.
 
@@ -118,8 +139,8 @@ def resolve_metric(ticker: str, spec: dict, root: Path) -> dict:
     empty = {"value": None, "unit": None, "as_of": None, "evidence_ref": None}
     if not hint:
         return empty
-    due = parse_due(spec.get("due"))
-    due_iso = due.isoformat() if due else ""
+    measurement, _observable, _deadline = forecast_dates(spec)
+    measurement_iso = measurement.isoformat() if measurement else ""
     ledger = read_json(root / ticker / "research" / "valuation_fact_ledger.json")
     for fact in ledger.get("facts") or []:
         if not isinstance(fact, dict) or str(fact.get("field_id")) != hint or not fact.get("locked"):
@@ -129,8 +150,13 @@ def resolve_metric(ticker: str, spec: dict, root: Path) -> dict:
             continue
         source = fact.get("source") or {}
         as_of = str(source.get("as_of") or "")[:10]
-        if not as_of or as_of < due_iso:
-            continue  # pre-due or undated: not a resolution; try companyfacts
+        filed = str(source.get("filed") or source.get("resolved_on") or "")[:10]
+        if not as_of or as_of < measurement_iso:
+            continue
+        if filed and filed > today.isoformat():
+            continue
+        if fact.get("unit") != spec.get("unit"):
+            continue
         return {
             "value": value,
             "unit": fact.get("unit"),
@@ -151,7 +177,10 @@ def resolve_metric(ticker: str, spec: dict, root: Path) -> dict:
             value = row.get("val")
             if end and isinstance(value, (int, float)) and not isinstance(value, bool):
                 observations.append((end, str(row.get("filed") or ""), value, unit))
-    eligible = [obs for obs in observations if obs[0] >= due_iso]
+    eligible = [obs for obs in observations
+                if obs[0] >= measurement_iso
+                and (not obs[1] or obs[1][:10] <= today.isoformat())
+                and obs[3] == spec.get("unit")]
     if not eligible:
         return empty
     end, _filed, value, unit = max(eligible)
@@ -181,12 +210,15 @@ def compare(value: float, comparator: str, threshold) -> str:
     return "hit" if fired else "miss"
 
 
-def bucket_info(ticker: str, component_id: str, root: Path) -> tuple[str, str]:
+def bucket_info(ticker: str, component_id: str, spec: dict, root: Path) -> tuple[str, str]:
     """(method_id, power_zone) for calibration bucketing, from the contract
     component and the route profile.  Missing lookups degrade to sentinels
     rather than dropping the outcome (E3: every outcome must appear in the
     calibration store)."""
     contract = read_json(root / ticker / "research" / "valuation_contract.json")
+    if is_v2_spec(spec):
+        return (str(spec.get("method_id") or "unknown"),
+                str(spec.get("power_zone") or "unclassified"))
     method_id = "unknown"
     for component in contract.get("economic_ownership_map") or []:
         if isinstance(component, dict) and component.get("component_id") == component_id:
@@ -199,10 +231,11 @@ def bucket_info(ticker: str, component_id: str, root: Path) -> tuple[str, str]:
 
 def build_calibration(rows: list[dict]) -> dict:
     buckets: dict[str, dict] = {}
+    bucket_rows: dict[str, list[dict]] = {}
     for row in rows:
         method_id = str(row.get("method_id") or "unknown")
         power_zone = str(row.get("power_zone") or "unclassified")
-        key = f"{method_id}:{power_zone}"
+        key = f"{method_id}|{power_zone}"
         bucket = buckets.setdefault(key, {
             "method_id": method_id,
             "power_zone": power_zone,
@@ -210,15 +243,58 @@ def build_calibration(rows: list[dict]) -> dict:
             "miss": 0,
             "unresolvable": 0,
         })
+        bucket_rows.setdefault(key, []).append(row)
         verdict = row.get("verdict")
         if verdict in ("hit", "miss", "unresolvable"):
             bucket[verdict] += 1
-    scored = sum(bucket["hit"] + bucket["miss"] for bucket in buckets.values())
+    for key, bucket in buckets.items():
+        sample = [row for row in bucket_rows[key]
+                  if row.get("verdict") in ("hit", "miss")]
+        n = len(sample)
+        hits = int(bucket["hit"])
+        if n:
+            # Wilson score interval is stable for small n; unlike a normal
+            # interval it does not claim zero uncertainty at 0/n or n/n.
+            z = 1.959963984540054
+            p = hits / n
+            denom = 1 + z * z / n
+            center = (p + z * z / (2 * n)) / denom
+            half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** .5) / denom
+            bucket["scored_outcomes"] = n
+            bucket["hit_rate"] = round(p, 6)
+            bucket["hit_rate_wilson_95"] = [round(max(0, center - half), 6),
+                                             round(min(1, center + half), 6)]
+        probabilistic_sample = [
+            row for row in sample
+            if isinstance((row.get("spec") or {}).get("probability_fires"), (int, float))
+            and (row.get("spec") or {}).get("calibration_eligible", True)]
+        bucket["probabilistic_outcomes"] = len(probabilistic_sample)
+        bucket["brier_score"] = (round(sum(
+            (float(row["spec"]["probability_fires"])
+             - (1.0 if row["verdict"] == "hit" else 0.0)) ** 2
+            for row in probabilistic_sample) / len(probabilistic_sample), 6)
+            if probabilistic_sample else None)
+    scored_rows = [row for row in rows if row.get("verdict") in ("hit", "miss")]
+    scored = len(scored_rows)
+    probabilistic = [row for row in scored_rows
+                     if isinstance((row.get("spec") or {}).get("probability_fires"), (int, float))
+                     and (row.get("spec") or {}).get("calibration_eligible", True)]
+    brier = None
+    if probabilistic:
+        brier = round(sum(
+            (float(row["spec"]["probability_fires"])
+             - (1.0 if row["verdict"] == "hit" else 0.0)) ** 2
+            for row in probabilistic
+        ) / len(probabilistic), 6)
+    min_outcomes = 20
     return {
-        "schema_version": "1.0",
-        "status": "ready" if scored else "insufficient_outcomes",
+        "schema_version": "2.0",
+        "status": "ready" if scored >= min_outcomes else "insufficient_outcomes",
         "resolved_outcomes": len(rows),
         "scored_outcomes": scored,
+        "probabilistic_outcomes": len(probabilistic),
+        "brier_score": brier,
+        "minimum_outcomes": min_outcomes,
         "buckets": {key: buckets[key] for key in sorted(buckets)},
         "warning": CALIBRATION_WARNING,
     }
@@ -242,7 +318,7 @@ def run(root: Path, today: date, apply: bool) -> dict:
     new_rows: list[dict] = []
     counts = {"sidecars": 0, "specs": 0, "invalid": 0, "untestable": 0,
               "unmatured": 0, "already_resolved": 0, "hit": 0, "miss": 0,
-              "unresolvable": 0}
+              "unresolvable": 0, "pending_evidence": 0}
     for ticker, _path in find_sidecars(root):
         counts["sidecars"] += 1
         doc = read_json(root / ticker / "research" / "falsifier_specs.json")
@@ -267,8 +343,8 @@ def run(root: Path, today: date, apply: bool) -> dict:
             if spec.get("untestable"):
                 counts["untestable"] += 1
                 continue
-            due = parse_due(spec.get("due"))
-            if due is None or due > today:
+            measurement, observable, terminal_deadline = forecast_dates(spec)
+            if observable is None or observable > today:
                 counts["unmatured"] += 1
                 continue
             component_id = str(spec.get("component_id"))
@@ -276,16 +352,23 @@ def run(root: Path, today: date, apply: bool) -> dict:
             if key in seen:
                 counts["already_resolved"] += 1
                 continue
-            resolved = resolve_metric(ticker, spec, root)
+            resolved = resolve_metric(ticker, spec, root, today)
             if resolved["value"] is None:
+                deadline = terminal_deadline or (observable + timedelta(days=14))
+                if today <= deadline:
+                    counts["pending_evidence"] += 1
+                    continue
                 verdict = "unresolvable"
             else:
                 verdict = compare(resolved["value"], spec["comparator"], spec["threshold"])
             counts[verdict] += 1
-            method_id, power_zone = bucket_info(ticker, component_id, root)
+            method_id, power_zone = bucket_info(ticker, component_id, spec, root)
             row = {
                 "ticker": ticker,
                 "component_id": component_id,
+                "spec_id": spec.get("spec_id"),
+                "spec_revision": spec.get("spec_revision"),
+                "spec_hash": spec_payload_hash(spec),
                 "spec": spec,
                 "resolved_value": resolved["value"],
                 "resolved_unit": resolved["unit"],
@@ -295,6 +378,10 @@ def run(root: Path, today: date, apply: bool) -> dict:
                 "resolved_on": today.isoformat(),
                 "method_id": method_id,
                 "power_zone": power_zone,
+                "measurement_period_end": measurement.isoformat() if measurement else None,
+                "observable_after": observable.isoformat() if observable else None,
+                "resolution_deadline": (terminal_deadline.isoformat()
+                                        if terminal_deadline else None),
             }
             new_rows.append(row)
             seen.add(key)
@@ -312,11 +399,14 @@ def run(root: Path, today: date, apply: bool) -> dict:
                 handle.write(json.dumps(row, sort_keys=True) + "\n")
         calibration_path.parent.mkdir(parents=True, exist_ok=True)
         calibration_path.write_text(json.dumps(calibration, indent=2) + "\n", encoding="utf-8")
+        from build_calibration_brief import build as build_calibration_brief
+        build_calibration_brief(root)
     mode = "apply" if apply else "dry-run (pass --apply to write)"
     print(f"resolver [{mode}]: {counts['sidecars']} sidecars, {counts['specs']} specs, "
           f"{len(new_rows)} new outcomes ({counts['hit']} hit, {counts['miss']} miss, "
           f"{counts['unresolvable']} unresolvable), {counts['already_resolved']} already resolved, "
-          f"{counts['unmatured']} unmatured, {counts['untestable']} untestable, "
+          f"{counts['unmatured']} unmatured, {counts['pending_evidence']} pending evidence, "
+          f"{counts['untestable']} untestable, "
           f"{counts['invalid']} invalid")
     return {"counts": counts, "new_rows": new_rows, "calibration": calibration}
 

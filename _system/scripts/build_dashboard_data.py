@@ -3114,6 +3114,11 @@ def build_research_memory() -> dict | None:
     return _load_json(RESEARCH_MEMORY_PATH)
 
 
+def build_learning_loop_summary() -> dict | None:
+    return _load_json(ROOT / "_system" / "reviews" / "pending" /
+                      "memory_triage_summary.json")
+
+
 def load_prior_rows() -> dict[str, dict]:
     """Prior per-ticker rows for the anti-clobber guards and infra restore.
 
@@ -3168,6 +3173,11 @@ def main() -> None:
     document_catalog = build_document_catalog(document_registry)
     insights_doc = _load_json(DATA_DIR / "insights.json")
     memory_doc = build_research_memory()
+    learning_loop = build_learning_loop_summary()
+    if memory_doc and learning_loop:
+        memory_doc["learning_loop"] = learning_loop
+        RESEARCH_MEMORY_PATH.write_text(
+            json.dumps(memory_doc, separators=(",", ":")), encoding="utf-8")
     payload = build()
     refuse_infra_collapse(payload, prior_by_ticker)
     refuse_valuation_collapse(payload, prior_by_ticker)
@@ -3189,6 +3199,12 @@ def main() -> None:
             "generated_at": memory_doc.get("generated_at"),
             "summary": memory_doc.get("summary"),
         }
+    if learning_loop:
+        payload["learning_loop"] = learning_loop
+        payload["summary"]["learning_loop_pending_proposals"] = (
+            (learning_loop.get("proposal_loop") or {}).get("undecided", 0))
+        payload["summary"]["learning_loop_resolved_outcomes"] = (
+            (learning_loop.get("forecast_loop") or {}).get("resolved", 0))
     if document_catalog:
         payload["document_catalog"] = {
             "generated_at": document_catalog.get("generated_at"),

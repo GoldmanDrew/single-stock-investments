@@ -193,6 +193,33 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
         self.assertEqual(path.parent, pipeline.ROOT / "_system/data/runs")
         self.assertFalse((pipeline.ROOT / "_system/data/runs/power_zone_universe_run_2026-07-18.json").exists())
 
+    def test_prospective_gate_blocks_only_new_or_changed_components(self):
+        self.write("_system/graph/graph_sources.json", {
+            "falsifier_enforcement": {
+                "prospective_enforcement_enabled": True,
+                "prospective_since": "2026-08-12",
+            }
+        })
+        component = {"component_id": "ops", "falsifier": "Owner cash collapses",
+                     "method": "owner_earnings"}
+        current = {"status": "decision_grade", "economic_ownership_map": [component],
+                   "evidence": {"blockers": [], "unresolved_count": 0},
+                   "falsifier_coverage": {}}
+        gated = pipeline.apply_prospective_falsifier_gate(
+            "AAA", current, {}, "2026-08-12")
+        self.assertEqual(gated["status"], "evidence_blocked")
+        self.assertEqual(gated["falsifier_coverage"]["prospective_gate"]
+                         ["missing_components"], ["ops"])
+
+        unchanged = {"status": "decision_grade",
+                     "economic_ownership_map": [component],
+                     "evidence": {"blockers": [], "unresolved_count": 0},
+                     "falsifier_coverage": {}}
+        allowed = pipeline.apply_prospective_falsifier_gate(
+            "AAA", unchanged, {"economic_ownership_map": [component]},
+            "2026-08-12")
+        self.assertEqual(allowed["status"], "decision_grade")
+
 
 if __name__ == "__main__":
     unittest.main()

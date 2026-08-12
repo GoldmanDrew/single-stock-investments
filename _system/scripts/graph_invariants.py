@@ -59,7 +59,7 @@ BASE_SEVERITY = {
     "P1": "report", "P2": "hard", "P3": "hard", "P4": "hard", "P5": "report",
     "P6": "hard", "P7": "report",
     "E1": "report", "E2": "hard", "E3": "hard", "E4": "hard", "E5": "hard",
-    "E6": "report",
+    "E6": "report", "E7": "hard",
     # L-series: the classification/lens plane (spec in _system/graph/README.md).
     # All report severity with a committed baseline ratchet
     # (_system/graph/invariants_baseline.json): live counts at introduction
@@ -76,12 +76,13 @@ TITLES = {
     "P4": "no run receipts outside _system/data/runs/",
     "P5": "validator scripts with zero CI references",
     "E1": "decision-grade components carrying a typed falsifier",
-    "E2": "matured typed falsifiers resolved within 14 days",
+    "E2": "matured typed falsifiers resolved by their terminal deadline",
     "E3": "every Outcome has a SCORES edge and a calibration bucket",
     "E4": "no promoted Belief text rewritten in place (vs git HEAD +"
           " history window)",
     "E5": "every Belief's SUPPORTED_BY source exists on disk",
     "E6": "Proposals with no DECIDED_AS decision (silent-drop detector)",
+    "E7": "non-durable proposals never enter belief review; prospective decisions close within 30 days",
     "P6": "every registered data feed is fresher than its window",
     "P7": "every registered live feed has published inside its window",
     "L1": "every valued ticker resolves a payoff_lens through the"
@@ -266,7 +267,8 @@ def inv_e2(conn, root, today) -> Result:
     violations = []
     matured = 0
     for row in typed:
-        due = json.loads(row["data_json"]).get("due") or ""
+        data = json.loads(row["data_json"])
+        due = data.get("observable_after") or data.get("due") or ""
         fid = row["id"][len("falsifier:"):]
         if not due:
             violations.append(fid + ": typed but no due date -- can never mature")
@@ -280,7 +282,9 @@ def inv_e2(conn, root, today) -> Result:
         if due_date > today:
             continue
         matured += 1
-        deadline = (due_date + timedelta(days=E2_GRACE_DAYS)).isoformat()
+        explicit_deadline = _parse_due(data.get("resolution_deadline"))
+        deadline = (explicit_deadline or
+                    (due_date + timedelta(days=E2_GRACE_DAYS))).isoformat()
         outcome = conn.execute(
             "SELECT n.as_of FROM edges e JOIN nodes n ON n.id=e.dst"
             " WHERE e.src=? AND e.type='RESOLVED_BY' LIMIT 1",
@@ -429,7 +433,35 @@ def inv_e6(conn, root, today) -> Result:
         " WHERE type='Proposal' AND status='undecided'"
         " ORDER BY as_of, id").fetchall()
     return Result("E6", len(rows),
-                  [f"{r['as_of']} {r['label'][:80]}" for r in rows])
+                  [f"{r['as_of']} {r['label'][:80].rstrip()}" for r in rows])
+
+
+def inv_e7(conn, root, today) -> Result:
+    triage = graph_build.build_memory_triage
+    items = []
+    for path in sorted((root / "_system/memory/daily").glob("*.md")):
+        items.extend(triage.parse_file(path))
+    items, _duplicates = triage.dedupe(items)
+    ledger = graph_build.load_json(root / "_system/memory/triage_ledger.json") or {}
+    decisions = ledger.get("decisions") or {}
+    violations = []
+    for item in items:
+        if triage.fingerprint(item) in decisions:
+            continue
+        kind = triage.proposal_kind(item)
+        if kind in {"company_observation", "ephemeral_output", "parse_artifact"}:
+            violations.append(
+                f"{item['day']} {triage.fingerprint(item)} {kind}: must be routed/dropped, not belief-reviewed")
+            continue
+        try:
+            age = (today - date.fromisoformat(item["day"])).days
+        except ValueError:
+            age = 0
+        if item["day"] >= "2026-08-12" and age > 30:
+            violations.append(
+                f"{item['day']} {triage.fingerprint(item)} {kind}: undecided {age} days (prospective SLA 30)")
+    return Result("E7", len(violations), violations,
+                  note="deterministic routing is immediate; 30-day gate applies prospectively from 2026-08-12")
 
 
 def _dig(doc, dotted: str):
@@ -1115,7 +1147,7 @@ def inv_l6(conn, root, today) -> Result:
 
 
 INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6, inv_p7,
-              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6,
+              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6, inv_e7,
               inv_l1, inv_l2, inv_l3, inv_l4, inv_l5, inv_l6]
 
 
