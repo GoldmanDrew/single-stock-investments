@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
   "ticker": "WHK",
-  "as_of": "2026-08-11",
+  "as_of": "2026-08-12",
   "decision": {
     "status": "evidence_blocked",
     "price_per_share": 26.16,
@@ -9,22 +9,22 @@
     "enterprise_value_m": null,
     "value_per_share": {
       "low": 6.1184,
-      "base": 8.7614,
-      "high": 12.8107
+      "base": 14.0777,
+      "high": 24.9942
     },
     "annualized_return_at_price_pct": {
-      "low": -18.74,
-      "base": -14.47,
-      "high": -9.7
+      "low": -13.5,
+      "base": -6.0,
+      "high": -0.5
     },
     "downside_to_low_pct": -76.61,
     "unvalued_component_count": 0,
     "unresolved_evidence_count": 3,
     "proof_complete_pct": 100.0,
-    "model_hash": "f4a19a497274a8eec4f6e2f8ddf4985f64ace5a89bccc45a33f896bdcb68fcf0",
+    "model_hash": "capital-allocation-reconciliation-20260812",
     "primary_power_zone": "Scarce assets, royalties, and optionality",
     "owner_decision": null,
-    "next_action": "Close critical evidence gaps before freezing a decision-grade packet."
+    "next_action": "Validate tract-level operator timing, comparable mineral transactions, and realized acquisition returns before treating the $2.11/share capital-allocation bridge as decision-grade."
   },
   "business": {
     "status": "complete",
@@ -1739,12 +1739,60 @@
         "falsifier": "The FY2026 reserve report or an updated location census carries fewer than 6,000 gross undeveloped locations against the 8,783 booked here, or fewer than 20 net locations against 28.0, either of which removes the inventory this component exists to value; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which resets the unit value it is built on; or operators convert inventory into production fast enough that the producing component's decline shallows, which would mean the partition double-counts.",
         "overlap_key": "undeveloped_location_inventory",
         "assumption_type": "judgment"
+      },
+      {
+        "component_id": "future_capital_allocation",
+        "label": "Finite capital-allocation value from retained CAFD and external royalty acquisitions",
+        "category": "capital_allocation",
+        "treatment": "additive",
+        "ownership_claim": "Class A holders participate in the excess value, if any, created when WhiteHawk retains cash or raises capital to acquire additional mineral and royalty interests.",
+        "method": "finite_reinvestment_npv",
+        "range_per_share": {"low": 0.0, "base": 2.1058, "high": 6.9515},
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "finite_reinvestment_npv",
+          "method_version": "1.0",
+          "outputs": {"low": 0.0, "base": 2.1058, "high": 6.9515},
+          "output_unit": "USD_per_share",
+          "traces": {
+            "base": [
+              {"id": "internal_capital_pv_m", "label": "PV of retained existing-PDP CAFD", "kind": "calculation", "value": 15.619, "unit": "USD_m", "substituted_formula": "25% retained CAFD, discounted over 10 years"},
+              {"id": "external_capacity_pv_m", "label": "PV of external acquisition capacity", "kind": "judgment", "value": 307.228, "unit": "USD_m", "substituted_formula": "$50m/year for 10 years, discounted at 10%"},
+              {"id": "net_npv_created", "label": "Net NPV created per acquisition dollar", "kind": "judgment", "value": 0.15, "unit": "ratio", "substituted_formula": "After financing, tax, and dilution"},
+              {"id": "value_per_share", "label": "Capital-allocation value per Class A share", "kind": "calculation", "value": 2.1058, "unit": "USD_per_share", "substituted_formula": "($15.619m + $307.228m) x 15% / 22.996579m shares"}
+            ]
+          },
+          "proof_hash": "capital-allocation-reconciliation-20260812"
+        },
+        "evidence_tier": "conditional_judgment",
+        "evidence": "WhiteHawk has completed eight acquisitions since inception and states that cash flow not used for dividends may be used for acquisitions meeting its criteria or to maintain a conservative capital structure. This supports a non-zero framework, not the assumed 15% net NPV creation rate.",
+        "scenario_assumptions": "Base: 25% retention, $50m/year external capacity, 10-year finite horizon, and 15% net NPV created per acquisition dollar.",
+        "falsifier": "Future acquisitions fail to create positive net present value per Class A share after all financing and dilution, or deployment cannot reach the assumed capacity.",
+        "overlap_key": "future_acquired_royalty_excess_npv",
+        "assumption_type": "conditional_judgment"
+      },
+      {
+        "component_id": "dated_development_and_cafd_reconciliation",
+        "label": "Dated development timing and recurring-CAFD reconciliation to the proved-reserve floor",
+        "category": "valuation_reconciliation",
+        "treatment": "bridge_adjustment",
+        "ownership_claim": "Not a separate asset: this is the disclosed adjustment from the legacy reserve-contract timing convention to the dated inventory schedule and recurring CAFD view.",
+        "method": "development_timing_nav_and_recurring_cafd_reconciliation",
+        "range_per_share": {"low": 0.0, "base": 3.2105, "high": 5.232},
+        "valuation_status": "bounded_estimate",
+        "evidence_tier": "conditional_judgment",
+        "evidence": "The base starts with the $8.7614/share legacy proved-reserve floor. It replaces the 17% inventory realisation factor with a dated 411 TIL/year development schedule, a +$5.232/share inventory uplift, and replaces the legacy owner-cash run rate with $22.717m recurring attributable CAFD, a -$2.0215/share production adjustment; net bridge +$3.2105/share.",
+        "scenario_assumptions": "Base dates development through 2035. High holds the gross timing uplift and no recurring-CAFD reset; low retains the legacy reserve contract.",
+        "falsifier": "Tract-level operator development data fails to support the dated 411 TIL/year schedule, or recurring CAFD differs materially from the stated normalization.",
+        "overlap_key": "legacy_to_dated_schedule_revaluation_only",
+        "assumption_type": "conditional_judgment"
       }
     ],
     "component_coverage": {
       "all_material_components_identified": true,
-      "material_component_count": 2,
-      "additive_component_count": 2,
+      "material_component_count": 4,
+      "additive_component_count": 3,
       "embedded_component_count": 0,
       "unvalued_component_count": 0,
       "double_counting_flags": []
@@ -1783,30 +1831,30 @@
     "valuation": {
       "value_per_share": {
         "low": 6.1184,
-        "base": 8.7614,
-        "high": 12.8107
+        "base": 14.0777,
+        "high": 24.9942
       },
       "priced_components_per_share": {
         "low": 6.1184,
-        "base": 8.7614,
-        "high": 12.8107
+        "base": 14.0777,
+        "high": 24.9942
       },
       "legacy_value_per_share": {
         "low": 6.11,
         "base": 8.77,
         "high": 12.81
       },
-      "probability_weighted_value_per_share": 8.7614,
+      "probability_weighted_value_per_share": 14.0777,
       "expected_distributions_per_share": 0.0,
       "annualized_return_at_price_pct": {
-        "low": -18.74,
-        "base": -14.47,
-        "high": -9.7
+        "low": -13.5,
+        "base": -6.0,
+        "high": -0.5
       },
       "downside_to_low_pct": -76.61,
-      "horizon_years": 7,
+      "horizon_years": 10,
       "equity_liability_floor": 0.0,
-      "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+      "interpretation": "The $8.7614/share proved-reserve value remains the evidence-backed asset floor. The active $14.0777/share reconciliation adds a separate $2.1058/share finite capital-allocation bridge and uses dated inventory timing; it remains conditional until specific-acreage development schedules, transaction comparables, and realized acquisition-return evidence are established."
     },
     "components": [
       {
@@ -3519,6 +3567,67 @@
         "falsifier": "The FY2026 reserve report or an updated location census carries fewer than 6,000 gross undeveloped locations against the 8,783 booked here, or fewer than 20 net locations against 28.0, either of which removes the inventory this component exists to value; or PV-10 per Mcfe moves outside $1.00-$2.00 on the next SEC price deck, which resets the unit value it is built on; or operators convert inventory into production fast enough that the producing component's decline shallows, which would mean the partition double-counts.",
         "overlap_key": "undeveloped_location_inventory",
         "assumption_type": "judgment"
+      },
+      {
+        "component_id": "future_capital_allocation",
+        "label": "Finite capital-allocation value from retained CAFD and external royalty acquisitions",
+        "category": "capital_allocation",
+        "treatment": "additive",
+        "ownership_claim": "Class A holders participate in excess value created by future retained-cash and external royalty acquisitions.",
+        "method": "finite_reinvestment_npv",
+        "range_per_share": {"low": 0.0, "base": 2.1058, "high": 6.9515},
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "finite_reinvestment_npv",
+          "method_version": "1.0",
+          "outputs": {"low": 0.0, "base": 2.1058, "high": 6.9515},
+          "output_unit": "USD_per_share",
+          "traces": {
+            "base": [
+              {"id": "internal_capital_pv_m", "label": "PV of retained existing-PDP CAFD", "kind": "calculation", "value": 15.619, "unit": "USD_m", "substituted_formula": "25% retained CAFD, discounted over 10 years"},
+              {"id": "external_capacity_pv_m", "label": "PV of external acquisition capacity", "kind": "judgment", "value": 307.228, "unit": "USD_m", "substituted_formula": "$50m/year for 10 years, discounted at 10%"},
+              {"id": "net_npv_created", "label": "Net NPV created per acquisition dollar", "kind": "judgment", "value": 0.15, "unit": "ratio", "substituted_formula": "After financing, tax, and dilution"},
+              {"id": "value_per_share", "label": "Capital-allocation value per Class A share", "kind": "calculation", "value": 2.1058, "unit": "USD_per_share", "substituted_formula": "($15.619m + $307.228m) x 15% / 22.996579m shares"}
+            ]
+          },
+          "proof_hash": "capital-allocation-reconciliation-20260812"
+        },
+        "evidence_tier": "conditional_judgment",
+        "evidence": "Management's acquisition history and stated use of undistributed cash support a non-zero framework but do not prove the 15% net NPV creation assumption.",
+        "scenario_assumptions": "Base: 25% retention, $50m/year external capacity, 10-year finite horizon, and 15% net NPV created per acquisition dollar.",
+        "falsifier": "Future acquisitions fail to create positive net present value per Class A share after financing and dilution, or deployment cannot reach the assumed capacity.",
+        "overlap_key": "future_acquired_royalty_excess_npv",
+        "assumption_type": "conditional_judgment"
+      },
+      {
+        "component_id": "dated_development_and_cafd_reconciliation",
+        "label": "Dated development timing and recurring-CAFD reconciliation to the proved-reserve floor",
+        "category": "valuation_reconciliation",
+        "treatment": "bridge_adjustment",
+        "ownership_claim": "A disclosed revaluation bridge, not a separate royalty asset: it replaces portions of the legacy floor with dated inventory timing and normalized recurring CAFD.",
+        "method": "development_timing_nav_and_recurring_cafd_reconciliation",
+        "range_per_share": {"low": 0.0, "base": 3.2105, "high": 5.232},
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "development_timing_nav_and_recurring_cafd_reconciliation",
+          "method_version": "1.0",
+          "outputs": {"low": 0.0, "base": 3.2105, "high": 5.232},
+          "output_unit": "USD_per_share",
+          "traces": {"base": [
+            {"id": "dated_inventory_uplift", "label": "Dated inventory timing uplift", "kind": "calculation", "value": 5.232, "unit": "USD_per_share", "substituted_formula": "$8.9874 dated inventory NAV - $3.7554 legacy inventory NAV"},
+            {"id": "recurring_cafd_reset", "label": "Recurring CAFD production reset", "kind": "calculation", "value": -2.0215, "unit": "USD_per_share", "substituted_formula": "$2.9845 recurring CAFD DCF - $5.0060 legacy PDP value"},
+            {"id": "value_per_share", "label": "Net reconciliation bridge", "kind": "calculation", "value": 3.2105, "unit": "USD_per_share", "substituted_formula": "$5.2320 - $2.0215"}
+          ]},
+          "proof_hash": "dated-development-reconciliation-20260812"
+        },
+        "evidence_tier": "conditional_judgment",
+        "evidence": "The legacy proved-reserve floor remains separately visible. This bridge changes only timing and CAFD normalization, and must not be counted alongside a second full PDP or inventory asset schedule.",
+        "scenario_assumptions": "Base: dated 411 TIL/year schedule through 2035 and $22.717m recurring attributable CAFD. High: gross timing uplift with no CAFD reset; low: legacy contract retained.",
+        "falsifier": "Specific-tract operator development cadence fails to support the schedule, or recurring CAFD normalization is contradicted by reported cash flow.",
+        "overlap_key": "legacy_to_dated_schedule_revaluation_only",
+        "assumption_type": "conditional_judgment"
       }
     ],
     "scenario_contract": {
@@ -3541,16 +3650,34 @@
           "legacy_base_per_share": 5.01,
           "range_width_per_share": 1.5448,
           "scenario_assumptions": "Owner-cash leg of component_owner_cash_and_unit_nav. Declining perpetuity on attributable CAFD, with the decline rate pinned to the producing reserve life so the component cannot capitalise volume it does not own."
+        },
+        {
+          "component_id": "future_capital_allocation",
+          "label": "Finite capital-allocation value from retained CAFD and external royalty acquisitions",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 2.1058,
+          "legacy_base_per_share": 0.0,
+          "range_width_per_share": 6.9515,
+          "scenario_assumptions": "Excess NPV only: 25% retention, $50m/year external capacity, 10 years, 15% net NPV created per acquisition dollar after financing, tax, and dilution."
+        },
+        {
+          "component_id": "dated_development_and_cafd_reconciliation",
+          "label": "Dated development timing and recurring-CAFD reconciliation to the proved-reserve floor",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 3.2105,
+          "legacy_base_per_share": 0.0,
+          "range_width_per_share": 5.232,
+          "scenario_assumptions": "Replaces the 17% inventory realisation convention and legacy PDP cash-flow run rate with a dated schedule and recurring CAFD; net base uplift $3.2105/share."
         }
       ],
       "reverse_expectations": null
     },
     "calculation_proof_summary": {
-      "component_count": 2,
-      "priced_component_count": 2,
+      "component_count": 4,
+      "priced_component_count": 4,
       "proof_complete_pct": 100.0,
       "status_counts": {
-        "bounded_estimate": 2,
+        "bounded_estimate": 4,
         "calculated": 0,
         "legacy_sensitivity": 0,
         "unpriced": 0
@@ -3681,9 +3808,19 @@
     }
   },
   "optionality": {
-    "status": "not_material_or_separately_identified",
-    "option_count": 0,
-    "options": [],
+    "status": "conditional_estimate",
+    "option_count": 1,
+    "options": [
+      {
+        "component_id": "future_capital_allocation",
+        "label": "Finite capital-allocation value from retained CAFD and external royalty acquisitions",
+        "method": "finite_reinvestment_npv",
+        "range_per_share": {"low": 0.0, "base": 2.1058, "high": 6.9515},
+        "probability_and_timing": "Base assumes 25% of existing PDP CAFD is retained, $50m of annual external-acquisition capacity for 10 years, and 15% net NPV created per acquisition dollar after financing, tax, and dilution. Low gives no premium; high assumes 40% retention, $100m/year capacity, and 25% net NPV per dollar.",
+        "falsifier": "Actual acquisition cohorts fail to create positive per-share NPV after financing and dilution, or management cannot source the assumed annual deployment capacity.",
+        "overlap_control": "Only excess NPV on future acquisitions is credited. The purchase price and cash flows of the existing reserve book are already valued in the PDP and inventory components."
+      }
+    ],
     "rule": "Every option requires a beneficiary, probability, timing, remaining capital, failure case, and non-overlap control; absence of option value must be explicit rather than unvalued."
   },
   "committee": {
@@ -3902,10 +4039,10 @@
   "attribution": {
     "status": "baseline_established",
     "current": {
-      "as_of": "2026-08-11",
+      "as_of": "2026-08-12",
       "low": 6.1184,
-      "base": 8.7614,
-      "high": 12.8107
+      "base": 14.0777,
+      "high": 24.9942
     },
     "prior": null,
     "base_change_per_share": null,
@@ -3913,6 +4050,6 @@
     "drivers": [],
     "category_totals_per_share": {},
     "unexplained_per_share": null,
-    "explanation": "The current component schedule is the first decision-grade baseline; attribution begins with the next dated valuation snapshot."
+    "explanation": "The $8.7614/share proved-reserve schedule remains the evidence-backed floor. The $14.0777/share active reconciliation adds a conditional, non-overlapping capital-allocation bridge; attribution begins with the next dated valuation snapshot."
   }
 }
