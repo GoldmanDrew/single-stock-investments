@@ -26,6 +26,20 @@ python3 _system/scripts/build_dashboard_data.py
 
 Use `--fast` for CI-speed training. Reference PDFs: [`_system/reference/quant-evolution/`](_system/reference/quant-evolution/).
 
+**Warrants tab:** Contract-first monitor for post-reorganization and de-SPAC
+warrants. The tab separates the verified series registry from the raw SEC
+event inbox and withholds executable scoring until identity, issuer survival,
+and two-sided-market gates all pass. Refresh and validate locally:
+
+```powershell
+make warrant-refresh
+make warrant-check
+```
+
+Monday discovery is part of `data-pipeline.yml`; nightly dashboard rebuilds
+refresh delayed marks, preserve last-known-good data on vendor failure, and
+capture monthly point-in-time cohorts for 90/365-day outcome calibration.
+
 **Local preview:**
 
 ```powershell

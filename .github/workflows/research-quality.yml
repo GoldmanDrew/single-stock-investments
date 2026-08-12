@@ -178,6 +178,9 @@ jobs:
             );
             const dashboardIntegrity = has(name =>
               /(^|\/)research\//.test(name) ||
+              /^_system\/data\/warrants\//.test(name) ||
+              /^_system\/scripts\/(build_warrant_dashboard|check_warrant_universe|refresh_warrant_universe|resolve_warrant_outcomes|warrant_common|test_warrant_pipeline)\.py$/.test(name) ||
+              /^dashboard\/(data\/warrants\.json|warrant-viz\.js|warrants\.css|index\.html)$/.test(name) ||
               [
                 '_system/scripts/build_insights.py',
                 '_system/scripts/validate_dashboard_data.py',
@@ -219,6 +222,8 @@ jobs:
               /(^|\/)research\/(valuation_contract|falsifier_specs)\.json$/.test(name) ||
               /^_system\/research\//.test(name) ||
               /^_system\/data\/runs\//.test(name) ||
+              /^_system\/data\/warrants\//.test(name) ||
+              name === 'dashboard/data/warrants.json' ||
               /^_system\/reviews\//.test(name) ||
               // Lens-plane judged surfaces (L1-L6): classification and
               // persona registries, lenses, the canonical groups module.
@@ -575,4 +580,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Validate dashboard artifacts and letter corpus
-        run: python _system/scripts/validate_dashboard_data.py
+        run: |
+          python _system/scripts/validate_dashboard_data.py
+          python _system/scripts/check_warrant_universe.py --strict
+          (cd _system/scripts && python -m unittest -v test_warrant_pipeline)
+          node --check dashboard/warrant-viz.js

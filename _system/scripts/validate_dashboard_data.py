@@ -745,6 +745,36 @@ def main() -> int:
     else:
         warnings.append("missing dashboard/data/advantaged_banks_screener.json")
 
+    # --- Warrant monitor gates ------------------------------------------------
+    warrant_path = ROOT / "dashboard" / "data" / "warrants.json"
+    if warrant_path.exists():
+        try:
+            warrants = json.loads(warrant_path.read_text(encoding="utf-8"))
+            warrant_rows = warrants.get("rows") or []
+            warrant_summary = warrants.get("summary") or {}
+            active_count = sum(r.get("lifecycle") == "active" for r in warrant_rows)
+            if warrant_summary.get("active_series") != active_count:
+                errors.append(
+                    "warrants.json summary.active_series does not match active rows"
+                )
+            for row in warrant_rows:
+                gates = row.get("gates") or {}
+                all_pass = all(
+                    (gates.get(name) or {}).get("pass")
+                    for name in ("identity", "survival", "market")
+                )
+                score = (row.get("diagnostics") or {}).get("opportunity_score")
+                if score is not None and not all_pass:
+                    errors.append(
+                        f"warrant {row.get('warrant_ticker')}: score emitted before all gates pass"
+                    )
+            if (warrants.get("health") or {}).get("structural_errors"):
+                errors.append("warrants.json reports structural contract errors")
+        except json.JSONDecodeError:
+            errors.append("dashboard/data/warrants.json is invalid JSON")
+    else:
+        errors.append("missing dashboard/data/warrants.json")
+
     # --- Sharded payload gates (speed budget) --------------------------------
     # core.json is the SPA boot payload; keep it small so first paint stays
     # fast as the ticker universe grows. Ticker/insight shards are lazy.

@@ -153,7 +153,7 @@ def should_skip_step(step: list[str]) -> bool:
 
 
 def expand_steps(steps: list[list[str]]) -> list[list[str]]:
-    """Insert CVR universe refresh immediately before each dashboard build."""
+    """Insert rare-security refreshes immediately before each dashboard build."""
     out: list[list[str]] = []
     for step in steps:
         if step and step[0].endswith("build_dashboard_data.py"):
@@ -167,6 +167,19 @@ def expand_steps(steps: list[list[str]]) -> list[list[str]]:
                 ]
             )
             out.append(["_system/scripts/check_cvr_universe.py"])
+            # Contract terms are immutable; this refresh only updates delayed
+            # marks, point-in-time cohorts, matured outcomes, and the serving
+            # artifact. Vendor failures preserve the last-known-good state.
+            out.append(
+                [
+                    "_system/scripts/refresh_warrant_universe.py",
+                    "--refresh-market",
+                    "--capture-cohort",
+                ]
+            )
+            out.append(["_system/scripts/resolve_warrant_outcomes.py"])
+            out.append(["_system/scripts/build_warrant_dashboard.py"])
+            out.append(["_system/scripts/check_warrant_universe.py"])
         out.append(step)
     return out
 

@@ -33,6 +33,7 @@ jobs:
       drive: ${{ steps.pick.outputs.drive }}
       news: ${{ steps.pick.outputs.news }}
       cvr_discover: ${{ steps.pick.outputs.cvr_discover }}
+      warrant_discover: ${{ steps.pick.outputs.warrant_discover }}
       world_model: ${{ steps.pick.outputs.world_model }}
       technicals: ${{ steps.pick.outputs.technicals }}
     steps:
@@ -42,7 +43,7 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -euo pipefail
-          intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; world_model=false; technicals=false; download_mode=light
+          intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; warrant_discover=false; world_model=false; technicals=false; download_mode=light
           case "$SCHEDULE" in
             "0 3 * * *") intake_full=true ;;
             "15 2 * * 1-5") technicals=true ;;
@@ -51,7 +52,7 @@ jobs:
             "0 10 * * 0,3") downloads=true; download_mode=full ;;
             "0 14 * * *") drive=true ;;
             "30 */6 * * *") news=true ;;
-            "0 15 * * 1") cvr_discover=true ;;
+            "0 15 * * 1") cvr_discover=true; warrant_discover=true ;;
             "0 16 * * 0") world_model=true ;;
             *) echo "::error::Unrecognized schedule='$SCHEDULE'"; exit 1 ;;
           esac
@@ -63,6 +64,7 @@ jobs:
             echo "drive=$drive"
             echo "news=$news"
             echo "cvr_discover=$cvr_discover"
+            echo "warrant_discover=$warrant_discover"
             echo "world_model=$world_model"
             echo "technicals=$technicals"
           } >> "$GITHUB_OUTPUT"
@@ -493,6 +495,49 @@ jobs:
             _system/reviews/pending/
             _system/data/cvr_agent_queue.json
 
+  warrant-discover:
+    needs: decide
+    if: needs.decide.outputs.warrant_discover == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: data-commit-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout warrant workspace
+        run: bash _system/scripts/ci_checkout_workspace.sh minimal
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Discover, refresh, and resolve warrants
+        # SEC and delayed-market failures preserve the last-known-good files;
+        # discovery_state and the P6 feed invariant make repeated failure loud.
+        run: |
+          python _system/scripts/refresh_warrant_universe.py \
+            --discover \
+            --discover-days 14 \
+            --discover-limit 50 \
+            --refresh-market \
+            --capture-cohort
+          python _system/scripts/resolve_warrant_outcomes.py
+          python _system/scripts/build_warrant_dashboard.py
+          python _system/scripts/check_warrant_universe.py --strict
+      - name: Commit warrant artifacts
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore: warrant weekly discovery $(date -u +%Y-%m-%d)"
+          git_add: >-
+            _system/data/warrants/
+            dashboard/data/warrants.json
+
   world-model:
     needs: decide
     if: needs.decide.outputs.world_model == 'true'
@@ -529,7 +574,7 @@ jobs:
           message: "chore: world-model weekly $(date -u +%Y-%m-%d)"
 
   pipeline-summary:
-    needs: [decide, intake-full, technicals, activist, downloads, drive, news, cvr-discover, world-model]
+    needs: [decide, intake-full, technicals, activist, downloads, drive, news, cvr-discover, warrant-discover, world-model]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -544,5 +589,6 @@ jobs:
           echo "drive=${{ needs.decide.outputs.drive }} result=${{ needs.drive.result }}"
           echo "news=${{ needs.decide.outputs.news }} result=${{ needs.news.result }}"
           echo "cvr_discover=${{ needs.decide.outputs.cvr_discover }} result=${{ needs.cvr-discover.result }}"
+          echo "warrant_discover=${{ needs.decide.outputs.warrant_discover }} result=${{ needs.warrant-discover.result }}"
           echo "world_model=${{ needs.decide.outputs.world_model }} result=${{ needs.world-model.result }}"
           echo "Deploy Dashboard chains via workflow_run on successful commits."

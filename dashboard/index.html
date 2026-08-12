@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="insights-events.css" rel="stylesheet">
 <link href="short-alpha.css" rel="stylesheet">
+<link href="warrants.css" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #0a0e17;
@@ -1514,6 +1515,7 @@
     <button type="button" class="view-tab" data-view="risk" role="tab" aria-selected="false">Risk</button>
     <button type="button" class="view-tab" data-view="short-alpha" role="tab" aria-selected="false">Short Alpha</button>
     <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
+    <button type="button" class="view-tab" data-view="warrants" role="tab" aria-selected="false">Warrants</button>
     <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
     <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
     <button type="button" class="view-tab" data-view="darwin" role="tab" aria-selected="false">Darwin</button>
@@ -1576,6 +1578,11 @@
   <section class="short-alpha-panel" id="short-alpha-panel">
     <div class="loading" id="short-alpha-loading">Loading hypothesis ledger…</div>
     <div id="short-alpha-content" style="display:none"></div>
+  </section>
+
+  <section class="warrants-panel" id="warrants-panel">
+    <div class="loading" id="warrants-loading">Loading warrant contracts…</div>
+    <div id="warrants-content" style="display:none"></div>
   </section>
 
   <section class="insights-panel" id="insights-panel">
@@ -1650,6 +1657,7 @@
 <script src="index-viz.js"></script>
 <script src="activist-viz.js"></script>
 <script src="short-alpha-viz.js"></script>
+<script src="warrant-viz.js"></script>
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'magis-capital-partners/single-stock-investments';
@@ -1715,6 +1723,8 @@ function readLocalJson(key, fallback) {
 let data = null;
 let shortAlphaData = null;
 let shortAlphaPromise = null;
+let warrantData = null;
+let warrantPromise = null;
 let operationalSummary = null;
 let operationalTasks = [];
 let oauthConfig = null;
@@ -1995,7 +2005,7 @@ function parseRouteFromHashString(hash) {
       watchlistSub: watchlistMatch[1] ? watchlistMatch[1].toLowerCase() : null,
     };
   }
-  const viewMatch = /^#\/(risk|short-alpha|insights|activist|darwin)$/i.exec(hash || '');
+  const viewMatch = /^#\/(risk|short-alpha|warrants|insights|activist|darwin)$/i.exec(hash || '');
   if (viewMatch) return { view: viewMatch[1].toLowerCase(), ticker: null, watchlistSub: null };
   return null;
 }
@@ -3020,6 +3030,43 @@ function renderShortAlpha() {
   ShortAlphaViz.attach(content, shortAlphaData, rerender);
 }
 
+async function loadWarrants() {
+  if (warrantData) return warrantData;
+  if (!warrantPromise) {
+    warrantPromise = fetch('data/warrants.json?' + Date.now())
+      .then(response => {
+        if (!response.ok) throw new Error(`Warrant data ${response.status}`);
+        return response.json();
+      })
+      .then(value => { warrantData = value; return value; })
+      .finally(() => { warrantPromise = null; });
+  }
+  return warrantPromise;
+}
+
+function renderWarrants() {
+  const loading = document.getElementById('warrants-loading');
+  const content = document.getElementById('warrants-content');
+  if (!loading || !content) return;
+  if (!warrantData) {
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    loadWarrants().then(renderWarrants).catch(error => {
+      loading.textContent = `Warrant monitor unavailable: ${error.message}`;
+    });
+    return;
+  }
+  loading.style.display = 'none';
+  content.style.display = 'block';
+  if (!window.WarrantViz) {
+    content.innerHTML = '<div class="warrant-empty">Warrant visualization is unavailable.</div>';
+    return;
+  }
+  const rerender = () => renderWarrants();
+  content.innerHTML = WarrantViz.render(warrantData);
+  WarrantViz.attach(content, warrantData, rerender);
+}
+
 function setView(view, opts = {}) {
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
@@ -3036,11 +3083,14 @@ function setView(view, opts = {}) {
   if (riskPanel) riskPanel.classList.toggle('active', view === 'risk');
   const shortAlphaPanel = document.getElementById('short-alpha-panel');
   if (shortAlphaPanel) shortAlphaPanel.classList.toggle('active', view === 'short-alpha');
+  const warrantsPanel = document.getElementById('warrants-panel');
+  if (warrantsPanel) warrantsPanel.classList.toggle('active', view === 'warrants');
   document.getElementById('summary').style.display = view === 'holdings' ? '' : 'none';
   document.getElementById('watchlist-wrap').style.display =
     view === 'holdings' && (data.watchlist || []).length ? 'block' : 'none';
   if (view === 'risk') renderMarketRiskView();
   if (view === 'short-alpha') renderShortAlpha();
+  if (view === 'warrants') renderWarrants();
   if (view === 'watchlist') renderWatchlistTab();
   // Lazy-loaded tabs fetch their shards on first open.
   if (view === 'insights') renderInsights();
