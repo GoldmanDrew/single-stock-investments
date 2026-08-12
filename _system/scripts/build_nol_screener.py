@@ -14,9 +14,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -25,6 +27,10 @@ ROOT = Path(__file__).resolve().parents[2]
 SEED_PATH = ROOT / "_system" / "reference" / "market-data" / "screens" / "nol_seed.csv"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 OUTPUT = ROOT / "dashboard" / "data" / "nol_screener.json"
+FACTS_PATH = ROOT / "dashboard" / "data" / "nol_382_facts.json"
+CIK_CACHE_PATH = (
+    ROOT / "_system" / "reference" / "market-data" / "screens" / "nol_cik_cache.json"
+)
 
 SEC_UA = "Marvin Research marvin@single-stock-investments.local"
 YAHOO_UA = "MarvinResearch/1.0 (nol-screener)"
@@ -63,6 +69,16 @@ DEBT_TAGS = (
     "DebtInstrumentCarryingAmount",
     "ShortTermBorrowings",
 )
+
+# Tickers whose SEC lookup lands on a superseded registrant, verified by the
+# newest cover-page share fact being years stale (see latest_shares_fact).
+# A None value means "known bad, no replacement identified": the row stays
+# blocked rather than quietly adopting the dead registrant's figures, which
+# look entirely real and are for a different company.
+CIK_OVERRIDES: dict[str, str | None] = {
+    "PARA": None,   # resolves to 0000813828 (old Viacom); newest share fact 2010-04-30
+    "GPRO": None,   # newest cover-page share fact 2014-06-30
+}
 
 CAP_BUCKETS = (
     ("micro", 300_000_000),
@@ -123,6 +139,140 @@ def load_cik_map() -> dict[str, str]:
         if t and cik:
             out[t] = cik
     return out
+
+
+def resolve_cik_via_edgar(ticker: str) -> str | None:
+    """CIK for a ticker company_tickers.json omits.
+
+    That file carries ~10,400 symbols and is NOT a complete registrant index:
+    FOLD, APLS, SGMO, XOMA, SUP and TRUE are all currently listed and all
+    absent from it. A miss there is not evidence the company has no filings --
+    15 of 89 screener rows had no CIK, and with no CIK there is no
+    companyfacts fetch, so every tax figure AND the share count came back null
+    and the row was blocked for "missing data" it had never looked for.
+    EDGAR's own ticker lookup resolves all of them.
+    """
+    url = (
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany"
+        f"&ticker={urllib.parse.quote(ticker)}&type=10-K&dateb=&owner=include"
+        "&count=1&output=atom"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": SEC_UA})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return None
+    match = re.search(r"CIK=(\d{10})", body) or re.search(r"<cik>(\d+)</cik>", body, re.I)
+    return match.group(1).zfill(10) if match else None
+
+
+def load_382_facts() -> dict[str, dict]:
+    """Filing-extracted Section 382 facts, keyed by ticker.
+
+    Produced by extract_nol_382_facts.py. Optional by design: the screener is
+    still correct without it, just blind to three things XBRL cannot express.
+    """
+    if not FACTS_PATH.exists():
+        return {}
+    try:
+        doc = json.loads(FACTS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {r["ticker"]: r for r in (doc.get("rows") or []) if r.get("ticker")}
+
+
+def apply_382_facts(row: dict, facts: dict | None) -> None:
+    """Fold extracted filing facts into a row's blockers and shield.
+
+    Two of the three change the answer rather than annotate it:
+
+      * A PRIOR OWNERSHIP CHANGE means the carryforward was already throttled
+        before any acquirer arrived, so the modelled shield -- which assumes a
+        clean slate -- is too high. The filing rarely states how much survives,
+        so this does NOT invent a discount: it flags the row and records the
+        disclosed limitation when one is given. A number we cannot source is
+        worse than an admitted unknown.
+      * An NOL RIGHTS PLAN (a Section 382 pill, typically ~4.9%) makes the
+        acquisition impossible without board cooperation. That is a blocker on
+        the thesis regardless of how good the arithmetic looks.
+    """
+    if not facts:
+        return
+    blockers = row.setdefault("blockers", [])
+    change = facts.get("prior_ownership_change") or {}
+    pill = facts.get("nol_rights_plan") or {}
+    bankruptcy = facts.get("bankruptcy_382_exception") or {}
+
+    row["filing_facts"] = {
+        "prior_ownership_change": change.get("occurred"),
+        "prior_ownership_change_years": change.get("years") or [],
+        "disclosed_limited_amount_usd": change.get("limited_amount_usd"),
+        "nol_rights_plan": pill.get("present"),
+        "nol_rights_plan_trigger_pct": pill.get("trigger_pct"),
+        "bankruptcy_382_mentioned": bankruptcy.get("mentioned"),
+        "needs_review": facts.get("needs_review"),
+        "evidence_url": (change.get("evidence") or pill.get("evidence") or {}).get("url"),
+    }
+    if change.get("occurred"):
+        blockers.append("prior_ownership_change_already_limited_these_nols")
+    if pill.get("present"):
+        blockers.append("nol_rights_plan_blocks_a_change_of_control")
+    if facts.get("needs_review"):
+        blockers.append("filing_language_ambiguous_needs_human_review")
+    if blockers:
+        row["usability"] = "blocked"
+        # `is_actionable` is set in enrich_metrics, which runs BEFORE this, and
+        # the payload's actionable_count reads it. Demoting usability without
+        # clearing it published a header claiming 4 usable rows above a table
+        # showing 2 -- the count and the thing it counts must move together.
+        row["is_actionable"] = False
+
+
+def load_cik_cache() -> dict[str, str]:
+    """Committed ticker -> CIK map, resolved once so a bad minute cannot cost data."""
+    if not CIK_CACHE_PATH.exists():
+        return {}
+    try:
+        doc = json.loads(CIK_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {str(k).upper(): str(v) for k, v in (doc.get("ciks") or {}).items() if v}
+
+
+def cik_for_ticker(
+    ticker: str,
+    cik_map: dict[str, str],
+    cache: dict[str, str | None],
+    disk_cache: dict[str, str] | None = None,
+) -> str | None:
+    """Override, then committed cache, then company_tickers.json, then EDGAR.
+
+    Order matters and is defensive. company_tickers.json omits ~15 of these
+    tickers outright, and it also fails transiently: when it returned nothing
+    mid-build, every ticker fell through to EDGAR's CGI endpoint, 89 rapid
+    requests got throttled, and the rebuild lost 9 CIKs and 14 market caps it
+    had held the run before. A momentary network failure must not be able to
+    silently delete data, so the committed cache is consulted before any
+    network source and EDGAR is the last resort.
+
+    CIK_OVERRIDES wins over everything: it names tickers whose lookup lands on
+    a SUPERSEDED registrant (PARA -> 0000813828, old Viacom, newest share fact
+    2010-04-30). A lookup that succeeds onto a dead company is worse than one
+    that fails, because the facts it returns look entirely real.
+    """
+    upper = ticker.upper()
+    if upper in CIK_OVERRIDES:
+        return CIK_OVERRIDES[upper]
+    if disk_cache and upper in disk_cache:
+        return disk_cache[upper]
+    found = cik_map.get(upper)
+    if found:
+        return found
+    if upper not in cache:
+        cache[upper] = resolve_cik_via_edgar(upper)
+        time.sleep(0.5)  # CGI endpoint throttles far harder than the JSON APIs
+    return cache[upper]
 
 
 def _pick_best_entry(entries: list[dict]) -> tuple[float | None, str | None]:
@@ -251,6 +401,35 @@ def screen_ticker(ticker: str, cik: str) -> dict:
     allowance, _ = latest_usd_fact(data, ALLOWANCE_TAGS)
     nol_dta, _ = latest_usd_fact(data, NOL_DTA_TAGS)
     operating_loss, _ = latest_usd_fact(data, OPERATING_LOSS_TAGS)
+
+    # Many filers never tag the combined DeferredTaxAssetsOperatingLossCarryforwards
+    # and only tag its components, which is why 30 rows read as having no NOL at
+    # all. Pull the components SEPARATELY rather than summing them: the DTAs are
+    # already tax-effected at their own rates, so folding a state NOL carried at
+    # ~5-9% into a figure that section_382_profile grosses up at the 21% federal
+    # rate would materially overstate the carryforward. Domestic is the right
+    # federal proxy; state and foreign are recorded as context, not blended in.
+    nol_domestic, _ = latest_usd_fact(data, ("DeferredTaxAssetsOperatingLossCarryforwardsDomestic",))
+    nol_state, _ = latest_usd_fact(data, ("DeferredTaxAssetsOperatingLossCarryforwardsStateAndLocal",))
+    nol_foreign, _ = latest_usd_fact(data, ("DeferredTaxAssetsOperatingLossCarryforwardsForeign",))
+    # Section 383 limits credits on the same clock as 382 limits losses. Not
+    # modelled in the shield yet; captured so it stops being invisible.
+    tax_credits, _ = latest_usd_fact(
+        data,
+        (
+            "DeferredTaxAssetsTaxCreditCarryforwards",
+            "DeferredTaxAssetsTaxCreditCarryforwardsResearch",
+            "TaxCreditCarryforwardAmount",
+        ),
+    )
+    capital_loss, _ = latest_usd_fact(data, ("DeferredTaxAssetsCapitalLossCarryforwards",))
+
+    nol_dta_basis = "combined_tag"
+    if nol_dta is None and nol_domestic is not None:
+        nol_dta = nol_domestic
+        nol_dta_basis = "domestic_component_only"
+    elif nol_dta is None:
+        nol_dta_basis = "unavailable"
     shares, shares_date = latest_shares_fact(data)
     cash, _ = latest_usd_fact(data, CASH_TAGS)
     debt_long, _ = latest_usd_fact(data, ("LongTermDebtNoncurrent", "LongTermDebt"))
@@ -271,6 +450,12 @@ def screen_ticker(ticker: str, cik: str) -> dict:
         "valuation_allowance_usd": allowance,
         "dta_realizable_usd": realizable,
         "nol_dta_usd": nol_dta,
+        "nol_dta_basis": nol_dta_basis,
+        "nol_dta_domestic_usd": nol_domestic,
+        "nol_dta_state_usd": nol_state,
+        "nol_dta_foreign_usd": nol_foreign,
+        "tax_credit_carryforward_usd": tax_credits,
+        "capital_loss_carryforward_usd": capital_loss,
         "operating_loss_carryforward_usd": operating_loss,
         "allowance_pct": allowance_pct,
         "shares_outstanding": shares,
@@ -378,6 +563,10 @@ FULLY_RESERVED_ALLOWANCE_PCT = 90.0
 SECTION_382_MATERIAL_FRACTION_OF_CEILING = 0.60
 # Below this a reported market cap is a bad price feed, not a nano-cap.
 IMPLAUSIBLE_MCAP_FLOOR_USD = 1_000_000.0
+# Control-premium sensitivity. 1.0x is the screen price; 1.3x/1.5x bracket the
+# range typical of negotiated US takeovers. Not a forecast -- a lever whose
+# direction is counter-intuitive enough to be worth drawing.
+CONTROL_PREMIUM_MULTIPLES = (1.0, 1.3, 1.5)
 
 
 def section_382_ceiling_ratio() -> float:
@@ -499,10 +688,41 @@ def section_382_profile(sec: dict, mcap: float | None) -> dict:
     else:
         usability = "immaterial_after_382"
 
+    # The 382 limit keys off equity value immediately BEFORE the change, and a
+    # real deal pays a premium over the screen price, which RAISES the limit.
+    # That cuts against the instinct that overpaying destroys the tax asset:
+    # every extra dollar of price buys 4.5c a year of additional allowance. The
+    # shield/price RATIO is scale-invariant and barely moves, so the premium
+    # only matters where the carryforward is large enough to outrun the limit --
+    # exactly the rows worth looking at. Show the absolute shield at each.
+    premium_scenarios = []
+    if mcap and mcap > 0 and gross_nol and gross_nol > 0:
+        for multiple in CONTROL_PREMIUM_MULTIPLES:
+            price = mcap * multiple
+            limit = price * SECTION_382_RATE
+            years = min(NOL_PV_HORIZON_YEARS, max(0.0, gross_nol / limit))
+            whole = int(years)
+            pv = sum(limit / ((1 + NOL_PV_DISCOUNT_RATE) ** y) for y in range(1, whole + 1))
+            frac = years - whole
+            if frac > 0:
+                pv += (limit * frac) / ((1 + NOL_PV_DISCOUNT_RATE) ** (whole + 1))
+            shield = pv * FEDERAL_CORPORATE_RATE * POST_2017_INCOME_OFFSET_CAP
+            premium_scenarios.append(
+                {
+                    "premium_multiple": multiple,
+                    "assumed_price_usd": price,
+                    "annual_limit_usd": limit,
+                    "years_to_absorb": round(gross_nol / limit, 1),
+                    "tax_shield_pv_usd": shield,
+                    "shield_pct_of_price": round(100.0 * shield / price, 2),
+                }
+            )
+
     return {
         "nol_share_of_dta": nol_share,
         "gross_nol_usd": gross_nol,
         "gross_nol_basis": nol_basis,
+        "control_premium_scenarios": premium_scenarios,
         "section_382_annual_limit_usd": annual_limit,
         "section_382_years_to_absorb": years_to_absorb,
         "acquirer_usable_nol_pv_usd": usable_pv,
@@ -575,8 +795,22 @@ def build_rows() -> list[dict]:
     seeds = load_seed_rows()
     cik_map = load_cik_map()
 
+    disk_cache = load_cik_cache()
+    facts_by_ticker = load_382_facts()
+    # An empty ticker map is a transient SEC failure, not a repo with no
+    # companies in it. Say so: the previous behaviour was to fall through to 89
+    # EDGAR calls, get throttled, and publish a thinner screener as if nothing
+    # had happened.
+    if not cik_map:
+        print(
+            "WARN: company_tickers.json returned nothing; falling back to the committed "
+            f"CIK cache ({len(disk_cache)} entries). CIK coverage may be reduced.",
+            file=sys.stderr,
+        )
+
     seen: set[str] = set()
     out: list[dict] = []
+    cik_cache: dict[str, str | None] = {}
 
     for seed in seeds:
         ticker = seed["ticker"]
@@ -586,7 +820,9 @@ def build_rows() -> list[dict]:
 
         row = {**seed}
         base_ticker = ticker.split(".")[0]
-        cik = cik_map.get(base_ticker) or cik_map.get(ticker)
+        cik = cik_for_ticker(ticker, cik_map, cik_cache, disk_cache) or cik_for_ticker(
+            base_ticker, cik_map, cik_cache, disk_cache
+        )
 
         sec: dict = {}
         if cik:
@@ -613,6 +849,16 @@ def build_rows() -> list[dict]:
                 "valuation_allowance_usd": sec.get("valuation_allowance_usd"),
                 "dta_realizable_usd": sec.get("dta_realizable_usd"),
                 "nol_dta_usd": sec.get("nol_dta_usd"),
+                # This block is an explicit whitelist, so anything screen_ticker
+                # learns and does not list here is silently discarded -- the
+                # component-tag recovery ran correctly for a whole build and
+                # reported zero because these five lines were missing.
+                "nol_dta_basis": sec.get("nol_dta_basis"),
+                "nol_dta_domestic_usd": sec.get("nol_dta_domestic_usd"),
+                "nol_dta_state_usd": sec.get("nol_dta_state_usd"),
+                "nol_dta_foreign_usd": sec.get("nol_dta_foreign_usd"),
+                "tax_credit_carryforward_usd": sec.get("tax_credit_carryforward_usd"),
+                "capital_loss_carryforward_usd": sec.get("capital_loss_carryforward_usd"),
                 "operating_loss_carryforward_usd": sec.get("operating_loss_carryforward_usd"),
                 "allowance_pct": sec.get("allowance_pct"),
                 "shares_outstanding": shares,
@@ -628,6 +874,7 @@ def build_rows() -> list[dict]:
             }
         )
         row.update(metrics)
+        apply_382_facts(row, facts_by_ticker.get(ticker))
         row.pop("cap_tier_seed", None)
         out.append(row)
 
