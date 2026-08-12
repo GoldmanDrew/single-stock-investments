@@ -293,10 +293,16 @@ const worstLag = Object.entries(volLatest.coverage.metrics_lagging)
   .sort((a, b) => b[1].sessions_behind - a[1].sessions_behind)[0];
 const interior = Object.entries(volLatest.coverage.metrics_with_gaps)
   .filter(([, gap]) => String(gap.last_missing) < String(volLatest.as_of).slice(0, 10));
-check('trust line names the worst feed lag from coverage',
-  verdictHtml.includes(worstLag[0].toUpperCase() + ' at ' + worstLag[1].sessions_behind + ' sessions behind')
-    && verdictHtml.includes(worstLag[1].last_value_date),
-  worstLag[0] + ' ' + worstLag[1].sessions_behind + ' behind, last ' + worstLag[1].last_value_date);
+if (worstLag) {
+  check('trust line names the worst feed lag from coverage',
+    verdictHtml.includes(worstLag[0].toUpperCase() + ' at ' + worstLag[1].sessions_behind + ' sessions behind')
+      && verdictHtml.includes(worstLag[1].last_value_date),
+    worstLag[0] + ' ' + worstLag[1].sessions_behind + ' behind, last ' + worstLag[1].last_value_date);
+} else {
+  check('trust line confirms every feed printed on the snapshot date',
+    verdictHtml.includes('every vol feed printed on the snapshot date'),
+    'zero lagging feeds are stated explicitly rather than crashing the trust-line test');
+}
 // An interior gap is a hole that has since CLOSED. Whether any exists on a
 // given day is a property of the feed, not of the renderer - pinning
 // 'closed 2026-08-07' here made this assertion expire the day the holes became

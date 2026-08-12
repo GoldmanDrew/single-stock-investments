@@ -7,8 +7,9 @@ import math
 import sys
 import tempfile
 import unittest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parent
 if str(SCRIPTS) not in sys.path:
@@ -119,6 +120,18 @@ class GuardTests(unittest.TestCase):
         self.assertTrue(all(item is None for item in rolled[:29]))
         self.assertIsNotNone(rolled[29])
 
+    def test_completed_session_cutoff_excludes_an_open_us_session(self):
+        now = datetime(2026, 8, 12, 19, 50, tzinfo=timezone.utc)  # 15:50 New York
+        self.assertEqual(bvm.completed_session_cutoff(now), "2026-08-11")
+
+    def test_completed_session_cutoff_includes_a_finished_us_session(self):
+        now = datetime(2026, 8, 12, 23, 0, tzinfo=timezone.utc)  # 19:00 New York
+        self.assertEqual(bvm.completed_session_cutoff(now), "2026-08-12")
+
+    def test_completed_session_cutoff_rolls_weekend_to_friday(self):
+        now = datetime(2026, 8, 16, 16, 0, tzinfo=timezone.utc)  # Sunday
+        self.assertEqual(bvm.completed_session_cutoff(now), "2026-08-14")
+
 
 class TrailingPropertyTests(unittest.TestCase):
     def test_zscores_do_not_change_when_later_rows_are_appended(self):
@@ -192,6 +205,71 @@ class RealizedVolTests(unittest.TestCase):
             row["iv_rv_spread"], round(row["vix"] - row["spx_rv20"], 4), places=6
         )
         self.assertAlmostEqual(row["slope_vix_3m"], row["vix"] / row["vix3m"], places=5)
+
+
+class SourceHealingTests(unittest.TestCase):
+    def test_short_yahoo_tail_repairs_a_truncated_long_range(self):
+        long_range = {"2026-07-17": 70.88}
+        recent_tail = {
+            "2026-07-17": 70.88,
+            "2026-07-20": 72.10,
+            "2026-08-11": 77.92,
+        }
+        with mock.patch.object(
+            bvm, "_fetch_yahoo_close_series", side_effect=[long_range, recent_tail]
+        ), mock.patch.object(
+            bvm, "fetch_cnbc_move_latest", return_value={"2026-08-11": 77.92}
+        ), mock.patch.object(
+            bvm, "read_move_repair_series", return_value={}
+        ):
+            actual = bvm.fetch_close_series("^MOVE")
+        self.assertEqual(actual, recent_tail)
+
+    def test_cboe_source_recovers_when_both_yahoo_windows_fail(self):
+        official = {"2026-08-10": 15.46, "2026-08-11": 15.28}
+        with mock.patch.object(
+            bvm, "_fetch_yahoo_close_series", side_effect=RuntimeError("Yahoo unavailable")
+        ), mock.patch.object(
+            bvm, "fetch_cboe_close_series", return_value=official
+        ):
+            actual = bvm.fetch_close_series("^VIX")
+        self.assertEqual(actual, official)
+
+    def test_cboe_csv_parser_accepts_ohlc_and_single_value_files(self):
+        samples = {
+            "^VIX": b"DATE,OPEN,HIGH,LOW,CLOSE\n08/11/2026,15.42,15.61,15.23,15.28\n",
+            "^VVIX": "DATE,VVIX\n08/11/2026,90.90\n",
+        }
+        for symbol, payload in samples.items():
+            with self.subTest(symbol=symbol), mock.patch.object(
+                bvm, "_request", return_value=payload
+            ):
+                actual = bvm.fetch_cboe_close_series(symbol)
+            self.assertEqual(actual["2026-08-11"], 15.28 if symbol == "^VIX" else 90.90)
+
+    def test_partial_recovery_merges_with_committed_history(self):
+        prior_row = {"date": "2026-08-10"}
+        prior_row.update({key: 10.0 for key in bvm.FETCH_KEYS})
+        prior = [prior_row]
+
+        def latest_only(_symbol):
+            return {"2026-08-11": 11.0}
+
+        series_map, stale, failed = bvm.collect_series(latest_only, prior)
+        self.assertEqual(series_map["move"], {"2026-08-10": 10.0, "2026-08-11": 11.0})
+        self.assertEqual(stale, {})
+        self.assertEqual(failed, {})
+
+    def test_move_repair_file_is_an_auditable_date_value_overlay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "move.csv"
+            path.write_text(
+                "date,close,source_url,retrieved_at\n"
+                "2026-07-20,72.66,https://example.test,2026-08-12\n",
+                encoding="utf-8",
+            )
+            actual = bvm.read_move_repair_series(path)
+        self.assertEqual(actual, {"2026-07-20": 72.66})
 
 
 class PreserveOnFetchFailureTests(unittest.TestCase):
@@ -404,7 +482,7 @@ class OutputTests(unittest.TestCase):
             )
             payload = json.loads((out / bvm.LATEST_NAME).read_text(encoding="utf-8"))
         self.assertEqual(payload["schema_version"], 1)
-        self.assertEqual(payload["model_version"], "vol-metrics-v1")
+        self.assertEqual(payload["model_version"], "vol-metrics-v2")
         self.assertTrue(payload["research_only"])
         self.assertEqual(payload["as_of"], dates[-1])
         self.assertIn(payload["regime"]["term_state"], {"contango", "flat", "backwardation"})
@@ -468,10 +546,6 @@ class OutputTests(unittest.TestCase):
         self.assertEqual(bvm.term_state(None), "unknown")
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class InteriorGapDetectionTests(unittest.TestCase):
     """A metric that stops printing for weeks and then resumes reads as
     perfectly fresh under a last-print check (observed 2026-08-10: the whole
@@ -496,6 +570,8 @@ class InteriorGapDetectionTests(unittest.TestCase):
         self.assertEqual(gap["sessions_missing"], 3)
         self.assertEqual(gap["first_missing"], "2026-07-02")
         self.assertFalse(gap["window_fully_missing"])
+        self.assertIn("vix3m", coverage["metrics_gap_stale"])
+        self.assertEqual(latest["quality_state"], "stale")
 
     def test_metric_dead_for_the_whole_window_is_not_filtered_out(self):
         rows = self._rows(set())
@@ -512,3 +588,7 @@ class InteriorGapDetectionTests(unittest.TestCase):
         rows = self._rows(set())
         latest = bvm.build_latest(rows, {}, {}, {}, "2026-08-10T00:00:00+00:00")
         self.assertNotIn("vix3m", latest["coverage"]["metrics_with_gaps"])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

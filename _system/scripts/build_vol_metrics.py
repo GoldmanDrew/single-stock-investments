@@ -4,19 +4,22 @@ vol-surface visibility plan, `_system/proposals/vol_surface_visibility_plan_2026
 
 Sources
 -------
-Yahoo chart v8 daily closes, keyless, one request per index:
+Yahoo chart v8 daily closes provide the ten-year base history and a separate
+120-day repair request for each index:
 ``^VIX ^VIX9D ^VIX3M ^VIX6M ^VIX1D ^VVIX ^SKEW ^MOVE`` plus ``^GSPC`` for
-realized vol. ``^VIX1D`` only exists from 2023-04-24 (index launch), so its
-z-scores stay null before then; that never affects any other metric because
-every metric is z-scored over its **own** observations.
+realized vol. Official Cboe daily files independently repair the recent Cboe
+index tail. CNBC supplies an independent delayed MOVE close, and the source-
+stamped ``_system/data/vol_metrics_move_outage_backfill.csv`` repairs the
+2026-07-20..08-11 vendor hole that was no longer recoverable from Yahoo after
+the fact. ``^VIX1D`` only exists from 2023-04-24 (index launch), so its z-scores
+stay null before then; that never affects any other metric because every metric
+is z-scored over its **own** observations.
 
-Yahoo publishes ``^SKEW`` and ``^MOVE`` on a lag (observed 2026-08-10: SKEW one
-session behind, MOVE ~17 sessions behind), so the latest row's ``skew`` /
-``move`` are legitimately null. Nothing is forward filled: each metric in
-``vol_metrics_latest.json`` carries ``value`` (strictly as of ``as_of``, may be
-null) alongside ``last_value`` / ``last_value_date``, and
-``coverage.metrics_lagging`` names every metric whose last observation predates
-``as_of`` with how many sessions behind it is.
+Nothing is forward filled. Every fallback contributes real dated observations,
+and partial recovery is merged with committed history rather than replacing it.
+The published spine is capped at the latest completed US session (18:00 New
+York cutoff), avoiding a mixture of today's partial Yahoo candle and yesterday's
+official closes.
 
 SPX 0DTE options-derived z-scores (``straddle_residual_z``, ``skew_z``,
 ``term_ratio_z``, ``realized_vs_implied_z``) are carried from the
@@ -65,10 +68,12 @@ a fabricated 0.
 
 Failure handling
 ----------------
-A per-symbol fetch failure never fails the run: that symbol's column is rebuilt
-from the previously committed history file, the affected rows are stamped
-``quality_state='stale'`` with ``fetch_status`` and ``stale_metrics``, exactly
-like `build_criticality_signals.py` preserves a prior row.
+A per-source failure moves to the next source. A total per-symbol failure
+preserves committed history and stamps the output stale. Three trailing nulls
+or three holes in the recent window also make the snapshot stale even if the
+transport returned 200 or a later print resumed. The command exits nonzero for
+any stale snapshot, so the scheduled commit step cannot publish a fresh
+timestamp over unhealthy columns.
 
 Outputs
 -------
@@ -80,6 +85,8 @@ Outputs
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import math
 import statistics
@@ -87,6 +94,7 @@ import sys
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = Path(__file__).resolve().parent
@@ -96,7 +104,7 @@ if str(SCRIPTS) not in sys.path:
 from build_technical_signals import _request  # noqa: E402
 
 SCHEMA_VERSION = 1
-MODEL_VERSION = "vol-metrics-v1"
+MODEL_VERSION = "vol-metrics-v2"
 # Recent-window size for interior-gap detection (see build_latest).
 GAP_WINDOW_SESSIONS = 25
 # Consecutive trailing nulls after which a metric's column is DARK, not merely
@@ -105,6 +113,11 @@ GAP_WINDOW_SESSIONS = 25
 # straight sessions is a dead feed and must not be reported as healthy. See
 # `dark_metrics` in build_latest for why a 200-OK fetch is not evidence of one.
 DARK_SESSION_THRESHOLD = 3
+# Three or more holes in the recent window are also unhealthy even when a new
+# print arrives afterward. This prevents one recovered observation from hiding
+# the multi-week outage that preceded it.
+RECENT_GAP_STALE_THRESHOLD = 3
+YAHOO_TAIL_LOOKBACK_DAYS = 120
 DEFAULT_OUTPUT_DIR = ROOT / "dashboard" / "data"
 HISTORY_NAME = "vol_metrics_history.jsonl"
 LATEST_NAME = "vol_metrics_latest.json"
@@ -148,6 +161,11 @@ CHAIN_NEAR_TARGET_DTE = 30
 CHAIN_FAR_TARGET_DTE = 91
 # Widest acceptable miss against those targets before the pair is unusable.
 CHAIN_MAX_DTE_ERROR = 45
+# Daily observations are not comparable until the US session has settled.
+# The scheduled lane runs late evening; local/manual runs during market hours
+# must not mix today's partial Yahoo candle with yesterday's official closes.
+SESSION_COMPLETE_HOUR_ET = 18
+NEW_YORK = ZoneInfo("America/New_York")
 
 # metric key -> Yahoo symbol. ``spx_close`` is an input for realized vol and is
 # carried on each row for reproducibility; it is not z-scored.
@@ -164,6 +182,25 @@ LEVEL_SYMBOLS = {
 SPX_KEY = "spx_close"
 SPX_SYMBOL = "^GSPC"
 FETCH_KEYS = list(LEVEL_SYMBOLS) + [SPX_KEY]
+
+# Cboe publishes these daily files directly and updates them independently of
+# Yahoo. They are an authoritative repair path for the recent tail and a full
+# fallback when Yahoo is unavailable.
+CBOE_DAILY_CODES = {
+    "^VIX": "VIX",
+    "^VIX1D": "VIX1D",
+    "^VIX9D": "VIX9D",
+    "^VIX3M": "VIX3M",
+    "^VIX6M": "VIX6M",
+    "^VVIX": "VVIX",
+    "^SKEW": "SKEW",
+}
+CBOE_DAILY_BASE = "https://cdn.cboe.com/api/global/us_indices/daily_prices"
+CNBC_MOVE_URL = (
+    "https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?"
+    "symbols=.MOVE&requestMethod=quick&noform=1&partnerId=2&fund=1&exthrs=0&output=json"
+)
+MOVE_REPAIR_PATH = ROOT / "_system" / "data" / "vol_metrics_move_outage_backfill.csv"
 
 DERIVED_KEYS = [
     "slope_9d_vix",
@@ -205,6 +242,24 @@ def _ratio(numerator, denominator):
     if top is None or bottom is None or bottom == 0:
         return None
     return top / bottom
+
+
+def completed_session_cutoff(now: datetime | None = None) -> str:
+    """Latest US weekday whose daily close is safe to publish.
+
+    Calendar holidays need no hard-coded calendar: filtering source dates to
+    this upper bound naturally lands on the prior actual observation.
+    """
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    local = current.astimezone(NEW_YORK)
+    candidate = local.date()
+    if candidate.weekday() >= 5 or local.hour < SESSION_COMPLETE_HOUR_ET:
+        candidate -= timedelta(days=1)
+    while candidate.weekday() >= 5:
+        candidate -= timedelta(days=1)
+    return candidate.isoformat()
 
 
 def trailing_zscore(window: list, min_observations: int = MIN_OBSERVATIONS):
@@ -326,10 +381,13 @@ def read_history(path: Path) -> list:
     return rows
 
 
-def fetch_close_series(symbol: str) -> dict:
-    """Date (YYYY-MM-DD) -> close, from the keyless Yahoo chart v8 endpoint."""
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(days=LOOKBACK_DAYS)
+def _fetch_yahoo_close_series(symbol: str, start: datetime, end: datetime) -> dict:
+    """Fetch one Yahoo window.
+
+    A separate recent-window request is intentional. In July/August 2026 Yahoo
+    returned a successful ten-year MOVE response ending on July 17 while a
+    short-window request from the same endpoint contained newer observations.
+    """
     encoded = urllib.parse.quote(symbol, safe="")
     url = (
         f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded}?"
@@ -358,6 +416,122 @@ def fetch_close_series(symbol: str) -> dict:
         series[date] = close
     if not series:
         raise ValueError(f"Yahoo returned no usable closes for {symbol}")
+    return series
+
+
+def _parse_daily_date(value: str) -> str | None:
+    text = str(value or "").strip()
+    for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, pattern).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return None
+
+
+def fetch_cboe_close_series(symbol: str) -> dict:
+    """Date -> official Cboe daily close for a supported Cboe index."""
+    code = CBOE_DAILY_CODES.get(symbol)
+    if not code:
+        raise ValueError(f"no Cboe daily source configured for {symbol}")
+    url = f"{CBOE_DAILY_BASE}/{code}_History.csv"
+    raw = _request(url)
+    text = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+    reader = csv.DictReader(io.StringIO(text.lstrip("\ufeff")))
+    series = {}
+    for raw in reader:
+        row = {str(key or "").strip().upper(): value for key, value in raw.items()}
+        day = _parse_daily_date(row.get("DATE"))
+        close = _finite(row.get("CLOSE"))
+        if close is None:
+            close = _finite(row.get(code))
+        if day and close is not None and close > 0:
+            series[day] = close
+    if not series:
+        raise ValueError(f"Cboe returned no usable closes for {symbol}")
+    return series
+
+
+def read_move_repair_series(path: Path = MOVE_REPAIR_PATH) -> dict:
+    """Read the audited one-time MOVE outage backfill.
+
+    Yahoo omitted 2026-07-20..2026-08-11 from every chart response after the
+    fact. Those daily closes were independently verified and are kept as a
+    small source-stamped CSV rather than buried as unexplained code constants.
+    """
+    if not Path(path).is_file():
+        return {}
+    series = {}
+    with Path(path).open("r", encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            day = _parse_daily_date(row.get("date"))
+            close = _finite(row.get("close"))
+            if day and close is not None and close > 0 and row.get("source_url"):
+                series[day] = close
+    return series
+
+
+def fetch_cnbc_move_latest() -> dict:
+    """Independent delayed MOVE close used to repair/cross-check the tail."""
+    payload = json.loads(_request(CNBC_MOVE_URL))
+    quotes = ((payload.get("FormattedQuoteResult") or {}).get("FormattedQuote") or [])
+    quote = next((item for item in quotes if item.get("symbol") == ".MOVE"), None)
+    if not quote:
+        raise ValueError("CNBC returned no .MOVE quote")
+    day = _parse_daily_date(quote.get("last_time"))
+    if day is None:
+        try:
+            day = datetime.fromisoformat(str(quote.get("last_time"))).strftime("%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError("CNBC returned an invalid .MOVE date") from exc
+    close = _finite(str(quote.get("last") or "").replace(",", ""))
+    if close is None or close <= 0:
+        raise ValueError("CNBC returned no usable .MOVE close")
+    return {day: close}
+
+
+def fetch_close_series(symbol: str) -> dict:
+    """Self-healing composite daily series.
+
+    Yahoo supplies the long history. A second short request repairs range-
+    dependent truncation; official Cboe daily files overlay the recent Cboe
+    tail (or provide the full fallback); an audited CSV closes the historical
+    MOVE outage, then CNBC independently supplies the last delayed MOVE close.
+    Any one live source may fail without discarding the others.
+    """
+    end = datetime.now(timezone.utc)
+    starts = (
+        end - timedelta(days=LOOKBACK_DAYS),
+        end - timedelta(days=YAHOO_TAIL_LOOKBACK_DAYS),
+    )
+    series = {}
+    errors = []
+    for start in starts:
+        try:
+            series.update(_fetch_yahoo_close_series(symbol, start, end))
+        except Exception as exc:  # noqa: BLE001 - alternate source is the recovery path
+            errors.append(f"Yahoo:{str(exc)[:120]}")
+
+    if symbol in CBOE_DAILY_CODES:
+        try:
+            official = fetch_cboe_close_series(symbol)
+            if series:
+                cutoff = (end - timedelta(days=YAHOO_TAIL_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+                official = {day: value for day, value in official.items() if day >= cutoff}
+            series.update(official)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Cboe:{str(exc)[:120]}")
+
+    if symbol == "^MOVE":
+        for day, value in read_move_repair_series().items():
+            series.setdefault(day, value)
+        try:
+            series.update(fetch_cnbc_move_latest())
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"CNBC:{str(exc)[:120]}")
+
+    if not series:
+        raise ValueError(f"all sources failed for {symbol}: {'; '.join(errors)}")
     return series
 
 
@@ -636,7 +810,7 @@ def trailing_dark_sessions(rows: list, key: str) -> int:
 # series assembly
 # --------------------------------------------------------------------------
 def collect_series(fetcher, prior_rows: list) -> tuple:
-    """Fetch every symbol; fall back to the committed history on failure."""
+    """Fetch every symbol; merge partial recovery with committed history."""
     prior_by_date = {row["date"]: row for row in prior_rows}
     series_map: dict = {}
     stale: dict = {}
@@ -647,7 +821,16 @@ def collect_series(fetcher, prior_rows: list) -> tuple:
             series = fetcher(symbol)
             if not series:
                 raise ValueError(f"empty series for {symbol}")
-            series_map[key] = {date: float(value) for date, value in series.items()}
+            # A fallback may only provide a recent tail or latest close. Keep
+            # all valid committed observations and let newly fetched values
+            # win on overlap; recovery must never erase good history.
+            merged = {
+                date: value
+                for date, row in prior_by_date.items()
+                if (value := _finite(row.get(key))) is not None
+            }
+            merged.update({date: float(value) for date, value in series.items()})
+            series_map[key] = merged
             continue
         except Exception as exc:  # noqa: BLE001 - a source hiccup must not fail the lane
             message = str(exc)[:240]
@@ -674,12 +857,13 @@ def collect_series(fetcher, prior_rows: list) -> tuple:
 
 
 def build_spine(series_map: dict, prior_rows: list) -> list:
-    """Trading dates for the history: VIX's calendar, then SPX, then prior."""
+    """Completed trading dates: VIX's calendar, then SPX, then prior."""
+    cutoff = completed_session_cutoff()
     for key in ("vix", SPX_KEY, "vix3m", "vix9d"):
         dates = series_map.get(key) or {}
         if dates:
-            return sorted(dates)
-    return sorted({row["date"] for row in prior_rows})
+            return sorted(day for day in dates if day <= cutoff)
+    return sorted({row["date"] for row in prior_rows if row["date"] <= cutoff})
 
 
 def compute_rows(series_map: dict, spine: list) -> list:
@@ -912,7 +1096,12 @@ def build_latest(
         for key in FETCH_KEYS
         if key not in stale and key not in failed and key not in dark
     ]
-    quality = "stale" if (stale or failed or dark) else "ready"
+    gap_stale = {
+        key: detail
+        for key, detail in gaps.items()
+        if detail["sessions_missing"] >= RECENT_GAP_STALE_THRESHOLD
+    }
+    quality = "stale" if (stale or failed or dark or gap_stale) else "ready"
     regime = resolve_term_state(
         latest.get("slope_vix_3m"),
         chain if chain is not None else {"available": False, "status": "chain_not_supplied", "ratio": None},
@@ -924,7 +1113,10 @@ def build_latest(
         "research_only": True,
         "cadence": "daily",
         "as_of": latest["date"],
-        "source": "yahoo:chart-v8; spx-0dte via market_risk_components.json",
+        "source": (
+            "composite:yahoo-chart-v8(full+recent-tail),cboe-daily-official,"
+            "cnbc-move-delayed; spx-0dte via market_risk_components.json"
+        ),
         "metrics": metrics,
         "regime": {
             "vix": latest.get("vix"),
@@ -963,8 +1155,22 @@ def build_latest(
             "symbols_dark": sorted(LEVEL_SYMBOLS.get(key, SPX_SYMBOL) for key in dark),
             "metrics_lagging": lagging,
             "metrics_with_gaps": gaps,
+            "metrics_gap_stale": gap_stale,
             "metrics_dark": dark,
             "dark_threshold_sessions": DARK_SESSION_THRESHOLD,
+            "gap_stale_threshold_sessions": RECENT_GAP_STALE_THRESHOLD,
+            "source_strategy": {
+                "long_history": "Yahoo chart-v8 ten-year window",
+                "tail_repair": f"Yahoo chart-v8 {YAHOO_TAIL_LOOKBACK_DAYS}-day window",
+                "cboe_repair": "official Cboe daily index files",
+                "move_outage_backfill": str(MOVE_REPAIR_PATH.relative_to(ROOT)).replace("\\", "/"),
+                "move_cross_check": "CNBC delayed .MOVE close",
+                "merge_rule": "committed history preserved; fresh observations win by date",
+                "session_cutoff": (
+                    f"completed US weekdays only; current session admitted after "
+                    f"{SESSION_COMPLETE_HOUR_ET}:00 America/New_York"
+                ),
+            },
             "stale_detail": {LEVEL_SYMBOLS.get(k, SPX_SYMBOL): v for k, v in stale.items()},
             "unavailable_detail": {LEVEL_SYMBOLS.get(k, SPX_SYMBOL): v for k, v in failed.items()},
         },
@@ -1044,7 +1250,9 @@ def main() -> int:
     args = parser.parse_args()
     result = build(output_dir=Path(args.output_dir), dry_run=args.dry_run)
     print(json.dumps(summarize(result), sort_keys=True))
-    return 0 if result["latest"]["quality_state"] != "unavailable" else 1
+    # A stale build must alert the scheduled lane and prevent its commit step
+    # from laundering old columns behind a fresh generated_at timestamp.
+    return 0 if result["latest"]["quality_state"] == "ready" else 1
 
 
 if __name__ == "__main__":
