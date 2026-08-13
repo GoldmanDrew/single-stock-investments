@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -11,10 +12,32 @@ import yaml
 from . import PKG_DIR
 
 
+def apply_ibkr_env(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Same knobs as ls-algo / SPX 0DTE: host, port, account from the environment."""
+    ibkr = dict(cfg.get("ibkr") or {})
+    host = os.environ.get("IBKR_HOST") or os.environ.get("TWS_HOST")
+    port = os.environ.get("IBKR_PORT") or os.environ.get("TWS_PORT")
+    account = os.environ.get("IBKR_ACCOUNT") or os.environ.get("IBKR_ACCOUNT_ID")
+    if host:
+        ibkr["host"] = host.strip()
+    if port:
+        ibkr["live_port"] = int(port)
+    if account:
+        ibkr["account_id"] = account.strip()
+    cfg["ibkr"] = ibkr
+    ingest = dict(cfg.get("ingest") or {})
+    url = os.environ.get("SLEEVE_INGEST_URL")
+    if url:
+        ingest["url"] = url.strip()
+        cfg["ingest"] = ingest
+    return cfg
+
+
 def load_config(path: Path | None = None) -> dict[str, Any]:
     cfg_path = path or (PKG_DIR / "config.yaml")
     with cfg_path.open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle) or {}
+        cfg = yaml.safe_load(handle) or {}
+    return apply_ibkr_env(cfg)
 
 
 def _read_json(rel: str) -> dict[str, Any]:

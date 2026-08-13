@@ -36,7 +36,21 @@ Dry-run is on by default (`execution.dry_run: true`, `allow_live: false` in `con
 
 ## Sync Michael's book
 
-Use **Sync IB into Michael sleeve** while TWS is connected. The classifier keeps blacklist families, drops SPX 0DTE and systematic LETFs, then upserts positions. Notes are not invented; un-noted names show as needs thesis on the Michael tab.
+Same IB pin as ls-algo and SPX 0DTE: host `127.0.0.1`, live port `7496`, account `U805366`, read-only client id **73**. Positions are requested with `reqPositionsMulti(account)` so sibling accounts stay quiet.
+
+```bash
+python -m _system.trading.sleeves.sync_ib
+```
+
+If NY4 is still logged in, TWS on this machine cannot connect. Pass yesterday's Flex file instead:
+
+```bash
+python -m _system.trading.sleeves.sync_ib --flex path/to/flex_positions.xml
+```
+
+The classifier keeps residual stocks and blacklist families in Michael, drops SPX/XSP options and systematic LETFs, and leaves Drew empty unless a row is tagged `DREW_SLEEVE`. It writes `dashboard/data/sleeves_*.json` and HMAC-posts both books when `SLEEVE_INGEST_TOKEN` is set.
+
+Override host/port/account with `IBKR_HOST`, `IBKR_PORT`, `IBKR_ACCOUNT` if needed.
 
 ## Kill switch
 

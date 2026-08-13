@@ -27,7 +27,17 @@ def test_snapshot_blacklist_covers_configured_names():
         assert name in family
 
 
-def test_spxw_excluded():
+def test_xsp_option_excluded():
+    cls = classify_position(
+        {
+            "symbol": "XSP   270129P00540000",
+            "secType": "OPT",
+            "underlyingSymbol": "XSP",
+        },
+        blacklist_family=set(),
+        etf_ls_symbols=set(),
+    )
+    assert cls.bucket == "spx_0dte"
     cls = classify_position(
         {"symbol": "SPX", "secType": "OPT", "tradingClass": "SPXW", "localSymbol": "SPXW  260813C05000000"},
         blacklist_family={"APLD"},

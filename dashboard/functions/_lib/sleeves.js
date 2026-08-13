@@ -71,8 +71,8 @@ export function emptyBook(owner) {
       buying_power_usd: michael ? 0 : 200000,
       open_names: 0,
       blurb: michael
-        ? "Long-term residual book; SPX 0DTE and systematic LETFs excluded; blacklist families included."
-        : "Drew sleeve starts at $100k plus extra margin. New DREW_SLEEVE fills only.",
+        ? "Live Magis account after taking out the systematic LETF desk and SPX 0DTE. Blacklist names Michael trades by hand stay here."
+        : "Starts empty. New buys tagged DREW_SLEEVE on the local desk show up here. $100k equity plus $100k extra margin.",
     },
     positions: [],
     ideas: [],

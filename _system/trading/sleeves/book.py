@@ -28,6 +28,7 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
         qty = float(pos.get("qty") or pos.get("position") or 0)
         mark = float(pos.get("mark") or pos.get("avgCost") or 0)
         mv = float(pos.get("marketValue") or pos.get("market_value") or qty * mark)
+        cost = float(pos.get("costUsd") or pos.get("cost_usd") or 0) or abs(qty * float(pos.get("avgCost") or 0))
         reason = cls.get("reason") or "residual"
         if reason == "cash":
             cash_usd += abs(mv)
@@ -35,10 +36,12 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
         idea = next((i for i in store.ideas(owner) if norm_sym(i.get("ticker") or "") == ticker), {})
         notes = [n for n in store.notes(owner) if norm_sym(n.get("ticker") or "") == ticker]
         years_held = idea.get("holding_period_years")
-        entry = float(idea.get("entry_price") or 0) or None
-        cost = float(idea.get("cost_usd") or 0) or abs(mv)
+        entry = float(idea.get("entry_price") or pos.get("avgCost") or 0) or None
+        cost = float(idea.get("cost_usd") or 0) or cost or abs(mv)
         positions.append({
             "ticker": ticker,
+            "name": pos.get("name") or ticker,
+            "currency": pos.get("currency") or "USD",
             "side": "BUY" if qty >= 0 else "SELL",
             "status": idea.get("status") or ("filled" if qty else "idea"),
             "qty": qty,
@@ -46,6 +49,7 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
             "market_value": mv,
             "entry_price": entry,
             "cost_usd": cost,
+            "pnl_usd": mv - cost if cost else None,
             "cluster": idea.get("cluster") or "idiosyncratic",
             "conviction": idea.get("conviction"),
             "plc_score": idea.get("plc_score"),
@@ -56,6 +60,7 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
             "needs_thesis": not notes,
         })
         gross += abs(mv)
+    positions.sort(key=lambda row: abs(float(row.get("market_value") or 0)), reverse=True)
     equity = op.get("equity_usd")
     if equity is None:
         equity = gross + cash_usd
@@ -68,6 +73,21 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
         capital_base=float(equity) if owner == "drew" else None,
     )
     ideas = store.ideas(owner)
+    excluded = {"etf_ls": 0, "spx_0dte": 0, "ignored": 0}
+    for pos in store.positions():
+        bucket = (pos.get("classification") or {}).get("bucket")
+        if bucket in excluded:
+            excluded[bucket] += 1
+    if owner == "michael":
+        blurb = (
+            "Live Magis account U805366 after taking out the systematic LETF desk and SPX 0DTE. "
+            "Blacklist names Michael trades by hand stay here."
+        )
+    else:
+        blurb = (
+            "Starts empty. New buys tagged DREW_SLEEVE on the local desk show up here. "
+            "Does not inherit Michael's book. $100k equity plus $100k extra margin."
+        )
     return {
         "owner": owner,
         "display_name": op.get("display_name") or owner,
@@ -81,11 +101,8 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
             "cash_usd": cash_usd,
             "buying_power_usd": float(equity) + extra - gross,
             "open_names": len(positions),
-            "blurb": (
-                "Long-term residual book; SPX 0DTE and systematic LETFs excluded; blacklist families included."
-                if owner == "michael"
-                else "Drew sleeve starts at $100k plus extra margin. New DREW_SLEEVE fills only."
-            ),
+            "blurb": blurb,
+            "excluded": excluded,
         },
         "positions": positions,
         "ideas": ideas,
@@ -97,15 +114,15 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
     }
 
 
-def export_static_books(store: SleeveStore, cfg: Mapping[str, Any] | None = None) -> None:
+def export_static_books(store: SleeveStore, cfg: Mapping[str, Any] | None = None, *, source: str = "desk_export") -> None:
     """Write dashboard fallback JSON so local Pages preview shows the latest book."""
-    dash = PKG_DIR.parents[3] / "dashboard" / "data"
+    dash = PKG_DIR.parents[2] / "dashboard" / "data"
     if not dash.is_dir():
         return
     cfg = cfg or load_config()
     for owner in ("drew", "michael"):
         payload = build_book(owner, store, cfg)
-        payload["source"] = "desk_export"
+        payload["source"] = source
         path = dash / f"sleeves_{owner}.json"
         path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 

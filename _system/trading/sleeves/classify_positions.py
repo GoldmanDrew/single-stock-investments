@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 
 CASH_SEC_TYPES = {"CASH", "BILL"}
 CASH_SYMBOLS = {"USD", "EUR", "GBP", "CAD", "JPY", "BIL", "SGOV", "SHV", "TBIL", "TFLO", "VMFXX"}
-SPX_NAMES = {"SPX", "SPXW"}
+SPX_NAMES = {"SPX", "SPXW", "XSP"}
 ETF_LS_REFS = ("ETF_LS", "B5P")
 DREW_REF = "DREW_SLEEVE"
 MICHAEL_REF = "MICHAEL_SLEEVE"
@@ -74,6 +74,7 @@ def classify_position(
     etf_ls_symbols: Iterable[str],
     drew_symbols: Iterable[str] | None = None,
 ) -> Classification:
+    under = norm_sym(pos.get("underlyingSymbol") or pos.get("underlying") or "")
     ticker = norm_sym(pos.get("symbol") or pos.get("ticker") or pos.get("localSymbol") or "")
     sec = _sec_type(pos)
     tclass = _trading_class(pos)
@@ -81,14 +82,16 @@ def classify_position(
     family = {norm_sym(s) for s in blacklist_family}
     letf = {norm_sym(s) for s in etf_ls_symbols}
     drew = {norm_sym(s) for s in (drew_symbols or [])}
+    index_name = under or ticker or tclass
 
     if DREW_REF in ref or ticker in drew:
         return Classification(ticker, "drew", "drew_new", "drew")
 
-    if sec in {"OPT", "FOP"} and (
-        ticker in SPX_NAMES or tclass in SPX_NAMES or "SPXW" in str(pos.get("localSymbol") or "").upper()
-    ):
-        return Classification(ticker or "SPX", "spx_0dte", "spxw_option", None)
+    if sec in {"OPT", "FOP"}:
+        local = str(pos.get("localSymbol") or pos.get("symbol") or "").upper()
+        if index_name in SPX_NAMES or "SPXW" in local or local.startswith("XSP"):
+            return Classification(index_name or "SPX", "spx_0dte", "spxw_option", None)
+        return Classification(index_name or ticker, "ignored", "option_not_stock", None)
 
     if ticker in family:
         return Classification(ticker, "michael", "blacklist_family", "michael")

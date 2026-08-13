@@ -11,16 +11,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from _system.trading.sleeves.book import build_book, export_static_books
-from _system.trading.sleeves.classify_positions import classify_positions, expand_blacklist_symbols
-from _system.trading.sleeves.config_loader import (
-    load_blacklist,
-    load_config,
-    load_etf_ls_universe,
-    load_etf_to_under,
-)
+from _system.trading.sleeves.config_loader import load_config
 from _system.trading.sleeves.ingest import post_ingest
 from _system.trading.sleeves.orders import approve_trade, propose_trade
 from _system.trading.sleeves.store import SleeveStore
+from _system.trading.sleeves.sync_ib import sync_holdings
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -129,14 +124,14 @@ def create_app() -> "FastAPI":
     def approve(payload: dict):
         store = _store()
         try:
-        fill = approve_trade(
-            proposal_id=str(payload["proposal_id"]),
-            typed_ticker=str(payload.get("typed_ticker") or ""),
-            quote=payload.get("quote") or {},
-            store=store,
-            cfg=cfg,
-        )
-        export_static_books(store, cfg)
+            fill = approve_trade(
+                proposal_id=str(payload["proposal_id"]),
+                typed_ticker=str(payload.get("typed_ticker") or ""),
+                quote=payload.get("quote") or {},
+                store=store,
+                cfg=cfg,
+            )
+            export_static_books(store, cfg)
         except (PermissionError, KeyError, RuntimeError) as exc:
             raise HTTPException(400, str(exc)) from exc
         ingest = None
@@ -148,31 +143,22 @@ def create_app() -> "FastAPI":
 
     @app.post("/sync-ib")
     def sync_ib(payload: dict | None = None):
-        store = _store()
         payload = payload or {}
-        positions = payload.get("positions")
-        if positions is None:
-            from _system.trading.sleeves.ib_client import connect_ib, fetch_positions
-            ib = connect_ib("michael", cfg)
-            try:
-                positions = fetch_positions(ib, str((cfg.get("ibkr") or {}).get("account_id") or ""))
-            finally:
-                ib.disconnect()
-        family = expand_blacklist_symbols(load_blacklist(cfg), load_etf_to_under(cfg))
-        letf = load_etf_ls_universe(cfg)
-        classified = classify_positions(
-            positions, blacklist_family=family, etf_ls_symbols=letf
+        flex = payload.get("flex_path")
+        result = sync_holdings(
+            _store(),
+            cfg,
+            positions=payload.get("positions"),
+            flex_path=Path(flex) if flex else None,
         )
-        store.replace_positions(classified)
-        store.append_audit([row["classification"] for row in classified])
-        export_static_books(store, cfg)
-        michael_book = build_book("michael", store, cfg)
-        ingest = None
-        try:
-            ingest = _maybe_ingest({"kind": "sync", "book": michael_book, "audit": [r["classification"] for r in classified]})
-        except Exception as exc:
-            ingest = {"error": str(exc)}
-        return {"count": len(classified), "michael": michael_book["header"], "ingest": ingest}
+        return {
+            "count": result["count"],
+            "source": result["source"],
+            "buckets": result["buckets"],
+            "michael": result["michael"]["header"],
+            "drew": result["drew"]["header"],
+            "ingest": result["ingest"],
+        }
 
     @app.post("/notes")
     def notes(payload: dict):
