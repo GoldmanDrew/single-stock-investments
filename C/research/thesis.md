@@ -6,18 +6,18 @@
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | bank |
+| **Archetype** (Stahl) | compounder |
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
-| **Cycle** | mid |
-| **Implied 7yr IRR** (base) | -2.94% (contract base, provisional) |
+| **Cycle** | - |
+| **Implied 7yr IRR** (base) | -3.65% (contract base, provisional) |
 | **IRR method** | credit_and_normalized_returns |
 | **Lawrence bucket** | — |
 | **Payoff lens** | pending |
 | **MOI bucket** | pending |
 
-**Deep dive:** `C/research/deep_dive_2026-07-23.md` (auto-sync)
+**Deep dive:** `C/research/deep_dive_2026-08-13.md` (auto-sync)
 
 ## One-line thesis
 

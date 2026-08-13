@@ -1,6 +1,6 @@
 # C — Pending third-party sources
 
-**Updated:** 2026-07-23
+**Updated:** 2026-08-13
 
 Approve in `_system/frameworks/third_party_sources.md` before using in base IRR.
 
