@@ -562,6 +562,48 @@ def assumption_ledger(val: dict) -> str:
     rows.append(f"| {n} | Price today | **${price}** | {src} |")
     n += 1
 
+    if method == "proof_first_automated":
+        comps = (val.get("component_valuation_results") or {}).get("additive_components") or []
+        proof = comps[0].get("calculation_proof") if comps else {}
+        for inp in proof.get("inputs") or []:
+            label = inp.get("label") or inp.get("id", "")
+            value = inp.get("value")
+            unit = inp.get("unit") or ""
+            loc = (inp.get("source") or {}).get("locator") or (inp.get("source") or {}).get("ref", "filing")
+            if value is None:
+                continue
+            if unit == "USD millions":
+                cell = f"**${value:,.0f}M**"
+            elif unit == "million shares":
+                cell = f"**{value:.1f}M**"
+            elif unit == "shares":
+                cell = f"**{value:,.0f}**"
+            else:
+                cell = f"**{value}**"
+            rows.append(f"| {n} | {label} | {cell} | {loc} |")
+            n += 1
+        for ass in proof.get("assumptions") or []:
+            label = ass.get("label") or ass.get("id", "")
+            base = (ass.get("values") or {}).get("base")
+            if base is None:
+                continue
+            unit = ass.get("unit") or ""
+            rationale = ass.get("rationale") or "[Assumption]"
+            if unit == "ratio":
+                cell = f"**{base * 100:.1f}%**"
+            elif unit == "multiple":
+                cell = f"**{base} times**"
+            else:
+                cell = f"**{base}**"
+            rows.append(f"| {n} | {label} | {cell} | {rationale} |")
+            n += 1
+        horizon = (val.get("valuation_methodology") or {}).get("horizon_years", LAWRENCE_HORIZON_YEARS)
+        rows.append(
+            f"| {n} | Time horizon | **{horizon} years** | "
+            f"{horizon}-year owner-cash model in calculation proof |"
+        )
+        return "\n".join(rows)
+
     if method == "yield_curve":
         base = val.get("scenarios", {}).get("base", {})
         payoff = base.get("payoff")

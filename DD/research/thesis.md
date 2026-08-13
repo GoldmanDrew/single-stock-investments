@@ -1,18 +1,23 @@
 # DD — Investment Thesis
 
-**Last updated:** 2026-07-10
+**Last updated:** auto-sync
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | compounder |
 | **Moat** (Munger) | unproven |
 | **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
 | **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
+| **Implied 7yr IRR** (base) | -39.67% (contract base, provisional) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
 | **Payoff lens** | pending |
+| **MOI bucket** | pending |
+
+**Deep dive:** `DD/research/deep_dive_2026-08-09.md` (auto-sync)
 
 ## One-line thesis
 

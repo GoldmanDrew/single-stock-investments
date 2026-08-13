@@ -241,10 +241,13 @@ def main() -> int:
             [PY, str(SCRIPTS / "apply_btc_context_overlay.py"), ticker],
             optional=True,
         )
-    ok &= run(
-        "legacy valuation compatibility write",
-        [PY, str(SCRIPTS / "marvin_valuation.py"), "--ticker", ticker, "--write"],
-    )
+    if val.get("method") != "proof_first_automated":
+        ok &= run(
+            "legacy valuation compatibility write",
+            [PY, str(SCRIPTS / "marvin_valuation.py"), "--ticker", ticker, "--write"],
+        )
+    else:
+        print("  SKIP legacy valuation compatibility write (proof_first_automated)")
     if ticker_has_theme_tag(ticker):
         run(
             "etf-dashboard sync",
