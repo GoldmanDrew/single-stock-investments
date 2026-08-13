@@ -786,32 +786,53 @@
   .sleeve-table-wrap {
     overflow: auto; border: 1px solid var(--border); border-radius: 8px;
     background: var(--bg-card); max-height: min(70vh, 820px);
+    scrollbar-gutter: stable;
   }
-  .sleeve-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .sleeve-table th, .sleeve-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-  .sleeve-table th {
-    font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--bg-secondary);
-    position: sticky; top: 0; z-index: 1; white-space: nowrap;
+  .sleeve-table {
+    width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0;
+    font-size: 13px;
+  }
+  .sleeve-table col.sleeve-col-name { width: 22%; }
+  .sleeve-table col.sleeve-col-w { width: 8%; }
+  .sleeve-table col.sleeve-col-qty { width: 9%; }
+  .sleeve-table col.sleeve-col-last { width: 10%; }
+  .sleeve-table col.sleeve-col-val { width: 11%; }
+  .sleeve-table col.sleeve-col-pnl { width: 11%; }
+  .sleeve-table col.sleeve-col-ret { width: 10%; }
+  .sleeve-table col.sleeve-col-note { width: 19%; }
+  .sleeve-table th, .sleeve-table td {
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    text-align: left; vertical-align: top; box-sizing: border-box;
+  }
+  .sleeve-table thead th {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    background: var(--bg-secondary); position: sticky; top: 0; z-index: 2;
+    white-space: nowrap; letter-spacing: 0.04em; cursor: default;
+  }
+  .sleeve-table tbody tr {
+    content-visibility: visible; contain-intrinsic-size: auto;
+    cursor: default; border-left: none;
   }
   .sleeve-table tbody tr:last-child td { border-bottom: none; }
+  .sleeve-table tbody tr:hover { background: transparent; }
   .sleeve-table tbody tr:hover td { background: rgba(6, 182, 212, 0.04); }
   .sleeve-ticker { font-weight: 700; color: var(--accent-cyan); }
-  .sleeve-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 260px; }
+  .sleeve-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
   .sleeve-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .sleeve-mini {
     font-size: 10px; color: var(--text-muted); border: 1px solid var(--border);
     border-radius: 999px; padding: 1px 6px;
   }
   .sleeve-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .sleeve-table th.sleeve-num { text-align: right; }
-  .sleeve-note-col { text-align: left; min-width: 140px; }
-  .sleeve-table th.sleeve-note-col { text-align: left; }
+  .sleeve-table thead th.sleeve-num { text-align: right; }
+  .sleeve-note-col { text-align: left; }
+  .sleeve-table thead th.sleeve-note-col { text-align: left; }
   .sleeve-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-  .sleeve-preview { font-size: 12px; color: var(--text-secondary); line-height: 1.35; max-width: 220px; }
+  .sleeve-preview { font-size: 12px; color: var(--text-secondary); line-height: 1.35; overflow: hidden; }
   .sleeve-note-edit { display: inline-block; margin-top: 4px; font-size: 12px; }
   .sleeve-weight-bar {
     display: block; height: 3px; margin-top: 6px; margin-left: auto;
-    width: 56px; background: rgba(136,150,174,0.18); border-radius: 99px; overflow: hidden;
+    width: 56px; max-width: 100%; background: rgba(136,150,174,0.18); border-radius: 99px; overflow: hidden;
   }
   .sleeve-weight-bar i { display: block; height: 100%; background: var(--accent-cyan); border-radius: 99px; }
   .sleeve-pnl-up { color: var(--positive); }
@@ -841,7 +862,7 @@
   }
   .sleeve-note-form .full { grid-column: 1 / -1; }
   .sleeve-quality-copy { padding: 0 14px 12px; color: var(--text-secondary); font-size: 13px; max-width: 70ch; }
-  .sleeve-quality .sleeve-table { margin: 0 14px 14px; width: calc(100% - 28px); }
+  .sleeve-quality .sleeve-table { margin: 0 14px 14px; width: calc(100% - 28px); table-layout: auto; }
   .sleeve-quality .sleeve-table-wrap { max-height: none; border: none; }
   @media (max-width: 720px) {
     .sleeve-note-form { grid-template-columns: 1fr 1fr; }

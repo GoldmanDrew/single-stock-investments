@@ -151,8 +151,11 @@
           <div class="sleeve-name">Watching · not in the IB book yet</div>
         </td>
         <td class="sleeve-num">—</td>
-        <td colspan="4" class="sleeve-name">${esc(clusterLabel(i.cluster))}</td>
-        <td></td>
+        <td class="sleeve-num">—</td>
+        <td class="sleeve-num">—</td>
+        <td class="sleeve-num">—</td>
+        <td class="sleeve-num">—</td>
+        <td class="sleeve-name">${esc(clusterLabel(i.cluster))}</td>
         <td class="sleeve-note-col"><button type="button" class="linkish" data-sleeve-note="${esc(i.ticker)}">Add thesis</button></td>
       </tr>`).join('');
 
@@ -257,7 +260,17 @@
           </p>
         </div>
         <div class="sleeve-table-wrap">
-          <table class="sleeve-table">
+          <table class="sleeve-table sleeve-holdings">
+            <colgroup>
+              <col class="sleeve-col-name">
+              <col class="sleeve-col-w">
+              <col class="sleeve-col-qty">
+              <col class="sleeve-col-last">
+              <col class="sleeve-col-val">
+              <col class="sleeve-col-pnl">
+              <col class="sleeve-col-ret">
+              <col class="sleeve-col-note">
+            </colgroup>
             <thead><tr>
               <th>Name</th>
               <th class="sleeve-num">Weight</th>
