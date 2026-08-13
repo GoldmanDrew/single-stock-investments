@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filing Sentinel gold case",
+  "type": "object",
+  "required": ["schema_version", "case_id", "label_status", "split", "ticker", "filing", "evidence", "expected", "provenance"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "case_id": {"type": "string", "pattern": "^fs-[a-z0-9-]+$"},
+    "label_status": {"enum": ["candidate", "labeled", "gold", "retired"]},
+    "split": {"enum": ["train", "dev", "test", "_unassigned"]},
+    "ticker": {"type": "string", "minLength": 1},
+    "filing": {
+      "type": "object",
+      "required": ["form", "filed_at", "period_end", "source_ref"],
+      "properties": {
+        "form": {"enum": ["10-Q", "10-K"]},
+        "filed_at": {"type": "string", "format": "date"},
+        "period_end": {"type": "string", "format": "date"},
+        "accession": {"type": ["string", "null"]},
+        "source_ref": {"type": "string", "minLength": 1},
+        "source_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "extract_ref": {"type": ["string", "null"]},
+        "extract_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "comparison_source_ref": {"type": ["string", "null"]},
+        "comparison_period_end": {"type": ["string", "null"], "format": "date"},
+        "comparison_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidence_id", "locator", "excerpt", "content_sha256"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "locator": {"type": "string", "minLength": 1},
+          "excerpt": {"type": "string", "minLength": 1},
+          "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": ["events", "no_event_tags"],
+      "properties": {
+        "events": {"type": "array"},
+        "no_event_tags": {"type": "array", "items": {"type": "string"}},
+        "no_material_change": {"type": "boolean"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["origin", "created_at", "adjudicated_by", "rationale"],
+      "properties": {
+        "origin": {"type": "string"},
+        "created_at": {"type": "string", "format": "date"},
+        "adjudicated_by": {"type": "array", "items": {"type": "string"}},
+        "rationale": {"type": "string"}
+      }
+    }
+  }
+}

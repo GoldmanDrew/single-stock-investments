@@ -12,7 +12,7 @@ DATE ?= $(shell date +%Y-%m-%d)
 TICKER ?=
 DATE ?= $(shell date +%Y-%m-%d)
 
-.PHONY: research-check research-check-all depth-check depth-audit evidence milly-repass book-estimate book-estimate-all holdco-uplift short-scan activist-scan activist-scan-all activist-triage activist-triage-check activist-feed activist-feed-check activist-registry-audit filing-resolve event-triage event-triage-check hk-scan hk-cross-check-all hk-extract-refresh third-party-scan-all cross-check-all transcript-sync batch-refresh evidence-check darwin-pit-check darwin-build darwin-roth darwin-ira darwin-pit-audit darwin-sync-external darwin-explore darwin-sp500-refresh persona-lens persona-insights persona-check document-registry document-catalog-search document-sync-drive document-sync-drive-letters document-sync-drive-general document-drive-plan document-drive-migrate document-drive-cleanup document-drive-audit research-memory specialist-13f-ingest tracked-funds-13f-ingest reddit-ingest biotech-quant-lib biotech-spend biotech-insider biotech-insider-fetch biotech-issuer-mcap biotech-short biotech-clinical biotech-paper biotech-composite biotech-validate sumzero-index letter-import-drive letter-extract-text letter-backfill letter-rebuild letter-repair-dates letter-date-check vault-setup vault-check podcasts-refresh podcasts-backfill podcasts-check warrant-refresh warrant-discover warrant-check
+.PHONY: research-check research-check-all depth-check depth-audit evidence milly-repass book-estimate book-estimate-all holdco-uplift short-scan activist-scan activist-scan-all activist-triage activist-triage-check activist-feed activist-feed-check activist-registry-audit filing-resolve filing-sentinel-gold-check filing-sentinel-workflow-check filing-sentinel-mine filing-sentinel-batch filing-sentinel-raw-batch filing-sentinel-packets event-triage event-triage-check hk-scan hk-cross-check-all hk-extract-refresh third-party-scan-all cross-check-all transcript-sync batch-refresh evidence-check darwin-pit-check darwin-build darwin-roth darwin-ira darwin-pit-audit darwin-sync-external darwin-explore darwin-sp500-refresh persona-lens persona-insights persona-check document-registry document-catalog-search document-sync-drive document-sync-drive-letters document-sync-drive-general document-drive-plan document-drive-migrate document-drive-cleanup document-drive-audit research-memory specialist-13f-ingest tracked-funds-13f-ingest reddit-ingest biotech-quant-lib biotech-spend biotech-insider biotech-insider-fetch biotech-issuer-mcap biotech-short biotech-clinical biotech-paper biotech-composite biotech-validate sumzero-index letter-import-drive letter-extract-text letter-backfill letter-rebuild letter-repair-dates letter-date-check vault-setup vault-check podcasts-refresh podcasts-backfill podcasts-check warrant-refresh warrant-discover warrant-check
 
 warrant-refresh:
 	$(PYTHON) $(SCRIPTS)/refresh_warrant_universe.py --refresh-market --capture-cohort
@@ -26,6 +26,32 @@ warrant-discover:
 
 warrant-check:
 	$(PYTHON) $(SCRIPTS)/check_warrant_universe.py --strict
+
+filing-sentinel-gold-check:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py validate --require-gold
+	$(PYTHON) -m unittest $(SCRIPTS)/test_filing_sentinel_gold.py
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py evaluate --predictions $(SCRIPTS)/fixtures/filing_sentinel_perfect_predictions.jsonl --strict
+	@echo OK: filing-sentinel-gold-check
+
+filing-sentinel-workflow-check:
+	$(PYTHON) -m unittest $(SCRIPTS)/test_filing_sentinel_gold.py $(SCRIPTS)/test_filing_sentinel_workflow.py $(SCRIPTS)/test_filing_sentinel_raw_discovery.py
+	@echo OK: filing-sentinel-workflow-check
+
+filing-sentinel-mine:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py mine --as-of $(DATE) --limit $(or $(LIMIT),100)
+	@echo OK: filing-sentinel-mine $(DATE)
+
+filing-sentinel-batch:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_workflow.py build-batch --as-of $(DATE) --limit $(or $(LIMIT),100) --output _system/reviews/pending/filing_sentinel_candidates_$(DATE).jsonl
+	@echo OK: filing-sentinel-batch $(DATE)
+
+filing-sentinel-raw-batch:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_raw_discovery.py --as-of $(DATE) --since $(or $(SINCE),2023-01-01) --forms $(or $(FORMS),10-Q) --per-ticker $(or $(PER_TICKER),1) --max-issuers $(or $(MAX_ISSUERS),25) --issuer-offset $(or $(ISSUER_OFFSET),0) --limit $(or $(LIMIT),100) --output _system/reviews/pending/filing_sentinel_raw_candidates_$(DATE).jsonl
+	@echo OK: filing-sentinel-raw-batch $(DATE)
+
+filing-sentinel-packets:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_workflow.py create-packets --candidates _system/reviews/pending/filing_sentinel_candidates_$(DATE).jsonl --batch-id $(DATE) --output-dir _system/reviews/pending/filing_sentinel_$(DATE)_packets
+	@echo OK: filing-sentinel-packets $(DATE)
 
 persona-lens:
 	$(PYTHON) $(SCRIPTS)/fetch_superinvestor_letters.py --all --build
@@ -400,6 +426,32 @@ activist-triage:
 filing-resolve:
 	$(PYTHON) $(SCRIPTS)/auto_resolve_filing_events.py
 	@echo OK: filing-resolve
+
+filing-sentinel-gold-check:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py validate --require-gold
+	$(PYTHON) -m unittest $(SCRIPTS)/test_filing_sentinel_gold.py
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py evaluate --predictions $(SCRIPTS)/fixtures/filing_sentinel_perfect_predictions.jsonl --strict
+	@echo OK: filing-sentinel-gold-check
+
+filing-sentinel-workflow-check:
+	$(PYTHON) -m unittest $(SCRIPTS)/test_filing_sentinel_gold.py $(SCRIPTS)/test_filing_sentinel_workflow.py $(SCRIPTS)/test_filing_sentinel_raw_discovery.py
+	@echo OK: filing-sentinel-workflow-check
+
+filing-sentinel-mine:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_gold.py mine --as-of $(DATE) --limit $(or $(LIMIT),100)
+	@echo OK: filing-sentinel-mine $(DATE)
+
+filing-sentinel-batch:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_workflow.py build-batch --as-of $(DATE) --limit $(or $(LIMIT),100) --output _system/reviews/pending/filing_sentinel_candidates_$(DATE).jsonl
+	@echo OK: filing-sentinel-batch $(DATE)
+
+filing-sentinel-raw-batch:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_raw_discovery.py --as-of $(DATE) --since $(or $(SINCE),2023-01-01) --forms $(or $(FORMS),10-Q) --per-ticker $(or $(PER_TICKER),1) --max-issuers $(or $(MAX_ISSUERS),25) --issuer-offset $(or $(ISSUER_OFFSET),0) --limit $(or $(LIMIT),100) --output _system/reviews/pending/filing_sentinel_raw_candidates_$(DATE).jsonl
+	@echo OK: filing-sentinel-raw-batch $(DATE)
+
+filing-sentinel-packets:
+	$(PYTHON) $(SCRIPTS)/filing_sentinel_workflow.py create-packets --candidates _system/reviews/pending/filing_sentinel_candidates_$(DATE).jsonl --batch-id $(DATE) --output-dir _system/reviews/pending/filing_sentinel_$(DATE)_packets
+	@echo OK: filing-sentinel-packets $(DATE)
 
 activist-registry-audit:
 	$(PYTHON) $(SCRIPTS)/activist_registry_audit.py

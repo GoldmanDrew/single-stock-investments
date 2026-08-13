@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "forms": ["10-Q", "10-K"],
+  "categories": {
+    "identity_instrument": [
+      "ticker_change", "reverse_split", "merger", "daily_reset", "swap_exposure",
+      "tracking_risk", "dilution", "warrant_overhang"
+    ],
+    "financial_oxygen": [
+      "going_concern", "cash_runway", "covenant_pressure", "refinancing",
+      "serial_equity_issuance", "liquidity_change", "debt_change",
+      "cash_generation_change"
+    ],
+    "accounting": [
+      "revenue_recognition", "capitalization", "reserve_release", "restatement",
+      "material_weakness", "auditor_change", "non_gaap", "acquisition_accounting",
+      "earnings_change"
+    ],
+    "operations": [
+      "revenue_contraction", "revenue_growth", "margin_contraction", "margin_expansion",
+      "utilization", "customer_concentration", "supply_build", "backlog_quality",
+      "impairment", "restructuring"
+    ],
+    "governance_legal": [
+      "related_party", "executive_exit", "controlling_holder", "compensation",
+      "investigation", "litigation", "license", "delisting"
+    ],
+    "transaction": [
+      "deal_stress", "financing_gap", "strategic_review", "asset_sale", "wind_down",
+      "exchange_offer"
+    ]
+  },
+  "always_human_review_tags": [
+    "related_party", "investigation", "litigation", "restatement", "material_weakness",
+    "auditor_change", "going_concern"
+  ],
+  "metric_proposals": {
+    "revenues": {"category": "operations", "negative_tag": "revenue_contraction", "positive_tag": "revenue_growth", "min_abs_change_pct": 10},
+    "revenue": {"category": "operations", "negative_tag": "revenue_contraction", "positive_tag": "revenue_growth", "min_abs_change_pct": 10},
+    "operating_income": {"category": "operations", "negative_tag": "margin_contraction", "positive_tag": "margin_expansion", "min_abs_change_pct": 15},
+    "net_income": {"category": "accounting", "negative_tag": "earnings_change", "positive_tag": "earnings_change", "min_abs_change_pct": 20},
+    "operating_cash_flow": {"category": "financial_oxygen", "negative_tag": "cash_generation_change", "positive_tag": "cash_generation_change", "min_abs_change_pct": 20},
+    "cash": {"category": "financial_oxygen", "negative_tag": "liquidity_change", "positive_tag": "liquidity_change", "min_abs_change_pct": 25},
+    "long_term_debt": {"category": "financial_oxygen", "negative_tag": "debt_change", "positive_tag": "debt_change", "min_abs_change_pct": 25}
+  },
+  "severity_weights": {"critical": 8, "high": 4, "medium": 2, "low": 1},
+  "split_policy": {
+    "version": "issuer-sha256-v1",
+    "train_pct": 70,
+    "dev_pct": 15,
+    "test_pct": 15
+  },
+  "sampling_policy": {
+    "issuer_cap_pct": 0.05,
+    "form_min_pct": {"10-Q": 0.35, "10-K": 0.35},
+    "stratum_target_pct": {
+      "high_adverse": 0.25,
+      "offsetting": 0.15,
+      "semantic_section": 0.15,
+      "hard_negative": 0.20,
+      "clean_control": 0.15,
+      "failure_regression": 0.10
+    }
+  },
+  "evaluation_gates": {
+    "precision_min": 0.85,
+    "recall_min": 0.80,
+    "critical_recall_min": 1.0,
+    "citation_precision_min": 0.95,
+    "false_alerts_per_filing_max": 0.25,
+    "forbidden_tag_violations_max": 0,
+    "unknown_case_rows_max": 0
+  }
+}
