@@ -1,0 +1,57 @@
+ibkr:
+  host: 127.0.0.1
+  live_port: 7496
+  paper_port: 7497
+  account_id: U805366
+  # Do not reuse 0, 17 (SPX), 41 (ls-algo), 87, 90, or ls-algo worker offsets.
+  client_ids:
+    drew: 71
+    michael: 72
+
+execution:
+  dry_run: true
+  allow_live: false
+  quote_max_age_seconds: 15
+  price_band_pct: 0.01
+  cooldown_minutes: 10
+  limit_orders_only: true
+  allowed_sec_types: [STK]
+  allowed_currencies: [USD]
+  allowed_exchanges: [SMART, NYSE, NASDAQ, AMEX, ARCA]
+
+operators:
+  drew:
+    display_name: Drew
+    order_ref: DREW_SLEEVE
+    equity_usd: 100000
+    extra_margin_usd: 100000
+    max_notional_per_order: 25000
+    max_name_pct_of_equity: 0.20
+    max_open_names: 12
+    corr_lookback_days: 252
+  michael:
+    display_name: Michael
+    order_ref: MICHAEL_SLEEVE
+    equity_usd: null
+    extra_margin_usd: 0
+    max_notional_per_order: 250000
+    max_name_pct_of_equity: 0.25
+    max_open_names: 80
+    corr_lookback_days: 252
+
+ingest:
+  url: ""
+  token_env: SLEEVE_INGEST_TOKEN
+  header_prefix: x-sleeve
+
+desk:
+  host: 127.0.0.1
+  port: 8788
+
+paths:
+  kill_file: KILL
+  logs_dir: logs
+  store_dir: data/local
+  blacklist_json: data/blacklist.json
+  etf_to_under_json: data/etf_to_under.json
+  etf_ls_universe_json: data/etf_ls_universe.json

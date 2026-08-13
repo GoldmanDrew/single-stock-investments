@@ -737,6 +737,14 @@
   }
   .darwin-panel { padding: 16px 24px 32px; display: none; flex: 1; overflow: auto; }
   .darwin-panel.active { display: block; }
+  .sleeve-panel { padding: 16px 24px 32px; display: none; flex: 1; overflow: auto; }
+  .sleeve-panel.active { display: block; }
+  .sleeve-jump {
+    margin-left: 6px; font-size: 10px; font-weight: 700; padding: 1px 5px;
+    border-radius: 4px; border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer;
+  }
+  .sleeve-jump:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); }
   .insights-panel { padding: 16px 24px 32px; display: none; flex: 1; overflow: auto; }
   .insights-panel.active { display: block; }
   .activist-panel { padding: 16px 24px 32px; display: none; flex: 1; overflow: auto; }
@@ -1519,6 +1527,8 @@
     <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
     <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
     <button type="button" class="view-tab" data-view="darwin" role="tab" aria-selected="false">Darwin</button>
+    <button type="button" class="view-tab" data-view="drew" role="tab" aria-selected="false">Drew</button>
+    <button type="button" class="view-tab" data-view="michael" role="tab" aria-selected="false">Michael</button>
   </nav>
 
   <main id="main-content">
@@ -1563,6 +1573,18 @@
     </p>
     <div class="loading" id="darwin-loading">Loading Darwin portfolio…</div>
     <div id="darwin-content" style="display:none"></div>
+  </section>
+
+  <section class="sleeve-panel" id="drew-panel">
+    <h2 style="font-size:18px;margin-bottom:6px">Drew · $100k sleeve</h2>
+    <div class="loading" id="drew-loading">Loading Drew sleeve…</div>
+    <div id="drew-content" style="display:none"></div>
+  </section>
+
+  <section class="sleeve-panel" id="michael-panel">
+    <h2 style="font-size:18px;margin-bottom:6px">Michael · long-term book</h2>
+    <div class="loading" id="michael-loading">Loading Michael sleeve…</div>
+    <div id="michael-content" style="display:none"></div>
   </section>
 
   <section class="valuation-panel" id="valuation-panel">
@@ -1658,6 +1680,7 @@
 <script src="activist-viz.js"></script>
 <script src="short-alpha-viz.js"></script>
 <script src="warrant-viz.js"></script>
+<script src="sleeve-viz.js"></script>
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'magis-capital-partners/single-stock-investments';
@@ -1800,6 +1823,7 @@ let columnGroups = (() => {
 })();
 let marketFilter = 'ALL';
 let sleeveFilter = 'ALL';
+let sleevePrefill = { drew: null, michael: null };
 let valuationFilter = 'ALL';
 let fearFilter = 'ALL';
 let needsWork = false;
@@ -2005,6 +2029,14 @@ function parseRouteFromHashString(hash) {
       watchlistSub: watchlistMatch[1] ? watchlistMatch[1].toLowerCase() : null,
     };
   }
+  const sleeveMatch = /^#\/(drew|michael)(?:\/([^/?#]+))?$/i.exec(hash || '');
+  if (sleeveMatch) {
+    return {
+      view: sleeveMatch[1].toLowerCase(),
+      ticker: sleeveMatch[2] ? decodeURIComponent(sleeveMatch[2]).toUpperCase() : null,
+      watchlistSub: null,
+    };
+  }
   const viewMatch = /^#\/(risk|short-alpha|warrants|insights|activist|darwin)$/i.exec(hash || '');
   if (viewMatch) return { view: viewMatch[1].toLowerCase(), ticker: null, watchlistSub: null };
   return null;
@@ -2026,6 +2058,8 @@ function syncRouteHash() {
   } else if (activeView === 'watchlist') {
     const sub = WATCHLIST_VIEWS.has(watchlistViewMode) ? watchlistViewMode : defaultWatchlistView();
     setAppHash(`#/watchlist/${sub}`);
+  } else if ((activeView === 'drew' || activeView === 'michael') && sleevePrefill[activeView]) {
+    setAppHash(`#/${activeView}/${encodeURIComponent(sleevePrefill[activeView])}`);
   } else {
     setAppHash(`#/${activeView}`);
   }
@@ -2038,6 +2072,9 @@ function applyRouteFromHash() {
   if (route.view === 'watchlist' && route.watchlistSub && WATCHLIST_VIEWS.has(route.watchlistSub)) {
     watchlistViewMode = route.watchlistSub;
     try { localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistViewMode); } catch (_) { /* ignore */ }
+  }
+  if ((route.view === 'drew' || route.view === 'michael') && route.ticker) {
+    sleevePrefill[route.view] = route.ticker;
   }
   setView(route.view, { syncHash: false });
   if (route.view === 'holdings' && route.ticker) {
@@ -3067,6 +3104,27 @@ function renderWarrants() {
   WarrantViz.attach(content, warrantData, rerender);
 }
 
+function renderSleeveTab(owner) {
+  const loading = document.getElementById(`${owner}-loading`);
+  const content = document.getElementById(`${owner}-content`);
+  if (!loading || !content || !window.SleeveViz) return;
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  SleeveViz.load(owner).then((book) => {
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    content.innerHTML = SleeveViz.render(owner, book, { prefillTicker: sleevePrefill[owner] || '' });
+    SleeveViz.attach(content, owner, (next) => {
+      content.innerHTML = SleeveViz.render(owner, next || book, { prefillTicker: sleevePrefill[owner] || '' });
+      SleeveViz.attach(content, owner);
+    });
+  }).catch((err) => {
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    content.innerHTML = `<div class="loading">${escapeHtml(err.message || String(err))}</div>`;
+  });
+}
+
 function setView(view, opts = {}) {
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
@@ -3085,6 +3143,10 @@ function setView(view, opts = {}) {
   if (shortAlphaPanel) shortAlphaPanel.classList.toggle('active', view === 'short-alpha');
   const warrantsPanel = document.getElementById('warrants-panel');
   if (warrantsPanel) warrantsPanel.classList.toggle('active', view === 'warrants');
+  const drewPanel = document.getElementById('drew-panel');
+  if (drewPanel) drewPanel.classList.toggle('active', view === 'drew');
+  const michaelPanel = document.getElementById('michael-panel');
+  if (michaelPanel) michaelPanel.classList.toggle('active', view === 'michael');
   document.getElementById('summary').style.display = view === 'holdings' ? '' : 'none';
   document.getElementById('watchlist-wrap').style.display =
     view === 'holdings' && (data.watchlist || []).length ? 'block' : 'none';
@@ -3096,6 +3158,7 @@ function setView(view, opts = {}) {
   if (view === 'insights') renderInsights();
   if (view === 'activist') renderActivist();
   if (view === 'darwin') renderDarwin();
+  if (view === 'drew' || view === 'michael') renderSleeveTab(view);
   if (opts.syncHash !== false) syncRouteHash();
 }
 
@@ -4649,7 +4712,7 @@ function filtered() {
 function renderHoldingsCell(colId, t) {
   switch (colId) {
     case 'ticker':
-      return `<td class="mono ticker-cell">${escapeHtml(t.display_ticker || t.ticker)}${t.quote_ticker && t.quote_ticker !== (t.display_ticker || t.ticker) ? `<span class="irr-sub" title="Quote symbol"> ${escapeHtml(t.quote_ticker)}</span>` : ''}${t.equity_model?.ready ? ` <span class="badge badge-ok" title="Earnings model ${t.equity_model.production_spec || 'v5'} ready">M</span>` : ''}${t.onboard?.phase && t.onboard.phase !== 'complete' ? `<span class="onboard-badge">${t.onboard.phase}</span>` : ''}</td>`;
+      return `<td class="mono ticker-cell">${escapeHtml(t.display_ticker || t.ticker)}${t.quote_ticker && t.quote_ticker !== (t.display_ticker || t.ticker) ? `<span class="irr-sub" title="Quote symbol"> ${escapeHtml(t.quote_ticker)}</span>` : ''}${t.equity_model?.ready ? ` <span class="badge badge-ok" title="Earnings model ${t.equity_model.production_spec || 'v5'} ready">M</span>` : ''}${t.onboard?.phase && t.onboard.phase !== 'complete' ? `<span class="onboard-badge">${t.onboard.phase}</span>` : ''}<button type="button" class="sleeve-jump" data-sleeve-jump="drew" data-ticker="${escapeHtml(t.ticker)}" title="Note on Drew tab">D</button><button type="button" class="sleeve-jump" data-sleeve-jump="michael" data-ticker="${escapeHtml(t.ticker)}" title="Note on Michael tab">M</button></td>`;
     case 'company':
       return `<td class="company-cell" title="${escapeHtml(t.company)}">${escapeHtml(t.company)}</td>`;
     case 'market':
@@ -4876,6 +4939,16 @@ function renderTable() {
         event.preventDefault();
         selectTicker(tr.dataset.ticker);
       }
+    });
+  });
+  tbody.querySelectorAll('[data-sleeve-jump]').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const owner = btn.dataset.sleeveJump;
+      const ticker = btn.dataset.ticker;
+      sleevePrefill[owner] = ticker;
+      setView(owner);
     });
   });
 }

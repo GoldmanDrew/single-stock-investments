@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Magis sleeve desk</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9bb4; --accent:#5eead4; --bad:#f87171; --ok:#86efac; }
+    body { font-family: Segoe UI, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: var(--card); border-radius: 10px; padding: 16px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; background: #0f1419; color: var(--text); border: 1px solid #334; border-radius: 6px; padding: 8px; }
+    button { background: var(--accent); color: #042; border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+    button.secondary { background: #334; color: var(--text); }
+    .status { margin-top: 12px; font-size: 13px; white-space: pre-wrap; }
+    .bad { color: var(--bad); }
+    .ok { color: var(--ok); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid #334; }
+  </style>
+</head>
+<body>
+  <h1>Magis sleeve desk</h1>
+  <p class="sub">Local TWS only (127.0.0.1). NY4 Gateway must be logged out. Dry-run until allow_live is set in config.yaml. Limit orders, approve once.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>Propose</h2>
+      <label>Operator</label>
+      <select id="owner"><option value="drew">Drew</option><option value="michael">Michael</option></select>
+      <label>Ticker</label>
+      <input id="ticker" placeholder="MSFT" />
+      <label>Side</label>
+      <select id="side"><option>BUY</option><option>SELL</option></select>
+      <label>Quantity</label>
+      <input id="qty" type="number" min="1" step="1" value="10" />
+      <label>Limit (blank = last)</label>
+      <input id="limit" type="number" step="0.01" />
+      <label>Last if IB is down</label>
+      <input id="last" type="number" step="0.01" />
+      <label>Conviction 1–5</label>
+      <input id="conviction" type="number" min="1" max="5" value="3" />
+      <label>Holding period (years)</label>
+      <input id="years" type="number" min="0.25" step="0.25" value="3" />
+      <label>Cluster</label>
+      <select id="cluster">
+        <option value="idiosyncratic">idiosyncratic</option>
+        <option value="ai_infra">ai_infra</option>
+        <option value="biotech">biotech</option>
+        <option value="croupier">croupier</option>
+        <option value="real_assets">real_assets</option>
+        <option value="rates">rates</option>
+        <option value="oil">oil</option>
+      </select>
+      <label>What would make this a permanent loss?</label>
+      <textarea id="plc" rows="3"></textarea>
+      <button id="quoteBtn" class="secondary" type="button">Qualify / quote</button>
+      <button id="proposeBtn" type="button">Propose</button>
+      <div class="status" id="quoteStatus"></div>
+    </div>
+    <div class="card">
+      <h2>Approve once</h2>
+      <label>Proposal id</label>
+      <input id="proposalId" />
+      <label>Retype ticker</label>
+      <input id="typed" />
+      <button id="approveBtn" type="button">Approve and send (or dry-run fill)</button>
+      <button id="syncBtn" class="secondary" type="button">Sync IB into Michael sleeve</button>
+      <div class="status" id="approveStatus"></div>
+      <h3>Book</h3>
+      <div id="book"></div>
+    </div>
+  </div>
+  <script>
+    let lastQuote = null;
+    async function api(path, body) {
+      const res = await fetch(path, {
+        method: body ? 'POST' : 'GET',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || data.error || res.statusText);
+      return data;
+    }
+    document.getElementById('quoteBtn').onclick = async () => {
+      const status = document.getElementById('quoteStatus');
+      try {
+        const last = document.getElementById('last').value;
+        lastQuote = await api('/quote', {
+          owner: document.getElementById('owner').value,
+          ticker: document.getElementById('ticker').value,
+          last: last ? Number(last) : undefined,
+          as_of: new Date().toISOString(),
+        });
+        if (!lastQuote.last && last) lastQuote.last = Number(last);
+        if (!lastQuote.as_of) lastQuote.as_of = new Date().toISOString();
+        if (lastQuote.last && !document.getElementById('limit').value) {
+          document.getElementById('limit').value = lastQuote.last;
+        }
+        status.className = 'status ok';
+        status.textContent = JSON.stringify(lastQuote, null, 2);
+      } catch (err) {
+        status.className = 'status bad';
+        status.textContent = String(err.message || err);
+      }
+    };
+    document.getElementById('proposeBtn').onclick = async () => {
+      const status = document.getElementById('quoteStatus');
+      try {
+        if (!lastQuote) throw new Error('Quote first');
+        const proposal = await api('/propose', {
+          owner: document.getElementById('owner').value,
+          ticker: document.getElementById('ticker').value,
+          side: document.getElementById('side').value,
+          qty: Number(document.getElementById('qty').value),
+          limit_price: Number(document.getElementById('limit').value),
+          quote: lastQuote,
+          holding_period_years: Number(document.getElementById('years').value),
+          plc_thesis: document.getElementById('plc').value,
+          conviction: Number(document.getElementById('conviction').value),
+          cluster: document.getElementById('cluster').value,
+        });
+        document.getElementById('proposalId').value = proposal.proposal_id;
+        document.getElementById('typed').value = proposal.ticker;
+        status.className = 'status ok';
+        status.textContent = JSON.stringify(proposal, null, 2);
+      } catch (err) {
+        status.className = 'status bad';
+        status.textContent = String(err.message || err);
+      }
+    };
+    document.getElementById('approveBtn').onclick = async () => {
+      const status = document.getElementById('approveStatus');
+      try {
+        const out = await api('/approve', {
+          proposal_id: document.getElementById('proposalId').value,
+          typed_ticker: document.getElementById('typed').value,
+          quote: lastQuote,
+        });
+        status.className = 'status ok';
+        status.textContent = JSON.stringify(out, null, 2);
+        await renderBook();
+      } catch (err) {
+        status.className = 'status bad';
+        status.textContent = String(err.message || err);
+      }
+    };
+    document.getElementById('syncBtn').onclick = async () => {
+      const status = document.getElementById('approveStatus');
+      try {
+        const out = await api('/sync-ib', {});
+        status.className = 'status ok';
+        status.textContent = JSON.stringify(out, null, 2);
+        await renderBook();
+      } catch (err) {
+        status.className = 'status bad';
+        status.textContent = String(err.message || err);
+      }
+    };
+    async function renderBook() {
+      const owner = document.getElementById('owner').value;
+      const book = await api('/book?owner=' + owner);
+      const rows = (book.positions || []).map(p => `<tr><td>${p.ticker}</td><td>${p.qty}</td><td>${p.mark}</td><td>${p.needs_thesis ? 'needs thesis' : 'ok'}</td></tr>`).join('');
+      document.getElementById('book').innerHTML = `<p>NAV ${book.header.nav_usd} · gross ${book.header.gross_usd} · ${book.header.blurb}</p><table><thead><tr><th>Ticker</th><th>Qty</th><th>Mark</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+  </script>
+</body>
+</html>

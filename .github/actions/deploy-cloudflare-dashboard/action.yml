@@ -163,8 +163,12 @@ runs:
         trap 'rm -f "$SECRET_FILE"' EXIT
         python - "$SECRET_FILE" <<'PY'
         import json, os, sys
+        secrets = {"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}
+        token = os.environ.get("SLEEVE_INGEST_TOKEN")
+        if token:
+            secrets["SLEEVE_INGEST_TOKEN"] = token
         with open(sys.argv[1], "w", encoding="utf-8") as handle:
-            json.dump({"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}, handle)
+            json.dump(secrets, handle)
         PY
         "$WRANGLER" pages secret bulk "$SECRET_FILE" --project-name="$PROJECT_NAME"
         DEPLOY_LOG="$RUNNER_TEMP/market-risk-worker-deploy.log"
