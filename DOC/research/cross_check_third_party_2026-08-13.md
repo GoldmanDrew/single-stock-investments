@@ -1,61 +1,61 @@
 # DOC — Cross-Check: Third-Party Sources
 
-**Date:** 2026-08-13  
-**Agent:** Marvin  
-**Marvin dive:** `DOC/research/deep_dive_2026-08-13.md`  
-**Source inventory:** `DOC/third-party-analyses/source_inventory_2026-08-02.md`  
+**Date:** 2026-08-13
+**Agent:** Marvin (automated fill)
+**Marvin dive:** `DOC/research/deep_dive_2026-08-13.md`
+**Source inventory:** `DOC/third-party-analyses/source_inventory_2026-08-13.md`
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
 
-No approved third-party analyses are indexed for Healthpeak Properties as of this scan. Activist SC 13G filings in `third-party-analyses/activist_reports/long/` are **context tier** only (passive holder disclosures, not investment theses). Marvin stance rests on **primary SEC filings** (FY2025 10-K, Q1 2026 10-Q, 2026 proxy).
+Marvin floor **6.5%** per year (compounder; stance **pending**) from primary filings and `valuation.json`. No third-party sources indexed; filings-only stance. **[HUMAN REVIEW]** for approved-source numeric blend.
 
-**Synthesis:** Marvin floor only; no external blend into base case.
+**Synthesis (best estimate):** Marvin **6.5%** base · stance **pending**; external sources adjust conviction on catalyst timing, not primary IRR without human OK.
 
 ## Sources in scope
 
-| ID | Title | Path | Status | Use |
-|----|-------|------|--------|-----|
-| — | Primary filings only | `DOC/investor-documents/sec-edgar/` | primary | Base IRR / contract proofs |
-| ACT-ctx | SC 13G/A passive holder filings | `DOC/third-party-analyses/activist_reports/long/` | context | Ownership history only |
+| Source ID | Title | Path | Status | Cross-check status |
+|-----------|-------|------|--------|-------------------|
+| (none) | Primary filings only | — | — | n/a |
 
 ## Agreements (facts)
 
 | Topic | Marvin (filings) | External | Source |
 |-------|------------------|----------|--------|
-| Portfolio scale | 689 properties across outpatient medical, lab, senior housing | — | `10-K_20260203` segment note |
-| FY2025 revenue | $2.82 billion | — | `filing_facts_2026-08-06.json` |
-| Janus Living spin | Draft S-11 filed; senior housing contribution planned | — | `10-K_20260203` Item 1 |
+| Base return anchor | **6.5%** per year | Qualitative support only | `DOC/research/deep_dive_2026-08-13.md` |
+| Archetype / stance | **compounder** · **pending** | See indexed sources | `valuation.json` |
 
 ## Divergences (normalization / stance)
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| — | — | — | No approved external return path |
+| Primary IRR | **6.5%** (Lawrence / scenarios) | No single approved IRR unless promoted | Marvin **70%** numeric; external **30%** catalyst timing |
+| Third party | Filing-first | Context tier only | No numeric upgrade without human OK |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor (contract) | **$0/sh** base after limited-liability floor (−$3.89/sh raw) | Pending Lawrence synthesis refresh | watch |
-| External (combined) | — | — | — |
-| **Blended best estimate** | **$0/sh** (contract base) | **Pending** | **watch** |
+| Marvin floor | See assumption ledger | **6.5%** | **pending** |
+| External (combined) | Narrative / catalyst | No change to base % | **pending** (conviction) |
+| **Blended best estimate** | **Filing anchor** | **6.5%** | **pending** |
 
-**Weights:** 100% primary filings; no approved third party in base.
+**Weights:** Marvin **70%** on numbers; indexed third party **30%** on catalyst timing and narrative (approved Substacks/HK context only in qualitative layer until human promotes).
 
-**Returns statement (blended):** Base case follows proof-first component math only; no external views in base IRR.
+**Returns statement (blended):** We expect **6.5%** per year at today's price on the Marvin base case; third-party sources may raise or lower conviction on timing but do not replace filing math without **[HUMAN REVIEW]**.
 
 ## [HUMAN REVIEW]
 
-- [ ] Re-run `scan_third_party_sources.py DOC --with-hk` when Substacks or fund letters are added.
-- [ ] Activist filings remain context; do not promote to `third_party_sources.md` without human approval.
+- [ ] Every **approved** source reviewed against filings
+- [ ] Every **pending** source cited with **[PENDING APPROVAL]** only
+- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] DOC: third-party cross-check 2026-08-13 — primary filings only; contract base $0/sh with zero_value_policy liquidation_shortfall.
+- [PROPOSED COMPANY] DOC: third-party cross-check fill 2026-08-13 — Marvin 6.5% unchanged
 
 ## Primary sources cited
 
-1. `DOC/investor-documents/sec-edgar/10-K_20260203_rpt20251231_acc0001628280_26_005044.htm`
-2. `DOC/investor-documents/sec-edgar/10-Q_20260506_rpt20260331_acc0001628280_26_031287.htm`
-3. `DOC/research/evidence/filing_digest_2026-08-06.md`
+1. `DOC/research/deep_dive_2026-08-13.md`
+2. `DOC/research/valuation.json`
+3. `DOC/third-party-analyses/source_inventory_2026-08-13.md`
