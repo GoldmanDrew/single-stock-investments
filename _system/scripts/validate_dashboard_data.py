@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 from vault_paths import letters_root  # noqa: E402
 from activist_common import classify_publisher_page  # noqa: E402
 DATA_PATH = ROOT / "dashboard" / "data" / "dashboard_data.json"
+CORE_PATH = ROOT / "dashboard" / "data" / "core.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 
 
@@ -72,6 +73,30 @@ GITHUB_WARN_LIMIT_BYTES = 50 * 1024 * 1024
 CORE_MAX_MB = 6.0
 TICKER_SHARD_MAX_MB = 2.0
 EXTREME_PUBLISHED_IRR_PCT = 25.0
+
+
+def pages_deploy_only() -> bool:
+    """True when CI is publishing committed dashboard/ without a data rebuild."""
+    return os.environ.get("CI_PAGES_DEPLOY_ONLY", "").lower() in {"1", "true", "yes"}
+
+
+def resolve_payload_path(
+    *,
+    monolith: Path = DATA_PATH,
+    core: Path = CORE_PATH,
+    deploy_only: bool | None = None,
+) -> Path | None:
+    """Pick the JSON the SPA actually boots from.
+
+    dashboard_data.json is a gitignored build intermediate. Cloudflare Pages
+    loads core.json. Deploy-only CI therefore must not require the monolith.
+    """
+    if monolith.exists():
+        return monolith
+    use_deploy_only = pages_deploy_only() if deploy_only is None else deploy_only
+    if use_deploy_only and core.exists():
+        return core
+    return None
 
 
 def sparse_checkout_enabled(root: Path = ROOT) -> bool:
@@ -156,12 +181,23 @@ def _check_merge_conflict_markers(path: Path) -> str | None:
 def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
+    deploy_only = pages_deploy_only()
 
-    if not DATA_PATH.exists():
+    payload_path = resolve_payload_path(deploy_only=deploy_only)
+    if payload_path is None:
         print(f"ERROR: missing {DATA_PATH}", file=sys.stderr)
+        if deploy_only:
+            print(
+                "ERROR: dashboard/data/core.json also missing; cannot validate a pages deploy",
+                file=sys.stderr,
+            )
         return 1
+    if payload_path == CORE_PATH:
+        warnings.append(
+            "dashboard_data.json absent (gitignored); validating dashboard/data/core.json"
+        )
 
-    for path in (DATA_PATH, INSIGHTS_PATH, ACTIVIST_FEED_PATH):
+    for path in (payload_path, INSIGHTS_PATH, ACTIVIST_FEED_PATH):
         conflict = _check_merge_conflict_markers(path)
         if conflict:
             errors.append(conflict)
@@ -170,26 +206,25 @@ def main() -> int:
             print(f"ERROR: {msg}", file=sys.stderr)
         return 1
 
-    data_size = DATA_PATH.stat().st_size
-    if data_size > GITHUB_HARD_LIMIT_BYTES:
-        errors.append(
-            f"dashboard_data.json is {data_size / (1024 * 1024):.1f}MB; exceeds GitHub 100MB limit"
-        )
-    elif data_size > GITHUB_WARN_LIMIT_BYTES:
-        warnings.append(
-            f"dashboard_data.json is {data_size / (1024 * 1024):.1f}MB; above GitHub 50MB recommendation"
-        )
-
-    pages_deploy_only = os.environ.get("CI_PAGES_DEPLOY_ONLY", "").lower() in {"1", "true", "yes"}
+    if payload_path == DATA_PATH:
+        data_size = payload_path.stat().st_size
+        if data_size > GITHUB_HARD_LIMIT_BYTES:
+            errors.append(
+                f"dashboard_data.json is {data_size / (1024 * 1024):.1f}MB; exceeds GitHub 100MB limit"
+            )
+        elif data_size > GITHUB_WARN_LIMIT_BYTES:
+            warnings.append(
+                f"dashboard_data.json is {data_size / (1024 * 1024):.1f}MB; above GitHub 50MB recommendation"
+            )
 
     def fail(msg: str) -> None:
         """Hard error normally; warning on deploy-only so UI ships while data pipeline catches up."""
-        if pages_deploy_only:
+        if deploy_only:
             warnings.append(msg)
         else:
             errors.append(msg)
 
-    payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
     registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     if payload.get("insights"):
         errors.append(
@@ -222,6 +257,10 @@ def main() -> int:
             errors.append(f"{INSIGHTS_PATH} contains unresolved git merge conflict markers")
         else:
             insights = json.loads(raw_insights)
+    elif deploy_only:
+        warnings.append(
+            "insights.json absent (gitignored); SPA loads dashboard/data/insights/ shards"
+        )
     else:
         errors.append("missing dashboard insights payload")
     holdings = sorted((registry.get("holdings") or {}).keys())
@@ -606,14 +645,14 @@ def main() -> int:
                 errors.append(
                     f"activist feed {row.get('ticker')}/{row.get('firm_id')}: github_url set but file_exists is false"
                 )
-            if local_file and file_exists is True and not pages_deploy_only:
+            if local_file and file_exists is True and not deploy_only:
                 if not repository_file_exists(ROOT, str(local_file)):
                     errors.append(f"activist feed references missing file: {local_file}")
-            if local_file and file_exists is False and github_url and not pages_deploy_only:
+            if local_file and file_exists is False and github_url and not deploy_only:
                 errors.append(f"activist feed ghost github link for missing file: {local_file}")
             if (
                 local_file
-                and not pages_deploy_only
+                and not deploy_only
                 and (ROOT / str(local_file).replace("\\", "/")).exists()
                 and file_exists is False
             ):
