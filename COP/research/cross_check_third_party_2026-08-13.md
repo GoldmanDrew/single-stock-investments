@@ -39,7 +39,7 @@ No approved third-party sources are indexed for ConocoPhillips as of this scan. 
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | Component DCF ~$130/sh base (pre-refresh) | ~1.7% base at $115.68 | watch |
+| Marvin floor | Component DCF ~$129.50/sh base | 0.56% base at $124.52 | watch |
 | External (combined) | — | — | — |
 | **Blended best estimate** | **Marvin only** | **Marvin only** | **watch** |
 
