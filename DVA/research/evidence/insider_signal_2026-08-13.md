@@ -19,9 +19,9 @@
 
 **Routine / planned sales (context):**
 
+- BERKSHIRE HATHAWAY INC: 182980 @ $199.548 on 2026-07-31
 - Rodriguez Javier: 39407 @ $209.278 on 2026-06-16
 - Rodriguez Javier: 30000 @ $209.503 on 2026-06-15
-- YALE PHYLLIS R: 5038 @ $0.0 on 2026-05-26
 
 Source: `_system/reference/market-data/insider/DVA_transactions.csv`.
 Lawrence base IRR unchanged (`in_base_irr: False`).

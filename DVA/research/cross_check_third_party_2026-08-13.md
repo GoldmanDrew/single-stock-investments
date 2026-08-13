@@ -29,20 +29,20 @@ Eleven Berkshire Hathaway SC-13D/A filings are indexed as **context tier** activ
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| Valuation / return | Base proof **~$218/sh**; **~0.9%** annual return at **$234.10** | Berkshire stake may imply longer horizon or private-market view of quality | **No blend** — context only until human approves a source |
+| Valuation / return | Base proof **$218/sh**; **2.84%** annual return at **$179.17** | Berkshire stake may imply longer horizon or private-market view of quality | **No blend** — context only until human approves a source |
 | Moat | **Unproven** on reimbursement | Activist sponsorship suggests durable business | Flag **[HUMAN REVIEW]**; do not auto-upgrade moat |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | **~$218/sh** base proof | **~0.9%** per year (7yr) | watch |
+| Marvin floor | **$218/sh** base proof | **2.84%** per year (7yr) | watch |
 | External (combined) | n/a | n/a | context only |
-| **Blended best estimate** | **Marvin floor** | **~0.9%** per year | **watch** |
+| **Blended best estimate** | **Marvin floor** | **2.84%** per year | **watch** |
 
 **Weights:** 100% Marvin primary proof; 0% external (no approved sources).
 
-**Returns statement (blended):** Same as Marvin base — **about 0.9% per year** at **$234.10**; pending sources not in base IRR.
+**Returns statement (blended):** Same as Marvin base — **2.84% per year** at **$179.17**; pending sources not in base IRR.
 
 ## [HUMAN REVIEW]
 

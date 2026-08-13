@@ -37,4 +37,4 @@ Single additive component `operating_business_and_net_assets` retains valid `own
 
 ## Valuation consequence
 
-Proof-complete base value **falls materially** after debt refresh versus the stale-2014 run, while price is unchanged in the short window. Contract annualized return at price on base case remains **near zero to modestly negative** (exact % from post-refresh `valuation_contract.json`). Security remains **watch**; no human capital decision recorded.
+Proof-complete base value **$218 per share** after debt refresh versus **$179.17** price (2026-08-13). Contract annualized return at price on base case is **2.84%**. Stale-debt blocker cleared (`source_identity_and_freshness_valid: true`); remaining contract flag is prospective falsifier anchoring. Security remains **watch**; no human capital decision recorded.
