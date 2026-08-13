@@ -1,5 +1,5 @@
-import { failure, json, requestId, requireDatabase } from "../../_lib/http.js";
-import { loadBook, verifySleeveHmac } from "../../_lib/sleeves.js";
+import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js";
+import { loadBook, verifySleeveHmac } from "../../../_lib/sleeves.js";
 
 const MAX_BODY_BYTES = 512_000;
 

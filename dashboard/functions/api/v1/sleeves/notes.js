@@ -1,5 +1,5 @@
-import { failure, json, requestId, requireDatabase } from "../../_lib/http.js";
-import { githubLogin, loadBook } from "../../_lib/sleeves.js";
+import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js";
+import { githubLogin, loadBook } from "../../../_lib/sleeves.js";
 
 export async function onRequestPost(context) {
   const id = requestId(context.request);
