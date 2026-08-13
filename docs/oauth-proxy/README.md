@@ -38,7 +38,7 @@ If CI should auto-deploy the proxy on push, also set secrets **`CLOUDFLARE_API_T
 Enable **Device Flow** on your OAuth App (github.com/settings/developers → your app → Device Flow checkbox).
 
 Callback URL is still required but device flow is primary; keep:
-`https://single-stock-investments.pages.dev/oauth/callback.html`
+`https://single-stock-investments-2wt.pages.dev/oauth/callback.html`
 
 ## Repo variables
 

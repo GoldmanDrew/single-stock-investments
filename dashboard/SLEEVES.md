@@ -1,5 +1,7 @@
 # Dashboard sleeves (Drew / Michael)
 
+Live site: [https://single-stock-investments-2wt.pages.dev/](https://single-stock-investments-2wt.pages.dev/) — Drew `#/drew`, Michael `#/michael`.
+
 Primary tabs **Drew** (`#/drew`) and **Michael** (`#/michael`) read `GET /api/v1/sleeves/book?owner=` and fall back to `data/sleeves_drew.json` / `data/sleeves_michael.json`.
 
 **Save notes** uses Sign in with GitHub (same allow-list as onboard) then `POST /api/v1/sleeves/notes`.

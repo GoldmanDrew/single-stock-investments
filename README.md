@@ -52,7 +52,7 @@ Open http://localhost:8765/
 
 **Live site (Cloudflare Pages):**
 
-https://single-stock-investments.pages.dev/
+https://single-stock-investments-2wt.pages.dev/
 
 ## Agents
 
@@ -128,7 +128,7 @@ Dashboard panel presenting a Bitcoin power-law/snowball demand-and-cost-floor mo
 |------|-----|
 | **Operational repo** | [github.com/magis-capital-partners/single-stock-investments](https://github.com/magis-capital-partners/single-stock-investments) |
 | **Research vault (private)** | [github.com/magis-capital-partners/research-vault](https://github.com/magis-capital-partners/research-vault) — letters, HK PDFs, licensed sources |
-| **Dashboard (Cloudflare Pages)** | [single-stock-investments.pages.dev](https://single-stock-investments.pages.dev/) |
+| **Dashboard (Cloudflare Pages)** | [single-stock-investments-2wt.pages.dev](https://single-stock-investments-2wt.pages.dev/) |
 
 Sensitive reference corpora live in **`research-vault`**; this repo holds code, portfolio, CI, and dashboard payloads. See [`_system/reference/research-vault-split.md`](_system/reference/research-vault-split.md) for setup.
 
@@ -144,7 +144,7 @@ powershell -ExecutionPolicy Bypass -File _system/scripts/setup_local.ps1
 
 1. Set repo secrets **`CLOUDFLARE_API_TOKEN`** (Pages Write + D1 Write) and **`CLOUDFLARE_ACCOUNT_ID`**
 2. Push a dashboard change to `main`, or run **Deploy Dashboard (Cloudflare Pages)**
-3. Site URL: https://single-stock-investments.pages.dev/
+3. Site URL: https://single-stock-investments-2wt.pages.dev/
 
 GitHub Pages is no longer used for the dashboard.
 
