@@ -67,30 +67,46 @@ def create_app() -> "FastAPI":
             raise HTTPException(400, "owner must be drew or michael")
         return build_book(owner, _store(), cfg)
 
+    @app.get("/pending")
+    def pending():
+        return {"proposals": _store().pending_proposals()}
+
     @app.post("/quote")
     def quote(payload: dict):
         owner = str(payload.get("owner") or "drew")
-        ticker = str(payload.get("ticker") or "").strip()
-        if not ticker:
-            raise HTTPException(400, "ticker required")
+        ticker = str(payload.get("ticker") or payload.get("underlying") or "").strip()
+        spec = {
+            "ticker": ticker,
+            "sec_type": payload.get("sec_type") or payload.get("secType") or "STK",
+            "underlying": payload.get("underlying") or ticker,
+            "expiry": payload.get("expiry"),
+            "strike": payload.get("strike"),
+            "right": payload.get("right"),
+            "local_symbol": payload.get("local_symbol") or payload.get("localSymbol"),
+            "currency": payload.get("currency"),
+        }
+        if spec["sec_type"] in {"OPT", "OPTION", "OPTIONS"} and not ticker and spec.get("underlying"):
+            spec["ticker"] = spec["underlying"]
+        if not ticker and not spec.get("local_symbol") and not spec.get("underlying"):
+            raise HTTPException(400, "ticker or option fields required")
         try:
-            from _system.trading.sleeves.ib_client import connect_ib, qualify_and_quote
-            ib = connect_ib(owner, cfg)
-            try:
-                q = qualify_and_quote(ib, ticker)
-            finally:
-                ib.disconnect()
+            from _system.trading.sleeves.ib_client import refresh_quote
+            q = refresh_quote(owner, spec, cfg, readonly=True)
             q.pop("contract", None)
             return q
         except Exception as exc:
-            # Desk still works without TWS: operator types a last price.
+            last = payload.get("last")
+            if last in (None, ""):
+                raise HTTPException(400, f"IB quote failed: {exc}") from exc
             return {
-                "ticker": ticker.upper(),
-                "qualified_name": ticker.upper(),
+                "ticker": (ticker or spec.get("underlying") or "").upper(),
+                "qualified_name": (ticker or "").upper(),
+                "underlying": (spec.get("underlying") or ticker or "").upper(),
                 "exchange": "SMART",
-                "currency": "USD",
-                "secType": "STK",
-                "last": payload.get("last"),
+                "currency": spec.get("currency") or "USD",
+                "secType": spec["sec_type"],
+                "sec_type": spec["sec_type"],
+                "last": last,
                 "bid": None,
                 "ask": None,
                 "as_of": payload.get("as_of"),
@@ -123,23 +139,40 @@ def create_app() -> "FastAPI":
     @app.post("/approve")
     def approve(payload: dict):
         store = _store()
+        proposal_id = str(payload.get("proposal_id") or "")
+        proposal = store.get_proposal(proposal_id)
+        if not proposal:
+            raise HTTPException(400, "unknown proposal_id")
+        quote = dict(payload.get("quote") or {})
+        dry = bool((cfg.get("execution") or {}).get("dry_run", True))
         try:
-            fill = approve_trade(
-                proposal_id=str(payload["proposal_id"]),
+            from _system.trading.sleeves.ib_client import gateway_submit, refresh_quote
+            live = refresh_quote(proposal["owner"], {**proposal, **quote}, cfg, readonly=True)
+            live.pop("contract", None)
+            quote = live
+        except Exception as exc:
+            if not dry:
+                raise HTTPException(400, f"live quote required before send: {exc}") from exc
+            if not quote.get("last") and not quote.get("bid"):
+                raise HTTPException(400, f"quote failed: {exc}") from exc
+        try:
+            result = approve_trade(
+                proposal_id=proposal_id,
                 typed_ticker=str(payload.get("typed_ticker") or ""),
-                quote=payload.get("quote") or {},
+                quote=quote,
                 store=store,
                 cfg=cfg,
+                ib_submit=None if dry else gateway_submit,
             )
             export_static_books(store, cfg)
         except (PermissionError, KeyError, RuntimeError) as exc:
             raise HTTPException(400, str(exc)) from exc
         ingest = None
         try:
-            ingest = _maybe_ingest({"kind": "fill", "fill": fill, "book": build_book(fill["owner"], store, cfg)})
+            ingest = _maybe_ingest({"kind": "fill", "fill": result, "book": build_book(result["owner"], store, cfg)})
         except Exception as exc:
             ingest = {"error": str(exc)}
-        return {"fill": fill, "ingest": ingest}
+        return {"result": result, "fill": result, "ingest": ingest}
 
     @app.post("/sync-ib")
     def sync_ib(payload: dict | None = None):

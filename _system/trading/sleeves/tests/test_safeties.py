@@ -17,22 +17,22 @@ def _quote(last=100.0, age_s=1):
         "last": last,
         "as_of": (now - timedelta(seconds=age_s)).isoformat().replace("+00:00", "Z"),
         "account": "U805366",
-        "qualified_name": "MSFT",
+        "qualified_name": "CSU",
         "currency": "USD",
         "exchange": "SMART",
     }
 
 
-def test_dry_run_ok_for_drew_msft():
+def test_dry_run_ok_for_drew_residual():
     result = check_safeties(
         owner="drew",
-        ticker="MSFT",
+        ticker="CSU",
         side="BUY",
         qty=10,
         limit_price=100,
         quote=_quote(),
         proposal={"proposal_id": "abc", "snapshot_last": 100},
-        typed_ticker="MSFT",
+        typed_ticker="CSU",
     )
     assert result.ok, result.failures
 
@@ -45,22 +45,24 @@ def test_drew_cannot_trade_letf_or_blacklist_family():
     assert any("blacklist" in f.lower() for f in apld.failures)
 
 
-def test_michael_can_trade_blacklist_family_not_spx():
+def test_michael_can_trade_blacklist_family_not_universe():
     aplz = check_safeties(owner="michael", ticker="APLZ", side="BUY", qty=10, limit_price=20, quote=_quote(20), proposal={"snapshot_last": 20})
     assert aplz.ok, aplz.failures
     tqqq = check_safeties(owner="michael", ticker="TQQQ", side="BUY", qty=10, limit_price=40, quote=_quote(40), proposal={"snapshot_last": 40})
     assert not tqqq.ok
+    nvda = check_safeties(owner="michael", ticker="NVDA", side="BUY", qty=10, limit_price=100, quote=_quote(100), proposal={"snapshot_last": 100})
+    assert not nvda.ok
 
 
 def test_proposal_id_one_shot_and_stale_quote():
     used = check_safeties(
-        owner="drew", ticker="MSFT", side="BUY", qty=10, limit_price=100,
+        owner="drew", ticker="CSU", side="BUY", qty=10, limit_price=100,
         quote=_quote(), proposal={"proposal_id": "x", "snapshot_last": 100},
         used_proposal_ids={"x"},
     )
     assert not used.ok
     stale = check_safeties(
-        owner="drew", ticker="MSFT", side="BUY", qty=10, limit_price=100,
+        owner="drew", ticker="CSU", side="BUY", qty=10, limit_price=100,
         quote=_quote(age_s=90), proposal={"snapshot_last": 100},
     )
     assert not stale.ok
@@ -74,9 +76,39 @@ def test_kill_file(tmp_path, monkeypatch):
         path.write_text("stop\n", encoding="utf-8")
         created = True
     try:
-        result = check_safeties(owner="drew", ticker="MSFT", side="BUY", qty=1, limit_price=100, quote=_quote(), proposal={"snapshot_last": 100})
+        result = check_safeties(owner="drew", ticker="CSU", side="BUY", qty=1, limit_price=100, quote=_quote(), proposal={"snapshot_last": 100})
         assert not result.ok
         assert any("KILL" in f for f in result.failures)
     finally:
         if created and path.exists():
             path.unlink()
+
+
+def test_option_notional_uses_multiplier():
+    import copy
+    cfg = copy.deepcopy(load_config())
+    cfg["operators"]["drew"]["max_notional_per_order"] = 200
+    quote = _quote(last=1.5)
+    quote.update({"secType": "OPT", "underlying": "CSU", "multiplier": 100})
+    too_big = check_safeties(
+        owner="drew", ticker="CSU", side="BUY", qty=2, limit_price=1.5,
+        quote=quote, proposal={"snapshot_last": 1.5}, cfg=cfg,
+    )
+    assert not too_big.ok
+    assert any("notional" in f for f in too_big.failures)
+    ok = check_safeties(
+        owner="drew", ticker="CSU", side="BUY", qty=1, limit_price=1.5,
+        quote=quote, proposal={"snapshot_last": 1.5}, cfg=cfg,
+    )
+    assert ok.ok, ok.failures
+
+
+def test_spx_option_blocked_for_sleeves():
+    quote = _quote(last=5)
+    quote.update({"secType": "OPT", "underlying": "SPX", "multiplier": 100})
+    result = check_safeties(
+        owner="michael", ticker="SPX", side="BUY", qty=1, limit_price=5,
+        quote=quote, proposal={"snapshot_last": 5},
+    )
+    assert not result.ok
+    assert any("SPX" in f for f in result.failures)

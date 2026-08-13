@@ -10,6 +10,7 @@ from typing import Any, Iterable, Mapping
 from . import PKG_DIR
 from .classify_positions import classify_position, expand_blacklist_symbols, norm_sym
 from .config_loader import load_blacklist, load_config, load_etf_ls_universe, load_etf_to_under, operator_config
+from .contracts import quote_px
 
 
 def utcnow() -> datetime:
@@ -68,6 +69,15 @@ def check_safeties(
     side_n = str(side or "").strip().upper()
     qty_n = _finite(qty)
     limit_n = _finite(limit_price)
+    quote = dict(quote or {})
+    proposal = dict(proposal or {}) if proposal else {}
+    sec = str(quote.get("sec_type") or quote.get("secType") or proposal.get("sec_type") or "STK").upper()
+    if sec in {"OPTION", "OPTIONS"}:
+        sec = "OPT"
+    if sec not in {"STK", "OPT"}:
+        sec = "STK"
+    under_n = norm_sym(quote.get("underlying") or proposal.get("underlying") or ticker_n)
+    multiplier = _finite(quote.get("multiplier") or proposal.get("multiplier")) or (100.0 if sec == "OPT" else 1.0)
 
     if kill_path(cfg).exists():
         failures.append("KILL file present; all orders blocked")
@@ -80,9 +90,18 @@ def check_safeties(
         failures.append("limit price must be positive")
     if not bool(exec_cfg.get("limit_orders_only", True)):
         failures.append("market orders are not allowed")
+    allowed_sec = {str(s).upper() for s in (exec_cfg.get("allowed_sec_types") or ["STK", "OPT"])}
+    if sec not in allowed_sec:
+        failures.append(f"{sec} is not allowed")
 
-    if typed_ticker is not None and norm_sym(typed_ticker) != ticker_n:
-        failures.append("typed ticker does not match proposal")
+    if typed_ticker is not None:
+        typed = norm_sym(typed_ticker)
+        aliases = {ticker_n, under_n}
+        for key in ("qualified_name", "local_symbol", "ticker"):
+            aliases.add(norm_sym(quote.get(key) or proposal.get(key) or ""))
+        aliases.discard("")
+        if typed not in aliases:
+            failures.append("typed ticker does not match proposal")
 
     allow_live = bool(exec_cfg.get("allow_live", False))
     dry_run = bool(exec_cfg.get("dry_run", True))
@@ -96,23 +115,28 @@ def check_safeties(
 
     family = expand_blacklist_symbols(load_blacklist(cfg), load_etf_to_under(cfg))
     letf = load_etf_ls_universe(cfg)
-    name_pos = {"symbol": ticker_n, "secType": "STK", "orderRef": ""}
+    name_pos = {
+        "symbol": under_n or ticker_n,
+        "secType": sec,
+        "underlyingSymbol": under_n,
+        "orderRef": "",
+    }
     cls = classify_position(name_pos, blacklist_family=family, etf_ls_symbols=letf)
+    gate_name = under_n or ticker_n
     if owner == "drew":
         if cls.bucket == "etf_ls":
-            failures.append(f"{ticker_n} is a systematic LETF name; Drew cannot trade it")
+            failures.append(f"{gate_name} is a systematic LETF name; Drew cannot trade it")
         if cls.reason == "blacklist_family":
-            failures.append(f"{ticker_n} is a blacklist-family name; it belongs on Michael's sleeve")
+            failures.append(f"{gate_name} is a blacklist-family name; it belongs on Michael's sleeve")
         if cls.bucket == "spx_0dte":
             failures.append("SPX 0DTE is out of scope")
     if owner == "michael":
         if cls.bucket == "etf_ls":
-            failures.append(f"{ticker_n} is a systematic LETF plan name; Michael cannot submit it here")
+            failures.append(f"{gate_name} is a systematic LETF plan name; Michael cannot submit it here")
         if cls.bucket == "spx_0dte":
             failures.append("SPX 0DTE is out of scope")
 
-    quote = quote or {}
-    last = _finite(quote.get("last") or quote.get("price"))
+    last = quote_px(quote)
     quote_ts = quote.get("as_of")
     max_age = float(exec_cfg.get("quote_max_age_seconds") or 15)
     if last is None or last <= 0:
@@ -128,16 +152,18 @@ def check_safeties(
                     failures.append(f"quote is stale ({age:.0f}s)")
             except ValueError:
                 failures.append("quote timestamp unreadable")
-        band = float(exec_cfg.get("price_band_pct") or 0.01)
+        default_band = 0.10 if sec == "OPT" else 0.01
+        raw_band = exec_cfg.get("option_price_band_pct") if sec == "OPT" else exec_cfg.get("price_band_pct")
+        band = float(raw_band if raw_band is not None else default_band)
         if limit_n and abs(limit_n - last) / last > band + 1e-12:
             # Limit may be set at last; reject only if last moved vs propose snapshot.
-            propose_last = _finite((proposal or {}).get("snapshot_last"))
+            propose_last = _finite(proposal.get("snapshot_last"))
             if propose_last and abs(last - propose_last) / propose_last > band:
-                failures.append("quote moved outside the 1% band since propose")
-            elif not propose_last and abs(limit_n - last) / last > 0.05:
-                failures.append("limit is more than 5% from last")
+                failures.append("quote moved outside the price band since propose")
+            elif not propose_last and abs(limit_n - last) / last > max(band, 0.05):
+                failures.append("limit is too far from last")
 
-    notional = (qty_n or 0) * (limit_n or 0)
+    notional = (qty_n or 0) * (limit_n or 0) * multiplier
     max_notional = float(op.get("max_notional_per_order") or 0)
     if max_notional and notional > max_notional + 1e-6:
         failures.append(f"notional {notional:.0f} exceeds max {max_notional:.0f}")

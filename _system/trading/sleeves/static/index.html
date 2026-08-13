@@ -7,42 +7,94 @@
     :root { color-scheme: dark; --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9bb4; --accent:#5eead4; --bad:#f87171; --ok:#86efac; }
     body { font-family: Segoe UI, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
     h1 { font-size: 20px; margin: 0 0 8px; }
-    .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    h2 { font-size: 16px; margin: 0 0 8px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; max-width: 72ch; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .card { background: var(--card); border-radius: 10px; padding: 16px; }
     label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
     input, select, textarea { width: 100%; box-sizing: border-box; background: #0f1419; color: var(--text); border: 1px solid #334; border-radius: 6px; padding: 8px; }
-    button { background: var(--accent); color: #042; border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    button { background: var(--accent); color: #042; border: 0; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; margin-top: 12px; margin-right: 8px; }
     button.secondary { background: #334; color: var(--text); }
     .status { margin-top: 12px; font-size: 13px; white-space: pre-wrap; }
     .bad { color: var(--bad); }
     .ok { color: var(--ok); }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid #334; }
+    .opt { display: none; }
+    .opt.on { display: block; }
+    .px { font-variant-numeric: tabular-nums; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <h1>Magis sleeve desk</h1>
-  <p class="sub">Local TWS only (127.0.0.1). NY4 Gateway must be logged out. Dry-run until allow_live is set in config.yaml. Limit orders, approve once.</p>
+  <p class="sub">
+    Local Gateway / TWS only (127.0.0.1). Quote pulls a live last, bid, and ask from IB.
+    Propose saves a draft. Approve retypes the ticker, refreshes the quote, then dry-runs
+    or sends a DAY limit through Gateway. SPX/XSP and ls-algo names stay blocked.
+  </p>
   <div class="grid">
     <div class="card">
-      <h2>Propose</h2>
-      <label>Operator</label>
+      <h2>1. Draft</h2>
+      <label>Who</label>
       <select id="owner"><option value="drew">Drew</option><option value="michael">Michael</option></select>
-      <label>Ticker</label>
-      <input id="ticker" placeholder="MSFT" />
-      <label>Side</label>
-      <select id="side"><option>BUY</option><option>SELL</option></select>
-      <label>Quantity</label>
-      <input id="qty" type="number" min="1" step="1" value="10" />
-      <label>Limit (blank = last)</label>
-      <input id="limit" type="number" step="0.01" />
-      <label>Last if IB is down</label>
+      <div class="row">
+        <div>
+          <label>Stock or option</label>
+          <select id="secType"><option value="STK">Stock</option><option value="OPT">Option</option></select>
+        </div>
+        <div>
+          <label>Side</label>
+          <select id="side"><option>BUY</option><option>SELL</option></select>
+        </div>
+      </div>
+      <label>Ticker / underlying</label>
+      <input id="ticker" placeholder="CSU or AAPL" />
+      <div id="optFields" class="opt">
+        <div class="row">
+          <div>
+            <label>Expiry</label>
+            <input id="expiry" placeholder="2026-09-18" />
+          </div>
+          <div>
+            <label>Call or put</label>
+            <select id="right"><option value="C">Call</option><option value="P">Put</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Strike</label>
+            <input id="strike" type="number" step="0.5" />
+          </div>
+          <div>
+            <label>OCC local symbol (optional)</label>
+            <input id="localSymbol" placeholder="AAPL  260918C00200000" />
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Quantity (shares or contracts)</label>
+          <input id="qty" type="number" min="1" step="1" value="10" />
+        </div>
+        <div>
+          <label>Limit (blank = live last / mid)</label>
+          <input id="limit" type="number" step="0.01" />
+        </div>
+      </div>
+      <label>Manual last if IB is down (dry-run only)</label>
       <input id="last" type="number" step="0.01" />
-      <label>Conviction 1–5</label>
-      <input id="conviction" type="number" min="1" max="5" value="3" />
-      <label>Holding period (years)</label>
-      <input id="years" type="number" min="0.25" step="0.25" value="3" />
+      <div class="row">
+        <div>
+          <label>Conviction 1–5</label>
+          <input id="conviction" type="number" min="1" max="5" value="3" />
+        </div>
+        <div>
+          <label>Holding period (years)</label>
+          <input id="years" type="number" min="0.25" step="0.25" value="3" />
+        </div>
+      </div>
       <label>Cluster</label>
       <select id="cluster">
         <option value="idiosyncratic">idiosyncratic</option>
@@ -55,18 +107,21 @@
       </select>
       <label>What would make this a permanent loss?</label>
       <textarea id="plc" rows="3"></textarea>
-      <button id="quoteBtn" class="secondary" type="button">Qualify / quote</button>
-      <button id="proposeBtn" type="button">Propose</button>
+      <button id="quoteBtn" class="secondary" type="button">Get live IB price</button>
+      <button id="proposeBtn" type="button">Save draft</button>
       <div class="status" id="quoteStatus"></div>
     </div>
     <div class="card">
-      <h2>Approve once</h2>
+      <h2>2. Approve once</h2>
+      <p class="sub" style="margin:0 0 8px">Retype the ticker, then send. Approve refreshes the IB quote first.</p>
+      <label>Drafts waiting</label>
+      <select id="pending"><option value="">(none)</option></select>
       <label>Proposal id</label>
       <input id="proposalId" />
-      <label>Retype ticker</label>
+      <label>Retype ticker or underlying</label>
       <input id="typed" />
-      <button id="approveBtn" type="button">Approve and send (or dry-run fill)</button>
-      <button id="syncBtn" class="secondary" type="button">Sync IB into Michael sleeve</button>
+      <button id="approveBtn" type="button">Approve (dry-run or Gateway send)</button>
+      <button id="syncBtn" class="secondary" type="button">Sync IB books</button>
       <div class="status" id="approveStatus"></div>
       <h3>Book</h3>
       <div id="book"></div>
@@ -74,6 +129,10 @@
   </div>
   <script>
     let lastQuote = null;
+    const optFields = document.getElementById('optFields');
+    document.getElementById('secType').onchange = () => {
+      optFields.classList.toggle('on', document.getElementById('secType').value === 'OPT');
+    };
     async function api(path, body) {
       const res = await fetch(path, {
         method: body ? 'POST' : 'GET',
@@ -84,23 +143,60 @@
       if (!res.ok) throw new Error(data.detail || data.error || res.statusText);
       return data;
     }
+    function specPayload() {
+      const last = document.getElementById('last').value;
+      const payload = {
+        owner: document.getElementById('owner').value,
+        ticker: document.getElementById('ticker').value,
+        sec_type: document.getElementById('secType').value,
+        last: last ? Number(last) : undefined,
+        as_of: new Date().toISOString(),
+      };
+      if (payload.sec_type === 'OPT') {
+        payload.underlying = payload.ticker;
+        payload.expiry = document.getElementById('expiry').value;
+        payload.strike = document.getElementById('strike').value ? Number(document.getElementById('strike').value) : undefined;
+        payload.right = document.getElementById('right').value;
+        payload.local_symbol = document.getElementById('localSymbol').value || undefined;
+      }
+      return payload;
+    }
+    function pxLine(q) {
+      if (!q) return '';
+      const bits = [`last ${q.last ?? '—'}`, `bid ${q.bid ?? '—'}`, `ask ${q.ask ?? '—'}`];
+      if (q.mock) bits.push('IB was down; using the number you typed');
+      return bits.join(' · ');
+    }
+    async function loadPending() {
+      const data = await api('/pending');
+      const sel = document.getElementById('pending');
+      const rows = data.proposals || [];
+      sel.innerHTML = rows.length
+        ? rows.map((p) => `<option value="${p.proposal_id}">${p.owner} ${p.side} ${p.qty} ${p.ticker} @ ${p.limit_price}</option>`).join('')
+        : '<option value="">(none)</option>';
+      if (rows[0] && !document.getElementById('proposalId').value) {
+        document.getElementById('proposalId').value = rows[0].proposal_id;
+        document.getElementById('typed').value = rows[0].underlying || rows[0].ticker;
+      }
+    }
+    document.getElementById('pending').onchange = () => {
+      const id = document.getElementById('pending').value;
+      document.getElementById('proposalId').value = id;
+      const label = document.getElementById('pending').selectedOptions[0];
+      if (label && label.textContent) {
+        const parts = label.textContent.trim().split(/\s+/);
+        document.getElementById('typed').value = parts[3] || '';
+      }
+    };
     document.getElementById('quoteBtn').onclick = async () => {
       const status = document.getElementById('quoteStatus');
       try {
-        const last = document.getElementById('last').value;
-        lastQuote = await api('/quote', {
-          owner: document.getElementById('owner').value,
-          ticker: document.getElementById('ticker').value,
-          last: last ? Number(last) : undefined,
-          as_of: new Date().toISOString(),
-        });
-        if (!lastQuote.last && last) lastQuote.last = Number(last);
-        if (!lastQuote.as_of) lastQuote.as_of = new Date().toISOString();
+        lastQuote = await api('/quote', specPayload());
         if (lastQuote.last && !document.getElementById('limit').value) {
           document.getElementById('limit').value = lastQuote.last;
         }
         status.className = 'status ok';
-        status.textContent = JSON.stringify(lastQuote, null, 2);
+        status.textContent = pxLine(lastQuote) + '\n' + JSON.stringify(lastQuote, null, 2);
       } catch (err) {
         status.className = 'status bad';
         status.textContent = String(err.message || err);
@@ -109,10 +205,10 @@
     document.getElementById('proposeBtn').onclick = async () => {
       const status = document.getElementById('quoteStatus');
       try {
-        if (!lastQuote) throw new Error('Quote first');
+        if (!lastQuote) throw new Error('Get a live IB price first');
         const proposal = await api('/propose', {
           owner: document.getElementById('owner').value,
-          ticker: document.getElementById('ticker').value,
+          ticker: lastQuote.ticker || document.getElementById('ticker').value,
           side: document.getElementById('side').value,
           qty: Number(document.getElementById('qty').value),
           limit_price: Number(document.getElementById('limit').value),
@@ -123,9 +219,10 @@
           cluster: document.getElementById('cluster').value,
         });
         document.getElementById('proposalId').value = proposal.proposal_id;
-        document.getElementById('typed').value = proposal.ticker;
+        document.getElementById('typed').value = proposal.underlying || proposal.ticker;
         status.className = 'status ok';
-        status.textContent = JSON.stringify(proposal, null, 2);
+        status.textContent = 'Draft saved. Approve on the right.\n' + JSON.stringify(proposal, null, 2);
+        await loadPending();
       } catch (err) {
         status.className = 'status bad';
         status.textContent = String(err.message || err);
@@ -141,6 +238,7 @@
         });
         status.className = 'status ok';
         status.textContent = JSON.stringify(out, null, 2);
+        await loadPending();
         await renderBook();
       } catch (err) {
         status.className = 'status bad';
@@ -163,8 +261,11 @@
       const owner = document.getElementById('owner').value;
       const book = await api('/book?owner=' + owner);
       const rows = (book.positions || []).map(p => `<tr><td>${p.ticker}</td><td>${p.qty}</td><td>${p.mark}</td><td>${p.needs_thesis ? 'needs thesis' : 'ok'}</td></tr>`).join('');
-      document.getElementById('book').innerHTML = `<p>NAV ${book.header.nav_usd} · gross ${book.header.gross_usd} · ${book.header.blurb}</p><table><thead><tr><th>Ticker</th><th>Qty</th><th>Mark</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.getElementById('book').innerHTML = `<p>NAV ${book.header.nav_usd} · ${book.header.blurb}</p><table><thead><tr><th>Ticker</th><th>Qty</th><th>Mark</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
+    document.getElementById('owner').onchange = renderBook;
+    loadPending().catch(() => {});
+    renderBook().catch(() => {});
   </script>
 </body>
 </html>

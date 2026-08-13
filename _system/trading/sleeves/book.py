@@ -80,8 +80,8 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
             excluded[bucket] += 1
     if owner == "michael":
         blurb = (
-            "Live Magis account U805366 after taking out the systematic LETF desk and SPX 0DTE. "
-            "Blacklist names Michael trades by hand stay here."
+            "Live Magis account U805366 after taking out the ls-algo universe and SPX 0DTE. "
+            "Blacklist names Michael trades by hand stay here even when they are in that universe."
         )
     else:
         blurb = (

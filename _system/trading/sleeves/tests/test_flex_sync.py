@@ -27,9 +27,9 @@ def test_merge_flex_marks_replaces_cost_as_mark():
     assert merged[0]["marketValue"] == 4000
     assert merged[0]["name"] == "MICROSOFT CORP"
     rows = parse_flex_positions(FIXTURE, account_id="U805366")
-    assert {r["symbol"] for r in rows} >= {"MSFT", "TQQQ", "APLD"}
-    msft = next(r for r in rows if r["symbol"] == "MSFT")
-    assert msft["marketValue"] == 4000
+    assert {r["symbol"] for r in rows} >= {"CSU", "TQQQ", "APLD"}
+    csu = next(r for r in rows if r["symbol"] == "CSU")
+    assert csu["marketValue"] == 4000
 
 
 def test_sync_from_flex_fills_michael_and_leaves_drew_empty(tmp_path):
@@ -37,7 +37,7 @@ def test_sync_from_flex_fills_michael_and_leaves_drew_empty(tmp_path):
     result = sync_holdings(store, flex_path=FIXTURE, ingest=False, write_dashboard=False)
     assert result["source"].startswith("flex:")
     michael_tickers = {p["ticker"] for p in result["michael"]["positions"]}
-    assert "MSFT" in michael_tickers
+    assert "CSU" in michael_tickers
     assert "APLD" in michael_tickers
     assert "TQQQ" not in michael_tickers
     assert result["drew"]["positions"] == []

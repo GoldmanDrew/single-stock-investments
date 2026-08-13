@@ -116,6 +116,32 @@ def sync_holdings(
     family = expand_blacklist_symbols(load_blacklist(cfg), load_etf_to_under(cfg))
     letf = load_etf_ls_universe(cfg)
     classified = classify_positions(rows, blacklist_family=family, etf_ls_symbols=letf)
+    tags = {int(t["con_id"]): t for t in store.sleeve_tags() if t.get("con_id")}
+    tags_by_ticker = {(t.get("owner"), str(t.get("ticker") or "").upper()): t for t in store.sleeve_tags()}
+    for row in classified:
+        cls = row.get("classification") or {}
+        if cls.get("bucket") in {"spx_0dte", "etf_ls"}:
+            continue
+        con_id = int(row.get("conId") or 0)
+        tag = tags.get(con_id)
+        if tag and tag.get("owner") in {"drew", "michael"}:
+            row["classification"] = {
+                "ticker": cls.get("ticker") or row.get("symbol"),
+                "bucket": tag["owner"],
+                "reason": "sleeve_tag",
+                "owner": tag["owner"],
+            }
+            continue
+        # Drew fills without a matching conId still win on ticker if tagged.
+        symbol = str(row.get("symbol") or "").upper()
+        drew_tag = tags_by_ticker.get(("drew", symbol))
+        if drew_tag:
+            row["classification"] = {
+                "ticker": cls.get("ticker") or row.get("symbol"),
+                "bucket": "drew",
+                "reason": "sleeve_tag",
+                "owner": "drew",
+            }
     store.replace_positions(classified)
     store.append_audit([row["classification"] for row in classified])
     if write_dashboard:

@@ -25,7 +25,19 @@ python -m _system.trading.sleeves.desk
 
 3. Open http://127.0.0.1:8788
 
-Dry-run is on by default (`execution.dry_run: true`, `allow_live: false` in `config.yaml`). Approve records a simulated fill and will HMAC-post to D1 if `SLEEVE_INGEST_URL` and `SLEEVE_INGEST_TOKEN` are set.
+Dry-run is on by default (`execution.dry_run: true`, `allow_live: false` in `config.yaml`). Approve records a simulated fill. Live send requires flipping those flags, then either the desk Approve button or:
+
+```bash
+python -m _system.trading.sleeves.send quote --ticker CSU
+python -m _system.trading.sleeves.send quote --underlying AAPL --expiry 2026-09-18 --strike 200 --right C
+python -m _system.trading.sleeves.send propose --owner drew --ticker CSU --side BUY --qty 10 --limit 50 --years 3 --conviction 4 --plc "What would make this a permanent loss."
+python -m _system.trading.sleeves.send pending
+python -m _system.trading.sleeves.send approve PROPOSAL_ID --typed CSU
+```
+
+`quote` / `propose` / `approve` pull a live last, bid, and ask from IB Gateway (delayed data if you have no live subscription). Options use last when it exists, otherwise the bid/ask mid. SPX/XSP and ls-algo universe names stay blocked. Equity options follow the underlying: residual/blacklist names can be drafted; systematic names cannot.
+
+Approve always re-quotes, then you retype the ticker. That places a DAY limit on `U805366` with `orderRef` `DREW_SLEEVE` or `MICHAEL_SLEEVE`. It does not mark the ticket filled until IB actually fills; the next `sync_ib` picks up the position.
 
 ## Operators
 
@@ -48,7 +60,7 @@ If NY4 is still logged in, TWS on this machine cannot connect. Pass yesterday's 
 python -m _system.trading.sleeves.sync_ib --flex path/to/flex_positions.xml
 ```
 
-The classifier keeps residual stocks and blacklist families in Michael, drops SPX/XSP options and systematic LETFs, and leaves Drew empty unless a row is tagged `DREW_SLEEVE`. It writes `dashboard/data/sleeves_*.json` and HMAC-posts both books when `SLEEVE_INGEST_TOKEN` is set.
+The classifier keeps residual stocks and blacklist families in Michael, drops SPX/XSP options and every ls-algo universe ticker that is not blacklisted, and leaves Drew empty unless a row is tagged `DREW_SLEEVE`. It writes `dashboard/data/sleeves_*.json` and HMAC-posts both books when `SLEEVE_INGEST_TOKEN` is set.
 
 Override host/port/account with `IBKR_HOST`, `IBKR_PORT`, `IBKR_ACCOUNT` if needed.
 
@@ -58,4 +70,6 @@ Create `_system/trading/sleeves/KILL` (any contents). Every propose/approve fail
 
 ## Live unlock
 
-Only after a dry-run fill shows on the Drew tab: set `execution.allow_live: true` and `dry_run: false`, send a tiny Drew lot, confirm `orderRef=DREW_SLEEVE` on `U805366`, then restore dry-run.
+## Live unlock
+
+Only after a dry-run fill shows on the Drew tab: set `execution.allow_live: true` and `dry_run: false`, send a tiny Drew lot, confirm `orderRef=DREW_SLEEVE` on `U805366`, then restore dry-run if you want the desk to stop transmitting.

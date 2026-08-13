@@ -34,7 +34,7 @@ def test_ib_sync_seeds_michael_and_drew_fill_roundtrip(tmp_path):
     letf = load_etf_ls_universe()
     classified = classify_positions(
         [
-            {"symbol": "MSFT", "qty": 100, "mark": 400, "marketValue": 40000, "secType": "STK"},
+            {"symbol": "CSU", "qty": 100, "mark": 400, "marketValue": 40000, "secType": "STK"},
             {"symbol": "APLZ", "qty": 200, "mark": 20, "marketValue": 4000, "secType": "STK"},
             {"symbol": "TQQQ", "qty": 50, "mark": 40, "marketValue": 2000, "secType": "STK", "orderRef": "ETF_LS|X"},
             {"symbol": "SPX", "qty": -1, "secType": "OPT", "tradingClass": "SPXW"},
@@ -45,7 +45,7 @@ def test_ib_sync_seeds_michael_and_drew_fill_roundtrip(tmp_path):
     store.replace_positions(classified)
     michael = build_book("michael", store)
     tickers = {p["ticker"] for p in michael["positions"]}
-    assert "MSFT" in tickers
+    assert "CSU" in tickers
     assert "APLZ" in tickers
     assert "TQQQ" not in tickers
     assert "SPX" not in tickers
@@ -53,17 +53,17 @@ def test_ib_sync_seeds_michael_and_drew_fill_roundtrip(tmp_path):
         "last": 50.0,
         "as_of": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "account": "U805366",
-        "qualified_name": "COST",
+        "qualified_name": "GTX",
         "currency": "USD",
         "exchange": "SMART",
     }
     proposal = propose_trade(
-        owner="drew", ticker="COST", side="BUY", qty=5, limit_price=50, quote=quote,
+        owner="drew", ticker="GTX", side="BUY", qty=5, limit_price=50, quote=quote,
         holding_period_years=5, plc_thesis="Permanent loss if membership economics collapse.",
         conviction=4, cluster="idiosyncratic", store=store,
     )
-    fill = approve_trade(proposal_id=proposal["proposal_id"], typed_ticker="COST", quote=quote, store=store)
+    fill = approve_trade(proposal_id=proposal["proposal_id"], typed_ticker="GTX", quote=quote, store=store)
     drew = build_book("drew", store)
     ingest_payload = {"kind": "fill", "fill": fill, "book": drew}
-    assert ingest_payload["book"]["positions"][0]["ticker"] == "COST"
+    assert ingest_payload["book"]["positions"][0]["ticker"] == "GTX"
     assert json.dumps(ingest_payload)

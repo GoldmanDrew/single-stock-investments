@@ -84,17 +84,28 @@ def classify_position(
     drew = {norm_sym(s) for s in (drew_symbols or [])}
     index_name = under or ticker or tclass
 
-    if DREW_REF in ref or ticker in drew:
-        return Classification(ticker, "drew", "drew_new", "drew")
-
     if sec in {"OPT", "FOP"}:
         local = str(pos.get("localSymbol") or pos.get("symbol") or "").upper()
         if index_name in SPX_NAMES or "SPXW" in local or local.startswith("XSP"):
             return Classification(index_name or "SPX", "spx_0dte", "spxw_option", None)
-        return Classification(index_name or ticker, "ignored", "option_not_stock", None)
+
+    if DREW_REF in ref or ticker in drew:
+        return Classification(ticker, "drew", "drew_new", "drew")
 
     if ticker in family:
         return Classification(ticker, "michael", "blacklist_family", "michael")
+
+    if sec in {"OPT", "FOP"}:
+        name = under or ticker
+        if name in family:
+            return Classification(name, "michael", "blacklist_family", "michael")
+        if name in letf:
+            return Classification(name, "etf_ls", "etf_ls_universe", None)
+        if MICHAEL_REF in ref:
+            return Classification(name or ticker, "michael", "michael_new", "michael")
+        if name:
+            return Classification(name, "michael", "residual", "michael")
+        return Classification(ticker, "ignored", "option_not_stock", None)
 
     if any(tag in ref for tag in ETF_LS_REFS):
         return Classification(ticker, "etf_ls", "order_ref", None)

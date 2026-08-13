@@ -29,6 +29,7 @@ class SleeveStore:
         self._ideas = self._read("ideas.json", [])
         self._cashflows = self._read("cashflows.json", [])
         self._audit = self._read("classifier_audit.json", [])
+        self._tags = self._read("sleeve_tags.json", [])
 
     def _path(self, name: str) -> Path:
         return self.root / name
@@ -77,6 +78,44 @@ class SleeveStore:
                 out[ticker] = ts
         return out
 
+    def pending_proposals(self) -> list[dict[str, Any]]:
+        return [dict(p) for p in self._proposals if p.get("status") == "proposed"]
+
+    def save_sleeve_tag(self, tag: Mapping[str, Any]) -> None:
+        row = dict(tag)
+        con_id = int(row.get("con_id") or row.get("conId") or 0)
+        ticker = norm_sym(row.get("ticker") or row.get("symbol") or "")
+        kept = []
+        for existing in self._tags:
+            same_con = con_id and int(existing.get("con_id") or 0) == con_id
+            same_ticker = ticker and norm_sym(existing.get("ticker") or "") == ticker and existing.get("owner") == row.get("owner")
+            if not (same_con or same_ticker):
+                kept.append(existing)
+        kept.append({
+            "owner": row.get("owner"),
+            "ticker": ticker,
+            "con_id": con_id or None,
+            "sec_type": row.get("sec_type") or "STK",
+        })
+        self._tags = kept
+        self._write("sleeve_tags.json", self._tags)
+
+    def sleeve_tags(self) -> list[dict[str, Any]]:
+        return [dict(t) for t in self._tags]
+
+    def record_submit(self, proposal: Mapping[str, Any], submitted: Mapping[str, Any]) -> None:
+        proposal_row = dict(proposal)
+        proposal_row["status"] = "submitted"
+        proposal_row["ib_order_id"] = submitted.get("ib_order_id")
+        proposal_row["submitted_at"] = submitted.get("submitted_at")
+        self.save_proposal(proposal_row)
+        self.save_sleeve_tag({
+            "owner": proposal.get("owner"),
+            "ticker": proposal.get("ticker"),
+            "con_id": proposal.get("con_id") or submitted.get("con_id"),
+            "sec_type": proposal.get("sec_type") or "STK",
+        })
+
     def positions(self) -> list[dict[str, Any]]:
         return [dict(p) for p in self._positions]
 
@@ -124,6 +163,12 @@ class SleeveStore:
         self.save_proposal(proposal_row)
         self._fills.append(dict(fill))
         self._write("fills.json", self._fills)
+        self.save_sleeve_tag({
+            "owner": fill.get("owner"),
+            "ticker": fill.get("ticker"),
+            "con_id": proposal.get("con_id"),
+            "sec_type": proposal.get("sec_type") or "STK",
+        })
         signed = -abs(float(fill["qty"]) * float(fill["price"])) if fill["side"] == "BUY" else abs(float(fill["qty"]) * float(fill["price"]))
         self._cashflows.append({
             "owner": fill["owner"],
@@ -150,7 +195,7 @@ class SleeveStore:
                 "qty": qty,
                 "mark": float(fill["price"]),
                 "marketValue": qty * float(fill["price"]),
-                "secType": "STK",
+                "secType": proposal.get("sec_type") or "STK",
                 "orderRef": proposal.get("order_ref"),
                 "classification": {
                     "ticker": fill["ticker"],
