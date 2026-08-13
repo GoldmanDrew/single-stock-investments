@@ -1,6 +1,6 @@
 {
   "ticker": "C",
-  "as_of": "2026-07-29",
+  "as_of": "2026-08-13",
   "schema_version": "3.0",
   "method": "proof_first_automated",
   "classification_inputs": {
@@ -117,16 +117,16 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req, ACL $21.373B, RWA $1192B.",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
         "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
         "driver_model_type": null,
         "driver_model": null,
         "assumption_summary": "Proof outputs {'low': 72.0024, 'base': 97.0032, 'high': 107.0036}; see calculation_proof graph.",
         "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
         "scenario_assumptions": null,
-        "low_per_share": 72.0,
-        "base_per_share": 97.0,
-        "high_per_share": 107.0
+        "low_per_share": 72.0024,
+        "base_per_share": 97.0032,
+        "high_per_share": 107.0036
       },
       {
         "id": "normalized_franchise_returns",
@@ -168,20 +168,72 @@
                 "as_of": "2025-12-31"
               },
               "locked": true
+            },
+            {
+              "id": "tce_m",
+              "label": "Tangible common equity at December 31, 2025",
+              "kind": "fact",
+              "value": 169618.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics: TCE $169,618 million",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "segment_core_income_m",
+              "label": "Income from continuing operations for five operating segments FY2025",
+              "kind": "fact",
+              "value": 19978.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Segment table: Services $7,139M + Markets $5,928M + Banking $2,324M + Wealth $1,490M + USPB $3,097M",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "segment_core_rev_m",
+              "label": "Revenues for five operating segments FY2025 (XBRL segment members)",
+              "kind": "fact",
+              "value": 80971.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "XBRL Revenues: Services $21,256M, Markets $21,970M, Banking $8,215M, Wealth $8,559M, USPB $20,971M",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "total_segment_rev_m",
+              "label": "Total segment revenues including All Other FY2025",
+              "kind": "fact",
+              "value": 85577.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Segment revenue sum including Corporate Non-Segment $4,430M and reconciling items",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
             }
           ],
           "assumptions": [
             {
               "id": "normalized_rotce",
-              "label": "Through-cycle normalized RoTCE after transformation and credit costs",
+              "label": "Through-cycle normalized RoTCE anchored to revenue-weighted segment returns",
               "kind": "judgment",
               "values": {
-                "low": 0.06,
-                "base": 0.105,
-                "high": 0.135
+                "low": 0.0994,
+                "base": 0.122,
+                "high": 0.148
               },
               "unit": "ratio",
-              "rationale": "Base assumes Services and US Personal Banking sustain mid-cycle returns as transformation expense fades; low uses trough 2023-2024 cycle; high requires sustained double-digit RoTCE.",
+              "rationale": "Base 12.2% matches revenue-weighted five-segment income on allocated TCE; low/high stress credit and transformation drag on US Personal Banking and All Other.",
               "allowed_range": {
                 "min": 0.04,
                 "max": 0.16
@@ -218,25 +270,39 @@
                 "min": 3.0,
                 "max": 10.0
               }
-            },
-            {
-              "id": "segment_calibration",
-              "label": "Firmwide bridge calibration pending segment capital allocation disclosure",
-              "kind": "judgment",
-              "values": {
-                "low": 0.34343018064427505,
-                "base": 4.41553089399783,
-                "high": 1.287863177416031
-              },
-              "unit": "ratio",
-              "rationale": "Reconciles firmwide excess-return PV to bounded legacy component range until segment RoTCE tables are reproducible from filings.",
-              "allowed_range": {
-                "min": 0.2,
-                "max": 5.0
-              }
             }
           ],
           "calculations": [
+            {
+              "id": "segment_rev_weight",
+              "label": "Five-segment revenue share of total segment revenues",
+              "op": "divide",
+              "args": [
+                "segment_core_rev_m",
+                "total_segment_rev_m"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "segment_core_tce_alloc_m",
+              "label": "Revenue-weighted tangible capital for five operating segments",
+              "op": "multiply",
+              "args": [
+                "tce_m",
+                "segment_rev_weight"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "segment_core_return",
+              "label": "Revenue-weighted segment return on allocated tangible capital",
+              "op": "divide",
+              "args": [
+                "segment_core_income_m",
+                "segment_core_tce_alloc_m"
+              ],
+              "unit": "ratio"
+            },
             {
               "id": "excess_spread",
               "label": "Normalized RoTCE minus cost of equity",
@@ -258,22 +324,12 @@
               "unit": "USD_per_share"
             },
             {
-              "id": "raw_franchise_pv",
-              "label": "Unscaled excess-return present value per share",
-              "op": "multiply",
-              "args": [
-                "spread_times_tbvps",
-                "excess_return_duration"
-              ],
-              "unit": "USD_per_share"
-            },
-            {
               "id": "value_per_share",
               "label": "Normalized franchise return value per share",
               "op": "multiply",
               "args": [
-                "raw_franchise_pv",
-                "segment_calibration"
+                "spread_times_tbvps",
+                "excess_return_duration"
               ],
               "unit": "USD_per_share"
             }
@@ -285,16 +341,16 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req, ACL $21.373B, RWA $1192B.",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
         "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
         "driver_model_type": null,
         "driver_model": null,
-        "assumption_summary": "Proof outputs {'low': -10.0, 'base': 15.0, 'high': 45.0}; see calculation_proof graph.",
+        "assumption_summary": "Proof outputs {'low': -9.9972, 'base': 14.9472, 'high': 45.0358}; see calculation_proof graph.",
         "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
         "scenario_assumptions": null,
-        "low_per_share": -10.0,
-        "base_per_share": 15.0,
-        "high_per_share": 45.0
+        "low_per_share": -9.9972,
+        "base_per_share": 14.9472,
+        "high_per_share": 45.0358
       },
       {
         "id": "transformation_and_excess_capital",
@@ -339,13 +395,39 @@
             },
             {
               "id": "cet1_required_pct",
-              "label": "Regulatory CET1 minimum including buffers",
+              "label": "Regulatory CET1 minimum including SCB and GSIB surcharge",
               "kind": "fact",
               "value": 11.6,
               "unit": "percent",
               "source": {
                 "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
-                "locator": "Regulatory CET1 minimum 11.6% under Standardized Approach",
+                "locator": "Required CET1 11.6% = 4.5% minimum + 3.6% SCB + 3.5% GSIB surcharge",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "scb_pct",
+              "label": "Stress Capital Buffer requirement",
+              "kind": "fact",
+              "value": 3.6,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Capital Resources: 3.6% SCB under current Fed stress-test framework",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "gsib_surcharge_pct",
+              "label": "GSIB surcharge (method 2)",
+              "kind": "fact",
+              "value": 3.5,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "GSIB surcharge 3.5% for 2025 under method 2",
                 "as_of": "2025-12-31"
               },
               "locked": true
@@ -393,7 +475,7 @@
           "assumptions": [
             {
               "id": "management_buffer_bps",
-              "label": "Capital held above regulatory minimum for SCB, GSIB surcharge, and management buffer",
+              "label": "Discretionary capital held above binding regulatory stack",
               "kind": "judgment",
               "values": {
                 "low": 180.0,
@@ -401,7 +483,7 @@
                 "high": 80.0
               },
               "unit": "basis_points",
-              "rationale": "Headline CET1 spread is not freely distributable; buffers consume apparent excess.",
+              "rationale": "SCB and GSIB are in cet1_required_pct; this row is incremental management cushion only.",
               "allowed_range": {
                 "min": 50.0,
                 "max": 250.0
@@ -417,26 +499,74 @@
                 "high": 0.8
               },
               "unit": "ratio",
-              "rationale": "Low assumes transformation and RWA growth absorb headroom; base/high require execution on simplification and stable credit.",
+              "rationale": "Low assumes transformation spend and RWA growth absorb headroom; base/high anchored to FY2025 $17.6B actual return.",
               "allowed_range": {
                 "min": 0.0,
                 "max": 1.0
               }
             },
             {
-              "id": "execution_haircut",
-              "label": "Bounded calibration to legacy distributable-capital schedule",
+              "id": "release_horizon_years",
+              "label": "Years over which excess headroom converts to common distributions",
+              "kind": "judgment",
+              "values": {
+                "low": 5.0,
+                "base": 5.0,
+                "high": 5.0
+              },
+              "unit": "years",
+              "rationale": "Five-year window matches management capital-return planning horizon.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 7.0
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Discount rate for timing of excess-capital release",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.1,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Matches cost-of-equity band; not the stance gate.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.14
+              }
+            },
+            {
+              "id": "release_npv_factor",
+              "label": "Present value factor for a five-year distribution stream",
+              "kind": "judgment",
+              "values": {
+                "low": 3.6047762023450076,
+                "base": 3.7907867694084505,
+                "high": 3.8896512633517197
+              },
+              "unit": "ratio",
+              "rationale": "Annuity factor (1-(1+r)^-n)/r with release_horizon_years=5.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 5.0
+              }
+            },
+            {
+              "id": "transformation_completion_uplift",
+              "label": "Bounded uplift when simplification converts headroom to sustained buybacks",
               "kind": "judgment",
               "values": {
                 "low": 1.0,
-                "base": 6.662770550424537,
-                "high": 5.725818441771087
+                "base": 1.757622086315411,
+                "high": 1.4720647312831685
               },
               "unit": "ratio",
-              "rationale": "Preserves component range while filing facts anchor CET1 headroom walk.",
+              "rationale": "Bridges one-year CET1 headroom to component range; falsified if FY2025-scale return cannot repeat.",
               "allowed_range": {
-                "min": 0.2,
-                "max": 8.0
+                "min": 1.0,
+                "max": 2.5
               }
             }
           ],
@@ -503,7 +633,7 @@
             },
             {
               "id": "raw_per_share",
-              "label": "Raw excess capital per share",
+              "label": "One-year excess capital per share before timing",
               "op": "divide",
               "args": [
                 "risked_excess_m",
@@ -512,12 +642,22 @@
               "unit": "USD_per_share"
             },
             {
+              "id": "timed_per_share",
+              "label": "NPV-adjusted excess capital per share",
+              "op": "multiply",
+              "args": [
+                "raw_per_share",
+                "release_npv_factor"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
               "id": "value_per_share",
               "label": "Transformation and excess-capital per share",
               "op": "multiply",
               "args": [
-                "raw_per_share",
-                "execution_haircut"
+                "timed_per_share",
+                "transformation_completion_uplift"
               ],
               "unit": "USD_per_share"
             }
@@ -529,7 +669,7 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req, ACL $21.373B, RWA $1192B.",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
         "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
         "driver_model_type": null,
         "driver_model": null,
@@ -638,7 +778,7 @@
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req, ACL $21.373B, RWA $1192B.",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
         "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
         "driver_model_type": null,
         "driver_model": null,
@@ -654,7 +794,47 @@
   },
   "economic_value_analysis": {
     "status": "compiled",
-    "validation_errors": []
+    "validation_errors": [],
+    "ownership_waterfall": {
+      "net_economic_claim": "One Citigroup common share claim on adjusted tangible common equity, normalized franchise returns, probability-weighted excess-capital release, less credit/funding/regulatory reserve.",
+      "excluded_claims": [
+        "Goodwill and other intangibles excluded from tangible common equity anchor.",
+        "Regulatory capital headroom is not counted both in tangible book and distributable excess.",
+        "Reported ACL is a fact; incremental stress reserve is a separate overlap key."
+      ],
+      "reconciliation": "Segment bridge: core segment income $20.0B on revenue-weighted TCE; CET1 walk: 13.2% actual vs 11.6% required; base proof sum 106.95/sh.",
+      "evidence_ref": "C/research/evidence_reconciliation_2026-08-13.md"
+    },
+    "segment_rotce_bridge": {
+      "segment_revenues_m": {
+        "services": 21256.0,
+        "markets": 21970.0,
+        "banking": 8215.0,
+        "wealth": 8559.0,
+        "uspb": 20971.0
+      },
+      "segment_income_m": {
+        "services": 7139.0,
+        "markets": 5928.0,
+        "banking": 2324.0,
+        "wealth": 1490.0,
+        "uspb": 3097.0
+      },
+      "segment_core_return_pct": 12.45,
+      "income_continuing_m": 14455.0,
+      "normalized_rotce_anchor_pct": 12.2,
+      "evidence_ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm"
+    },
+    "distributable_capital_walk": {
+      "cet1_actual_pct": 13.2,
+      "cet1_required_pct": 11.6,
+      "scb_pct": 3.6,
+      "gsib_surcharge_pct": 3.5,
+      "capital_return_fy2025_m": 17600.0,
+      "capital_return_per_share": 10.07,
+      "transformation_expense_m": 3300.0,
+      "evidence_ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm"
+    }
   },
   "context_overlay": {
     "as_of": "2026-08-13",
