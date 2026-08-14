@@ -783,39 +783,42 @@
   .sleeve-section-head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-bottom: 8px; }
   .sleeve-section-head h3 { font-size: 16px; }
   .sleeve-section-head p { font-size: 12px; color: var(--text-muted); }
+  .sleeve-panel table, .sleeve-panel thead th, .sleeve-panel tbody tr, .sleeve-panel td {
+    content-visibility: visible; contain-intrinsic-size: auto; cursor: default;
+    position: static; text-transform: none; letter-spacing: 0;
+  }
   .sleeve-table-wrap {
     overflow: auto; border: 1px solid var(--border); border-radius: 8px;
     background: var(--bg-card); max-height: min(70vh, 820px);
     scrollbar-gutter: stable;
   }
-  .sleeve-table {
-    width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0;
-    font-size: 13px;
+  .sleeve-book {
+    --sleeve-cols: minmax(180px, 2.4fr) 72px 92px 104px 112px 112px 92px minmax(132px, 1.5fr);
+    min-width: 920px; font-size: 13px;
   }
-  .sleeve-table col.sleeve-col-name { width: 22%; }
-  .sleeve-table col.sleeve-col-w { width: 8%; }
-  .sleeve-table col.sleeve-col-qty { width: 9%; }
-  .sleeve-table col.sleeve-col-last { width: 10%; }
-  .sleeve-table col.sleeve-col-val { width: 11%; }
-  .sleeve-table col.sleeve-col-pnl { width: 11%; }
-  .sleeve-table col.sleeve-col-ret { width: 10%; }
-  .sleeve-table col.sleeve-col-note { width: 19%; }
+  .sleeve-book-head, .sleeve-book-row {
+    display: grid; grid-template-columns: var(--sleeve-cols); column-gap: 12px;
+    padding: 9px 12px; align-items: start;
+  }
+  .sleeve-book-head {
+    position: sticky; top: 0; z-index: 2; background: var(--bg-secondary);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border);
+  }
+  .sleeve-book-row { border-bottom: 1px solid var(--border); }
+  .sleeve-book-row:last-child { border-bottom: none; }
+  .sleeve-book-row:hover { background: rgba(6, 182, 212, 0.04); }
+  .sleeve-table {
+    width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px;
+  }
   .sleeve-table th, .sleeve-table td {
     padding: 9px 12px; border-bottom: 1px solid var(--border);
-    text-align: left; vertical-align: top; box-sizing: border-box;
+    text-align: left; vertical-align: top;
   }
   .sleeve-table thead th {
     font-size: 11px; font-weight: 600; color: var(--text-muted);
-    background: var(--bg-secondary); position: sticky; top: 0; z-index: 2;
-    white-space: nowrap; letter-spacing: 0.04em; cursor: default;
+    background: var(--bg-secondary); white-space: nowrap;
   }
-  .sleeve-table tbody tr {
-    content-visibility: visible; contain-intrinsic-size: auto;
-    cursor: default; border-left: none;
-  }
-  .sleeve-table tbody tr:last-child td { border-bottom: none; }
-  .sleeve-table tbody tr:hover { background: transparent; }
-  .sleeve-table tbody tr:hover td { background: rgba(6, 182, 212, 0.04); }
   .sleeve-ticker { font-weight: 700; color: var(--accent-cyan); }
   .sleeve-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
   .sleeve-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
@@ -824,9 +827,8 @@
     border-radius: 999px; padding: 1px 6px;
   }
   .sleeve-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .sleeve-table thead th.sleeve-num { text-align: right; }
-  .sleeve-note-col { text-align: left; }
-  .sleeve-table thead th.sleeve-note-col { text-align: left; }
+  .sleeve-book-head .sleeve-num { text-align: right; }
+  .sleeve-note-col { text-align: left; min-width: 0; }
   .sleeve-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
   .sleeve-preview { font-size: 12px; color: var(--text-secondary); line-height: 1.35; overflow: hidden; }
   .sleeve-note-edit { display: inline-block; margin-top: 4px; font-size: 12px; }
@@ -837,7 +839,7 @@
   .sleeve-weight-bar i { display: block; height: 100%; background: var(--accent-cyan); border-radius: 99px; }
   .sleeve-pnl-up { color: var(--positive); }
   .sleeve-pnl-down { color: var(--negative); }
-  .sleeve-empty { color: var(--text-secondary); line-height: 1.5; padding: 22px 16px !important; }
+  .sleeve-empty { color: var(--text-secondary); line-height: 1.5; padding: 22px 4px; grid-column: 1 / -1; }
   .sleeve-callout {
     border: 1px solid rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);
     color: var(--warning); padding: 10px 12px; border-radius: 8px; margin: 0 0 16px; font-size: 13px;

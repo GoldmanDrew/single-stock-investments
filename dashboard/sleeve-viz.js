@@ -114,62 +114,62 @@
       const preview = notePreview(p);
       const reason = reasonLabel(p.classifier_reason);
       const fx = p.currency && p.currency !== 'USD' ? ` ${p.currency}` : '';
-      return `<tr>
-        <td>
+      return `<div class="sleeve-book-row">
+        <div>
           <div class="sleeve-ticker mono">${esc(p.ticker)}</div>
           <div class="sleeve-name">${esc(p.name || p.ticker)}</div>
           <div class="sleeve-tags">
             ${reason ? `<span class="sleeve-mini">${esc(reason)}</span>` : ''}
             ${p.cluster && p.cluster !== 'idiosyncratic' ? `<span class="sleeve-mini">${esc(clusterLabel(p.cluster))}</span>` : ''}
           </div>
-        </td>
-        <td class="sleeve-num">
+        </div>
+        <div class="sleeve-num">
           <div class="mono">${pct(weight, 1).replace('+', '')}</div>
           <span class="sleeve-weight-bar" title="${esc(pct(weight, 1).replace('+', ''))} of book"><i style="width:${Math.max(4, (weight / maxWeight) * 100)}%"></i></span>
-        </td>
-        <td class="mono sleeve-num">${shares(p.qty)}</td>
-        <td class="mono sleeve-num">${num(p.mark)}${esc(fx)}</td>
-        <td class="mono sleeve-num">${money(p.market_value)}</td>
-        <td class="mono sleeve-num ${pnlClass(pnl)}">${pnl == null ? '—' : money(pnl)}</td>
-        <td class="sleeve-num">
+        </div>
+        <div class="mono sleeve-num">${shares(p.qty)}</div>
+        <div class="mono sleeve-num">${num(p.mark)}${esc(fx)}</div>
+        <div class="mono sleeve-num">${money(p.market_value)}</div>
+        <div class="mono sleeve-num ${pnlClass(pnl)}">${pnl == null ? '—' : money(pnl)}</div>
+        <div class="sleeve-num">
           <div class="mono ${pnlClass(shownReturn)}">${shownReturn == null ? '—' : pct(shownReturn)}</div>
           ${returnKind ? `<div class="sleeve-sub">${esc(returnKind)}</div>` : ''}
-        </td>
-        <td class="sleeve-note-col">
+        </div>
+        <div class="sleeve-note-col">
           ${p.needs_thesis
             ? `<button type="button" class="linkish" data-sleeve-note="${esc(p.ticker)}">Add thesis</button>`
             : `<div class="sleeve-preview">${esc(preview || 'Noted')}</div>
                <button type="button" class="linkish sleeve-note-edit" data-sleeve-note="${esc(p.ticker)}">Edit</button>`}
-        </td>
-      </tr>`;
+        </div>
+      </div>`;
     }).join('');
 
     const ideaRows = ideas.filter((i) => !allPositions.some((p) => p.ticker === i.ticker)).map((i) => `
-      <tr class="sleeve-idea-row">
-        <td>
+      <div class="sleeve-book-row sleeve-idea-row">
+        <div>
           <div class="sleeve-ticker mono">${esc(i.ticker)}</div>
           <div class="sleeve-name">Watching · not in the IB book yet</div>
-        </td>
-        <td class="sleeve-num">—</td>
-        <td class="sleeve-num">—</td>
-        <td class="sleeve-num">—</td>
-        <td class="sleeve-num">—</td>
-        <td class="sleeve-num">—</td>
-        <td class="sleeve-name">${esc(clusterLabel(i.cluster))}</td>
-        <td class="sleeve-note-col"><button type="button" class="linkish" data-sleeve-note="${esc(i.ticker)}">Add thesis</button></td>
-      </tr>`).join('');
+        </div>
+        <div class="sleeve-num">—</div>
+        <div class="sleeve-num">—</div>
+        <div class="sleeve-num">—</div>
+        <div class="sleeve-num">—</div>
+        <div class="sleeve-num">—</div>
+        <div class="sleeve-name">${esc(clusterLabel(i.cluster))}</div>
+        <div class="sleeve-note-col"><button type="button" class="linkish" data-sleeve-note="${esc(i.ticker)}">Add thesis</button></div>
+      </div>`).join('');
 
     const empty = (!rows && !ideaRows) ? (
       isDrew
-        ? `<tr><td colspan="8" class="sleeve-empty">
+        ? `<div class="sleeve-book-row"><div class="sleeve-empty">
             <strong>No positions yet.</strong>
             This sleeve stays empty until a fill is tagged <span class="mono">DREW_SLEEVE</span> on the local order desk.
             It does not pick up names from Michael's book.
-          </td></tr>`
-        : `<tr><td colspan="8" class="sleeve-empty">
+          </div></div>`
+        : `<div class="sleeve-book-row"><div class="sleeve-empty">
             <strong>No long-term names in the last IB snapshot.</strong>
             Sync from TWS on the machine logged into Magis, or pass the Flex positions file to the desk.
-          </td></tr>`
+          </div></div>`
     ) : '';
 
     const cal = (metrics.conviction_calibration || []).map((row) => `
@@ -260,29 +260,19 @@
           </p>
         </div>
         <div class="sleeve-table-wrap">
-          <table class="sleeve-table sleeve-holdings">
-            <colgroup>
-              <col class="sleeve-col-name">
-              <col class="sleeve-col-w">
-              <col class="sleeve-col-qty">
-              <col class="sleeve-col-last">
-              <col class="sleeve-col-val">
-              <col class="sleeve-col-pnl">
-              <col class="sleeve-col-ret">
-              <col class="sleeve-col-note">
-            </colgroup>
-            <thead><tr>
-              <th>Name</th>
-              <th class="sleeve-num">Weight</th>
-              <th class="sleeve-num">Shares</th>
-              <th class="sleeve-num">Last</th>
-              <th class="sleeve-num">Value</th>
-              <th class="sleeve-num">Gain / loss</th>
-              <th class="sleeve-num">Return</th>
-              <th class="sleeve-note-col">Thesis</th>
-            </tr></thead>
-            <tbody>${rows}${ideaRows}${empty}</tbody>
-          </table>
+          <div class="sleeve-book">
+            <div class="sleeve-book-head">
+              <div>Name</div>
+              <div class="sleeve-num">Weight</div>
+              <div class="sleeve-num">Shares</div>
+              <div class="sleeve-num">Last</div>
+              <div class="sleeve-num">Value</div>
+              <div class="sleeve-num">Gain / loss</div>
+              <div class="sleeve-num">Return</div>
+              <div class="sleeve-note-col">Thesis</div>
+            </div>
+            ${rows}${ideaRows}${empty}
+          </div>
         </div>
       </section>
 
