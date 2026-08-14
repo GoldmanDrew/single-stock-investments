@@ -28,6 +28,27 @@ def make_fixture(root: Path) -> None:
                      {"hits": 1, "misses": 0}}})
 
 
+def plant_spec(root: Path, metric: str, due, **extra) -> None:
+    """Append one otherwise-valid TST typed spec so E2 can judge the due field."""
+    specs = root / "TST" / "research" / "falsifier_specs.json"
+    payload = json.loads(specs.read_text(encoding="utf-8"))
+    spec = {
+        "component_id": "core",
+        "metric": metric,
+        "comparator": "lt",
+        "threshold": 5,
+        "unit": "USD millions",
+        "due": due,
+        "source_hint": "cash_m",
+        "derived_from": "Primary evidence shows worse than low case.",
+        "untestable": False,
+        "rationale": extra.pop("rationale", "planted"),
+    }
+    spec.update(extra)
+    payload["specs"].append(spec)
+    specs.write_text(json.dumps(payload), encoding="utf-8")
+
+
 def run_invariants(root: Path, today: date = TODAY):
     results, exit_code, _ = graph_invariants.run(
         root, root / "_system" / "graph" / "graph.db",
@@ -320,28 +341,14 @@ class PlantedViolationTests(unittest.TestCase):
         self.assertIn("1 methods 0/1", results["E1"].note)
 
     def test_e2_overdue_typed_falsifier_fires(self):
-        specs = self.root / "TST" / "research" / "falsifier_specs.json"
-        payload = json.loads(specs.read_text(encoding="utf-8"))
-        payload["specs"].append(
-            {"component_id": "core", "metric": "revenue_m", "comparator": "<",
-             "threshold": 5, "unit": "USD millions", "due": "2026-05-01",
-             "source_hint": None, "derived_from": None, "untestable": False,
-             "rationale": "planted overdue"})
-        specs.write_text(json.dumps(payload), encoding="utf-8")
+        plant_spec(self.root, "revenue_m", "2026-05-01", rationale="planted overdue")
         results, exit_code = run_invariants(self.root)
         self.assertEqual(results["E2"].count, 1)
         self.assertIn("revenue-m", results["E2"].violations[0])
         self.assertEqual(exit_code, 1)
 
     def test_e2_typed_without_due_fires(self):
-        specs = self.root / "TST" / "research" / "falsifier_specs.json"
-        payload = json.loads(specs.read_text(encoding="utf-8"))
-        payload["specs"].append(
-            {"component_id": "core", "metric": "dueless_m", "comparator": "<",
-             "threshold": 5, "unit": "USD millions", "due": None,
-             "source_hint": None, "derived_from": None, "untestable": False,
-             "rationale": "planted dueless"})
-        specs.write_text(json.dumps(payload), encoding="utf-8")
+        plant_spec(self.root, "dueless_m", None, rationale="planted dueless")
         results, exit_code = run_invariants(self.root)
         self.assertEqual(results["E2"].count, 1)
         self.assertIn("can never mature", results["E2"].violations[0])
@@ -352,14 +359,7 @@ class PlantedViolationTests(unittest.TestCase):
         # date.fromisoformat and crashed the whole suite with an uncaught
         # ValueError -- no INVARIANTS.md written. It must instead be an E2
         # violation: an unparseable due can never mature.
-        specs = self.root / "TST" / "research" / "falsifier_specs.json"
-        payload = json.loads(specs.read_text(encoding="utf-8"))
-        payload["specs"].append(
-            {"component_id": "core", "metric": "bad_date_m", "comparator": "<",
-             "threshold": 5, "unit": "USD millions", "due": "2026-06-31",
-             "source_hint": None, "derived_from": None, "untestable": False,
-             "rationale": "planted malformed due"})
-        specs.write_text(json.dumps(payload), encoding="utf-8")
+        plant_spec(self.root, "bad_date_m", "2026-06-31", rationale="planted malformed due")
         results, exit_code = run_invariants(self.root)
         self.assertEqual(results["E2"].count, 1)
         self.assertIn("bad-date-m", results["E2"].violations[0])
@@ -374,15 +374,8 @@ class PlantedViolationTests(unittest.TestCase):
         # '2026-Q3' and 'TBD' sort lexically after today's ISO date, so the
         # old string comparison silently treated them as not-yet-matured
         # forever. Both must be violations.
-        specs = self.root / "TST" / "research" / "falsifier_specs.json"
-        payload = json.loads(specs.read_text(encoding="utf-8"))
-        for metric, due in (("quarterly_m", "2026-Q3"), ("someday_m", "TBD")):
-            payload["specs"].append(
-                {"component_id": "core", "metric": metric, "comparator": "<",
-                 "threshold": 5, "unit": "USD millions", "due": due,
-                 "source_hint": None, "derived_from": None,
-                 "untestable": False, "rationale": "planted garbage due"})
-        specs.write_text(json.dumps(payload), encoding="utf-8")
+        plant_spec(self.root, "quarterly_m", "2026-Q3", rationale="planted garbage due")
+        plant_spec(self.root, "someday_m", "TBD", rationale="planted garbage due")
         results, exit_code = run_invariants(self.root)
         self.assertEqual(results["E2"].count, 2)
         joined = " ".join(results["E2"].violations)

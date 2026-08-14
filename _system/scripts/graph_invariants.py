@@ -259,15 +259,23 @@ def _parse_due(due) -> date | None:
 
 
 def inv_e2(conn, root, today) -> Result:
-    typed = conn.execute(
-        "SELECT * FROM nodes WHERE type='Falsifier' AND status='typed'"
-        " ORDER BY id").fetchall()
-    if not typed:
+    rows = conn.execute(
+        "SELECT * FROM nodes WHERE type='Falsifier'"
+        " AND status IN ('typed', 'invalid') ORDER BY id").fetchall()
+    judged = []
+    for row in rows:
+        data = json.loads(row["data_json"] or "{}")
+        errors = [str(err) for err in (data.get("validation_errors") or [])]
+        due_broken = any("due" in err.lower() for err in errors)
+        if row["status"] == "invalid" and not due_broken:
+            continue
+        judged.append((row, data))
+    typed_n = sum(1 for row, _ in judged if row["status"] == "typed")
+    if not judged:
         return Result("E2", 0, [], note="vacuously green (0 typed)")
     violations = []
     matured = 0
-    for row in typed:
-        data = json.loads(row["data_json"])
+    for row, data in judged:
         due = data.get("observable_after") or data.get("due") or ""
         fid = row["id"][len("falsifier:"):]
         if not due:
@@ -296,7 +304,7 @@ def inv_e2(conn, root, today) -> Result:
             violations.append(f"{fid}: due {due}, resolved late"
                               f" ({outcome['as_of']})")
     return Result("E2", len(violations), violations,
-                  note=f"{len(typed)} typed, {matured} matured")
+                  note=f"{typed_n} typed, {matured} matured")
 
 
 def inv_e3(conn, root, today) -> Result:
