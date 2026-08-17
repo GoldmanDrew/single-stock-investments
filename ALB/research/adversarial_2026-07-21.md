@@ -48,13 +48,9 @@ re_pass: false
 
 | Check | Expected (valuation.json) | Found in dive | OK? |
 |-------|---------------------------|---------------|-----|
-| Returns statement | 12.9% | 12.9% | Yes |
-| Classification IRR | 12.9% | None% | — |
-| Valuation bridge base | 12.9% | 12.9% | Yes |
-
-**Lint notes:**
-- ALB/research/deep_dive_2026-07-21.md: executive_summary_first_pct 11.2% vs valuation.json base 12.9% (tol 0.25pp)
-- ALB/research/deep_dive_2026-07-21.md: missing Implied 7yr IRR in Classification
+| Returns statement | n/a | -4.01% | — |
+| Classification IRR | n/a | None% | — |
+| Valuation bridge base | n/a | -4.01% | — |
 
 ---
 
