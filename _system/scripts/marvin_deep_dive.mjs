@@ -98,7 +98,10 @@ try {
         HK_PDFS_ROOT: hkPdfsRoot,
         RESEARCH_EVIDENCE_HASH: evidenceHash || "",
         RESEARCH_EVIDENCE_MANIFEST: evidenceManifest || "",
-        RESEARCH_EVIDENCE_MANIFEST_JSON: evidenceManifestJson || "{}",
+        // The manifest may contain a full frozen epistemic work packet and can
+        // exceed Cursor's 4 KiB per-env-value limit. It is already embedded in
+        // the prompt above and committed in the controller queue; the cloud
+        // agent materializes it at RESEARCH_EVIDENCE_MANIFEST before refresh.
         RESEARCH_PICK_REASON: pickReason,
       },
     },
