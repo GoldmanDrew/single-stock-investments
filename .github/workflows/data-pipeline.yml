@@ -150,7 +150,13 @@ jobs:
         run: pip install -r _system/scripts/requirements-criticality.txt
       - name: Refresh free technical fear and capitulation signals
         run: |
-          python _system/scripts/fetch_float_adv.py --no-sec-fallback --sleep 0.05
+          # The repair event targets stale price/technical outputs. The
+          # portfolio-wide float/ADV crawl is a separate slow input and can
+          # consume the entire 30-minute job; keep its last-known-good cache on
+          # repair runs so the actual stale artifacts are rebuilt promptly.
+          if [ "${{ github.event.action }}" != "heal-technicals" ]; then
+            python _system/scripts/fetch_float_adv.py --no-sec-fallback --sleep 0.05
+          fi
           python _system/scripts/build_technical_signals.py --workers 12
           python _system/scripts/build_criticality_signals.py --workers 4
           python _system/scripts/validate_dashboard_data.py
