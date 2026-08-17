@@ -535,14 +535,25 @@ jobs:
             --capture-cohort
           python _system/scripts/resolve_warrant_outcomes.py
           python _system/scripts/build_warrant_dashboard.py
+      - id: warrant-health
+        name: Validate warrant health after writing the truthful snapshot
+        continue-on-error: true
+        run: |
+          set -euo pipefail
           python _system/scripts/check_warrant_universe.py --strict
       - name: Commit warrant artifacts
+        if: always()
         uses: ./.github/actions/commit-main
         with:
           message: "chore: warrant weekly discovery $(date -u +%Y-%m-%d)"
           git_add: >-
             _system/data/warrants/
             dashboard/data/warrants.json
+      - name: Keep unresolved source failures loud after preserving progress
+        if: steps.warrant-health.outcome == 'failure'
+        run: |
+          echo "::error::Warrant snapshot was preserved, but strict health remains degraded."
+          exit 1
 
   world-model:
     needs: decide
