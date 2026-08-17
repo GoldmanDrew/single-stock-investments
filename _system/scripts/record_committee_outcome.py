@@ -19,12 +19,24 @@ CALIBRATION = ROOT / "_system" / "research" / "committee_calibration.json"
 
 def latest_committee(ticker: str, committee_date: str | None = None) -> tuple[Path, dict]:
     research = ROOT / ticker / "research"
-    paths = [research / f"committee_{committee_date}.json"] if committee_date else sorted(research.glob("committee_????-??-??.json"))
+    decision_path = research / "human_decision.json"
+    if committee_date:
+        paths = [research / f"committee_{committee_date}.json"]
+    elif decision_path.exists():
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        source = str(decision.get("committee_source") or "")
+        paths = [research / Path(source).name] if source else []
+    else:
+        paths = sorted(research.glob("committee_????-??-??.json"))
     paths = [path for path in paths if path.exists()]
     if not paths:
         raise FileNotFoundError(f"{ticker}: no committee record")
-    path = paths[-1]
-    return path, json.loads(path.read_text(encoding="utf-8"))
+    records = [(path, json.loads(path.read_text(encoding="utf-8"))) for path in paths]
+    complete = [pair for pair in records if pair[1].get("final_state") in {
+        "committee_complete_decision_pending", "owner_decision_pending", "outcome_tracking"}]
+    if complete:
+        return complete[-1]
+    return records[-1]
 
 
 def upsert(rows: list[dict], record: dict) -> list[dict]:
@@ -110,6 +122,9 @@ def record(ticker: str, *, committee_date: str | None = None,
         "committee_ref": str(committee_path.relative_to(ROOT)).replace("\\", "/"),
         "committee_packet_hash": (committee.get("evidence_packet") or {}).get("packet_hash"),
         "owner_decision": human_decision.get("decision"),
+        "decision_id": human_decision.get("decision_id") or
+                       f"{ticker}|{decision_date}|{committee_path.name}",
+        "outcome_class": "owner_decision",
         "owner_sizing": human_decision.get("sizing"),
         "decision_price": (valuation.get("inputs") or {}).get("price"),
         "decision_value_range_per_share": component.get("total_equity_value_per_share"),

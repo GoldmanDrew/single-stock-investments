@@ -3,6 +3,13 @@ name: Data Pipeline
 # Single scheduled writer lane for deterministic data jobs.
 
 on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Deterministic lane to heal"
+        type: choice
+        options: [technicals, warrant_refresh, intake_full, downloads_light, drive, news, cvr_discover, world_model]
+        default: technicals
   schedule:
     - cron: "0 3 * * *"     # nightly intake-full
     - cron: "15 2 * * 1-5"  # weekday technical fear/capitulation refresh
@@ -41,10 +48,20 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
+          MANUAL_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
           intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; warrant_discover=false; world_model=false; technicals=false; download_mode=light
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then SCHEDULE="manual:$MANUAL_MODE"; fi
           case "$SCHEDULE" in
+            "manual:technicals") technicals=true ;;
+            "manual:warrant_refresh") warrant_discover=true ;;
+            "manual:intake_full") intake_full=true ;;
+            "manual:downloads_light") downloads=true; download_mode=light ;;
+            "manual:drive") drive=true ;;
+            "manual:news") news=true ;;
+            "manual:cvr_discover") cvr_discover=true; warrant_discover=true ;;
+            "manual:world_model") world_model=true ;;
             "0 3 * * *") intake_full=true ;;
             "15 2 * * 1-5") technicals=true ;;
             "0 6 * * *") activist=true ;;

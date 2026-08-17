@@ -81,6 +81,22 @@ Third party: approved registry in `third_party_sources.md`; pending PDFs flagged
 **Holdco uplift mechanism:** Opaque fund sleeves (Investment A) require **bottom-up** holding tables per `holdco_uplift_explanation.md`. Run `holdco_uplift_build.py {TICKER} --write` when `assumption_ledger.*.components[]` exist. **Forbidden:** bare “64% higher than GAAP” without per-holding Year-5 paths and mechanisms.
 
 ## Peer templates
+
+## Empirical compounding rule
+
+Before research begins, read `_system/research/epistemic_loop_status.json` and
+the relevant item in `_system/data/epistemic_work_queue.json`. Every material,
+decision-grade component must either receive a reviewed schema-v3 forecast
+before its measurement period becomes observable, or carry a typed untestable
+reason and adapter task. Forecast authors may not review or resolve their own
+forecasts. Resolvers must use the frozen observation plan and append provenance;
+they may not revise a prediction after evidence is available. Calibration is
+diagnostic until `_system/research/calibration_brief.json` publishes a release
+hash. When a release is active, record that hash and whether its named challenge
+changed the analysis in the run receipt. Never let calibration change a stance,
+valuation, or capital decision without the normal independent-review and human
+decision gates.
+
 - Best JP structure: `8697.T/`
 - Best US structure: `APLD/investor-documents/`
 - Best EU structure: `TEQ.ST/`

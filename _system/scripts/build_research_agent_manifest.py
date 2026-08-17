@@ -66,12 +66,41 @@ def evidence_reference(path: Path) -> dict:
     }
 
 
+def routed_observations(ticker: str) -> list[dict]:
+    """Return proposed observations as leads, never as primary evidence."""
+    path = ROOT / "_system/memory/routed_observations.jsonl"
+    rows = []
+    if not path.exists():
+        return rows
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if str(row.get("ticker") or "").upper() == ticker.upper():
+            rows.append(row)
+    return rows
+
+
 def build_manifest(ticker: str, reason: str) -> dict:
     refs = []
     for path in candidates(ticker):
         refs.append(evidence_reference(path))
     canonical_evidence = {"ticker": ticker.upper(), "evidence": refs}
     evidence_hash = hashlib.sha256(json.dumps(canonical_evidence, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    work_item = None
+    if reason.startswith(("epistemic_author_forecast:", "epistemic_review_forecast:")):
+        work_id = reason.split(":", 2)[1]
+        queue_path = ROOT / "_system/data/epistemic_work_queue.json"
+        if queue_path.exists():
+            queue = json.loads(queue_path.read_text(encoding="utf-8"))
+            work_item = next((item for item in queue.get("items") or []
+                              if item.get("work_id") == work_id), None)
+    status_path = ROOT / "_system/research/epistemic_loop_status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8")) if status_path.exists() else {}
+    memory_leads = routed_observations(ticker)
     return {
         "schema_version": "2.0",
         **canonical_evidence,
@@ -80,6 +109,14 @@ def build_manifest(ticker: str, reason: str) -> dict:
         "artifact_count": len(refs),
         "ready": bool(refs),
         "primary_evidence_ready": bool(refs),
+        "epistemic_work_item": work_item,
+        "epistemic_input_sha": (work_item or {}).get("input_sha"),
+        "calibration_release_hash": status.get("calibration_release_hash"),
+        "routed_memory_observations": memory_leads,
+        "routed_memory_warning": (
+            "Proposed leads only: verify against primary evidence before changing research."
+            if memory_leads else None
+        ),
     }
 
 

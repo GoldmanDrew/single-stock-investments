@@ -30,6 +30,20 @@ on:
       - "_system/scripts/graph_invariants.py"
       - "_system/scripts/test_graph_build.py"
       - "_system/scripts/test_graph_invariants.py"
+      - "_system/scripts/falsifier_specs.py"
+      - "_system/scripts/falsifier_evidence_adapters.py"
+      - "_system/scripts/resolve_falsifiers.py"
+      - "_system/scripts/promote_falsifier_drafts.py"
+      - "_system/scripts/epistemic_loop_controller.py"
+      - "_system/scripts/deliver_routed_memory.py"
+      - "_system/scripts/check_falsifier_history.py"
+      - "_system/scripts/lint_falsifier_specs.py"
+      - "_system/scripts/validate_calibration_consumption.py"
+      - "_system/scripts/validate_invariant_subset.py"
+      - "_system/scripts/test_validate_invariant_subset.py"
+      - "_system/scripts/test_epistemic_integrity.py"
+      - "_system/scripts/test_epistemic_loop_controller.py"
+      - "_system/scripts/test_memory_delivery.py"
       - "_system/scripts/check_evidence_integrity.py"
       - "_system/scripts/test_check_evidence_integrity.py"
       - "_system/scripts/build_filing_evidence.py"
@@ -45,6 +59,13 @@ on:
       - "**/research/falsifier_specs.json"
       - "_system/research/**"
       - "_system/data/runs/**"
+      - "_system/data/epistemic_work_queue.json"
+      - "_system/data/falsifier_authoring_queue.json"
+      - "_system/data/epistemic_state.jsonl"
+      - "_system/config/epistemic_loop_policy.json"
+      - "_system/templates/falsifier_spec_schema.json"
+      - "_system/templates/falsifier_draft_schema.json"
+      - "_system/templates/analysis_calibration_receipt_schema.json"
       - "_system/reviews/**"
       # Lens-plane judged surfaces (L1-L6): classification and persona
       # registries, lenses, and the canonical groups module
@@ -96,6 +117,20 @@ on:
       - "_system/scripts/graph_invariants.py"
       - "_system/scripts/test_graph_build.py"
       - "_system/scripts/test_graph_invariants.py"
+      - "_system/scripts/falsifier_specs.py"
+      - "_system/scripts/falsifier_evidence_adapters.py"
+      - "_system/scripts/resolve_falsifiers.py"
+      - "_system/scripts/promote_falsifier_drafts.py"
+      - "_system/scripts/epistemic_loop_controller.py"
+      - "_system/scripts/deliver_routed_memory.py"
+      - "_system/scripts/check_falsifier_history.py"
+      - "_system/scripts/lint_falsifier_specs.py"
+      - "_system/scripts/validate_calibration_consumption.py"
+      - "_system/scripts/validate_invariant_subset.py"
+      - "_system/scripts/test_validate_invariant_subset.py"
+      - "_system/scripts/test_epistemic_integrity.py"
+      - "_system/scripts/test_epistemic_loop_controller.py"
+      - "_system/scripts/test_memory_delivery.py"
       - "_system/scripts/check_evidence_integrity.py"
       - "_system/scripts/test_check_evidence_integrity.py"
       - "_system/scripts/build_filing_evidence.py"
@@ -107,6 +142,13 @@ on:
       # falsifier_specs, and _system/research): run receipts (P4) and the
       # review tree P4 scans.
       - "_system/data/runs/**"
+      - "_system/data/epistemic_work_queue.json"
+      - "_system/data/falsifier_authoring_queue.json"
+      - "_system/data/epistemic_state.jsonl"
+      - "_system/config/epistemic_loop_policy.json"
+      - "_system/templates/falsifier_spec_schema.json"
+      - "_system/templates/falsifier_draft_schema.json"
+      - "_system/templates/analysis_calibration_receipt_schema.json"
       - "_system/reviews/**"
       # Lens-plane judged surfaces (L1-L6) outside **/research/**.
       - "_system/lenses/**"
@@ -212,6 +254,7 @@ jobs:
             const graphInvariants = isPush || has(name =>
               /^_system\/graph\//.test(name) ||
               /^_system\/scripts\/(graph_|test_graph_)[^/]+\.py$/.test(name) ||
+              /^_system\/scripts\/(falsifier_specs|falsifier_evidence_adapters|resolve_falsifiers|promote_falsifier_drafts|epistemic_loop_controller|deliver_routed_memory|check_falsifier_history|lint_falsifier_specs|validate_calibration_consumption|validate_invariant_subset|test_epistemic_integrity|test_epistemic_loop_controller|test_memory_delivery|test_validate_invariant_subset)\.py$/.test(name) ||
               // The evidence-integrity sweep shares this job (same full
               // checkout) and must trigger on its own sources and baseline.
               /^_system\/scripts\/(test_)?check_evidence_integrity\.py$/.test(name) ||
@@ -225,6 +268,8 @@ jobs:
               /^_system\/data\/warrants\//.test(name) ||
               name === 'dashboard/data/warrants.json' ||
               /^_system\/reviews\//.test(name) ||
+              /^_system\/config\/epistemic_loop_policy\.json$/.test(name) ||
+              /^_system\/templates\/(falsifier_spec_schema|falsifier_draft_schema|analysis_calibration_receipt_schema)\.json$/.test(name) ||
               // Lens-plane judged surfaces (L1-L6): classification and
               // persona registries, lenses, the canonical groups module.
               /(^|\/)research\/(valuation|lenses)\.json$/.test(name) ||
@@ -508,6 +553,22 @@ jobs:
       - name: Graph engine and invariant unit tests
         working-directory: _system/scripts
         run: python -m unittest -v test_graph_build test_graph_invariants
+      - name: Epistemic integrity, immutable history, and source preflight
+        run: |
+          set -euo pipefail
+          python _system/scripts/lint_falsifier_specs.py
+          HISTORY_BASE="origin/main"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            HISTORY_BASE="${{ github.event.before }}"
+          fi
+          python _system/scripts/check_falsifier_history.py --base-ref "$HISTORY_BASE"
+          (cd _system/scripts && python -m unittest -v \
+            test_falsifier_specs test_resolve_falsifiers \
+            test_calibration_brief test_epistemic_integrity \
+            test_epistemic_loop_controller test_memory_delivery \
+            test_validate_invariant_subset)
+          python _system/scripts/epistemic_loop_controller.py --dry-run
+          python _system/scripts/validate_calibration_consumption.py
       - name: Run the invariant suite (hard invariants fail the job)
         # Deliberately no `|| true` and no `continue-on-error`: the repo has a
         # recorded trap where a validator's ERROR only skipped a downstream

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Print a JSON matrix for batch Marvin dispatch (GitHub Actions).
 
-Supports either:
+Supports:
+  - epistemic_work_queue.json authoring tasks → prospective v3 forecasts
   - deep_dive_dispatch_queue.json → reason batch_onboard_pending
   - contract_backfill_queue.json → reason contract_backfill
 
@@ -22,6 +23,29 @@ from marvin_pick_ticker import onboard_pending_holdings  # noqa: E402
 
 DEFAULT_QUEUE = ROOT / "_system" / "data" / "deep_dive_dispatch_queue.json"
 BACKFILL_QUEUE = ROOT / "_system" / "data" / "contract_backfill_queue.json"
+EPISTEMIC_QUEUE = ROOT / "_system" / "data" / "epistemic_work_queue.json"
+
+
+def epistemic_jobs(payload: dict) -> list[dict]:
+    jobs = []
+    seen = set()
+    for item in payload.get("items") or []:
+        if item.get("task_type") not in {"author_forecast", "review_forecast"} or item.get("state") not in {
+                "queued", "retry_wait", "needs_semantic_review"}:
+            continue
+        ticker = str(item.get("ticker") or "").upper()
+        if not ticker or ticker in seen:
+            continue
+        seen.add(ticker)
+        jobs.append({
+            "ticker": ticker,
+            "reason": f"epistemic_{item.get('task_type')}:"
+                      f"{item.get('work_id')}:{item.get('component_id')}",
+            "consumer": "marvin_research",
+        })
+        if len(jobs) >= 5:
+            break
+    return jobs
 
 
 def load_queue(path: Path) -> dict:
@@ -53,6 +77,10 @@ def resolve_jobs(
         if queue_path != DEFAULT_QUEUE:
             candidates = [queue_path]
         else:
+            epistemic = load_queue(EPISTEMIC_QUEUE)
+            forecast_jobs = epistemic_jobs(epistemic)
+            if forecast_jobs:
+                return forecast_jobs
             backfill = load_queue(BACKFILL_QUEUE)
             deep = load_queue(DEFAULT_QUEUE)
             # Prefer whichever queue has tickers and the newer updated stamp.

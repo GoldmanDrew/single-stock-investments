@@ -59,7 +59,7 @@ BASE_SEVERITY = {
     "P1": "report", "P2": "hard", "P3": "hard", "P4": "hard", "P5": "report",
     "P6": "hard", "P7": "report",
     "E1": "report", "E2": "hard", "E3": "hard", "E4": "hard", "E5": "hard",
-    "E6": "report", "E7": "hard",
+    "E6": "report", "E7": "hard", "E8": "hard", "E9": "hard",
     # L-series: the classification/lens plane (spec in _system/graph/README.md).
     # All report severity with a committed baseline ratchet
     # (_system/graph/invariants_baseline.json): live counts at introduction
@@ -83,6 +83,8 @@ TITLES = {
     "E5": "every Belief's SUPPORTED_BY source exists on disk",
     "E6": "Proposals with no DECIDED_AS decision (silent-drop detector)",
     "E7": "non-durable proposals never enter belief review; prospective decisions close within 30 days",
+    "E8": "prospective forecasts have immutable temporal provenance and derived eligibility",
+    "E9": "only eligible verified outcomes can activate calibration or agent challenges",
     "P6": "every registered data feed is fresher than its window",
     "P7": "every registered live feed has published inside its window",
     "L1": "every valued ticker resolves a payoff_lens through the"
@@ -161,7 +163,10 @@ def inv_p3(conn, root, today) -> Result:
     for lane in conn.execute("SELECT * FROM nodes WHERE type='Lane' ORDER BY id"):
         data = json.loads(lane["data_json"])
         window = data.get("freshness_hours", 48)
-        last = data.get("last_commit_iso")
+        commit_iso = data.get("last_commit_iso")
+        workflow_iso = data.get("last_success_at")
+        last = max(str(commit_iso or ""), str(workflow_iso or ""))
+        source = "workflow success" if workflow_iso and last == workflow_iso else "commit"
         if not last:
             violations.append(f"{lane['label']}: NO commit in the"
                               f" {graph_build.GIT_WINDOW}-commit window")
@@ -169,7 +174,7 @@ def inv_p3(conn, root, today) -> Result:
         age_h = (now - datetime.fromisoformat(last)).total_seconds() / 3600.0
         if age_h > window:
             violations.append(
-                f"{lane['label']}: last commit {age_h:.1f}h old"
+                f"{lane['label']}: last {source} {age_h:.1f}h old"
                 f" (window {window}h)")
         else:
             fresh += 1
@@ -470,6 +475,74 @@ def inv_e7(conn, root, today) -> Result:
                 f"{item['day']} {triage.fingerprint(item)} {kind}: undecided {age} days (prospective SLA 30)")
     return Result("E7", len(violations), violations,
                   note="deterministic routing is immediate; 30-day gate applies prospectively from 2026-08-12")
+
+
+def inv_e8(conn, root, today) -> Result:
+    from falsifier_specs import calibration_eligibility, is_v3_spec, read_json, spec_errors
+    violations = []
+    v3_count = eligible_count = 0
+    for path in sorted(root.glob("*/research/falsifier_specs.json")):
+        ticker = path.parents[1].name
+        for index, spec in enumerate(read_json(path).get("specs") or []):
+            if not is_v3_spec(spec):
+                continue
+            v3_count += 1
+            errors = spec_errors(spec, index)
+            if errors:
+                violations.append(f"{ticker}:{spec.get('spec_id')}: {errors[0]}")
+                continue
+            eligible, reason = calibration_eligibility(spec)
+            if spec.get("calibration_eligible") is True and not eligible:
+                violations.append(f"{ticker}:{spec.get('spec_id')}: declared eligible but {reason}")
+            if eligible:
+                eligible_count += 1
+    return Result("E8", len(violations), violations,
+                  note=f"{v3_count} v3 forecasts, {eligible_count} derived eligible")
+
+
+def inv_e9(conn, root, today) -> Result:
+    from falsifier_specs import calibration_eligibility, spec_payload_hash
+    outcomes_path = root / "_system/research/falsifier_outcomes.jsonl"
+    rows = []
+    if outcomes_path.exists():
+        for line in outcomes_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    violations = []
+    eligible = []
+    for row in rows:
+        spec = row.get("spec") or {}
+        derived, _reason = calibration_eligibility(spec)
+        if row.get("calibration_eligible") is True and not derived:
+            violations.append(f"{row.get('ticker')}:{row.get('spec_id')}: outcome eligibility disagrees with frozen spec")
+        if derived and row.get("verdict") in {"hit", "miss"}:
+            if row.get("spec_hash") != spec_payload_hash(spec):
+                violations.append(f"{row.get('ticker')}:{row.get('spec_id')}: outcome/spec hash mismatch")
+            elif not row.get("evidence_ref"):
+                violations.append(f"{row.get('ticker')}:{row.get('spec_id')}: eligible outcome lacks evidence")
+            else:
+                eligible.append(row)
+    calibration = graph_build.load_json(root / "_system/research/falsifier_calibration.json")
+    recorded = int((calibration or {}).get("eligible_scored_outcomes") or 0)
+    if recorded != len(eligible):
+        violations.append(f"calibration eligible count {recorded} != ledger-derived {len(eligible)}")
+    brief = graph_build.load_json(root / "_system/research/calibration_brief.json")
+    if (brief or {}).get("global_status") == "eligible_for_prompt_challenge" and not (
+            calibration or {}).get("status") == "ready":
+        violations.append("agent-facing challenge active while calibration is not ready")
+    if (brief or {}).get("global_status") != "eligible_for_prompt_challenge" and (brief or {}).get("release_hash"):
+        violations.append("inactive calibration brief publishes an active release hash")
+    if (brief or {}).get("global_status") == "eligible_for_prompt_challenge":
+        release_hash = (brief or {}).get("release_hash")
+        release_path = root / "_system/research/calibration_releases" / f"{release_hash}.json"
+        if not release_hash or not release_path.exists():
+            violations.append("active calibration challenge lacks an immutable release file")
+    return Result("E9", len(violations), violations,
+                  note=f"{len(rows)} outcomes, {len(eligible)} calibration eligible")
 
 
 def _dig(doc, dotted: str):
@@ -1155,7 +1228,7 @@ def inv_l6(conn, root, today) -> Result:
 
 
 INVARIANTS = [inv_p1, inv_p2, inv_p3, inv_p4, inv_p5, inv_p6, inv_p7,
-              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6, inv_e7,
+              inv_e1, inv_e2, inv_e3, inv_e4, inv_e5, inv_e6, inv_e7, inv_e8, inv_e9,
               inv_l1, inv_l2, inv_l3, inv_l4, inv_l5, inv_l6]
 
 

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magis.local/schemas/falsifier-spec-v3.json",
+  "title": "Prospective falsifier specification v3",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "spec_id",
+    "spec_revision",
+    "spec_schema_version",
+    "forecast_class",
+    "forecast_role",
+    "authored_at",
+    "information_cutoff_at",
+    "registered_at",
+    "registration_commit",
+    "analysis_run_id",
+    "author",
+    "model_id",
+    "prompt_version",
+    "contract_hash",
+    "component_fingerprint",
+    "method_id",
+    "power_zone",
+    "component_id",
+    "correlation_group",
+    "metric",
+    "comparator",
+    "threshold",
+    "threshold_basis",
+    "unit",
+    "measurement_period_end",
+    "observable_after",
+    "resolution_deadline",
+    "observation_plan",
+    "review",
+    "probability_fires",
+    "severity",
+    "component_value_impact_pct",
+    "total_equity_value_impact_pct",
+    "derived_from",
+    "rationale",
+    "untestable",
+    "calibration_eligible"
+  ],
+  "properties": {
+    "spec_schema_version": {"const": "3.0"},
+    "forecast_class": {"enum": ["ex_ante", "nowcast", "legacy", "diagnostic"]},
+    "forecast_role": {"enum": ["primary", "diagnostic"]},
+    "comparator": {"enum": ["lt", "lte", "gt", "gte", "outside_range"]},
+    "probability_fires": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "calibration_eligible": {"type": "boolean"},
+    "untestable": {"type": "boolean"},
+    "observation_plan": {
+      "type": "object",
+      "required": [
+        "metric_definition_id",
+        "metric_definition_version",
+        "source_adapter",
+        "fiscal_period",
+        "observation_type",
+        "duration_basis",
+        "accepted_forms",
+        "canonical_unit",
+        "expected_publication_date",
+        "maximum_source_lag_days",
+        "historical_replay"
+      ]
+    },
+    "review": {
+      "type": "object",
+      "required": ["status", "reviewer", "reviewed_at"],
+      "properties": {
+        "status": {"const": "approved"},
+        "reviewer": {"type": "string", "minLength": 1},
+        "reviewed_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

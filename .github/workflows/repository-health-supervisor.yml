@@ -1,0 +1,79 @@
+name: Repository Health Supervisor
+
+on:
+  schedule:
+    - cron: "35 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+concurrency:
+  group: repository-health-supervisor
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 400
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Refresh workflow-success receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python _system/scripts/build_lane_receipts.py
+      - name: Measure current health without suppressing the report
+        run: python _system/scripts/graph_invariants.py || true
+      - id: plan
+        name: Persist retries and plan bounded healers
+        run: |
+          PLAN=$(python _system/scripts/supervise_repository_health.py)
+          echo "json=$PLAN" >> "$GITHUB_OUTPUT"
+      - name: Dispatch registered healers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLAN: ${{ steps.plan.outputs.json }}
+        run: |
+          python - <<'PY' > "$RUNNER_TEMP/dispatches.jsonl"
+          import json, os
+          for row in json.loads(os.environ['PLAN']).get('dispatches', []):
+              print(json.dumps(row))
+          PY
+          while IFS= read -r row; do
+            workflow=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["workflow"])' "$row")
+            args=()
+            while IFS=$'\t' read -r key value; do args+=("-f" "$key=$value"); done < <(
+              python -c 'import json,sys; r=json.loads(sys.argv[1]); [print(k, v, sep="\t") for k,v in r.get("fields",{}).items()]' "$row")
+            gh workflow run "$workflow" "${args[@]}"
+          done < "$RUNNER_TEMP/dispatches.jsonl"
+      - name: Escalate failures that survived three supervisor runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLAN: ${{ steps.plan.outputs.json }}
+        run: |
+          COUNT=$(python -c 'import json,os; print(len(json.loads(os.environ["PLAN"]).get("escalate",[])))')
+          if [ "$COUNT" -gt 0 ]; then
+            BODY=$(python -c 'import json,os; print("\n".join("- "+x for x in json.loads(os.environ["PLAN"])["escalate"]))')
+            EXISTING=$(gh issue list --state open --search 'Repository self-healer escalation in:title' --json number --jq '.[0].number // empty')
+            if [ -z "$EXISTING" ]; then
+              gh issue create --title "Repository self-healer escalation" --body "$BODY"
+            else
+              gh issue comment "$EXISTING" --body "$BODY"
+            fi
+          fi
+      - name: Commit receipts, retry state, and health projection
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore(health): refresh workflow receipts and healer state"
+          git_add: >-
+            _system/data/lane_receipts
+            _system/data/repository_health_supervisor.json
+            _system/graph/INVARIANTS.md
+            _system/graph/invariants.json

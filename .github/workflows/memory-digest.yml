@@ -1,14 +1,9 @@
-name: Memory Triage
+name: Canonical Memory Triage
 
-# Weekly knowledge-compounding sweep: aggregate unpromoted [PROPOSED ...]
-# bullets from daily logs plus corrections into one pending review so the
-# human filter promotes learning instead of letting it pile up. The script
-# never writes MEMORY.md (human-quality-filter rule).
 on:
   schedule:
-    # Sunday 14:00 UTC — clear of the 06:00 activist job, the 10:00 full
-    # downloads run, and the 16:00 letter backfill.
-    - cron: "0 14 * * 0"
+    - cron: "20 10 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,47 +13,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  digest:
+  triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            _system/memory
-            _system/reviews
-            _system/research/falsifier_outcomes.jsonl
-            _system/research/falsifier_calibration.json
-            _system/research/committee_outcomes.jsonl
-            _system/research/committee_calibration.json
-            _system/scripts/build_memory_triage.py
-            _system/scripts/ssi_adjudicate.py
-            _system/scripts/calibrate_ssi.py
-            _eval
-            */research/falsifier_specs.json
-            */research/committee_*.json
-            */research/human_decision.json
-            */research/evidence/ssi_verified_claims_*.json
-            _system/scripts/ci_push_main.sh
-            .github/actions/commit-main
-          sparse-checkout-cone-mode: false
           fetch-depth: 1
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Build canonical memory triage and learning-loop summary
+      - name: Dispose non-durable proposals and rebuild the human queue
         run: |
+          set -euo pipefail
           python _system/scripts/ssi_adjudicate.py queue --limit 20 --write
+          python _system/scripts/build_memory_triage.py --migrate-ledger
+          python _system/scripts/build_memory_triage.py --auto-dispose-nondurable --by memory-triage-bot
+          python _system/scripts/build_memory_triage.py --repair-routes --by memory-triage-bot
+          python _system/scripts/deliver_routed_memory.py
           python _system/scripts/build_memory_triage.py
-
-      - name: Commit pending review digest
+          python _system/scripts/epistemic_loop_controller.py
+      - name: Test disposition and projection integrity
+        run: |
+          set -euo pipefail
+          python -m pytest -q _system/scripts/tests/test_memory_triage.py
+          python _system/scripts/graph_invariants.py || true
+          python _system/scripts/validate_invariant_subset.py E4 E5 E7
+      - name: Publish triage summary
+        if: always()
+        run: |
+          {
+            echo "### Memory triage"
+            echo '```json'
+            cat _system/reviews/pending/memory_triage_summary.json 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit disposition truth, queue, and loop status
         uses: ./.github/actions/commit-main
         with:
-          message: |
-            Weekly canonical memory triage for human review.
-
-            Refresh the disposition-backed proposal queue and epistemic-loop
-            summary (build_memory_triage.py).
-          git_add: _system/reviews/pending/memory_triage.md _system/reviews/pending/memory_triage_summary.json _eval/ssi_adjudication_queue.json
+          message: "chore(memory): daily canonical triage and routing"
+          git_add: >-
+            _system/memory/triage_events.jsonl
+            _system/memory/triage_ledger.json
+            _system/memory/routed_observations.jsonl
+            _system/reviews/pending/memory_triage.md
+            _system/reviews/pending/memory_triage_summary.json
+            _eval/ssi_adjudication_queue.json
+            _system/research/epistemic_loop_status.json
+            _system/data/epistemic_work_queue.json
+            _system/data/falsifier_authoring_queue.json
+            _system/data/runs/epistemic_loop
