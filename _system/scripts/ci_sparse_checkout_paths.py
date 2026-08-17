@@ -13,6 +13,8 @@ ci_checkout_workspace.sh; this script only emits extra ticker paths.
 from __future__ import annotations
 
 import json
+import os
+import re
 import sys
 from pathlib import Path
 
@@ -53,6 +55,19 @@ def paths_for_profile(profile: str) -> list[str]:
                 ]
             )
         return paths
+
+    if profile == "marvin-forecast":
+        ticker = os.environ.get("CI_FORECAST_TICKER", "").strip().upper()
+        if not re.fullmatch(r"[A-Z0-9.^_-]+", ticker):
+            raise SystemExit("CI_FORECAST_TICKER is required and must be a safe ticker")
+        if ticker not in holdings:
+            raise SystemExit(f"CI_FORECAST_TICKER is not in the portfolio registry: {ticker}")
+        return [
+            f"{ticker}/research",
+            f"{ticker}/.onboard_status.json",
+            f"{ticker}/investor-documents/DOWNLOAD_MANIFEST.json",
+            f"{ticker}/investor-documents/TRANSCRIPT_MANIFEST.json",
+        ]
 
     if profile in {"darwin", "dashboard"}:
         # Darwin + pages rebuild read market-data / portfolio / dashboard under

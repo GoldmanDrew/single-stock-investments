@@ -56,7 +56,15 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
       - name: Checkout evidence-selection workspace
-        run: bash _system/scripts/ci_checkout_workspace.sh marvin-pick main
+        env:
+          CONSUMER_INPUT: ${{ inputs.consumer }}
+          CI_FORECAST_TICKER: ${{ inputs.ticker }}
+        run: |
+          if [ "$CONSUMER_INPUT" = "epistemic_forecast" ]; then
+            bash _system/scripts/ci_checkout_workspace.sh marvin-forecast main
+          else
+            bash _system/scripts/ci_checkout_workspace.sh marvin-pick main
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

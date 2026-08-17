@@ -146,6 +146,7 @@ class WorkflowGovernanceTests(unittest.TestCase):
         self.assertIn("cursor_pr_backlog_", dispatch)
         self.assertIn('.mergeable == "MERGEABLE"', dispatch)
         self.assertNotIn('.mergeable != "CONFLICTING"', dispatch)
+        self.assertIn("ci_checkout_workspace.sh marvin-forecast main", dispatch)
 
     def test_power_zone_writer_uses_shared_lock_and_retry_push(self):
         workflow = (ROOT / ".github" / "workflows" / "power-zone-universe.yml").read_text(encoding="utf-8")
