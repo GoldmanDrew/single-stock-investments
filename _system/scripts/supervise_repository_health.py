@@ -26,11 +26,11 @@ def plan(root: Path = ROOT) -> dict:
     p6 = "\n".join(key for key in hard if key.startswith("P6|"))
     dispatches = []
     if any(name in p6 for name in ("criticality_summary", "technical_summary", "vol_metrics", "spx_surface")):
-        dispatches.append({"workflow": "data-pipeline.yml", "fields": {"mode": "technicals"}})
+        dispatches.append({"event_type": "heal-technicals"})
     if "warrant_monitor" in p6:
-        dispatches.append({"workflow": "data-pipeline.yml", "fields": {"mode": "warrant_refresh"}})
+        dispatches.append({"event_type": "heal-warrants"})
     if "market_risk_components_committed" in p6:
-        dispatches.append({"workflow": "market-risk-components.yml", "fields": {}})
+        dispatches.append({"event_type": "heal-market-risk"})
     if "podcast_catalog" in p6:
         dispatches.append({"workflow": "podcast-refresh.yml", "fields": {"backfill": "false", "whisper_batch": "0"}})
     payload = {

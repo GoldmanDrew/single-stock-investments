@@ -3,8 +3,6 @@ name: Repository Health Supervisor
 on:
   schedule:
     - cron: "35 */4 * * *"
-  workflow_dispatch:
-
 permissions:
   actions: write
   contents: write
@@ -47,11 +45,16 @@ jobs:
               print(json.dumps(row))
           PY
           while IFS= read -r row; do
-            workflow=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["workflow"])' "$row")
-            args=()
-            while IFS=$'\t' read -r key value; do args+=("-f" "$key=$value"); done < <(
-              python -c 'import json,sys; r=json.loads(sys.argv[1]); [print(k, v, sep="\t") for k,v in r.get("fields",{}).items()]' "$row")
-            gh workflow run "$workflow" "${args[@]}"
+            event_type=$(python -c 'import json,sys; print(json.loads(sys.argv[1]).get("event_type", ""))' "$row")
+            workflow=$(python -c 'import json,sys; print(json.loads(sys.argv[1]).get("workflow", ""))' "$row")
+            if [ -n "$event_type" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/dispatches" -f event_type="$event_type"
+            elif [ -n "$workflow" ]; then
+              args=()
+              while IFS=$'\t' read -r key value; do args+=("-f" "$key=$value"); done < <(
+                python -c 'import json,sys; r=json.loads(sys.argv[1]); [print(k, v, sep="\t") for k,v in r.get("fields",{}).items()]' "$row")
+              gh workflow run "$workflow" "${args[@]}"
+            fi
           done < "$RUNNER_TEMP/dispatches.jsonl"
       - name: Escalate failures that survived three supervisor runs
         env:
