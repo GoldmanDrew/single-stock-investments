@@ -205,6 +205,9 @@ class WorkflowGovernanceTests(unittest.TestCase):
         self.assertIn('${evidenceManifestJson || "{}"}', runner)
         cloud_env = runner.split("envVars: {", 1)[1].split("},", 1)[0]
         self.assertNotIn("RESEARCH_EVIDENCE_MANIFEST_JSON", cloud_env)
+        self.assertIn("maxStartupAttempts = 3", runner)
+        self.assertIn("err.isRetryable", runner)
+        self.assertIn("Retrying cloud startup", runner)
 
     def test_policy_encodes_expected_call_budgets(self):
         policy = json.loads((ROOT / "_system" / "config" / "llm_usage_policy.json").read_text(encoding="utf-8"))

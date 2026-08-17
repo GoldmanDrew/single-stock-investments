@@ -80,46 +80,57 @@ ${evidenceManifestJson || "{}"}
 `;
 
 const repoUrl = `https://github.com/${repo}`;
+const maxStartupAttempts = 3;
+const retryDelaysMs = [15_000, 45_000];
 
-try {
-  console.log(`Starting Marvin deep dive for ${ticker} on ${repoUrl}...`);
-  console.log(`Starting ref: ${startingRef || "(Cursor default branch)"}`);
-  console.log(`HK_PDFS_ROOT (cloud): ${hkPdfsRoot}`);
-  console.log(`Model: ${modelId}`);
-  const repoSpec = startingRef ? { url: repoUrl, startingRef } : { url: repoUrl };
-  const result = await Agent.prompt(prompt, {
-    apiKey,
-    model: { id: modelId },
-    cloud: {
-      repos: [repoSpec],
-      autoCreatePR: true,
-      skipReviewerRequest: true,
-      envVars: {
-        HK_PDFS_ROOT: hkPdfsRoot,
-        RESEARCH_EVIDENCE_HASH: evidenceHash || "",
-        RESEARCH_EVIDENCE_MANIFEST: evidenceManifest || "",
-        // The manifest may contain a full frozen epistemic work packet and can
-        // exceed Cursor's 4 KiB per-env-value limit. It is already embedded in
-        // the prompt above and committed in the controller queue; the cloud
-        // agent materializes it at RESEARCH_EVIDENCE_MANIFEST before refresh.
-        RESEARCH_PICK_REASON: pickReason,
+console.log(`Starting Marvin deep dive for ${ticker} on ${repoUrl}...`);
+console.log(`Starting ref: ${startingRef || "(Cursor default branch)"}`);
+console.log(`HK_PDFS_ROOT (cloud): ${hkPdfsRoot}`);
+console.log(`Model: ${modelId}`);
+const repoSpec = startingRef ? { url: repoUrl, startingRef } : { url: repoUrl };
+
+for (let attempt = 1; attempt <= maxStartupAttempts; attempt += 1) {
+  try {
+    console.log(`Cloud startup attempt ${attempt}/${maxStartupAttempts}`);
+    const result = await Agent.prompt(prompt, {
+      apiKey,
+      model: { id: modelId },
+      cloud: {
+        repos: [repoSpec],
+        autoCreatePR: true,
+        skipReviewerRequest: true,
+        envVars: {
+          HK_PDFS_ROOT: hkPdfsRoot,
+          RESEARCH_EVIDENCE_HASH: evidenceHash || "",
+          RESEARCH_EVIDENCE_MANIFEST: evidenceManifest || "",
+          // The manifest may contain a full frozen epistemic work packet and can
+          // exceed Cursor's 4 KiB per-env-value limit. It is already embedded in
+          // the prompt above and committed in the controller queue; the cloud
+          // agent materializes it at RESEARCH_EVIDENCE_MANIFEST before refresh.
+          RESEARCH_PICK_REASON: pickReason,
+        },
       },
-    },
-  });
+    });
 
-  console.log("Status:", result.status);
-  console.log("Agent ID:", result.agentId);
-  if (result.prUrl) console.log("PR:", result.prUrl);
-  if (result.result) console.log("Summary:", result.result.slice(0, 500));
+    console.log("Status:", result.status);
+    console.log("Agent ID:", result.agentId);
+    if (result.prUrl) console.log("PR:", result.prUrl);
+    if (result.result) console.log("Summary:", result.result.slice(0, 500));
 
-  if (result.status === "error") {
-    console.error("Agent run failed.");
-    process.exit(2);
+    if (result.status === "error") {
+      console.error("Agent run failed.");
+      process.exit(2);
+    }
+    break;
+  } catch (err) {
+    const retryable = err instanceof CursorAgentError && err.isRetryable;
+    console.error("Startup failed:", err.message, "retryable=", retryable);
+    if (!retryable || attempt === maxStartupAttempts) {
+      if (err instanceof CursorAgentError) process.exit(1);
+      throw err;
+    }
+    const delayMs = retryDelaysMs[attempt - 1];
+    console.warn(`Retrying cloud startup in ${delayMs / 1000}s.`);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-} catch (err) {
-  if (err instanceof CursorAgentError) {
-    console.error("Startup failed:", err.message, "retryable=", err.isRetryable);
-    process.exit(1);
-  }
-  throw err;
 }
