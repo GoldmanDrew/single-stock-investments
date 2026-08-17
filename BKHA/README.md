@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Black Hawk Acquisition Corp  (BKHA, BKHAR, BKHAU)  (CIK 0002000775) contingent / CVR candidate (BKHA)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** BKHA | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

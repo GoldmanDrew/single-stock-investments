@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Strata Critical Medical, Inc.  (SRTA)  (CIK 0001779128) contingent / CVR candidate (SRTA)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** SRTA | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

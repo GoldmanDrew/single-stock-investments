@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Integer Holdings Corp  (ITGR)  (CIK 0001114483) contingent / CVR candidate (ITGR)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** ITGR | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

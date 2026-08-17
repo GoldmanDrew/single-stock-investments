@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# OppFi Inc.  (OPFI)  (CIK 0001818502) contingent / CVR candidate (OPFI)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** OPFI | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

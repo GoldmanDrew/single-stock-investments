@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Public Policy Holding Company, Inc.  (PPHC)  (CIK 0001903508) contingent / CVR candidate (PPHC)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** PPHC | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

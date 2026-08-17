@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Securetech Innovations, Inc.  (SCTH)  (CIK 0001703157) contingent / CVR candidate (SCTH)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** SCTH | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

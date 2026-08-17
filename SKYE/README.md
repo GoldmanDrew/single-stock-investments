@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Skye Bioscience, Inc.  (SKYE)  (CIK 0001516551) contingent / CVR candidate (SKYE)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** SKYE | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

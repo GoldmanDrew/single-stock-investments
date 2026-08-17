@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Star Equity Holdings, Inc.  (STRR, STRRP)  (CIK 0001210708) contingent / CVR candidate (STRR)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** STRR | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

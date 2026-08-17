@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Health Catalyst, Inc.  (HCAT)  (CIK 0001636422) contingent / CVR candidate (HCAT)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** HCAT | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Dogwood Therapeutics, Inc.  (DWTX)  (CIK 0001818844) contingent / CVR candidate (DWTX)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** DWTX | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

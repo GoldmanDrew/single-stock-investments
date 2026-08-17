@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Bluerock Acquisition Corp.  (BLRK, BLRKU, BLRKW)  (CIK 0002081532) contingent / CVR candidate (BLRK)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** BLRK | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

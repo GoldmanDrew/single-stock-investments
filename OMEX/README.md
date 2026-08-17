@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# ODYSSEY MARINE EXPLORATION INC  (OMEX)  (CIK 0000798528) contingent / CVR candidate (OMEX)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** OMEX | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

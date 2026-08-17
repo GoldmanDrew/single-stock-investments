@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# KUSTOM ENTERTAINMENT, INC.  (KUST)  (CIK 0001342958) contingent / CVR candidate (KUST)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** KUST | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

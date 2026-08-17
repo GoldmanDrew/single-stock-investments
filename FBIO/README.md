@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Fortress Biotech, Inc.  (FBIO, FBIOP)  (CIK 0001429260) contingent / CVR candidate (FBIO)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** FBIO | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

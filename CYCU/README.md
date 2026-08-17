@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Cycurion, Inc.  (CYCU, CYCUW)  (CIK 0001868419) contingent / CVR candidate (CYCU)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** CYCU | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

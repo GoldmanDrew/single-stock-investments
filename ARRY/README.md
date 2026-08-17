@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Array Technologies, Inc.  (ARRY)  (CIK 0001820721) contingent / CVR candidate (ARRY)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** ARRY | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

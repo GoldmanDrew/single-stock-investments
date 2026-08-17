@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# Insight Molecular Diagnostics Inc.  (IMDX)  (CIK 0001642380) contingent / CVR candidate (IMDX)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** IMDX | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

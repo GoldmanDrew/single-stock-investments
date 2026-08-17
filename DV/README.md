@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# DoubleVerify Holdings, Inc.  (DV)  (CIK 0001819928) contingent / CVR candidate (DV)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** DV | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 

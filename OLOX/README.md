@@ -1,6 +1,6 @@
-# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
+# OLENOX INDUSTRIES INC.  (OLOX)  (CIK 0001023994) contingent / CVR candidate (OLOX)
 
-**Ticker:** JOBY | **Market:** US  
+**Ticker:** OLOX | **Market:** US  
 **Last updated:** 2026-08-17  
 **Stage:** pre-close stub (discovery)
 
