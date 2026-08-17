@@ -541,7 +541,7 @@ jobs:
             --capture-cohort
           python _system/scripts/resolve_warrant_outcomes.py
           python _system/scripts/build_warrant_dashboard.py
-      - id: warrant-health
+      - id: warrant_health
         name: Validate warrant health after writing the truthful snapshot
         continue-on-error: true
         run: |
@@ -556,7 +556,7 @@ jobs:
             _system/data/warrants/
             dashboard/data/warrants.json
       - name: Keep unresolved source failures loud after preserving progress
-        if: steps.warrant-health.outcome == 'failure'
+        if: steps.warrant_health.outcome == 'failure'
         run: |
           echo "::error::Warrant snapshot was preserved, but strict health remains degraded."
           exit 1
