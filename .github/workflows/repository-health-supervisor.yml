@@ -21,7 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 400
+          # Enough history for the five-commit belief check and recent lane
+          # fallbacks; workflow-success receipts carry the durable lane clock.
+          # A 400-deep full checkout takes several minutes in this large repo.
+          fetch-depth: 50
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
