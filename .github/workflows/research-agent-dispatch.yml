@@ -73,20 +73,18 @@ jobs:
             # unique work packet. Ordinary ticker picking intentionally rejects
             # unchanged primary evidence, which is the wrong gate here; the
             # dedicated LLM gate below judges the work-id-bound manifest hash.
-            TICKER_INPUT="$TICKER_INPUT" REASON_INPUT="$REASON_INPUT" python - <<'PY' > pick.json
-          import json, os
-          print(json.dumps({"ticker": os.environ["TICKER_INPUT"], "skip": False,
-                            "reason": os.environ["REASON_INPUT"]}))
-          PY
+            TICKER="$TICKER_INPUT"
+            SKIP=false
+            PICK_REASON="$REASON_INPUT"
           else
             ARGS=(--json --require-new)
             if [ -n "$TICKER_INPUT" ]; then ARGS=("$TICKER_INPUT" --json --require-new); fi
             if [ "$FORCE_INPUT" = "true" ]; then ARGS+=(--force); fi
             python _system/scripts/marvin_pick_ticker.py "${ARGS[@]}" > pick.json
+            TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
+            SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
+            PICK_REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
           fi
-          TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
-          SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
-          PICK_REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
           if [ -n "$REASON_INPUT" ] && [ -n "$TICKER" ]; then PICK_REASON="$REASON_INPUT"; fi
           if [ "$SKIP" = "true" ] || [ -z "$TICKER" ]; then
             echo "ticker=$TICKER" >> "$GITHUB_OUTPUT"
@@ -96,7 +94,7 @@ jobs:
             echo "evidence_hash=" >> "$GITHUB_OUTPUT"
             echo "primary_evidence_count=0" >> "$GITHUB_OUTPUT"
             echo "manifest_json={}" >> "$GITHUB_OUTPUT"
-            cat pick.json
+            if [ -f pick.json ]; then cat pick.json; fi
             exit 0
           fi
           python _system/scripts/build_research_agent_manifest.py "$TICKER" --reason "$PICK_REASON" > manifest.json
