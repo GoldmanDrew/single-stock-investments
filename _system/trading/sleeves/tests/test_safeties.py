@@ -16,7 +16,7 @@ def _quote(last=100.0, age_s=1):
     return {
         "last": last,
         "as_of": (now - timedelta(seconds=age_s)).isoformat().replace("+00:00", "Z"),
-        "account": "U805366",
+        "account": "TEST_ACCOUNT",
         "qualified_name": "CSU",
         "currency": "USD",
         "exchange": "SMART",

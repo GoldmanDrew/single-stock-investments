@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magis.internal/contracts/portfolio/account_snapshot.v1.schema.json",
+  "title": "IBKR account snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_run_id", "account_alias", "as_of", "complete", "account_values", "positions"],
+  "properties": {
+    "schema_version": {"const": "account_snapshot.v1"},
+    "source_run_id": {"type": "string", "minLength": 1},
+    "account_alias": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "complete": {"type": "boolean"},
+    "completeness": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    "gateway_session_id": {"type": ["string", "null"]},
+    "base_currency": {"type": "string", "minLength": 3, "maxLength": 3},
+    "account_values": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tag", "value", "currency", "source", "as_of"],
+        "properties": {
+          "tag": {"type": "string"},
+          "value": {"type": "string", "pattern": "^-?[0-9]+(?:\\.[0-9]+)?$"},
+          "currency": {"type": "string"},
+          "segment": {"type": ["string", "null"]},
+          "model_code": {"type": ["string", "null"]},
+          "source": {"enum": ["ibkr_account_summary", "ibkr_account_update", "ibkr_pnl"]},
+          "as_of": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "positions": {
+      "type": "array",
+      "items": {"$ref": "position.v1.schema.json"}
+    },
+    "open_orders": {"type": "array", "items": {"type": "object"}}
+  }
+}

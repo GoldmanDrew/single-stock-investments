@@ -19,7 +19,7 @@ ASSET_TO_SEC = {
 }
 
 
-def parse_flex_positions(path: Path | str, *, account_id: str = "U805366") -> list[dict[str, Any]]:
+def parse_flex_positions(path: Path | str, *, account_id: str = "") -> list[dict[str, Any]]:
     root = ET.parse(path).getroot()
     rows: list[dict[str, Any]] = []
     for node in root.iter("OpenPosition"):

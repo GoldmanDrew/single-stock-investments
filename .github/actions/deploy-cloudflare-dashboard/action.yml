@@ -9,6 +9,10 @@ inputs:
     description: Cloudflare D1 database name
     required: false
     default: single-stock-investments
+  private-artifacts-bucket:
+    description: Private R2 bucket for immutable portfolio evidence
+    required: false
+    default: single-stock-investments-private
   ingest-worker-name:
     description: Public edge Worker used only for signed market-risk ingestion
     required: false
@@ -24,11 +28,19 @@ runs:
       shell: bash
       run: npm ci --prefix dashboard/cloudflare
 
+    - name: Verify Cloudflare boundary and function contracts
+      shell: bash
+      run: |
+        set -euo pipefail
+        npm --prefix dashboard/cloudflare run check
+        python -m pytest -q _system/scripts/test_build_cloudflare_pages_site.py _system/trading/portfolio_hub/tests
+
     - name: Build Cloudflare-safe dashboard artifact
       shell: bash
       run: |
         set -euo pipefail
         python _system/scripts/build_cloudflare_pages_site.py
+        python _system/scripts/validate_portfolio_private_boundary.py _cf_project/site
         mkdir -p _cf_project/functions
         cp -R dashboard/functions/. _cf_project/functions/
 
@@ -39,6 +51,7 @@ runs:
         PROJECT_NAME: ${{ inputs.project-name }}
         DATABASE_NAME: ${{ inputs.database-name }}
         INGEST_WORKER_NAME: ${{ inputs.ingest-worker-name }}
+        PRIVATE_BUCKET: ${{ inputs.private-artifacts-bucket }}
       run: |
         set -euo pipefail
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
@@ -58,7 +71,7 @@ runs:
           CREATE_LOG="$RUNNER_TEMP/cf-pages-create.log"
           if ! "$WRANGLER" pages project create "$PROJECT_NAME" \
             --production-branch=main \
-            --compatibility-date=2026-07-29 \
+            --compatibility-date=2026-08-17 \
             --compatibility-flag=nodejs_compat \
             >"$CREATE_LOG" 2>&1; then
             if ! grep -Eqi 'already exists|8000002' "$CREATE_LOG"; then
@@ -94,6 +107,14 @@ runs:
           fi
           DATABASE_ID="$(resolve_database_id)"
         fi
+
+        BUCKETS="$($WRANGLER r2 bucket list --json 2>/dev/null || true)"
+        if ! jq -e --arg name "$PRIVATE_BUCKET" '
+          (if type == "array" then . elif type == "object" then (.buckets // .result // []) else [] end)
+          | any((.name // .bucket) == $name)
+        ' <<<"$BUCKETS" >/dev/null 2>&1; then
+          "$WRANGLER" r2 bucket create "$PRIVATE_BUCKET"
+        fi
         if [ -z "$DATABASE_ID" ]; then
           echo "Cloudflare did not return a database ID for $DATABASE_NAME" >&2
           exit 1
@@ -103,9 +124,10 @@ runs:
           --arg name "$PROJECT_NAME" \
           --arg database_name "$DATABASE_NAME" \
           --arg database_id "$DATABASE_ID" \
+          --arg private_bucket "$PRIVATE_BUCKET" \
           '{
             name: $name,
-            compatibility_date: "2026-07-29",
+            compatibility_date: "2026-08-17",
             compatibility_flags: ["nodejs_compat"],
             pages_build_output_dir: "./site",
             d1_databases: [{
@@ -113,7 +135,8 @@ runs:
               database_name: $database_name,
               database_id: $database_id,
               migrations_dir: "../dashboard/cloudflare/migrations"
-            }]
+            }],
+            r2_buckets: [{ binding: "PRIVATE_ARTIFACTS", bucket_name: $private_bucket }]
           }' > _cf_project/wrangler.jsonc
         jq -n \
           --arg name "$INGEST_WORKER_NAME" \
@@ -122,7 +145,7 @@ runs:
           '{
             name: $name,
             main: "../dashboard/cloudflare/market-risk-ingest-worker.js",
-            compatibility_date: "2026-07-29",
+            compatibility_date: "2026-08-17",
             compatibility_flags: ["nodejs_compat"],
             workers_dev: true,
             d1_databases: [{
@@ -147,7 +170,7 @@ runs:
           --file dashboard/cloudflare/generated/dashboard_seed.sql \
           --config _cf_project/wrangler.jsonc
 
-    - name: Deploy signed market-risk ingest Worker
+    - name: Configure private Pages secrets and deploy signed market-risk ingest Worker
       shell: bash
       env:
         PROJECT_NAME: ${{ inputs.project-name }}
@@ -158,12 +181,21 @@ runs:
           echo "MARKET_RISK_INGEST_TOKEN is required for the signed risk ingest." >&2
           exit 1
         fi
+        if [ -z "${PORTFOLIO_INGEST_TOKEN:-}" ] || [ -z "${CF_ACCESS_TEAM_DOMAIN:-}" ] || [ -z "${CF_ACCESS_AUD:-}" ] || [ -z "${IBKR_ACCOUNT_IDS_FOR_SCAN:-}" ]; then
+          echo "PORTFOLIO_INGEST_TOKEN, CF_ACCESS_TEAM_DOMAIN, CF_ACCESS_AUD, and IBKR_ACCOUNT_IDS_FOR_SCAN are required for the private portfolio." >&2
+          exit 1
+        fi
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
         SECRET_FILE="$RUNNER_TEMP/market-risk-pages-secrets.json"
         trap 'rm -f "$SECRET_FILE"' EXIT
         python - "$SECRET_FILE" <<'PY'
         import json, os, sys
-        secrets = {"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}
+        secrets = {
+            "MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"],
+            "PORTFOLIO_INGEST_TOKEN": os.environ["PORTFOLIO_INGEST_TOKEN"],
+            "CF_ACCESS_TEAM_DOMAIN": os.environ["CF_ACCESS_TEAM_DOMAIN"],
+            "CF_ACCESS_AUD": os.environ["CF_ACCESS_AUD"],
+        }
         token = os.environ.get("SLEEVE_INGEST_TOKEN")
         if token:
             secrets["SLEEVE_INGEST_TOKEN"] = token
@@ -213,3 +245,21 @@ runs:
             echo "- Deployment: $PAGE_URL"
           fi
         } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Verify unauthenticated portfolio denial
+      shell: bash
+      env:
+        PAGE_URL: ${{ steps.deploy.outputs.page_url }}
+      run: |
+        set -euo pipefail
+        if [ -z "$PAGE_URL" ]; then
+          echo "Could not determine deployment URL for privacy verification." >&2
+          exit 1
+        fi
+        BOOK_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "$PAGE_URL/api/v2/portfolio/book")"
+        STATIC_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' "$PAGE_URL/data/sleeves_drew.json")"
+        if [ "$BOOK_STATUS" = "200" ] || [ "$STATIC_STATUS" = "200" ]; then
+          echo "Private portfolio boundary failed: book=$BOOK_STATUS static=$STATIC_STATUS" >&2
+          exit 1
+        fi
+        echo "Private portfolio boundary verified: book=$BOOK_STATUS static=$STATIC_STATUS"

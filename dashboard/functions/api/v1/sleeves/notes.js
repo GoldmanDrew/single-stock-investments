@@ -1,9 +1,12 @@
 import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js";
+import { privateJson, requirePortfolioViewer } from "../../../_lib/auth.js";
 import { githubLogin, loadBook } from "../../../_lib/sleeves.js";
 
 export async function onRequestPost(context) {
   const id = requestId(context.request);
   try {
+    const viewer = await requirePortfolioViewer(context);
+    if (!viewer) return privateJson({ error: "Unauthorized.", request_id: id }, 401);
     const user = await githubLogin(context.request, context.env);
     if (!user) {
       return json({ error: "Sign in with GitHub to save notes.", request_id: id }, 401, {

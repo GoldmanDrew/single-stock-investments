@@ -13,6 +13,17 @@ DEFAULT_OUTPUT = ROOT / "_cf_project" / "site"
 MAX_FILE_BYTES = 20 * 1024 * 1024
 SKIP_DIRS = {"oauth-proxy", "functions", "cloudflare"}
 SKIP_SUFFIXES = {".parquet", ".arrow"}
+PRIVATE_STATIC_PATHS = {
+    "data/sleeves_drew.json",
+    "data/sleeves_michael.json",
+}
+PRIVATE_STATIC_PREFIXES = ("data/portfolio/", "data/account/")
+
+
+def _private_static_path(relative: str) -> bool:
+    return relative in PRIVATE_STATIC_PATHS or (
+        relative.startswith("data/sleeves_") and relative.endswith(".json")
+    ) or relative.startswith(PRIVATE_STATIC_PREFIXES)
 
 
 def _inside_workspace(path: Path) -> bool:
@@ -45,8 +56,12 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
         if not path.is_file():
             continue
         rel = path.relative_to(source)
+        rel_posix = rel.as_posix()
         if any(part in SKIP_DIRS for part in rel.parts):
-            excluded.append({"path": rel.as_posix(), "reason": "deployment-control directory"})
+            excluded.append({"path": rel_posix, "reason": "deployment-control directory"})
+            continue
+        if _private_static_path(rel_posix):
+            excluded.append({"path": rel_posix, "reason": "private account artifact"})
             continue
         if path.suffix.lower() in SKIP_SUFFIXES:
             excluded.append({"path": rel.as_posix(), "reason": "unsupported large-data format"})
@@ -58,7 +73,7 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
         target = output / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, target)
-        included.append(rel.as_posix())
+        included.append(rel_posix)
 
     core_path = output / "data" / "core.json"
     manifest_path = output / "data" / "insights" / "manifest.json"
@@ -71,6 +86,9 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
     shard_count = len(list((output / "data" / "tickers").glob("*.json")))
     if shard_count < ticker_count:
         raise RuntimeError(f"Cloudflare artifact has {shard_count} ticker shards for {ticker_count} rows")
+    leaked = [path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file() and _private_static_path(path.relative_to(output).as_posix())]
+    if leaked:
+        raise RuntimeError(f"Cloudflare artifact contains private account files: {sorted(leaked)}")
 
     headers = (
         "/*\n"
@@ -90,6 +108,7 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
         "ticker_shard_count": shard_count,
         "included_file_count": len(included),
         "excluded_file_count": len(excluded),
+        "private_static_paths": sorted(PRIVATE_STATIC_PATHS),
         "excluded": excluded,
     }
     (output / "cloudflare-artifact-manifest.json").write_text(

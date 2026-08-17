@@ -16,7 +16,7 @@ def _quote(last=50.0):
     return {
         "last": last,
         "as_of": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "account": "U805366",
+        "account": "TEST_ACCOUNT",
         "qualified_name": "CSU",
         "currency": "USD",
         "exchange": "SMART",
