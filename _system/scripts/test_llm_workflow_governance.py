@@ -144,6 +144,8 @@ class WorkflowGovernanceTests(unittest.TestCase):
         self.assertIn('gh pr list --repo "${{ github.repository }}"', continue_wf)
         self.assertIn('echo "max_parallel=1"', queue_wf)
         self.assertIn("cursor_pr_backlog_", dispatch)
+        self.assertIn('.mergeable == "MERGEABLE"', dispatch)
+        self.assertNotIn('.mergeable != "CONFLICTING"', dispatch)
 
     def test_power_zone_writer_uses_shared_lock_and_retry_push(self):
         workflow = (ROOT / ".github" / "workflows" / "power-zone-universe.yml").read_text(encoding="utf-8")
