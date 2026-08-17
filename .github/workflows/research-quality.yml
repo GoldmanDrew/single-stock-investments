@@ -41,6 +41,7 @@ on:
       - "_system/scripts/validate_calibration_consumption.py"
       - "_system/scripts/validate_invariant_subset.py"
       - "_system/scripts/test_validate_invariant_subset.py"
+      - "_system/scripts/test_repository_health_supervisor.py"
       - "_system/scripts/test_epistemic_integrity.py"
       - "_system/scripts/test_epistemic_loop_controller.py"
       - "_system/scripts/test_memory_delivery.py"
@@ -128,6 +129,7 @@ on:
       - "_system/scripts/validate_calibration_consumption.py"
       - "_system/scripts/validate_invariant_subset.py"
       - "_system/scripts/test_validate_invariant_subset.py"
+      - "_system/scripts/test_repository_health_supervisor.py"
       - "_system/scripts/test_epistemic_integrity.py"
       - "_system/scripts/test_epistemic_loop_controller.py"
       - "_system/scripts/test_memory_delivery.py"
@@ -254,7 +256,7 @@ jobs:
             const graphInvariants = isPush || has(name =>
               /^_system\/graph\//.test(name) ||
               /^_system\/scripts\/(graph_|test_graph_)[^/]+\.py$/.test(name) ||
-              /^_system\/scripts\/(falsifier_specs|falsifier_evidence_adapters|resolve_falsifiers|promote_falsifier_drafts|epistemic_loop_controller|deliver_routed_memory|check_falsifier_history|lint_falsifier_specs|validate_calibration_consumption|validate_invariant_subset|test_epistemic_integrity|test_epistemic_loop_controller|test_memory_delivery|test_validate_invariant_subset)\.py$/.test(name) ||
+              /^_system\/scripts\/(falsifier_specs|falsifier_evidence_adapters|resolve_falsifiers|promote_falsifier_drafts|epistemic_loop_controller|deliver_routed_memory|check_falsifier_history|lint_falsifier_specs|validate_calibration_consumption|validate_invariant_subset|supervise_repository_health|test_epistemic_integrity|test_epistemic_loop_controller|test_memory_delivery|test_validate_invariant_subset|test_repository_health_supervisor)\.py$/.test(name) ||
               // The evidence-integrity sweep shares this job (same full
               // checkout) and must trigger on its own sources and baseline.
               /^_system\/scripts\/(test_)?check_evidence_integrity\.py$/.test(name) ||
@@ -566,7 +568,7 @@ jobs:
             test_falsifier_specs test_resolve_falsifiers \
             test_calibration_brief test_epistemic_integrity \
             test_epistemic_loop_controller test_memory_delivery \
-            test_validate_invariant_subset)
+            test_validate_invariant_subset test_repository_health_supervisor)
           python _system/scripts/epistemic_loop_controller.py --dry-run
           python _system/scripts/validate_calibration_consumption.py
       - name: Run the invariant suite (hard invariants fail the job)
