@@ -89,7 +89,7 @@ def build_manifest(ticker: str, reason: str) -> dict:
     for path in candidates(ticker):
         refs.append(evidence_reference(path))
     canonical_evidence = {"ticker": ticker.upper(), "evidence": refs}
-    evidence_hash = hashlib.sha256(json.dumps(canonical_evidence, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    primary_evidence_hash = hashlib.sha256(json.dumps(canonical_evidence, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     work_item = None
     if reason.startswith(("epistemic_author_forecast:", "epistemic_review_forecast:")):
         work_id = reason.split(":", 2)[1]
@@ -101,11 +101,24 @@ def build_manifest(ticker: str, reason: str) -> dict:
     status_path = ROOT / "_system/research/epistemic_loop_status.json"
     status = json.loads(status_path.read_text(encoding="utf-8")) if status_path.exists() else {}
     memory_leads = routed_observations(ticker)
+    evidence_hash = primary_evidence_hash
+    if work_item:
+        gate_packet = {
+            "primary_evidence_hash": primary_evidence_hash,
+            "work_id": work_item.get("work_id"),
+            "input_sha": work_item.get("input_sha"),
+            "component_fingerprint": work_item.get("component_fingerprint"),
+            "task_type": work_item.get("task_type"),
+        }
+        evidence_hash = hashlib.sha256(json.dumps(
+            gate_packet, sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()
     return {
         "schema_version": "2.0",
         **canonical_evidence,
         "reason": reason,
         "evidence_hash": evidence_hash,
+        "primary_evidence_hash": primary_evidence_hash,
         "artifact_count": len(refs),
         "ready": bool(refs),
         "primary_evidence_ready": bool(refs),

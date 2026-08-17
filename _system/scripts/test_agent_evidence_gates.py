@@ -70,6 +70,24 @@ class AgentEvidenceGateTests(unittest.TestCase):
             second = build_research_agent_manifest.build_manifest("AAA", "new_documents")
         self.assertNotEqual(first["evidence_hash"], second["evidence_hash"])
 
+    def test_forecast_work_id_changes_gate_hash_not_primary_hash(self):
+        self.write("AAA/investor-documents/DOWNLOAD_MANIFEST.json", [{"accession": "0001"}])
+        queue = {"items": [{
+            "work_id": "w1", "task_type": "author_forecast",
+            "input_sha": "abc", "component_fingerprint": "component-1",
+        }]}
+        self.write("_system/data/epistemic_work_queue.json", queue)
+        with patch.object(build_research_agent_manifest, "ROOT", self.root):
+            first = build_research_agent_manifest.build_manifest(
+                "AAA", "epistemic_author_forecast:w1:component")
+        queue["items"][0]["work_id"] = "w2"
+        self.write("_system/data/epistemic_work_queue.json", queue)
+        with patch.object(build_research_agent_manifest, "ROOT", self.root):
+            second = build_research_agent_manifest.build_manifest(
+                "AAA", "epistemic_author_forecast:w2:component")
+        self.assertEqual(first["primary_evidence_hash"], second["primary_evidence_hash"])
+        self.assertNotEqual(first["evidence_hash"], second["evidence_hash"])
+
     def test_working_ir_adapter_suppresses_vicki(self):
         self.write("AAA/.onboard_status.json", {"download_detail": "ir_gap"})
         self.write("AAA/investor-documents/ir_adapter.json", {"deterministic_status": "working"})

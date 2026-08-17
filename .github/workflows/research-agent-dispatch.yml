@@ -65,10 +65,14 @@ jobs:
           TICKER_INPUT: ${{ inputs.ticker }}
           REASON_INPUT: ${{ inputs.reason }}
           FORCE_INPUT: ${{ inputs.force }}
+          CONSUMER_INPUT: ${{ inputs.consumer }}
           GH_TOKEN: ${{ github.token }}
         run: |
           ARGS=(--json --require-new)
           if [ -n "$TICKER_INPUT" ]; then ARGS=("$TICKER_INPUT" --json --require-new); fi
+          if [ "$CONSUMER_INPUT" = "epistemic_forecast" ]; then
+            ARGS=("$TICKER_INPUT" --json)
+          fi
           if [ "$FORCE_INPUT" = "true" ]; then ARGS+=(--force); fi
           python _system/scripts/marvin_pick_ticker.py "${ARGS[@]}" > pick.json
           TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")

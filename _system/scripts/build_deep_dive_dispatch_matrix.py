@@ -41,7 +41,7 @@ def epistemic_jobs(payload: dict) -> list[dict]:
             "ticker": ticker,
             "reason": f"epistemic_{item.get('task_type')}:"
                       f"{item.get('work_id')}:{item.get('component_id')}",
-            "consumer": "marvin_research",
+            "consumer": "epistemic_forecast",
         })
         if len(jobs) >= 5:
             break
