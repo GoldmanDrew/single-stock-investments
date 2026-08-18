@@ -1,0 +1,378 @@
+{
+  "ticker": "RIG",
+  "as_of": "2026-08-18",
+  "schema_version": "3.0",
+  "method": "scenario",
+  "irr_method": "scenario",
+  "valuation_mode": "economic_value",
+  "method_profile": "capital_cycle",
+  "classification_inputs": {
+    "archetype": "commodity_cyclical",
+    "moat": "unproven",
+    "dhando": "partial",
+    "cycle": "early_recovery",
+    "payoff_lens": "operating",
+    "predictive_attribute": "offshore_cycle_recovery",
+    "lawrence_bucket": "high_beta_cyclical"
+  },
+  "inputs": {
+    "price": null,
+    "price_source": "pending mechanical refresh",
+    "price_as_of": "2026-08-18",
+    "shares_millions": 1116.44,
+    "shares_outstanding": 1116441176,
+    "shares_source": "1,116,441,176 shares outstanding April 28, 2026 (10-Q Q1 2026 cover page)",
+    "fcf_per_share": 0.36,
+    "fcf_source": "Mid-cycle normalized owner cash: operating cash flow $749M less sustaining capital spending $123M in FY2025, scaled to mid-cycle $400M base / 1,116M shares. Not peak-cycle capitalization.",
+    "revenue_fy2025_m": 3965.0,
+    "revenue_fy2025_source": "FY2025 contract revenue $3,965M (10-K filed 2026-02-23; RevenueFromContractWithCustomerExcludingAssessedTax)",
+    "revenue_q1_2026_m": 1081.0,
+    "revenue_q1_source": "Q1 2026 revenue $1,081M (10-Q filed 2026-05-05)",
+    "contract_backlog_b": 6.06,
+    "contract_backlog_source": "Contract backlog $6.06B at February 19, 2026 (10-K FY2025)",
+    "rig_utilization_pct": 72.4,
+    "revenue_efficiency_pct": 96.5,
+    "utilization_source": "Fleet rig utilization 72.4% and revenue efficiency 96.5% for year ended December 31, 2025 (10-K FY2025)",
+    "cash_m": 615.0,
+    "cash_source": "Cash and cash equivalents $615M at March 31, 2026 (10-Q Q1 2026)",
+    "debt_m": 4945.0,
+    "debt_source": "Long-term debt and capital lease obligations $4,945M at March 31, 2026 (10-Q Q1 2026; LongTermDebtAndCapitalLeaseObligations)",
+    "equity_m": 8192.0,
+    "equity_source": "Stockholders equity $8,192M at March 31, 2026 (10-Q Q1 2026)",
+    "operating_cash_flow_fy2025_m": 749.0,
+    "capex_fy2025_m": 123.0,
+    "normalization_note": "FY2025 net loss $2.9B includes large non-cash rig impairments; operating cash flow $749M is the cash anchor. Base case normalizes below FY2025 owner cash to reflect mid-cycle utilization and interest burden, not early-recovery run-rate."
+  },
+  "valuation_methodology": {
+    "primary_method": "midcycle_capacity_value",
+    "method_version": "1.0",
+    "horizon_years": 7,
+    "component_methods": [
+      "midcycle_capacity_value",
+      "net_asset_value",
+      "risk_adjusted_milestone_value"
+    ]
+  },
+  "component_valuation": {
+    "schema_version": "1.0",
+    "all_material_components_identified": true,
+    "coverage_statement": "Ultra-deepwater and harsh-environment drilling cash flows, net debt, and pending Valaris merger option each valued once.",
+    "components": [
+      {
+        "id": "midcycle_offshore_drilling",
+        "label": "Contract drilling operations at mid-cycle utilization",
+        "category": "operating_business",
+        "overlap_key": "offshore_operating_cash",
+        "treatment": "additive",
+        "valuation": {
+          "method": "midcycle_capacity_value",
+          "basis": "per_share",
+          "low": 0.15,
+          "base": 0.65,
+          "high": 1.2,
+          "evidence_tier": "primary_derived",
+          "evidence": "FY2025 revenue $3,965M; utilization 72.4%; revenue efficiency 96.5%; OCF $749M less capex $123M (10-K FY2025)",
+          "assumption_summary": "Mid-cycle owner cash $150M–650M after sustaining capex, capitalized at 1.4–1.8×, divided by 1,116M shares; base $400M × 1.8 / shares.",
+          "falsifier": "Fleet utilization falls below 55% for four quarters and operating cash flow fails to cover cash interest for two consecutive quarters.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "midcycle_capacity_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 1116.441,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "RIG/investor-documents/sec-edgar/10-Q_20260505_rpt20260331_acc0001451505_26_000044.htm",
+                  "locator": "Cover page; 1,116,441,176 shares outstanding April 28, 2026",
+                  "as_of": "2026-04-28"
+                },
+                "locked": true
+              }
+            ],
+            "assumptions": [
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital spending",
+                "kind": "judgment",
+                "values": {
+                  "low": 150.0,
+                  "base": 400.0,
+                  "high": 650.0
+                },
+                "unit": "USD_m",
+                "rationale": "Base below FY2025 OCF minus capex ($626M) to reflect mid-cycle dayrates and utilization; low assumes renewed offshore downturn; high assumes sustained early-recovery economics without full peak capitalization.",
+                "allowed_range": {
+                  "min": 0.0,
+                  "max": 900.0
+                }
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "values": {
+                  "low": 1.4,
+                  "base": 1.8,
+                  "high": 2.0
+                },
+                "unit": "multiple",
+                "rationale": "Through-cycle multiple on normalized owner cash for a leveraged offshore contractor; not peak-margin dayrate capitalization.",
+                "allowed_range": {
+                  "min": 1.0,
+                  "max": 3.0
+                }
+              }
+            ],
+            "calculations": [
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of drilling operations",
+                "op": "multiply",
+                "args": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share from operations",
+                "op": "divide",
+                "args": [
+                  "equity_value_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      },
+      {
+        "id": "net_debt_position",
+        "label": "Net debt after cash",
+        "category": "financial_liability",
+        "overlap_key": "balance_sheet_debt",
+        "treatment": "additive",
+        "valuation": {
+          "method": "net_asset_value",
+          "basis": "per_share",
+          "low": -4.5,
+          "base": -3.88,
+          "high": -3.2,
+          "evidence_tier": "filing",
+          "evidence": "Long-term debt and capital lease obligations $4,945M less cash $615M at March 31, 2026 / 1,116M shares (10-Q Q1 2026)",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "net_asset_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "inputs": [
+              {
+                "id": "debt_m",
+                "label": "Long-term debt and capital lease obligations",
+                "kind": "fact",
+                "value": 4945.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "RIG/research/evidence/sec_companyfacts.json",
+                  "locator": "us-gaap:LongTermDebtAndCapitalLeaseObligations; 10-Q filed 2026-05-05",
+                  "as_of": "2026-03-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "cash_m",
+                "label": "Cash and cash equivalents",
+                "kind": "fact",
+                "value": 615.0,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "RIG/research/evidence/sec_companyfacts.json",
+                  "locator": "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-05-05",
+                  "as_of": "2026-03-31"
+                },
+                "locked": true
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 1116.441,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "RIG/investor-documents/sec-edgar/10-Q_20260505_rpt20260331_acc0001451505_26_000044.htm",
+                  "locator": "Cover page; 1,116,441,176 shares outstanding April 28, 2026",
+                  "as_of": "2026-04-28"
+                },
+                "locked": true
+              }
+            ],
+            "calculations": [
+              {
+                "id": "net_debt_m",
+                "label": "Net debt",
+                "op": "subtract",
+                "args": [
+                  "debt_m",
+                  "cash_m"
+                ],
+                "unit": "USD_m"
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net debt per share (negative contribution)",
+                "op": "divide",
+                "args": [
+                  "net_debt_m",
+                  "shares_m"
+                ],
+                "unit": "USD_per_share",
+                "sign": "liability"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      },
+      {
+        "id": "valaris_merger_option",
+        "label": "Pending Valaris combination (scale and synergy option)",
+        "category": "corporate_event",
+        "overlap_key": "valaris_merger",
+        "treatment": "additive",
+        "valuation": {
+          "method": "risk_adjusted_milestone_value",
+          "basis": "per_share",
+          "low": 0.0,
+          "base": 0.0,
+          "high": 1.5,
+          "evidence_tier": "filing",
+          "evidence": "Business Combination Agreement announced February 9, 2026 to acquire all Valaris shares via Bermuda arrangement (8-K filed 2026-02-09)",
+          "assumption_summary": "Base case assigns zero until exchange ratio, pro forma leverage, and synergy evidence are filed; bull case allows partial synergy credit.",
+          "falsifier": "Shareholders reject the transaction or regulators block closing before December 31, 2027.",
+          "calculation_proof": {
+            "schema_version": "1.0",
+            "method_id": "risk_adjusted_milestone_value",
+            "method_version": "1.0",
+            "output_unit": "USD_per_share",
+            "assumptions": [
+              {
+                "id": "close_probability",
+                "label": "Probability deal closes on filed terms",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.3,
+                  "base": 0.55,
+                  "high": 0.75
+                },
+                "unit": "probability"
+              },
+              {
+                "id": "synergy_value_per_share",
+                "label": "Equity synergy value if deal closes",
+                "kind": "judgment",
+                "values": {
+                  "low": 0.0,
+                  "base": 0.0,
+                  "high": 2.0
+                },
+                "unit": "USD_per_share"
+              }
+            ],
+            "calculations": [
+              {
+                "id": "value_per_share",
+                "label": "Probability-weighted merger option",
+                "op": "multiply",
+                "args": [
+                  "close_probability",
+                  "synergy_value_per_share"
+                ],
+                "unit": "USD_per_share"
+              }
+            ],
+            "outputs": {
+              "low": "value_per_share",
+              "base": "value_per_share",
+              "high": "value_per_share"
+            }
+          },
+          "valuation_status": "bounded_estimate"
+        }
+      }
+    ]
+  },
+  "option_treatment": {
+    "scan_completed": true,
+    "options": [
+      {
+        "id": "valaris_merger",
+        "label": "Valaris combination",
+        "option_treatment": "probability_weighted",
+        "base_terminal_rationale": "Exchange ratio and pro forma capital structure not yet in base proof; zero until human review of filed proxy."
+      }
+    ]
+  },
+  "scenarios": {
+    "bear": {
+      "growth_y1_5": -0.05,
+      "growth_y6_10": 0.0,
+      "exit_pfcf_y10": 5,
+      "notes": "Offshore activity rolls over; backlog burns without repricing; equity dilution continues"
+    },
+    "base": {
+      "growth_y1_5": 0.06,
+      "growth_y6_10": 0.02,
+      "exit_pfcf_y10": 7,
+      "notes": "Partial cycle normalization; mid-cycle owner cash path; Valaris at zero in base"
+    },
+    "bull": {
+      "growth_y1_5": 0.12,
+      "growth_y6_10": 0.04,
+      "exit_pfcf_y10": 9,
+      "notes": "Sustained deepwater tightness plus Valaris synergies and deleveraging from operating cash"
+    }
+  },
+  "growth_explanation": {
+    "mechanism": "Owner cash rises when ultra-deepwater utilization and dayrates improve on the 27-rig fleet; backlog converts to revenue efficiency gains; debt paydown and merger synergies are separate paths",
+    "filing_citation": "10-K FY2025 utilization 72.4% vs 60.5% prior year; backlog $6.06B at February 19, 2026",
+    "stress_test": "If backlog continues declining 25%+ year over year while shares outstanding stay above 1.1B, per-share owner cash growth understates headline fleet recovery",
+    "status": "partial"
+  },
+  "stance_proposal": {
+    "suggested": "watch",
+    "irr_band": "<15%",
+    "gates": {
+      "moat_ok": false,
+      "dhando_ok": false
+    },
+    "override_reason": "Leveraged cyclical with partial dhando only; contract visibility does not bound equity impairment or dilution risk"
+  },
+  "human_review": [
+    "Confirm pro forma capital structure and exchange ratio when Valaris joint proxy is filed",
+    "Mid-cycle dayrate and utilization band for normalized owner cash",
+    "Cash interest expense run-rate vs FY2025 operating cash flow"
+  ],
+  "notes": "Proof-first capital_cycle route. Legacy Lawrence IRR is reference; contract authority is decision-grade after refresh.",
+  "evidence_refresh": {
+    "type": "filing_grounded",
+    "date": "2026-08-18"
+  }
+}
