@@ -16,7 +16,19 @@ def load_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def current_revisions(rows: list[dict]) -> list[dict]:
+    current = {}
+    for row in rows:
+        identity = (row.get("outcome_class") or "owner_decision",
+                    row.get("forecast_id") or row.get("ticker"),
+                    row.get("decision_date"), row.get("horizon_months") or row.get("measurement_date"))
+        if identity not in current or int(row.get("revision") or 1) >= int(current[identity].get("revision") or 1):
+            current[identity] = row
+    return list(current.values())
+
+
 def summarize(rows: list[dict]) -> dict:
+    rows = current_revisions(rows)
     valid = [r for r in rows if r.get("return_status") == "complete" and r.get("total_return_pct") is not None]
     by_persona: dict[str, list[dict]] = defaultdict(list)
     by_persona_power_zone: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -59,6 +71,8 @@ def summarize(rows: list[dict]) -> dict:
         "status": "ready" if valid else "insufficient_outcomes",
         "completed_outcomes": len(valid),
         "excluded_rows": len(rows) - len(valid),
+        "committee_forecast_outcomes": sum(r.get("outcome_class") == "committee_forecast" for r in valid),
+        "owner_decision_outcomes": sum(r.get("outcome_class") != "committee_forecast" for r in valid),
         "methods": methods,
         "persona_power_zones": power_zone_methods,
         "warning": "Calibration is descriptive until each persona has at least 20 completed, dividend-aware outcomes in the same power zone; weights never change automatically.",
@@ -69,8 +83,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ledger", type=Path, default=ROOT / "_system" / "research" / "committee_outcomes.jsonl")
     parser.add_argument("--out", type=Path, default=ROOT / "_system" / "research" / "committee_calibration.json")
+    parser.add_argument("--forecast-ledger", type=Path,
+                        default=ROOT / "_system" / "research" / "committee_forecast_outcomes.jsonl")
     args = parser.parse_args()
-    result = summarize(load_jsonl(args.ledger))
+    result = summarize(load_jsonl(args.ledger) + load_jsonl(args.forecast_ledger))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(args.out)

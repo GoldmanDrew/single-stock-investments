@@ -1,10 +1,11 @@
-# JOBY (JOBY)
+# Joby Aviation, Inc.  (JOBY, JOBY-WT)  (CIK 0001819848) contingent / CVR candidate (JOBY)
 
-**Ticker:** JOBY | **Market:** US
-**Last updated:** 2026-07-22
+**Ticker:** JOBY | **Market:** US  
+**Last updated:** 2026-08-17  
+**Stage:** pre-close stub (discovery)
 
-## Download
+## Next actions
 
-```powershell
-python JOBY/investor-documents/download_joby_investor_docs.py
-```
+1. Pull merger 8-K / DEFM14A / CVR agreement into `investor-documents/sec/`.
+2. Fill `research/cvr_terms.json` (set `stub=false`, `terms_complete=true`).
+3. Nightly sync will sleeve onto the CVRs filter.

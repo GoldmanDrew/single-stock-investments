@@ -1,0 +1,13 @@
+[Unit]
+Description=Validate portfolio hub freshness and outbox health
+After=portfolio-hub-collector.service
+
+[Service]
+Type=oneshot
+User=portfolio-hub
+WorkingDirectory=/opt/single-stock-investments
+EnvironmentFile=/etc/portfolio-hub/portfolio-hub.env
+ExecStart=/opt/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub --db /var/lib/portfolio-hub/portfolio.db health --account ${IBKR_ACCOUNT_ALIAS}
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/lib/portfolio-hub

@@ -5,7 +5,7 @@ All gates fail closed. There is no UI override except `execution.allow_live` in 
 ## Session
 
 - Connect only to `127.0.0.1`.
-- Bind account `U805366`. Refuse if TWS is on another account.
+- Bind the account from `IBKR_ACCOUNT`. Refuse if TWS is on another account.
 - Drew uses client ID 71, Michael 72. Do not use 0, 17, 41, 87, 90, or ls-algo worker offsets.
 - NY4 Gateway and this local TWS cannot be logged in at the same time.
 

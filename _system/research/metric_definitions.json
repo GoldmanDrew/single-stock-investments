@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "updated": "2026-08-17",
+  "definitions": {
+    "cash_and_equivalents_usd": {
+      "version": "1.0",
+      "observation_type": "instant",
+      "duration_basis": "instant",
+      "canonical_unit": "USD",
+      "source_adapters": ["sec_companyfacts", "sec_filing_xbrl"],
+      "concepts": [
+        "us-gaap:CashAndCashEquivalentsAtCarryingValue",
+        "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+      ],
+      "accepted_forms": ["10-Q", "10-K", "20-F", "40-F"],
+      "requires_fiscal_period_identity": true
+    },
+    "normalized_owner_earnings_ttm_m": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "TTM",
+      "canonical_unit": "USD millions",
+      "source_adapters": ["sec_companyfacts_ttm", "sec_filing_xbrl"],
+      "formula": "TTM operating cash flow - abs(TTM capital expenditures)",
+      "ttm_formula": "prior_fy + current_ytd - prior_year_comparable_ytd",
+      "operating_cash_flow_concepts": [
+        "us-gaap:NetCashProvidedByUsedInOperatingActivities"
+      ],
+      "capital_expenditure_concepts": [
+        "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+        "us-gaap:PaymentsForProceedsFromOtherPropertyPlantAndEquipment"
+      ],
+      "accepted_forms": ["10-Q", "10-K"],
+      "requires_fiscal_period_identity": true
+    },
+    "market_total_return": {
+      "version": "1.0",
+      "observation_type": "market_interval",
+      "duration_basis": "horizon",
+      "canonical_unit": "percent",
+      "source_adapters": ["market_total_return"],
+      "adjustments": ["dividend", "split", "merger", "delisting"],
+      "requires_fiscal_period_identity": false
+    }
+  }
+}

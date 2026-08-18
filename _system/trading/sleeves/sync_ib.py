@@ -1,4 +1,4 @@
-"""Snapshot U805366, classify into Michael (residual) and Drew (empty unless DREW_SLEEVE)."""
+"""Snapshot the configured IBKR account and classify its legacy Drew/Michael views."""
 
 from __future__ import annotations
 
@@ -95,7 +95,7 @@ def load_positions(
     if path and path.is_file():
         return parse_flex_positions(path, account_id=account), f"flex:{path.name}"
     raise RuntimeError(
-        "Could not read U805366 from TWS/Gateway. Start local TWS on port 7496 "
+        "Could not read the configured IBKR account from TWS/Gateway. Start local TWS on port 7496 "
         "(NY4 Gateway must be logged out), or pass --flex path/to/flex_positions.xml. "
         f"Live error: {live_error}"
     ) from live_error
@@ -176,7 +176,7 @@ def sync_holdings(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Sync Magis U805366 into Michael / Drew sleeves")
+    parser = argparse.ArgumentParser(description="Sync the configured IBKR account into Michael / Drew sleeves")
     parser.add_argument("--flex", type=Path, help="IBKR Flex OpenPositions XML if TWS is down")
     parser.add_argument("--flex-marks", type=Path, help="Overlay Flex marks onto a live TWS snapshot")
     parser.add_argument("--no-ingest", action="store_true", help="Write local JSON only")

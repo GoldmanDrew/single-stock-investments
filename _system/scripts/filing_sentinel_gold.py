@@ -117,7 +117,16 @@ def validate_case(case: dict, taxonomy: dict, *, require_gold: bool = False) -> 
         ref, expected_hash = filing.get(ref_field), filing.get(hash_field)
         if ref and expected_hash and not str(ref).startswith(("http://", "https://")):
             local = ROOT / str(ref)
-            if local.exists() and _sha256(local.read_bytes()) != expected_hash:
+            # Extracts are tracked text and may be checked out with CRLF on
+            # Windows. Hash their logical UTF-8 text so the locked benchmark is
+            # invariant across checkout platforms; raw source filings retain
+            # byte-exact hashing.
+            actual_hash = (
+                _sha256(local.read_text(encoding="utf-8", errors="ignore"))
+                if local.exists() and hash_field == "extract_sha256"
+                else _sha256(local.read_bytes()) if local.exists() else None
+            )
+            if actual_hash is not None and actual_hash != expected_hash:
                 errors.append(f"{case_id}: filing.{hash_field} does not match local {ref_field}")
 
     evidence_ids: set[str] = set()

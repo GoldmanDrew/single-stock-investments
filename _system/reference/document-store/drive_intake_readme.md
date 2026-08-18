@@ -1,5 +1,7 @@
 # Drive Intake
 
+Ticker-shaped PDFs only (VIC, outside research, company decks, activist). Fund letters and books use a different route: `_system/agents/MICHAEL.md`.
+
 Use this Shared Drive folder as the repo drop zone:
 
 - Folder: https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C

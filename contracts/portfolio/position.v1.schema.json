@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magis.internal/contracts/portfolio/position.v1.schema.json",
+  "title": "Canonical broker position v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_alias", "conid", "model_code", "symbol", "sec_type", "currency", "quantity", "source", "as_of"],
+  "properties": {
+    "account_alias": {"type": "string", "minLength": 1},
+    "conid": {"type": "integer", "minimum": 1},
+    "model_code": {"type": "string"},
+    "symbol": {"type": "string", "minLength": 1},
+    "local_symbol": {"type": ["string", "null"]},
+    "description": {"type": ["string", "null"]},
+    "sec_type": {"type": "string", "minLength": 1},
+    "currency": {"type": "string", "minLength": 3, "maxLength": 3},
+    "exchange": {"type": ["string", "null"]},
+    "expiry": {"type": ["string", "null"]},
+    "strike": {"type": ["string", "null"], "pattern": "^-?[0-9]+(?:\\.[0-9]+)?$"},
+    "right": {"type": ["string", "null"]},
+    "multiplier": {"type": ["string", "null"]},
+    "quantity": {"type": "string", "pattern": "^-?[0-9]+(?:\\.[0-9]+)?$"},
+    "average_cost": {"type": ["string", "null"]},
+    "mark": {"type": ["string", "null"]},
+    "market_value": {"type": ["string", "null"]},
+    "unrealized_pnl": {"type": ["string", "null"]},
+    "realized_pnl": {"type": ["string", "null"]},
+    "daily_pnl": {"type": ["string", "null"]},
+    "source": {"enum": ["ibkr_live", "ibkr_flex"]},
+    "as_of": {"type": "string", "format": "date-time"},
+    "quality": {"enum": ["live", "delayed", "estimated", "unknown"]}
+  }
+}

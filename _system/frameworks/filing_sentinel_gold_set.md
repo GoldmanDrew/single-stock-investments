@@ -43,6 +43,7 @@ raw filing -> candidate -> independently labeled -> adjudicated gold -> frozen e
 ### Gold
 
 - An adjudicator resolves event existence, taxonomy, direction, severity, and evidence.
+- Each extractor, skeptic, and adjudicator records a distinct opaque `review_context_id`. A role name is not proof of independence; same-session or missing context identifiers fail the promotion gate.
 - Always-review tags (going concern, restatement, auditor change, material weakness, related party, investigation, and litigation) require analyst review.
 - Content hashes, schema, controlled vocabulary, and leakage rules pass.
 - The case is assigned by issuer group to one frozen split.
@@ -130,8 +131,27 @@ python _system/scripts/filing_sentinel_raw_discovery.py \
   --since 2023-01-01 --per-ticker 4 --limit 100 \
   --output _system/reviews/pending/filing_sentinel_raw_candidates_YYYY-MM-DD.jsonl
 
-# Advance to a non-overlapping issuer cohort on the next run.
-# --issuer-offset 25 is appropriate after a 25-issuer cohort.
+# Register historical cohorts once. The immutable ledger records each candidate
+# file hash and issuer set, rejects overlap, and becomes the automatic exclusion
+# source for subsequent discovery runs.
+python _system/scripts/filing_sentinel_raw_discovery.py \
+  --cohort-ledger _system/reviews/pending/filing_sentinel_raw_cohort_ledger.jsonl \
+  --register-candidates prior_candidates.jsonl --as-of YYYY-MM-DD
+
+# Advance without a hand-maintained offset. Discovery widens the issuer scan
+# when some issuers lack a usable comparable filing, until the requested case
+# count is reached or repeated expansion finds no additional cases.
+python _system/scripts/filing_sentinel_raw_discovery.py \
+  --forms 10-Q --since 2023-01-01 --per-ticker 1 --max-issuers 25 --limit 25 \
+  --cohort-ledger _system/reviews/pending/filing_sentinel_raw_cohort_ledger.jsonl \
+  --output next_raw_candidates.jsonl --as-of YYYY-MM-DD \
+  --cohort-id raw-10q-cohort-N --register-output \
+  --packet-output-dir next_raw_packets --batch-id raw-10q-cohort-N
+
+# Verify cohort file immutability and issuer isolation at any time.
+python _system/scripts/filing_sentinel_raw_discovery.py \
+  --cohort-ledger _system/reviews/pending/filing_sentinel_raw_cohort_ledger.jsonl \
+  --validate-ledger
 
 # 2. Generate independent packets. The packets hide issuer, source path,
 # existing proposals, labels, and split from both reviewers.
@@ -148,11 +168,33 @@ python _system/scripts/filing_sentinel_workflow.py ingest-labels \
   --extractor extractor_labels.jsonl --skeptic skeptic_labels.jsonl \
   --output labeled.jsonl --adjudication-output adjudication_queue.jsonl
 
+# The command also writes labeled.jsonl.summary.json with valid-pair consensus,
+# queue reasons, and disputed/always-review tag counts.
+
 # 4. Explicitly adjudicate and promote. Auto-consensus promotion is opt-in.
 python _system/scripts/filing_sentinel_workflow.py promote \
   --labeled labeled.jsonl --decisions adjudications.jsonl \
   --gold _system/scripts/_eval/filing_sentinel_gold.jsonl \
   --output proposed_gold.jsonl
+
+# Inspect provenance before any benchmark promotion. This fails closed when
+# the two blind labels or adjudication do not come from distinct review runs.
+python _system/scripts/filing_sentinel_workflow.py promotion-gate \
+  --labeled labeled.jsonl --decisions adjudications.jsonl \
+  --output promotion_gate.json
+
+# Create decision-only packets for every disagreement or always-review label.
+# These packets carry both blind views, full evidence, and a response template;
+# they cannot promote a case to gold.
+python _system/scripts/filing_sentinel_workflow.py create-adjudication-packets \
+  --adjudication-queue adjudication_queue.jsonl \
+  --batch-id YYYY-MM-DD-adjudication --output-dir adjudication_packets
+
+# Spot-audit consensus before promotion. The deterministic sample reserves
+# space for consensus event cases, then fills with clean controls.
+python _system/scripts/filing_sentinel_workflow.py create-consensus-audit \
+  --labeled labeled.jsonl --batch-id YYYY-MM-DD-audit --sample-size 5 \
+  --output-dir consensus_audit_packets
 
 # 5. Route model errors to a regression queue. Test failures stay excluded
 # from training exports by construction.
@@ -168,6 +210,10 @@ Prediction rows use this minimal contract:
 ```json
 {"case_id":"fs-example","events":[{"category":"financial_oxygen","tags":["cash_runway"],"direction":"strengthens","evidence_ids":["ev-liquidity-note"]}]}
 ```
+
+Blind-label rows must include an opaque `review_context_id`, unique to that independent review run. Adjudication decisions require a third unique `review_context_id`. `promote` enforces this by default. The only bypass is `--allow-unverified-provenance`, which is reserved for a clearly named **proposed**-gold artifact and must never be used to update the locked benchmark.
+
+`create-packets` writes one `*_labels.template.jsonl` alongside each reviewer packet. Complete that template in an isolated review run; it preserves the blind ID while making the required provenance field explicit.
 
 ## Next autonomous expansions
 

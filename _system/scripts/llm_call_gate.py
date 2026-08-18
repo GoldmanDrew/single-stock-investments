@@ -123,7 +123,13 @@ def evaluate(
         "policy": config,
     }
     allowed = config.get("allowed_reasons")
-    if allowed and reason not in allowed and not force:
+    allowed_prefixes = config.get("allowed_reason_prefixes") or []
+    reason_allowed = (
+        (not allowed and not allowed_prefixes)
+        or reason in (allowed or [])
+        or any(reason.startswith(str(prefix)) for prefix in allowed_prefixes)
+    )
+    if not reason_allowed and not force:
         return {**base, "decision": "suppressed", "gate_reason": "reason_not_allowed"}
     if not evidence_hash or set(evidence_hash) == {"0"}:
         return {**base, "decision": "suppressed", "gate_reason": "missing_evidence_hash"}

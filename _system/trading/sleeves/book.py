@@ -80,7 +80,7 @@ def build_book(owner: str, store: SleeveStore, cfg: Mapping[str, Any] | None = N
             excluded[bucket] += 1
     if owner == "michael":
         blurb = (
-            "Live Magis account U805366 after taking out the ls-algo universe and SPX 0DTE. "
+            "Live Magis account after taking out the ls-algo universe and SPX 0DTE. "
             "Blacklist names Michael trades by hand stay here even when they are in that universe."
         )
     else:
@@ -125,4 +125,3 @@ def export_static_books(store: SleeveStore, cfg: Mapping[str, Any] | None = None
         payload["source"] = source
         path = dash / f"sleeves_{owner}.json"
         path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-

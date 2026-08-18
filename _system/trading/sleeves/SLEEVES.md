@@ -1,6 +1,6 @@
 # Sleeve split
 
-Same IB account `U805366`. IB will not isolate capital. Classification is the source of truth.
+Same account from `IBKR_ACCOUNT`. IB will not isolate capital. Classification is the source of truth.
 
 ## Michael (long-term residual)
 

@@ -25,10 +25,12 @@ from build_power_zone_pricing import build_contract_pricing  # noqa: E402
 from build_valuation_workbench import write as write_workbench  # noqa: E402
 from falsifier_specs import (  # noqa: E402
     anchor_errors as falsifier_anchor_errors,
+    calibration_eligibility as falsifier_calibration_eligibility,
     coverage_summary as falsifier_coverage_summary,
     enforcement_config as falsifier_enforcement_config,
-    is_v2_spec,
+    is_v3_spec,
     load_sidecar as load_falsifier_sidecar,
+    metric_resolvable as falsifier_metric_resolvable,
     spec_errors as falsifier_spec_errors,
 )
 from investment_committee_pipeline import initialize as initialize_committee  # noqa: E402
@@ -121,25 +123,40 @@ def apply_prospective_falsifier_gate(ticker: str, contract: dict,
         return contract
     sidecar = load_falsifier_sidecar(ticker, ROOT)
     covered = set()
+    eligible_components = set()
+    untestable_components = set()
     for index, spec in enumerate(sidecar.get("specs") or []):
-        if (not isinstance(spec, dict) or not is_v2_spec(spec)
+        if (not isinstance(spec, dict) or not is_v3_spec(spec)
                 or spec.get("component_id") not in changed
                 or falsifier_spec_errors(spec, index)
                 or falsifier_anchor_errors(spec, contract, index)):
             continue
-        covered.add(str(spec.get("component_id")))
+        component_id = str(spec.get("component_id"))
+        if spec.get("untestable"):
+            untestable_components.add(component_id)
+            covered.add(component_id)
+            continue
+        eligible, _reason = falsifier_calibration_eligibility(spec)
+        resolvable, _resolution_reason = falsifier_metric_resolvable(ticker, spec, ROOT)
+        if eligible and resolvable:
+            eligible_components.add(component_id)
+            covered.add(component_id)
     missing = sorted(changed - covered)
     if missing:
         blockers = (contract.setdefault("evidence", {}).setdefault("blockers", []))
         blockers.append(
             "prospective_falsifier_gate: new/materially changed components lack "
-            "anchored v2 forecasts or explicit untestable declarations: " + ", ".join(missing))
+            "eligible, source-preflighted v3 forecasts or typed v3 untestable dispositions: "
+            + ", ".join(missing))
         contract["evidence"]["blockers"] = sorted(set(blockers))
         contract["evidence"]["unresolved_count"] = len(contract["evidence"]["blockers"])
         contract["status"] = "evidence_blocked"
     contract.setdefault("falsifier_coverage", {})["prospective_gate"] = {
         "since": since, "changed_components": sorted(changed),
-        "covered_components": sorted(covered), "missing_components": missing,
+        "covered_components": sorted(covered),
+        "eligible_components": sorted(eligible_components),
+        "untestable_dispositions": sorted(untestable_components),
+        "missing_components": missing,
     }
     return contract
 

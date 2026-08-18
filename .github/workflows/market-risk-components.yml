@@ -1,6 +1,8 @@
 name: Market Risk Components
 
 on:
+  repository_dispatch:
+    types: [heal-market-risk]
   # GitHub Actions evaluates schedule.cron in UTC and silently ignores any
   # `timezone:` key, so these times are written directly in UTC.
   # Intended window: 08:00-17:00 ET twice-hourly, with the after-close
@@ -75,6 +77,7 @@ jobs:
         with:
           repository: magis-capital-partners/spx-0dte
           path: _external/spx-0dte
+          token: ${{ secrets.SPX_0DTE_TOKEN || secrets.LS_ALGO_TOKEN }}
           fetch-depth: 1
           sparse-checkout: data
           sparse-checkout-cone-mode: true

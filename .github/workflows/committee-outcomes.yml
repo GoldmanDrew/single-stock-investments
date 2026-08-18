@@ -1,0 +1,54 @@
+name: Committee Outcome Loop
+
+on:
+  schedule:
+    - cron: "50 9 * * *"
+permissions:
+  contents: write
+
+concurrency:
+  group: data-commit-main
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Freeze forecasts and record due horizons
+        run: |
+          set -euo pipefail
+          python _system/scripts/freeze_committee_forecasts.py
+          python _system/scripts/build_committee_monitoring.py
+          python _system/scripts/record_committee_forecast_outcomes.py
+          python _system/scripts/build_committee_monitoring.py
+          python _system/scripts/epistemic_loop_controller.py
+      - name: Validate committee loop
+        run: |
+          set -euo pipefail
+          python -m py_compile _system/scripts/freeze_committee_forecasts.py \
+            _system/scripts/record_committee_forecast_outcomes.py \
+            _system/scripts/build_committee_monitoring.py
+          (cd _system/scripts && python -m unittest -v \
+            test_committee_calibration test_committee_forecast_loop)
+      - name: Commit forecasts, observations, and monitoring
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore(epistemic): refresh committee outcome loop"
+          git_add: >-
+            _system/research/committee_forecasts.jsonl
+            _system/research/committee_forecast_outcomes.jsonl
+            _system/research/committee_outcome_attempts.jsonl
+            _system/research/committee_monitoring.json
+            _system/research/committee_calibration.json
+            _system/research/calibration_brief.json
+            _system/research/epistemic_loop_status.json
+            _system/data/epistemic_work_queue.json
+            _system/data/falsifier_authoring_queue.json
+            _system/data/runs/epistemic_loop

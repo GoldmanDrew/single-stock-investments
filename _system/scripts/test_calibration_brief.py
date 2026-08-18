@@ -30,10 +30,12 @@ class CalibrationBriefTests(unittest.TestCase):
             brief = build_calibration_brief.build(root)
             self.assertEqual(brief["routes"]["quality"]["falsifier_methods"]
                              ["owner_cash"]["learning_status"],
-                             "insufficient_outcomes")
+                             "plumbing_only")
             self.assertEqual(brief["routes"]["quality"]["committee_personas"]
                              ["munger"]["learning_status"], "eligible_for_review")
             self.assertEqual(len(brief["source_hashes"]["falsifier_calibration"]), 64)
+            self.assertIsNone(brief["release_hash"])
+            self.assertEqual(len(brief["candidate_digest"]), 64)
 
 
 if __name__ == "__main__":

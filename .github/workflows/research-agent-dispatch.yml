@@ -56,7 +56,15 @@ jobs:
           sparse-checkout-cone-mode: false
           fetch-depth: 1
       - name: Checkout evidence-selection workspace
-        run: bash _system/scripts/ci_checkout_workspace.sh marvin-pick main
+        env:
+          CONSUMER_INPUT: ${{ inputs.consumer }}
+          CI_FORECAST_TICKER: ${{ inputs.ticker }}
+        run: |
+          if [ "$CONSUMER_INPUT" = "epistemic_forecast" ]; then
+            bash _system/scripts/ci_checkout_workspace.sh marvin-forecast main
+          else
+            bash _system/scripts/ci_checkout_workspace.sh marvin-pick main
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -65,15 +73,26 @@ jobs:
           TICKER_INPUT: ${{ inputs.ticker }}
           REASON_INPUT: ${{ inputs.reason }}
           FORCE_INPUT: ${{ inputs.force }}
+          CONSUMER_INPUT: ${{ inputs.consumer }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          ARGS=(--json --require-new)
-          if [ -n "$TICKER_INPUT" ]; then ARGS=("$TICKER_INPUT" --json --require-new); fi
-          if [ "$FORCE_INPUT" = "true" ]; then ARGS+=(--force); fi
-          python _system/scripts/marvin_pick_ticker.py "${ARGS[@]}" > pick.json
-          TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
-          SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
-          PICK_REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
+          if [ "$CONSUMER_INPUT" = "epistemic_forecast" ]; then
+            # The epistemic controller already performed selection and froze a
+            # unique work packet. Ordinary ticker picking intentionally rejects
+            # unchanged primary evidence, which is the wrong gate here; the
+            # dedicated LLM gate below judges the work-id-bound manifest hash.
+            TICKER="$TICKER_INPUT"
+            SKIP=false
+            PICK_REASON="$REASON_INPUT"
+          else
+            ARGS=(--json --require-new)
+            if [ -n "$TICKER_INPUT" ]; then ARGS=("$TICKER_INPUT" --json --require-new); fi
+            if [ "$FORCE_INPUT" = "true" ]; then ARGS+=(--force); fi
+            python _system/scripts/marvin_pick_ticker.py "${ARGS[@]}" > pick.json
+            TICKER=$(python -c "import json; print(json.load(open('pick.json')).get('ticker') or '')")
+            SKIP=$(python -c "import json; print('true' if json.load(open('pick.json')).get('skip') else 'false')")
+            PICK_REASON=$(python -c "import json; print(json.load(open('pick.json')).get('reason') or '')")
+          fi
           if [ -n "$REASON_INPUT" ] && [ -n "$TICKER" ]; then PICK_REASON="$REASON_INPUT"; fi
           if [ "$SKIP" = "true" ] || [ -z "$TICKER" ]; then
             echo "ticker=$TICKER" >> "$GITHUB_OUTPUT"
@@ -83,7 +102,7 @@ jobs:
             echo "evidence_hash=" >> "$GITHUB_OUTPUT"
             echo "primary_evidence_count=0" >> "$GITHUB_OUTPUT"
             echo "manifest_json={}" >> "$GITHUB_OUTPUT"
-            cat pick.json
+            if [ -f pick.json ]; then cat pick.json; fi
             exit 0
           fi
           python _system/scripts/build_research_agent_manifest.py "$TICKER" --reason "$PICK_REASON" > manifest.json
@@ -92,7 +111,10 @@ jobs:
           MANIFEST=$(python -c "import json; print(json.dumps(json.load(open('manifest.json')), separators=(',', ':')))")
           # Count only non-conflicting cursor PRs. Dirty/conflicted agent PRs do not
           # represent active research capacity and must not block new admissions.
-          OPEN_CURSOR_COUNT=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName,mergeable,mergeStateStatus --jq '[.[] | select(.headRefName|startswith("cursor/")) | select((.mergeable != "CONFLICTING") and (.mergeStateStatus != "DIRTY"))] | length')
+          # GitHub may report mergeability as UNKNOWN while it recomputes a PR.
+          # Count only positively mergeable work; UNKNOWN and already-conflicted
+          # branches do not represent usable agent capacity.
+          OPEN_CURSOR_COUNT=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName,mergeable,mergeStateStatus --jq '[.[] | select(.headRefName|startswith("cursor/")) | select((.mergeable == "MERGEABLE") and (.mergeStateStatus != "DIRTY"))] | length')
           MAX_OPEN_CURSOR_PRS="${MAX_OPEN_CURSOR_PRS:-5}"
           if [ "${OPEN_CURSOR_COUNT}" -ge "${MAX_OPEN_CURSOR_PRS}" ]; then
             echo "ticker=" >> "$GITHUB_OUTPUT"
@@ -106,7 +128,7 @@ jobs:
             echo "Open mergeable cursor/* PRs=${OPEN_CURSOR_COUNT} >= ${MAX_OPEN_CURSOR_PRS}; waiting for automerge drain." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          ACTIVE_PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName,title | TICKER="$TICKER" python -c 'import json, os, sys; ticker=os.environ["TICKER"].upper(); prs=json.load(sys.stdin); matches=[p for p in prs if p["headRefName"].startswith("cursor/") and (ticker in p["headRefName"].upper() or ticker in p["title"].upper())]; print(matches[0]["number"] if matches else "")')
+          ACTIVE_PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName,title,mergeable,mergeStateStatus | TICKER="$TICKER" python -c 'import json, os, sys; ticker=os.environ["TICKER"].upper(); prs=json.load(sys.stdin); matches=[p for p in prs if p["headRefName"].startswith("cursor/") and p.get("mergeable") == "MERGEABLE" and p.get("mergeStateStatus") != "DIRTY" and (ticker in p["headRefName"].upper() or ticker in p["title"].upper())]; print(matches[0]["number"] if matches else "")')
           if [ -n "$ACTIVE_PR" ]; then
             echo "ticker=" >> "$GITHUB_OUTPUT"
             echo "reason=active_cursor_pr_$ACTIVE_PR" >> "$GITHUB_OUTPUT"

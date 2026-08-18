@@ -12,6 +12,7 @@
 <link href="insights-events.css" rel="stylesheet">
 <link href="short-alpha.css" rel="stylesheet">
 <link href="warrants.css" rel="stylesheet">
+<link href="portfolio.css" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #0a0e17;
@@ -745,7 +746,7 @@
     color: var(--text-muted); cursor: pointer;
   }
   .sleeve-jump:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); }
-  .sleeve-hero { max-width: 920px; margin: 0 0 22px; }
+  .sleeve-hero { max-width: 920px; margin: 0 0 18px; }
   .sleeve-kicker {
     font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--accent-cyan); margin-bottom: 8px;
@@ -759,6 +760,15 @@
     border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-card);
   }
   .sleeve-chip-in { border-color: rgba(6,182,212,0.45); color: var(--accent-cyan); }
+  .sleeve-process-box {
+    max-width: 920px; margin: 0 0 22px; padding: 14px 16px 8px;
+    border: 1px solid var(--border); border-left: 3px solid var(--accent-cyan);
+    background: var(--bg-card); border-radius: 8px;
+  }
+  .sleeve-process-box h3 { font-size: 13px; font-weight: 650; margin: 0 0 8px; color: var(--text-primary); }
+  .sleeve-process { margin: 0; padding: 0 0 6px 1.2rem; color: var(--text-secondary); font-size: 13px; line-height: 1.45; }
+  .sleeve-process li { margin: 0 0 7px; }
+  .sleeve-process strong { color: var(--text-primary); font-weight: 650; }
   .sleeve-stats {
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
     margin: 0 0 22px; max-width: 1100px;
@@ -768,27 +778,69 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
   }
   .sleeve-stat .k { font-size: 11px; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
-  .sleeve-stat .v { font-size: 20px; margin-top: 4px; }
-  .sleeve-stat .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
+  .sleeve-stat .v { font-size: 20px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .sleeve-stat .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.35; }
   .sleeve-section { margin-bottom: 22px; }
   .sleeve-section-head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-bottom: 8px; }
   .sleeve-section-head h3 { font-size: 16px; }
   .sleeve-section-head p { font-size: 12px; color: var(--text-muted); }
-  .sleeve-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
-  .sleeve-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .sleeve-table th, .sleeve-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-  .sleeve-table th { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--bg-secondary); }
-  .sleeve-table tbody tr:last-child td { border-bottom: none; }
-  .sleeve-table tbody tr:hover td { background: rgba(6, 182, 212, 0.04); }
+  .sleeve-panel table, .sleeve-panel thead th, .sleeve-panel tbody tr, .sleeve-panel td {
+    content-visibility: visible; contain-intrinsic-size: auto; cursor: default;
+    position: static; text-transform: none; letter-spacing: 0;
+  }
+  .sleeve-table-wrap {
+    overflow: auto; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); max-height: min(70vh, 820px);
+    scrollbar-gutter: stable;
+  }
+  .sleeve-book {
+    --sleeve-cols: minmax(180px, 2.4fr) 72px 92px 104px 112px 112px 92px minmax(132px, 1.5fr);
+    min-width: 920px; font-size: 13px;
+  }
+  .sleeve-book-head, .sleeve-book-row {
+    display: grid; grid-template-columns: var(--sleeve-cols); column-gap: 12px;
+    padding: 9px 12px; align-items: start;
+  }
+  .sleeve-book-head {
+    position: sticky; top: 0; z-index: 2; background: var(--bg-secondary);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border);
+  }
+  .sleeve-book-row { border-bottom: 1px solid var(--border); }
+  .sleeve-book-row:last-child { border-bottom: none; }
+  .sleeve-book-row:hover { background: rgba(6, 182, 212, 0.04); }
+  .sleeve-table {
+    width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px;
+  }
+  .sleeve-table th, .sleeve-table td {
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    text-align: left; vertical-align: top;
+  }
+  .sleeve-table thead th {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    background: var(--bg-secondary); white-space: nowrap;
+  }
   .sleeve-ticker { font-weight: 700; color: var(--accent-cyan); }
-  .sleeve-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-width: 280px; }
-  .sleeve-num { text-align: right; white-space: nowrap; }
-  .sleeve-table th:nth-child(n+2) { text-align: right; }
-  .sleeve-table th:nth-child(7), .sleeve-table th:nth-child(8),
-  .sleeve-table td:nth-child(7), .sleeve-table td:nth-child(8) { text-align: left; }
+  .sleeve-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+  .sleeve-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .sleeve-mini {
+    font-size: 10px; color: var(--text-muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 1px 6px;
+  }
+  .sleeve-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sleeve-book-head .sleeve-num { text-align: right; }
+  .sleeve-note-col { text-align: left; min-width: 0; }
+  .sleeve-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .sleeve-preview { font-size: 12px; color: var(--text-secondary); line-height: 1.35; overflow: hidden; }
+  .sleeve-note-edit { display: inline-block; margin-top: 4px; font-size: 12px; }
+  .sleeve-weight-bar {
+    display: block; height: 3px; margin-top: 6px; margin-left: auto;
+    width: 56px; max-width: 100%; background: rgba(136,150,174,0.18); border-radius: 99px; overflow: hidden;
+  }
+  .sleeve-weight-bar i { display: block; height: 100%; background: var(--accent-cyan); border-radius: 99px; }
   .sleeve-pnl-up { color: var(--positive); }
   .sleeve-pnl-down { color: var(--negative); }
-  .sleeve-empty { color: var(--text-secondary); line-height: 1.5; padding: 22px 16px !important; }
+  .sleeve-empty { color: var(--text-secondary); line-height: 1.5; padding: 22px 4px; grid-column: 1 / -1; }
   .sleeve-callout {
     border: 1px solid rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);
     color: var(--warning); padding: 10px 12px; border-radius: 8px; margin: 0 0 16px; font-size: 13px;
@@ -813,7 +865,8 @@
   }
   .sleeve-note-form .full { grid-column: 1 / -1; }
   .sleeve-quality-copy { padding: 0 14px 12px; color: var(--text-secondary); font-size: 13px; max-width: 70ch; }
-  .sleeve-quality .sleeve-table { margin: 0 14px 14px; width: calc(100% - 28px); }
+  .sleeve-quality .sleeve-table { margin: 0 14px 14px; width: calc(100% - 28px); table-layout: auto; }
+  .sleeve-quality .sleeve-table-wrap { max-height: none; border: none; }
   @media (max-width: 720px) {
     .sleeve-note-form { grid-template-columns: 1fr 1fr; }
     .sleeve-hero h2 { font-size: 22px; }
@@ -1592,7 +1645,10 @@
   </section>
 
   <nav class="view-tabs" id="view-tabs" aria-label="Primary" role="tablist">
-    <button type="button" class="view-tab active" data-view="holdings" role="tab" aria-selected="true">Holdings</button>
+    <button type="button" class="view-tab active" data-view="portfolio" role="tab" aria-selected="true">Portfolio</button>
+    <button type="button" class="view-tab" data-view="spx-0dte" role="tab" aria-selected="false">SPX 0DTE</button>
+    <button type="button" class="view-tab" data-view="letf" role="tab" aria-selected="false">Leveraged ETFs</button>
+    <button type="button" class="view-tab" data-view="holdings" role="tab" aria-selected="false">Research</button>
     <button type="button" class="view-tab" data-view="risk" role="tab" aria-selected="false">Risk</button>
     <button type="button" class="view-tab" data-view="short-alpha" role="tab" aria-selected="false">Short Alpha</button>
     <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
@@ -1600,12 +1656,14 @@
     <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
     <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
     <button type="button" class="view-tab" data-view="darwin" role="tab" aria-selected="false">Darwin</button>
-    <button type="button" class="view-tab" data-view="drew" role="tab" aria-selected="false">Drew</button>
-    <button type="button" class="view-tab" data-view="michael" role="tab" aria-selected="false">Michael</button>
   </nav>
 
   <main id="main-content">
   <section class="summary-strip" id="summary"></section>
+
+  <section class="portfolio-panel active" id="portfolio-panel" aria-label="IBKR portfolio"><div id="portfolio-content"></div></section>
+  <section class="portfolio-panel" id="spx-0dte-panel" aria-label="SPX 0DTE strategy"><div id="spx-0dte-content"></div></section>
+  <section class="portfolio-panel" id="letf-panel" aria-label="Leveraged ETF strategies"><div id="letf-content"></div></section>
 
   <div class="holdings-view" id="holdings-view">
   <div class="toolbar">
@@ -1752,6 +1810,7 @@
 <script src="short-alpha-viz.js"></script>
 <script src="warrant-viz.js"></script>
 <script src="sleeve-viz.js"></script>
+<script src="portfolio-viz.js"></script>
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'magis-capital-partners/single-stock-investments';
@@ -1926,7 +1985,7 @@ function syncHoldingsQuery() {
   });
   window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
 }
-let activeView = 'holdings';
+let activeView = 'portfolio';
 let valuationOpenEvidenceTab = false;
 let activeDarwinAccount = 'roth';
 let expandedPersona = null;
@@ -2084,6 +2143,14 @@ function setAppHash(nextHash) {
 }
 
 function parseRouteFromHashString(hash) {
+  const portfolioMatch = /^#\/portfolio(?:\/(all|drew|michael))?(?:\/(positions|risk|margin|performance|orders|reconciliation))?$/i.exec(hash || '');
+  if (portfolioMatch) {
+    return { view: 'portfolio', scope: (portfolioMatch[1] || 'all').toLowerCase(), section: (portfolioMatch[2] || 'positions').toLowerCase(), ticker: null, watchlistSub: null };
+  }
+  const strategyMatch = /^#\/(spx-0dte|letf)(?:\/(overview|b1|b2|b3|b4|b5))?$/i.exec(hash || '');
+  if (strategyMatch) {
+    return { view: strategyMatch[1].toLowerCase(), strategySection: (strategyMatch[2] || 'overview').toLowerCase(), ticker: null, watchlistSub: null };
+  }
   const holdingsMatch = /^#\/holdings(?:\/([^/?#]+))?$/i.exec(hash || '');
   if (holdingsMatch) {
     return {
@@ -2103,7 +2170,9 @@ function parseRouteFromHashString(hash) {
   const sleeveMatch = /^#\/(drew|michael)(?:\/([^/?#]+))?$/i.exec(hash || '');
   if (sleeveMatch) {
     return {
-      view: sleeveMatch[1].toLowerCase(),
+      view: 'portfolio',
+      scope: sleeveMatch[1].toLowerCase(),
+      section: 'positions',
       ticker: sleeveMatch[2] ? decodeURIComponent(sleeveMatch[2]).toUpperCase() : null,
       watchlistSub: null,
     };
@@ -2124,7 +2193,13 @@ function parseRouteFromHash() {
 }
 
 function syncRouteHash() {
-  if (activeView === 'holdings') {
+  if (activeView === 'portfolio') {
+    setAppHash(`#/portfolio/${window.PortfolioViz?.state.scope || 'all'}/${window.PortfolioViz?.state.section || 'positions'}`);
+  } else if (activeView === 'spx-0dte') {
+    setAppHash(`#/spx-0dte/${window.PortfolioViz?.state.strategySection || 'overview'}`);
+  } else if (activeView === 'letf') {
+    setAppHash(`#/letf/${window.PortfolioViz?.state.strategySection || 'overview'}`);
+  } else if (activeView === 'holdings') {
     setAppHash(selected ? `#/holdings/${encodeURIComponent(selected)}` : '#/holdings');
   } else if (activeView === 'watchlist') {
     const sub = WATCHLIST_VIEWS.has(watchlistViewMode) ? watchlistViewMode : defaultWatchlistView();
@@ -2144,9 +2219,8 @@ function applyRouteFromHash() {
     watchlistViewMode = route.watchlistSub;
     try { localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistViewMode); } catch (_) { /* ignore */ }
   }
-  if ((route.view === 'drew' || route.view === 'michael') && route.ticker) {
-    sleevePrefill[route.view] = route.ticker;
-  }
+  if (route.view === 'portfolio' && window.PortfolioViz) PortfolioViz.setRoute(route.scope || 'all', route.section || 'positions');
+  if ((route.view === 'spx-0dte' || route.view === 'letf') && window.PortfolioViz) PortfolioViz.setStrategyRoute(route.strategySection || 'overview');
   setView(route.view, { syncHash: false });
   if (route.view === 'holdings' && route.ticker) {
     const hit = data.tickers.find(x => x.ticker === route.ticker);
@@ -3055,7 +3129,7 @@ async function load() {
   renderInsights();
   renderActivist();
   renderMarketRiskView();
-  if (!applyRouteFromHash() && data.tickers.length) selectTicker(data.tickers[0].ticker);
+  if (!applyRouteFromHash()) setView('portfolio');
   else if (activeView === 'watchlist') renderWatchlistTab();
 }
 
@@ -3182,13 +3256,19 @@ function renderSleeveTab(owner) {
   loading.style.display = 'block';
   content.style.display = 'none';
   SleeveViz.load(owner).then((book) => {
+    let showDust = false;
+    const paint = (next, extra) => {
+      if (next) book = next;
+      if (extra && Object.prototype.hasOwnProperty.call(extra, 'showDust')) showDust = extra.showDust;
+      content.innerHTML = SleeveViz.render(owner, book, {
+        prefillTicker: sleevePrefill[owner] || '',
+        showDust,
+      });
+      SleeveViz.attach(content, owner, paint);
+    };
     loading.style.display = 'none';
     content.style.display = 'block';
-    content.innerHTML = SleeveViz.render(owner, book, { prefillTicker: sleevePrefill[owner] || '' });
-    SleeveViz.attach(content, owner, (next) => {
-      content.innerHTML = SleeveViz.render(owner, next || book, { prefillTicker: sleevePrefill[owner] || '' });
-      SleeveViz.attach(content, owner);
-    });
+    paint();
   }).catch((err) => {
     loading.style.display = 'none';
     content.style.display = 'block';
@@ -3197,6 +3277,10 @@ function renderSleeveTab(owner) {
 }
 
 function setView(view, opts = {}) {
+  if (view === 'drew' || view === 'michael') {
+    if (window.PortfolioViz) PortfolioViz.setRoute(view, 'positions');
+    view = 'portfolio';
+  }
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
     const active = b.dataset.view === view;
@@ -3204,6 +3288,9 @@ function setView(view, opts = {}) {
     b.setAttribute('aria-selected', String(active));
   });
   document.getElementById('holdings-view').classList.toggle('hidden', view !== 'holdings');
+  document.getElementById('portfolio-panel')?.classList.toggle('active', view === 'portfolio');
+  document.getElementById('spx-0dte-panel')?.classList.toggle('active', view === 'spx-0dte');
+  document.getElementById('letf-panel')?.classList.toggle('active', view === 'letf');
   document.getElementById('darwin-panel').classList.toggle('active', view === 'darwin');
   document.getElementById('insights-panel').classList.toggle('active', view === 'insights');
   document.getElementById('activist-panel').classList.toggle('active', view === 'activist');
@@ -3230,6 +3317,9 @@ function setView(view, opts = {}) {
   if (view === 'activist') renderActivist();
   if (view === 'darwin') renderDarwin();
   if (view === 'drew' || view === 'michael') renderSleeveTab(view);
+  if (view === 'portfolio' && window.PortfolioViz) PortfolioViz.openPortfolio(() => syncRouteHash());
+  if (view === 'spx-0dte' && window.PortfolioViz) PortfolioViz.openStrategy('spx_0dte', () => syncRouteHash());
+  if (view === 'letf' && window.PortfolioViz) PortfolioViz.openStrategy('ls_risk', () => syncRouteHash());
   if (opts.syncHash !== false) syncRouteHash();
 }
 

@@ -189,14 +189,23 @@ class GraphBuilder:
             pattern = re.compile(lane["subject_regex"])
             matched = [(sha, ciso, subj) for sha, ciso, subj in commits
                        if pattern.search(subj)]
+            receipt_path = self.root / "_system/data/lane_receipts" / f"{name}.json"
+            receipt = load_json(receipt_path) if receipt_path.exists() else {}
+            receipt_iso = str((receipt or {}).get("last_success_at") or "")
+            commit_iso = matched[0][1] if matched else ""
+            freshest_iso = max(commit_iso, receipt_iso)
             self.node(f"lane:{name}", "work", "Lane", label=name, status="active",
-                      as_of=matched[0][1] if matched else "",
+                      as_of=freshest_iso,
                       data={
                           "subject_regex": lane["subject_regex"],
                           "freshness_hours": lane.get("freshness_hours", 48),
                           "commit_count_in_window": len(matched),
                           "last_commit_sha": matched[0][0] if matched else None,
                           "last_commit_iso": matched[0][1] if matched else None,
+                          "workflow_file": lane.get("workflow_file"),
+                          "last_success_at": receipt_iso or None,
+                          "last_workflow_run_id": (receipt or {}).get("run_id"),
+                          "last_workflow_url": (receipt or {}).get("url"),
                       })
             for sha, ciso, subj in matched:
                 self.node(f"commit:{sha[:12]}", "work", "Commit", label=subj,
@@ -379,7 +388,17 @@ class GraphBuilder:
                 continue
             comp_key = str(spec.get("component_id", "unknown"))
             metric = str(spec.get("metric", "unknown"))
-            errors = falsifier_specs.spec_errors(spec, index, contract=contract)
+            errors = falsifier_specs.spec_errors(spec, index)
+            if falsifier_specs.is_v3_spec(spec):
+                component = next((row for row in contract.get("economic_ownership_map") or []
+                                  if isinstance(row, dict) and str(row.get("component_id")) == comp_key), None)
+                current_fingerprint = (hashlib.sha256(json.dumps(
+                    component, sort_keys=True, separators=(",", ":")
+                ).encode()).hexdigest() if component else None)
+                if current_fingerprint != spec.get("component_fingerprint"):
+                    errors.append(f"specs[{index}].component_fingerprint: does not match current component")
+            else:
+                errors.extend(falsifier_specs.anchor_errors(spec, contract, index))
             resolvable, reason = falsifier_specs.metric_resolvable(
                 ticker, spec, self.root)
             typed = not errors and not spec.get("untestable", False) and resolvable
@@ -404,15 +423,20 @@ class GraphBuilder:
                 path=rel,
                 data={"typed": typed, "validation_errors": errors,
                       "resolvable": resolvable, "resolvability_reason": reason,
+                      "calibration_eligible": falsifier_specs.calibration_eligibility(spec)[0],
                       "spec_hash": falsifier_specs.spec_payload_hash(spec),
                       **{k: spec.get(k) for k in (
-                    "spec_id", "spec_revision", "authored_at", "analysis_run_id",
+                    "spec_id", "spec_revision", "spec_schema_version", "forecast_class",
+                    "forecast_role", "authored_at", "information_cutoff_at", "registered_at",
+                    "registration_commit", "component_fingerprint", "correlation_group",
+                    "analysis_run_id",
                     "author", "model_id", "prompt_version",
                     "contract_hash", "method_id", "power_zone",
                     "component_id", "metric", "comparator", "threshold", "unit",
                     "due", "measurement_period_end", "observable_after",
                     "resolution_deadline", "source_hint", "probability_fires",
-                    "severity", "derived_from", "untestable", "rationale")}})
+                    "severity", "derived_from", "untestable", "rationale",
+                    "calibration_eligible", "observation_plan", "review")}})
             self.edge(comp_ids.get(comp_key, contract_id), fals_id, "ASSERTS")
 
     def _project_fact_ledger(self, ticker: str, tid: str) -> None:
@@ -491,6 +515,31 @@ class GraphBuilder:
                 self.edge(outcome_id, bucket, "SCORES")
             if ticker:
                 self.edge(outcome_id, self.ticker_node(str(ticker)), "ABOUT")
+
+    def project_epistemic_state(self) -> None:
+        path = self.root / "_system" / "data" / "epistemic_state.jsonl"
+        if not path.is_file():
+            return
+        for index, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                self.warnings.append(f"bad epistemic state line {index + 1}")
+                continue
+            event_id = str(event.get("event_id") or hashlib.sha1(line.encode()).hexdigest()[:12])
+            node_id = self.node(
+                f"epistemic-event:{event_id}", "process", "EpistemicEvent",
+                ticker=event.get("ticker"), label=str(event.get("state") or "event"),
+                status=str(event.get("state") or "unknown"),
+                as_of=str(event.get("recorded_at") or ""),
+                path="_system/data/epistemic_state.jsonl", data=event)
+            work_id = event.get("work_id")
+            if work_id:
+                work_node = self.node(f"epistemic-work:{work_id}", "process", "EpistemicWork",
+                                      label=str(work_id), status=str(event.get("state") or "unknown"))
+                self.edge(work_node, node_id, "TRANSITIONED_BY")
 
     # ------------------------------------------------------------------ #
     # knowledge plane: beliefs, proposals
@@ -771,6 +820,7 @@ class GraphBuilder:
         self.project_wave()
         self.project_contracts()
         self.project_outcomes()
+        self.project_epistemic_state()
         self.project_beliefs()
         self.project_proposals()
         self.project_corrections()

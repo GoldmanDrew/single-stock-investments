@@ -3,6 +3,8 @@ name: Data Pipeline
 # Single scheduled writer lane for deterministic data jobs.
 
 on:
+  repository_dispatch:
+    types: [heal-technicals, heal-warrants]
   schedule:
     - cron: "0 3 * * *"     # nightly intake-full
     - cron: "15 2 * * 1-5"  # weekday technical fear/capitulation refresh
@@ -41,10 +43,14 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
+          EVENT_ACTION: ${{ github.event.action }}
         run: |
           set -euo pipefail
           intake_full=false; activist=false; downloads=false; drive=false; news=false; cvr_discover=false; warrant_discover=false; world_model=false; technicals=false; download_mode=light
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then SCHEDULE="dispatch:$EVENT_ACTION"; fi
           case "$SCHEDULE" in
+            "dispatch:heal-technicals") technicals=true ;;
+            "dispatch:heal-warrants") warrant_discover=true ;;
             "0 3 * * *") intake_full=true ;;
             "15 2 * * 1-5") technicals=true ;;
             "0 6 * * *") activist=true ;;
@@ -142,13 +148,25 @@ jobs:
           python-version: "3.12"
       - name: Install criticality model dependencies
         run: pip install -r _system/scripts/requirements-criticality.txt
-      - name: Refresh free technical fear and capitulation signals
+      - id: technical_health
+        name: Refresh free technical fear and capitulation signals
+        continue-on-error: true
         run: |
-          python _system/scripts/fetch_float_adv.py --no-sec-fallback --sleep 0.05
+          # The repair event targets stale price/technical outputs. The
+          # portfolio-wide float/ADV crawl is a separate slow input and can
+          # consume the entire 30-minute job; keep its last-known-good cache on
+          # repair runs so the actual stale artifacts are rebuilt promptly.
+          if [ "${{ github.event.action }}" != "heal-technicals" ]; then
+            python _system/scripts/fetch_float_adv.py --no-sec-fallback --sleep 0.05
+          fi
           python _system/scripts/build_technical_signals.py --workers 12
           python _system/scripts/build_criticality_signals.py --workers 4
-          python _system/scripts/validate_dashboard_data.py
+          # dashboard_data.json is an intentionally gitignored build
+          # intermediate. This sparse repair checkout validates the committed
+          # browser payload instead of requiring that absent monolith.
+          CI_PAGES_DEPLOY_ONLY=1 python _system/scripts/validate_dashboard_data.py
       - name: Refresh vol metrics and the SPX surface snapshot
+        if: always()
         # Same lane rather than a new cron slot: the decide job case-matches
         # exact cron strings and hard-errors on an unrecognized one, so a new
         # slot means editing three places (corrections.md rename trap). This
@@ -167,9 +185,26 @@ jobs:
           python _system/scripts/build_vol_metrics.py
           python _system/scripts/build_capitulation_daily.py --workers 6
       - name: Commit technical snapshots
+        if: always()
         uses: ./.github/actions/commit-main
         with:
           message: "chore: refresh technical fear signals $(date -u +%Y-%m-%d)"
+          git_add: >-
+            dashboard/data/technical_signals.json
+            dashboard/data/technical_summary.json
+            dashboard/data/criticality_summary.json
+            dashboard/data/vol_metrics_latest.json
+            dashboard/data/vol_metrics_history.jsonl
+            dashboard/data/spx_surface_latest.json
+            dashboard/data/spx_surface_history.jsonl
+            dashboard/data/capitulation_daily.json
+            dashboard/data/capitulation_daily_history.jsonl
+            dashboard/data/capitulation_daily_state.json
+      - name: Keep unresolved technical failures loud after preserving progress
+        if: steps.technical_health.outcome == 'failure'
+        run: |
+          echo "::error::Technical snapshots were preserved, but their refresh or validation remains degraded."
+          exit 1
 
   activist:
     needs: decide
@@ -529,14 +564,25 @@ jobs:
             --capture-cohort
           python _system/scripts/resolve_warrant_outcomes.py
           python _system/scripts/build_warrant_dashboard.py
+      - id: warrant_health
+        name: Validate warrant health after writing the truthful snapshot
+        continue-on-error: true
+        run: |
+          set -euo pipefail
           python _system/scripts/check_warrant_universe.py --strict
       - name: Commit warrant artifacts
+        if: always()
         uses: ./.github/actions/commit-main
         with:
           message: "chore: warrant weekly discovery $(date -u +%Y-%m-%d)"
           git_add: >-
             _system/data/warrants/
             dashboard/data/warrants.json
+      - name: Keep unresolved source failures loud after preserving progress
+        if: steps.warrant_health.outcome == 'failure'
+        run: |
+          echo "::error::Warrant snapshot was preserved, but strict health remains degraded."
+          exit 1
 
   world-model:
     needs: decide
