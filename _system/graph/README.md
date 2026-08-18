@@ -1,6 +1,6 @@
 # The workspace graph — procedural + epistemic memory, executed
 
-**Status:** live spec (v2, 2026-08-12). Implemented by `_system/scripts/graph_build.py`
+**Status:** live spec (v3, 2026-08-17). Implemented by `_system/scripts/graph_build.py`
 (projection), `_system/scripts/graph_invariants.py` (health), and
 `_system/scripts/resolve_falsifiers.py` (epistemic resolver). The latest health
 report is committed at [`INVARIANTS.md`](INVARIANTS.md); the database itself is
@@ -199,6 +199,13 @@ the baseline (organically-growing counts like E6) stay unarmed.
   detector; the 1,014-item backlog class).
 - **E7** (hard): parser artifacts, ephemeral outputs, and company observations
   never wait in belief review; new durable proposals close within 30 days.
+- **E8** (hard): every prospective schema-v3 forecast has immutable identity,
+  frozen contract/component/method provenance, a pre-observation registration
+  timestamp, an independent reviewer, and a source plan that passes semantic
+  preflight. Eligibility is derived, never trusted from a boolean field.
+- **E9** (hard): calibration counts and challenges contain only eligible,
+  provenance-complete outcomes; no agent-facing challenge activates before the
+  minimum sample, diversity, clustering, and resolution-yield gates pass.
 
 ## The two ratchet loops
 
@@ -208,9 +215,17 @@ invariants → pick the highest-severity violation class → close one link
 violation count fell. The INVARIANTS.md diff in the commit is the experiment
 record.
 
-**Epistemic ratchet** (runs on schedule): `resolve_falsifiers.py` finds typed
-falsifiers whose `due` has passed, resolves the metric from companyfacts/the
-fact ledger, writes an `Outcome` (hit/miss/unresolvable + evidence ref) to
+Lane freshness uses the newer of a matching landed commit and a verified
+successful workflow receipt in `_system/data/lane_receipts/`. This makes a
+successful no-op run visible without manufacturing a commit. The four-hour
+repository-health supervisor refreshes those receipts, dispatches the registered
+P6 healer workflows, retains consecutive-failure state, and opens an issue after
+three failed cycles.
+
+**Epistemic ratchet** (runs daily): `resolve_falsifiers.py` finds typed
+falsifiers whose first-observable date has passed, resolves the frozen
+measurement period through a typed evidence adapter, writes an `Outcome`
+(hit/miss or a retryable typed blocker + exact evidence/spec hashes) to
 `_system/research/falsifier_outcomes.jsonl`, and updates
 `_system/research/falsifier_calibration.json` — descriptive buckets by
 method_id × power_zone. **Weights never change automatically** (same rule as
@@ -222,20 +237,31 @@ coverage crosses the threshold recorded in `graph_sources.json` — flipping 189
 contracts to evidence_blocked overnight would freeze the factory, which is a
 worse failure than the debt.
 
-### Version 2 compounding contract (2026-08-12)
+### Version 3 compounding contract (2026-08-17)
 
-Forecasts now carry immutable `spec_id`, revision, payload hash, authored
-contract hash, analysis run, frozen method and power-zone attribution, severity,
+Forecasts carry immutable `spec_id`, revision, payload hash, authored
+contract/component hashes, analysis run and commit, frozen method and power-zone
+attribution, probability, registration cutoff, independent reviewer, severity,
 and an ex-ante probability. `measurement_period_end`, `observable_after`, and
 `resolution_deadline` are distinct. Missing evidence is retried until the
 deadline; it is not immediately turned into a terminal outcome.
 
 `_system/research/calibration_brief.json` is the only agent-facing calibration
-consumer and is frozen into committee packets. A same-route bucket remains
-`insufficient_outcomes` below 20 observations. Eligible history supplies a
-named challenge, never an automatic weight, formula change, decision, or sizing
-rule. Book-wide falsifier enforcement remains off; prospective enforcement is
-on for components introduced or materially changed after 2026-08-12.
+consumer. A release is immutable and inactive until at least 20 eligible
+probabilistic outcomes span 15 tickers, three industries, two measurement
+periods, no event cluster exceeds 10%, and resolution yield is at least 90%.
+Eligible history supplies one named challenge, never an automatic weight,
+formula change, decision, or sizing rule. Every consumer records the release
+hash and whether the challenge changed its analysis. Book-wide enforcement
+remains a coverage ratchet; prospective enforcement fails closed for new or
+materially changed components.
+
+The single operational control plane is
+`_system/data/epistemic_work_queue.json`, derived by
+`epistemic_loop_controller.py`. It emits stable work IDs, leases, retry states,
+owner-only gates, an authoring cohort, a health state, and a run receipt. It is
+a projection: outcomes, forecast sidecars, committee ledgers, triage events,
+and human decisions remain the authorities.
 
 The proposal loop has one canonical queue,
 `_system/reviews/pending/memory_triage.md`. Proposals are classified as durable
@@ -251,6 +277,9 @@ python _system/scripts/graph_build.py            # rebuild _system/graph/graph.d
 python _system/scripts/graph_invariants.py       # health report -> INVARIANTS.md (+ exit 1 on hard violations)
 python _system/scripts/graph_query.py <query>    # canned traversals: chain <correction-id> | lane-freshness | falsifier-coverage | belief <slug>
 python _system/scripts/resolve_falsifiers.py     # score matured falsifiers -> outcomes + calibration
+python _system/scripts/epistemic_loop_controller.py # rebuild queue, status, and run receipt
+python _system/scripts/lint_falsifier_specs.py   # schema, anchor, eligibility, and source preflight
+python _system/scripts/check_falsifier_history.py # reject edits/deletes of frozen forecasts
 python _system/scripts/check_evidence_integrity.py   # V1-V7 evidence-chain sweep (ratchet, not the graph)
 ```
 
@@ -280,8 +309,9 @@ building the check, mirror the real rule instead of approximating it, and
 ratchet rather than gate.
 
 CI: the invariant suite runs in the Research quality workflow (fail-loud on
-hard invariants); the resolver runs weekly in the dedicated
-`.github/workflows/falsifier-resolution.yml` workflow (Saturday 13:00 UTC).
+hard invariants); the resolver, committee outcomes, and memory triage run daily
+in dedicated serialized workflows and validate their post-write state before
+committing.
 
 ## What this is not
 

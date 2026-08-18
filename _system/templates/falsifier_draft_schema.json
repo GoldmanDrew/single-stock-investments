@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "falsifier_draft_schema.json",
+  "title": "Two-stage falsifier draft",
+  "type": "object",
+  "required": ["schema_version", "draft_id", "work_id", "input_sha", "component_fingerprint", "status", "spec"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "draft_id": {"type": "string", "minLength": 8},
+    "work_id": {"type": "string", "minLength": 8},
+    "input_sha": {"type": "string", "minLength": 7},
+    "component_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["awaiting_review", "approved", "rejected", "published"]},
+    "author_receipt": {"type": "object"},
+    "review_receipt": {"type": ["object", "null"]},
+    "rejection_reasons": {"type": "array", "items": {"type": "string"}},
+    "spec": {"$ref": "falsifier_spec_schema.json"}
+  },
+  "additionalProperties": true
+}

@@ -8,6 +8,27 @@ This file is the **single source of truth** for Cursor Cloud Agent runs (`marvin
 
 The agent may run only through `research-agent-dispatch.yml` after the shared gate admits a new stable evidence hash. Treat the injected evidence manifest as the work boundary: synthesize source meaning, conflicts, uncertainty, and narrative implications from those artifacts. Do not spend agent time re-downloading sources, rebuilding indexes, routing Power Zones, calculating deterministic valuation outputs, generating dashboards, or rotating through an unchanged ticker. `marvin_cloud_refresh.py` performs those mechanical steps and records the completed evidence hash.
 
+The injected task must also carry its `work_id`, input SHA, information cutoff,
+and active calibration release hash. Agents may not choose a different ticker or
+expand the task. If the input SHA or component fingerprint changed, stop and
+record a retry instead of adapting the forecast to newer evidence.
+
+The manifest may include `routed_memory_observations`. These are proposed leads
+delivered from the shared memory queue, not primary evidence and not promoted
+beliefs. Check them against the admitted filing/transcript set before using
+them; correct contradictions through the normal research and corrections paths.
+
+For `epistemic_author_forecast`, write a draft only at
+`{TICKER}/research/falsifier_drafts/{work_id}.json`; do not append the canonical
+sidecar and do not self-review. Freeze the complete v3 spec, source replay,
+component fingerprint, input SHA, author identity/run, and set
+`status=awaiting_review`. For `epistemic_review_forecast`, act only if you are a
+different agent/run from the author. Challenge materiality, period semantics,
+look-ahead, and replay; set the draft to `approved` with the review recorded in
+the spec, or `rejected` with typed reasons. The scheduled promoter alone appends
+approved drafts to `falsifier_specs.json`, so forecast history never depends on
+an agent editing an authoritative list in place.
+
 ## Framework read order (before writing)
 
 1. `_system/frameworks/decision_stack.md`
@@ -132,3 +153,7 @@ Fix any lint errors before finishing the PR.
 - [ ] `classification.json` + `thesis.md` synced
 - [ ] `dossier.json` written/refreshed (timeline + industry)
 - [ ] No secrets in commits
+- [ ] Active-route calibration release hash and response recorded
+- [ ] Any new falsifier is prospective v3, source-preflighted, economically material, and independently reviewed
+- [ ] Existing falsifier/outcome history was not edited or deleted
+- [ ] Epistemic work item has a success/park/retry receipt with the published SHA

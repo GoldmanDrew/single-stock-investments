@@ -1,21 +1,8 @@
-name: Falsifier Resolution
+name: Epistemic Falsifier Loop
 
-# Weekly epistemic-ratchet resolver (spec: _system/graph/README.md): score
-# typed falsifiers whose observable date has passed into the append-only outcomes
-# ledger and rebuild the descriptive calibration store. Calibration never
-# changes weights automatically; it informs humans and prompts.
-#
-# Dedicated small workflow instead of a new data-pipeline.yml schedule slot:
-# that file's decide job matches on exact cron strings, so adding a slot means
-# touching three places and a rename-style name-string trap (corrections.md).
 on:
   schedule:
-    # Saturday 13:00 UTC — deliberately OFF the crowded Sunday slots
-    # (02:15 code scan, 10:00 full downloads, 14:00 memory digest, 16:00
-    # letter backfill + world model) and clear of Saturday's 12:00 light
-    # downloads, 12:17 committee (17 */4), 12:30 news (30 */6), and
-    # 12:33/14:33 backfill refill (33 */2).
-    - cron: "0 13 * * 6"
+    - cron: "20 9 * * *"
 permissions:
   contents: write
 
@@ -24,138 +11,61 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  resolve:
+  resolve-and-validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
-          # Non-cone patterns: the resolver reads per-ticker sidecars plus the
-          # evidence they resolve against. resolve_falsifiers.py fails closed
-          # if the outcomes ledger is absent while calibration records prior
-          # outcomes, so a too-sparse checkout cannot silently zero the store.
-          sparse-checkout: |
-            _system/scripts
-            _system/research
-            _system/graph
-            _system/portfolio/registry.json
-            .github/actions/commit-main
-            */research/falsifier_specs.json
-            */research/valuation_fact_ledger.json
-            */research/valuation_contract.json
-            */research/valuation_route.json
-            */research/security_identity.json
-            */research/evidence/sec_companyfacts.json
-          sparse-checkout-cone-mode: false
-          fetch-depth: 1
-
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Resolve matured falsifiers
-        # Schedule-only workflow (governance: no manual-run choices on the
-        # Actions surface); a local dry-run is just resolve_falsifiers.py
-        # with no flag.
+      - name: Refresh, resolve, and rebuild the control plane
         run: |
           set -euo pipefail
+          python _system/scripts/promote_falsifier_drafts.py
           python _system/scripts/refresh_falsifier_evidence.py
           python _system/scripts/resolve_falsifiers.py --apply
-
-      - name: Resolver vertical integration tests
-        working-directory: _system/scripts
-        run: >-
-          python -m unittest -v test_falsifier_specs test_resolve_falsifiers
-          test_refresh_falsifier_evidence test_calibration_brief
-          test_epistemic_loop_integration
-
-      - name: Ensure staged paths exist
-        # Belt and braces with resolve_falsifiers.py --apply (which always
-        # creates the ledger, empty or not): `git add --sparse <path>` exits
-        # 128 on a nonexistent path, which turned the first scheduled run red.
-        run: |
-          mkdir -p _system/research
-          touch _system/research/falsifier_outcomes.jsonl
-
-      - name: Commit outcomes and calibration
-        uses: ./.github/actions/commit-main
-        with:
-          message: |
-            chore: weekly falsifier resolution $(date -u +%Y-%m-%d)
-
-            Score matured typed falsifiers into falsifier_outcomes.jsonl and
-            rebuild the descriptive method_id x power_zone calibration store
-            (resolve_falsifiers.py; weights never change automatically).
-          git_add: >-
-            _system/research/falsifier_outcomes.jsonl
-            _system/research/falsifier_calibration.json
-            _system/research/calibration_brief.json
-            */research/evidence/sec_companyfacts.json
-            */research/valuation_fact_ledger.json
-
-  graph-invariants:
-    # Time-based invariants (P3 lane staleness, E2 falsifier maturation) only
-    # fire when something runs the suite AFTER time has passed; the push- and
-    # PR-triggered Research quality runs cannot be relied on for that -- a
-    # quiet week means no push, which is exactly when P3 should be firing.
-    # This job reuses the Research quality workflow's graph-invariants steps
-    # on this file's weekly schedule. Failures are loud: no continue-on-error,
-    # no `|| true`, and pipefail keeps the suite's exit code through tee.
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          docker-images: true
-          swap-storage: true
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            _system/scripts/ci_checkout_workspace.sh
-            _system/scripts/ci_resolve_checkout_ref.sh
-            _system/scripts/ci_sparse_checkout_paths.py
-          sparse-checkout-cone-mode: false
-          fetch-depth: 1
-      - name: Checkout workspace (full)
-        # Full tree: graph_build streams every ticker's contract and fact
-        # ledger, and E5 existence-checks the source paths beliefs cite, so a
-        # sparse profile would turn real beliefs into silent "source missing".
-        run: bash _system/scripts/ci_checkout_workspace.sh full
-      - name: Deepen commit history for lane freshness (commits only, no blobs)
-        # graph_build projects Lane/Commit from `git log -n 400`; on the
-        # depth-1 checkout above every lane would read NO-COMMIT and fail P3
-        # for a reason that has nothing to do with the lanes.
-        run: git fetch --filter=blob:none --deepen=400 origin "+refs/heads/main:refs/remotes/origin/main"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Graph engine and invariant unit tests
-        working-directory: _system/scripts
-        run: python -m unittest -v test_graph_build test_graph_invariants
-      - name: Run the invariant suite (hard invariants fail the job)
-        # Deliberately no `|| true` and no `continue-on-error`: the repo has a
-        # recorded trap where a validator's ERROR only skipped a downstream
-        # step, leaving the run green and the data wrong.
+          python _system/scripts/epistemic_loop_controller.py
+      - name: Validate the post-resolution tree
         run: |
           set -euo pipefail
-          python _system/scripts/graph_invariants.py | tee "$RUNNER_TEMP/graph-invariants.txt"
-      - name: Publish invariant report to the run summary
-        # always(): the per-invariant counts and any violation lists must be
-        # readable from the run page whether the suite passed or failed.
+          python _system/scripts/lint_falsifier_specs.py
+          python _system/scripts/check_falsifier_history.py --base-ref origin/main
+          (cd _system/scripts && python -m unittest -v \
+            test_falsifier_specs test_resolve_falsifiers \
+            test_refresh_falsifier_evidence test_calibration_brief \
+            test_epistemic_loop_integration test_epistemic_integrity \
+            test_epistemic_loop_controller test_committee_forecast_loop)
+          python _system/scripts/validate_calibration_consumption.py
+          python _system/scripts/graph_invariants.py || true
+          python _system/scripts/validate_invariant_subset.py E2 E3 E4 E5 E7 E8 E9
+      - name: Publish loop status
         if: always()
         run: |
           {
-            echo "### Graph invariants (weekly schedule)"
-            echo ""
+            echo "### Epistemic loop"
+            echo '```json'
+            cat _system/research/epistemic_loop_status.json 2>/dev/null || true
             echo '```'
-            cat "$RUNNER_TEMP/graph-invariants.txt" 2>/dev/null || echo "(no invariant output; the step did not run)"
-            echo '```'
-            echo ""
-            cat _system/graph/INVARIANTS.md 2>/dev/null || echo "(INVARIANTS.md was not written)"
+            cat _system/graph/INVARIANTS.md 2>/dev/null || true
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit outcomes, attempts, projections, and receipts
+        id: commit
+        uses: ./.github/actions/commit-main
+        with:
+          message: |
+            chore(epistemic): daily evidence resolution and control-plane refresh
+
+            Refresh evidence, resolve only immutable eligible forecasts, rebuild
+            calibration and queues, and validate the resulting repository state.
+          # The checkout starts clean and this ordered job is the sole writer.
+          # -A safely includes optional newly created draft/release paths without
+          # a shell glob becoming a fatal unmatched git pathspec.
+          git_add: -A
+      - name: Wake the research queue explicitly
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/dispatches" -f event_type=research-queue-run

@@ -16,14 +16,15 @@ so promotion is one pass with checkboxes rather than dozens of file reads.
 promoted in May 2026 were still sitting unticked in the August queue, so every
 build re-surfaced work already done and the reviewer had to re-reject the same
 noise. `_system/memory/triage_ledger.json` now records a decision per item id;
-decided items are excluded from the next build. Nothing is deleted — remove an
-id from the ledger (or pass `--show-decided`) to bring a proposal back.
+Decided items are excluded from the next build; no history is deleted.
+Disposition changes are appended to `_system/memory/triage_events.jsonl`; the JSON ledger is
+a current-state projection. Pass `--show-decided` to inspect handled proposals.
 
 It does **not** promote anything into MEMORY.md. Promotion is the human owner's;
 an agent may run a promotion pass only when the human asks for one in that
 session, and every agent-promoted belief is stamped as such in MEMORY.md.
 
-Cadence: rebuild monthly (and after any promotion pass), then record decisions
+Cadence: rebuild daily (and after any promotion pass), then record decisions
 so the next build starts from the undecided remainder. See the header of
 `_system/memory/MEMORY.md`.
 
@@ -39,12 +40,9 @@ Usage:
   python _system/scripts/build_memory_triage.py --auto-reject-mechanical
   python _system/scripts/build_memory_triage.py --sync-promoted-from-memory
 
-  # reverse a decision: delete the id from the ledger, then re-mark it carrying
-  # the row you deleted, so the reversal survives as data (the ledger is not
-  # tracked by git, so nothing else remembers what was there)
+  # reverse a decision without deleting history
   python _system/scripts/build_memory_triage.py --mark rejected --ids c79e14f64cfc \
-      --reason "contradicts a promoted belief" \
-      --previous-decision '{"decision": "promoted", "date": "2026-08-09", "by": "agent"}'
+      --reason "contradicts a promoted belief" --reverse
 
   # check every `promoted` id still corresponds to a belief in MEMORY.md
   python _system/scripts/build_memory_triage.py --audit-promoted
@@ -253,14 +251,53 @@ def route_destination(item: dict, kind: str) -> str | None:
 # --------------------------------------------------------------------------- #
 
 def load_ledger() -> dict:
+    events_path = LEDGER.with_name("triage_events.jsonl")
+    if events_path.is_file():
+        decisions = {}
+        for line in events_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("proposal_id") and isinstance(event.get("decision"), dict):
+                decisions[str(event["proposal_id"])] = event["decision"]
+        return {"version": 2, "updated": None, "cadence": "weekly",
+                "authority": "projection_of_triage_events_jsonl", "decisions": decisions}
     if not LEDGER.is_file():
-        return {"version": 1, "updated": None, "cadence": "monthly", "decisions": {}}
+        return {"version": 2, "updated": None, "cadence": "weekly", "decisions": {}}
     data = json.loads(LEDGER.read_text(encoding="utf-8"))
     data.setdefault("decisions", {})
     return data
 
 
 def save_ledger(ledger: dict) -> None:
+    events_path = LEDGER.with_name("triage_events.jsonl")
+    known = set()
+    if events_path.exists():
+        for line in events_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                try:
+                    known.add(json.loads(line).get("event_id"))
+                except json.JSONDecodeError:
+                    continue
+    events_path.parent.mkdir(parents=True, exist_ok=True)
+    with events_path.open("a", encoding="utf-8") as handle:
+        for proposal_id, decision in sorted((ledger.get("decisions") or {}).items()):
+            raw = json.dumps({"proposal_id": proposal_id, "decision": decision},
+                             sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            event_id = hashlib.sha256(raw.encode()).hexdigest()[:24]
+            if event_id in known:
+                continue
+            handle.write(json.dumps({
+                "event_id": event_id, "proposal_id": proposal_id,
+                "event_type": "disposition_recorded",
+                "recorded_on": decision.get("date"), "decision": decision,
+            }, sort_keys=True, ensure_ascii=False) + "\n")
+            known.add(event_id)
+    ledger["version"] = 2
+    ledger["authority"] = "projection_of_triage_events_jsonl"
     ledger["updated"] = date.today().isoformat()
     LEDGER.parent.mkdir(parents=True, exist_ok=True)
     LEDGER.write_text(json.dumps(ledger, indent=2, ensure_ascii=False) + "\n",
@@ -271,29 +308,16 @@ def record(ledger: dict, item: dict, decision: str, reason: str, by: str,
            when: str, anchor: str | None = None, quiet: bool = False,
            previous: dict | None = None, reason_code: str | None = None,
            destination: str | None = None) -> bool:
-    """Write one decision. Returns False when the id was already decided.
-
-    The ledger is append-only: a decided id is never overwritten in place, so
-    re-ticking a row to *reverse* a decision does nothing. That used to be
-    silent — the run reported "0 new" and the reviewer had no way to tell a
-    duplicate tick from a rejected reversal. Say so out loud instead. Bulk paths
-    pass `quiet=True`, because they walk every proposal and most are decided.
-
-    Re-deciding therefore means *deleting* the id and writing it again, which
-    destroys the row that was there. `previous` carries that destroyed row
-    forward as a structured `previous_decision` field, so a reversal is a fact
-    on the row rather than a sentence someone happened to write in `reason`.
-    The ledger is untracked by git, so nothing else remembers it.
-    """
+    """Write one current decision; the event log preserves explicit reversals."""
     ident = fingerprint(item)
     prior = ledger["decisions"].get(ident)
-    if prior is not None:
+    if prior is not None and previous is None:
         if not quiet and prior.get("decision") != decision:
             print(f"  [warn] {ident} is already recorded as "
                   f"'{prior.get('decision')}' ({prior.get('date')}, by "
                   f"{prior.get('by')}); the ledger is append-only, so "
-                  f"'{decision}' was NOT applied. To reverse a decision, delete "
-                  f"the id from {LEDGER.name} and re-run.")
+                  f"'{decision}' was NOT applied. Re-run with --reverse to "
+                  "append a reversal event.")
         return False
     if decision == "routed" and not (destination or route_destination(item, proposal_kind(item))):
         raise ValueError("routed decisions require a deterministic destination")
@@ -312,12 +336,16 @@ def record(ledger: dict, item: dict, decision: str, reason: str, by: str,
     if decision == "routed":
         entry["destination"] = destination or route_destination(item, entry["kind"])
         entry["content"] = "\n".join(item["body"])
+        entry["delivery_status"] = "pending"
+        entry["delivery_acknowledged_at"] = None
+        entry["applied_ref"] = None
     if anchor:
         # Where the belief landed, so `promoted` is checkable against MEMORY.md.
         entry["memory_anchor"] = anchor
     if previous:
         # The decision this row replaced, structurally, not as prose.
         entry["previous_decision"] = previous
+        entry["supersedes_decision"] = prior
     ledger["decisions"][ident] = entry
     return True
 
@@ -425,7 +453,7 @@ def render(items: list[dict], dropped: int, since: str | None,
             f"**{counts.get('rejected', 0)} rejected**, "
             f"**{counts.get('dropped', 0)} dropped** (decided, but no belief "
             "claimed) — already decided, so they do not re-surface. Delete an id "
-            "from the ledger, or rebuild with `--show-decided`, to bring one back. "
+            "with `--reverse`, or rebuild with `--show-decided` to inspect it. "
             "Check that `promoted` means what it says with `--audit-promoted`.",
             "",
         ]
@@ -439,7 +467,7 @@ def render(items: list[dict], dropped: int, since: str | None,
         "run a promotion pass when the human asks for one in that session, and marks",
         "each belief as agent-promoted. See the header of `MEMORY.md`.",
         "",
-        "Cadence: rebuild monthly, and after every promotion pass.",
+        "Cadence: rebuild daily, and after every promotion pass.",
         "",
     ]
     for lens in sorted(by_lens, key=lambda k: (-len(by_lens[k]), k)):
@@ -496,6 +524,7 @@ def collect(since: str | None) -> tuple[list[dict], int]:
 
 def build_learning_loop_summary(items: list[dict], ledger: dict,
                                 duplicate_sightings: int) -> dict:
+    from falsifier_specs import calibration_eligibility, spec_payload_hash
     today = date.today()
     decisions = ledger.get("decisions") or {}
     undecided = [item for item in items if fingerprint(item) not in decisions]
@@ -522,8 +551,9 @@ def build_learning_loop_summary(items: list[dict], ledger: dict,
                 outcomes.append(json.loads(line))
             except json.JSONDecodeError:
                 pass
-    resolved_ids = {row.get("spec_id") for row in outcomes if row.get("spec_id")}
+    resolved_hashes = {row.get("spec_hash") for row in outcomes if row.get("spec_hash")}
     forecast = {"specs": 0, "v2_specs": 0, "testable": 0, "matured": 0,
+                "calibration_eligible": 0, "diagnostic_only": 0,
                 "resolved": len(outcomes), "pending_evidence": 0, "overdue": 0}
     for path in ROOT.glob("*/research/falsifier_specs.json"):
         try:
@@ -536,11 +566,15 @@ def build_learning_loop_summary(items: list[dict], ledger: dict,
             if spec.get("untestable"):
                 continue
             forecast["testable"] += 1
+            if calibration_eligibility(spec)[0]:
+                forecast["calibration_eligible"] += 1
+            else:
+                forecast["diagnostic_only"] += 1
             observable = str(spec.get("observable_after") or spec.get("due") or "")[:10]
             deadline = str(spec.get("resolution_deadline") or spec.get("due") or "")[:10]
             if observable and observable <= today.isoformat():
                 forecast["matured"] += 1
-                if spec.get("spec_id") not in resolved_ids:
+                if spec_payload_hash(spec) not in resolved_hashes:
                     if deadline and deadline < today.isoformat():
                         forecast["overdue"] += 1
                     else:
@@ -593,6 +627,15 @@ def build_learning_loop_summary(items: list[dict], ledger: dict,
             "sla": {"deterministic_disposition_days": 7,
                     "durable_human_decision_days": 30,
                     "target_p90_days": 14},
+            "routed_delivery_pending": sum(
+                entry.get("decision") == "routed"
+                and entry.get("delivery_status") != "acknowledged"
+                for entry in decisions.values()),
+            "routed_delivery_acknowledged": sum(
+                entry.get("decision") == "routed"
+                and entry.get("delivery_status") == "acknowledged"
+                for entry in decisions.values()),
+            "ledger_authority": ledger.get("authority") or "legacy_projection",
         },
         "calibration": {
             "falsifier": json.loads((ROOT / "_system/research/falsifier_calibration.json").read_text(encoding="utf-8"))
@@ -629,12 +672,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--anchor",
                     help="with --mark promoted: where the belief landed in "
                          "MEMORY.md, so the decision is checkable")
-    ap.add_argument("--previous-decision", metavar="JSON",
-                    help="with --mark, after deleting an id to re-decide it: the "
-                         "row that was deleted, as JSON (e.g. '{\"decision\": "
-                         "\"promoted\", \"date\": \"2026-08-09\", \"by\": "
-                         "\"agent\"}'). Recorded as `previous_decision` so the "
-                         "reversal is structured, not prose in --reason")
+    ap.add_argument("--reverse", action="store_true",
+                    help="with --mark, append a reversal of an existing decision")
+    ap.add_argument("--previous-decision", metavar="JSON", help=argparse.SUPPRESS)
+    ap.add_argument("--migrate-ledger", action="store_true",
+                    help="append legacy ledger rows to the event log and refresh the projection")
     ap.add_argument("--ingest", nargs="?", const=str(DEFAULT_OUT), metavar="PATH",
                     help="read [x]/[-] ticks from a rendered queue into the ledger")
     ap.add_argument("--auto-reject-mechanical", action="store_true",
@@ -643,6 +685,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="drop parse/ephemeral artifacts and route company observations")
     ap.add_argument("--repair-routes", action="store_true",
                     help="repair routed destination metadata without changing decisions")
+    ap.add_argument("--ack-delivery", action="store_true",
+                    help="acknowledge delivery for routed --ids")
+    ap.add_argument("--applied-ref", help="artifact or receipt proving a routed item was consumed")
     ap.add_argument("--sync-promoted-from-memory", action="store_true",
                     help="back-mark proposals whose text is already a belief in "
                          f"MEMORY.md (stamped by={BACKFILL_BY!r}, not --by)")
@@ -662,18 +707,23 @@ def main(argv: list[str] | None = None) -> int:
     ledger = load_ledger()
     today = date.today().isoformat()
 
-    previous_decision: dict | None = None
+    if args.migrate_ledger:
+        save_ledger(ledger)
+        print(f"[ok] migrated {len(ledger['decisions'])} disposition(s) to append-only events")
+        return 0
+
+    legacy_previous = None
     if args.previous_decision:
         try:
-            previous_decision = json.loads(args.previous_decision)
+            legacy_previous = json.loads(args.previous_decision)
         except json.JSONDecodeError as exc:
             print(f"--previous-decision is not valid JSON: {exc}")
             return 1
-        if not isinstance(previous_decision, dict):
+        if not isinstance(legacy_previous, dict):
             print("--previous-decision must be a JSON object")
             return 1
-        previous_decision.setdefault("reversed_on", today)
-        previous_decision.setdefault("reversed_by", args.by)
+        legacy_previous.setdefault("reversed_on", today)
+        legacy_previous.setdefault("reversed_by", args.by)
 
     if args.mark:
         raw = args.ids or ""
@@ -695,8 +745,13 @@ def main(argv: list[str] | None = None) -> int:
             # duplicate tick. It used to be counted as "already decided" and the
             # run still exited 0, so a caller could not tell the ledger had
             # ignored it.
-            if prior is not None and prior.get("decision") != args.mark:
+            if prior is not None and prior.get("decision") != args.mark and not args.reverse:
                 refused += 1
+            previous_decision = legacy_previous
+            if prior is not None and prior.get("decision") != args.mark and args.reverse:
+                previous_decision = dict(prior)
+                previous_decision["reversed_on"] = today
+                previous_decision["reversed_by"] = args.by
             if record(ledger, item, args.mark, args.reason, args.by, today,
                       anchor=args.anchor, previous=previous_decision,
                       reason_code=args.reason_code,
@@ -709,9 +764,8 @@ def main(argv: list[str] | None = None) -> int:
               f"{missing} unknown")
         if refused:
             print(f"  [warn] {refused} id(s) already carry a DIFFERENT decision "
-                  f"and were NOT changed - the ledger is append-only. Delete "
-                  f"those ids from {LEDGER.name} and re-run with "
-                  f"--previous-decision to record the reversal.")
+                  "and were NOT changed. Re-run with --reverse to append "
+                  "the reversal without deleting history.")
         return 1 if (missing or refused) else 0
 
     if args.ingest:
@@ -740,8 +794,8 @@ def main(argv: list[str] | None = None) -> int:
             # decision. Append-only, so nothing changed - do not let that pass
             # as "0 new".
             print(f"  [warn] {conflicts} tick(s) disagreed with an existing "
-                  f"decision and were NOT applied (see the warnings above). "
-                  f"Delete those ids from {LEDGER.name} to re-decide them.")
+                  "decision and were NOT applied (see the warnings above). "
+                  "Use --mark with --reverse to append a reversal.")
         return 0
 
     if args.auto_reject_mechanical:
@@ -798,6 +852,25 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ok] repaired {repaired} routed destination(s); decisions unchanged")
         return 0
 
+    if args.ack_delivery:
+        wanted = [i.strip() for i in re.split(r"[,\s]+", args.ids or "") if i.strip()]
+        if not wanted or not args.applied_ref:
+            print("--ack-delivery requires --ids and --applied-ref")
+            return 1
+        acknowledged = 0
+        for ident in wanted:
+            entry = ledger["decisions"].get(ident)
+            if not entry or entry.get("decision") != "routed":
+                print(f"  [warn] {ident} is not a routed decision")
+                continue
+            entry["delivery_status"] = "acknowledged"
+            entry["delivery_acknowledged_at"] = today
+            entry["applied_ref"] = args.applied_ref
+            acknowledged += 1
+        save_ledger(ledger)
+        print(f"[ok] acknowledged delivery for {acknowledged} routed item(s)")
+        return 0
+
     if args.sync_promoted_from_memory:
         if not MEMORY.is_file():
             print(f"no MEMORY.md at {MEMORY}")
@@ -835,8 +908,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"      {entry.get('excerpt', '')[:100]}")
         if orphans:
             print("\n  Each of these suppresses a proposal forever while claiming a")
-            print("  belief that is not in MEMORY.md. Give it a --anchor, or delete")
-            print(f"  the id from {LEDGER.name} and re-decide it as dropped/rejected.")
+            print("  belief that is not in MEMORY.md. Give it a --anchor, or append")
+            print("  a dropped/rejected reversal with --mark and --reverse.")
         return 1 if orphans else 0
 
     decisions = ledger["decisions"]

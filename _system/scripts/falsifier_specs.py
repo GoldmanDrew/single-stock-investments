@@ -103,12 +103,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-SCHEMA_VERSION = "2.0"
+SCHEMA_VERSION = "3.0"
 COMPARATORS = {"lt", "lte", "gt", "gte", "outside_range"}
 GRAPH_SOURCES = ROOT / "_system" / "graph" / "graph_sources.json"
 
@@ -144,6 +144,71 @@ def is_v2_spec(spec: dict) -> bool:
     return isinstance(spec, dict) and bool(spec.get("spec_id"))
 
 
+def is_v3_spec(spec: dict) -> bool:
+    """True only for the prospective, fail-closed forecast contract.
+
+    V2 records remain readable for diagnostic resolution, but never become
+    calibration eligible merely because fields were later added to them.
+    """
+    return (isinstance(spec, dict)
+            and str(spec.get("spec_schema_version") or "") == "3.0")
+
+
+def parse_datetime(value) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def calibration_eligibility(spec: dict) -> tuple[bool, str]:
+    """Derive eligibility; never trust a mutable boolean by itself."""
+    if not is_v3_spec(spec):
+        return False, "legacy_or_non_v3"
+    if spec.get("untestable"):
+        return False, "untestable"
+    if spec.get("calibration_eligible") is not True:
+        return False, "not_declared_eligible"
+    if spec.get("forecast_class") != "ex_ante":
+        return False, "not_ex_ante"
+    if spec.get("forecast_role") != "primary":
+        return False, "not_primary"
+    probability = spec.get("probability_fires")
+    if not _is_number(probability) or not 0 <= float(probability) <= 1:
+        return False, "probability_missing_or_invalid"
+    cutoff = parse_datetime(spec.get("information_cutoff_at"))
+    registered = parse_datetime(spec.get("registered_at"))
+    if cutoff is None or registered is None:
+        return False, "temporal_provenance_missing"
+    if cutoff > registered:
+        return False, "information_cutoff_after_registration"
+    observable = parse_due(spec.get("observable_after"))
+    if observable is None:
+        return False, "observable_after_missing"
+    observable_at = datetime.combine(observable, datetime.min.time(), tzinfo=timezone.utc)
+    if registered >= observable_at:
+        return False, "registered_after_observability"
+    if not str(spec.get("registration_commit") or "").strip():
+        return False, "registration_commit_missing"
+    plan = spec.get("observation_plan") or {}
+    replay = plan.get("historical_replay") or {}
+    if replay.get("status") != "passed" or not replay.get("evidence_ref"):
+        return False, "historical_replay_not_passed"
+    if plan.get("outcome_unavailable_at_registration") is not True:
+        return False, "anti_lookahead_proof_missing"
+    review = spec.get("review") or {}
+    if (review.get("status") != "approved"
+            or not review.get("reviewer")
+            or review.get("reviewer") == spec.get("author")):
+        return False, "independent_review_missing"
+    return True, "eligible"
+
+
 def forecast_dates(spec: dict) -> tuple[date | None, date | None, date | None]:
     """Return (measurement period end, observable after, terminal deadline).
 
@@ -162,9 +227,7 @@ def forecast_dates(spec: dict) -> tuple[date | None, date | None, date | None]:
 
 def spec_payload_hash(spec: dict) -> str:
     """Hash the immutable forecast payload; outcomes pin this exact version."""
-    ignored = {"supersedes_spec_id"}
-    payload = {key: value for key, value in spec.items() if key not in ignored}
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    raw = json.dumps(spec, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -303,6 +366,64 @@ def spec_errors(spec, index: int = 0, contract: dict | None = None) -> list[str]
         supersedes = spec.get("supersedes_spec_id")
         if supersedes is not None and (not isinstance(supersedes, str) or not supersedes.strip()):
             errors.append(f"{prefix}.supersedes_spec_id: non-empty string or null required")
+        if not is_v3_spec(spec) and spec.get("calibration_eligible") is True:
+            errors.append(
+                f"{prefix}.calibration_eligible: only immutable v3 ex-ante specs may be eligible")
+        if is_v3_spec(spec):
+            for field in ("forecast_class", "forecast_role", "information_cutoff_at",
+                          "registered_at", "registration_commit", "component_fingerprint",
+                          "correlation_group"):
+                value = spec.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    errors.append(f"{prefix}.{field}: non-empty string required for v3")
+            for field in ("information_cutoff_at", "registered_at"):
+                if parse_datetime(spec.get(field)) is None:
+                    errors.append(f"{prefix}.{field}: timezone-aware ISO datetime required")
+            plan = spec.get("observation_plan")
+            if not isinstance(plan, dict):
+                errors.append(f"{prefix}.observation_plan: object required for v3")
+                plan = {}
+            for field in ("metric_definition_id", "metric_definition_version",
+                          "source_adapter", "fiscal_period", "observation_type",
+                          "duration_basis", "canonical_unit", "expected_publication_date"):
+                value = plan.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    errors.append(f"{prefix}.observation_plan.{field}: non-empty string required")
+            forms = plan.get("accepted_forms")
+            if not isinstance(forms, list) or not forms or not all(
+                    isinstance(value, str) and value.strip() for value in forms):
+                errors.append(f"{prefix}.observation_plan.accepted_forms: non-empty string list required")
+            lag = plan.get("maximum_source_lag_days")
+            if not isinstance(lag, int) or isinstance(lag, bool) or lag < 0:
+                errors.append(f"{prefix}.observation_plan.maximum_source_lag_days: non-negative integer required")
+            if parse_due(plan.get("expected_publication_date")) is None:
+                errors.append(f"{prefix}.observation_plan.expected_publication_date: ISO date required")
+            if plan.get("canonical_unit") and plan.get("canonical_unit") != spec.get("unit"):
+                errors.append(f"{prefix}.observation_plan.canonical_unit: must equal spec unit")
+            replay = plan.get("historical_replay")
+            if not isinstance(replay, dict) or replay.get("status") != "passed" or not replay.get("evidence_ref"):
+                errors.append(f"{prefix}.observation_plan.historical_replay: passed replay with evidence_ref required")
+            threshold_basis = spec.get("threshold_basis")
+            if not isinstance(threshold_basis, dict):
+                errors.append(f"{prefix}.threshold_basis: object required for v3")
+            else:
+                for field in ("source_ref", "rule"):
+                    if not str(threshold_basis.get(field) or "").strip():
+                        errors.append(f"{prefix}.threshold_basis.{field}: required")
+            if untestable:
+                for field in ("untestable_reason_code", "required_adapter", "review_by"):
+                    if not str(spec.get(field) or "").strip():
+                        errors.append(f"{prefix}.{field}: required for v3 untestable disposition")
+            elif spec.get("calibration_eligible") is True:
+                eligible, reason = calibration_eligibility(spec)
+                if not eligible:
+                    errors.append(f"{prefix}.calibration_eligible: derived eligibility failed ({reason})")
+                component_impact = spec.get("component_value_impact_pct")
+                equity_impact = spec.get("total_equity_value_impact_pct")
+                if not _is_number(component_impact) or not _is_number(equity_impact):
+                    errors.append(f"{prefix}: numeric economic impact fields required")
+                elif float(component_impact) < 10.0 and float(equity_impact) < 2.0:
+                    errors.append(f"{prefix}: primary eligible threshold is not economically material")
     else:
         due = spec.get("due")
         if due is None:
@@ -377,6 +498,10 @@ def metric_resolvable(ticker: str, spec: dict, root: Path = ROOT) -> tuple[bool,
     """
     if spec.get("untestable"):
         return False, "spec is marked untestable"
+    if is_v3_spec(spec):
+        from falsifier_evidence_adapters import preflight_spec
+        result = preflight_spec(ticker, spec, root)
+        return bool(result.get("ok")), str(result.get("reason") or "preflight failed")
     hint = str(spec.get("source_hint") or "").strip()
     if not hint:
         return False, "source_hint is empty"
@@ -428,6 +553,7 @@ def coverage_summary(ticker: str, contract: dict, root: Path = ROOT) -> dict:
     doc = read_json(path)
     specs = doc.get("specs") if isinstance(doc.get("specs"), list) else []
     typed = untestable = invalid = unanchored = resolvable = unresolvable = 0
+    eligible = diagnostic = 0
     typed_prose = set()
     for index, spec in enumerate(specs):
         if spec_errors(spec, index):
@@ -443,6 +569,10 @@ def coverage_summary(ticker: str, contract: dict, root: Path = ROOT) -> dict:
             untestable += 1
         else:
             typed += 1
+            if calibration_eligibility(spec)[0]:
+                eligible += 1
+            else:
+                diagnostic += 1
             ok, _reason = metric_resolvable(ticker, spec, root)
             if ok:
                 resolvable += 1
@@ -462,6 +592,8 @@ def coverage_summary(ticker: str, contract: dict, root: Path = ROOT) -> dict:
         "unanchored": unanchored,
         "resolvable": resolvable,
         "unresolvable": unresolvable,
+        "calibration_eligible": eligible,
+        "diagnostic_only": diagnostic,
         "spec_ref": f"{ticker}/research/falsifier_specs.json" if path.exists() else None,
         "enforcement_enabled": bool(enforcement_config(root).get("enforcement_enabled")),
     }

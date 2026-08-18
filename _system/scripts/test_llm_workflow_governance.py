@@ -144,6 +144,9 @@ class WorkflowGovernanceTests(unittest.TestCase):
         self.assertIn('gh pr list --repo "${{ github.repository }}"', continue_wf)
         self.assertIn('echo "max_parallel=1"', queue_wf)
         self.assertIn("cursor_pr_backlog_", dispatch)
+        self.assertIn('.mergeable == "MERGEABLE"', dispatch)
+        self.assertNotIn('.mergeable != "CONFLICTING"', dispatch)
+        self.assertIn("ci_checkout_workspace.sh marvin-forecast main", dispatch)
 
     def test_power_zone_writer_uses_shared_lock_and_retry_push(self):
         workflow = (ROOT / ".github" / "workflows" / "power-zone-universe.yml").read_text(encoding="utf-8")
@@ -194,6 +197,17 @@ class WorkflowGovernanceTests(unittest.TestCase):
         marvin_action = (ROOT / ".github" / "actions" / "marvin-agent" / "action.yml").read_text(encoding="utf-8")
         self.assertIn("llm_call_gate.py model", marvin_action)
         self.assertIn("CURSOR_MODEL_ID: ${{ steps.model.outputs.model }}", marvin_action)
+
+    def test_marvin_does_not_forward_large_manifest_as_cloud_env(self):
+        runner = (ROOT / "_system" / "scripts" / "marvin_deep_dive.mjs").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('${evidenceManifestJson || "{}"}', runner)
+        cloud_env = runner.split("envVars: {", 1)[1].split("},", 1)[0]
+        self.assertNotIn("RESEARCH_EVIDENCE_MANIFEST_JSON", cloud_env)
+        self.assertIn("maxStartupAttempts = 3", runner)
+        self.assertIn("err.isRetryable", runner)
+        self.assertIn("Retrying cloud startup", runner)
 
     def test_policy_encodes_expected_call_budgets(self):
         policy = json.loads((ROOT / "_system" / "config" / "llm_usage_policy.json").read_text(encoding="utf-8"))
