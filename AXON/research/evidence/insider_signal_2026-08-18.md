@@ -15,9 +15,9 @@
 
 **Routine / planned sales (context):**
 
+- Bagley Brittany: 8708 @ $615.59 on 2026-08-13
 - Kalinowski Caitlin Elizabeth: 40 @ $473.32 on 2026-06-01
 - Kalinowski Caitlin Elizabeth: 80 @ $475.185 on 2026-06-01
-- Kalinowski Caitlin Elizabeth: 84 @ $476.2662 on 2026-06-01
 
 Source: `_system/reference/market-data/insider/AXON_transactions.csv`.
 Lawrence base IRR unchanged (`in_base_irr: False`).
