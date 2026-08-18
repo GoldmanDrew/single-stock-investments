@@ -50,8 +50,8 @@
   }
   function sourceLabel(source) {
     if (!source) return 'Not synced yet';
-    if (source === 'ib_live') return 'Live TWS snapshot, account U805366';
-    if (String(source).startsWith('flex:')) return 'IBKR Flex snapshot, account U805366';
+    if (source === 'ib_live') return 'Live TWS snapshot, configured account';
+    if (String(source).startsWith('flex:')) return 'IBKR Flex snapshot, configured account';
     if (source === 'd1') return 'Saved dashboard book';
     if (source === 'desk_export' || source === 'static_fallback') return 'Last saved book on this site';
     return source;
@@ -83,7 +83,7 @@
     const positions = allPositions.filter((p) => showDust || Math.abs(Number(p.market_value) || 0) >= DUST_USD);
     const isDrew = owner === 'drew';
     const title = isDrew ? "Drew's sleeve" : "Michael's long-term book";
-    const kicker = isDrew ? '$100,000 equity · $100,000 extra margin' : 'Magis taxable account · U805366';
+    const kicker = isDrew ? '$100,000 equity · $100,000 extra margin' : 'Magis taxable account · configured account';
     const nav = Number(header.nav_usd) || allPositions.reduce((s, p) => s + Math.abs(Number(p.market_value) || 0), 0);
     const costSum = allPositions.reduce((s, p) => s + Math.abs(Number(p.cost_usd) || 0), 0);
     const pnlSum = allPositions.reduce((s, p) => s + (Number.isFinite(Number(p.pnl_usd)) ? Number(p.pnl_usd) : 0), 0);
@@ -366,25 +366,14 @@
     });
   }
 
-  function isPopulated(book) {
-    if (!book) return false;
-    return (book.positions || []).length > 0 || (book.ideas || []).length > 0;
-  }
-
   async function load(owner) {
-    let remote = null;
-    try {
-      const res = await fetch(`/api/v1/sleeves/book?owner=${encodeURIComponent(owner)}`);
-      if (res.ok) remote = await res.json();
-    } catch (_) { /* static fallback */ }
-    let local = null;
-    try {
-      const res = await fetch(`data/sleeves_${owner}.json`);
-      if (res.ok) local = await res.json();
-    } catch (_) { /* ignore */ }
-    if (isPopulated(remote)) return remote;
-    if (isPopulated(local)) return local;
-    return remote || local || Promise.reject(new Error('Could not load sleeve book'));
+    const res = await fetch(`/api/v1/sleeves/book?owner=${encodeURIComponent(owner)}`, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error || `Could not load private sleeve book (${res.status})`);
+    return payload;
   }
 
   global.SleeveViz = { render, attach, load };

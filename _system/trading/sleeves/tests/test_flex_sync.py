@@ -26,7 +26,7 @@ def test_merge_flex_marks_replaces_cost_as_mark():
     assert merged[0]["mark"] == 400
     assert merged[0]["marketValue"] == 4000
     assert merged[0]["name"] == "MICROSOFT CORP"
-    rows = parse_flex_positions(FIXTURE, account_id="U805366")
+    rows = parse_flex_positions(FIXTURE, account_id="TEST_ACCOUNT")
     assert {r["symbol"] for r in rows} >= {"CSU", "TQQQ", "APLD"}
     csu = next(r for r in rows if r["symbol"] == "CSU")
     assert csu["marketValue"] == 4000

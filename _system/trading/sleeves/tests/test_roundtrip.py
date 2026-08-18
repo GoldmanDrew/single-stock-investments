@@ -52,7 +52,7 @@ def test_ib_sync_seeds_michael_and_drew_fill_roundtrip(tmp_path):
     quote = {
         "last": 50.0,
         "as_of": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "account": "U805366",
+        "account": "TEST_ACCOUNT",
         "qualified_name": "GTX",
         "currency": "USD",
         "exchange": "SMART",

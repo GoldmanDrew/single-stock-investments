@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up portfolio hub SQLite ledger
+
+[Service]
+Type=oneshot
+User=portfolio-hub
+WorkingDirectory=/opt/single-stock-investments
+ExecStart=/opt/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub --db /var/lib/portfolio-hub/portfolio.db backup --output-dir /var/lib/portfolio-hub/backups
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/portfolio-hub

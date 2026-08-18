@@ -1,0 +1,19 @@
+[Unit]
+Description=Magis portfolio hub IBKR collector
+After=network-online.target ibgateway.service
+
+[Service]
+Type=simple
+User=portfolio-hub
+WorkingDirectory=/opt/single-stock-investments
+EnvironmentFile=/etc/portfolio-hub/portfolio-hub.env
+ExecStart=/opt/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub --db /var/lib/portfolio-hub/portfolio.db collect
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/portfolio-hub
+
+[Install]
+WantedBy=multi-user.target

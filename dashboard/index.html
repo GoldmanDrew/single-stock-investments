@@ -12,6 +12,7 @@
 <link href="insights-events.css" rel="stylesheet">
 <link href="short-alpha.css" rel="stylesheet">
 <link href="warrants.css" rel="stylesheet">
+<link href="portfolio.css" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #0a0e17;
@@ -1644,7 +1645,10 @@
   </section>
 
   <nav class="view-tabs" id="view-tabs" aria-label="Primary" role="tablist">
-    <button type="button" class="view-tab active" data-view="holdings" role="tab" aria-selected="true">Holdings</button>
+    <button type="button" class="view-tab active" data-view="portfolio" role="tab" aria-selected="true">Portfolio</button>
+    <button type="button" class="view-tab" data-view="spx-0dte" role="tab" aria-selected="false">SPX 0DTE</button>
+    <button type="button" class="view-tab" data-view="letf" role="tab" aria-selected="false">Leveraged ETFs</button>
+    <button type="button" class="view-tab" data-view="holdings" role="tab" aria-selected="false">Research</button>
     <button type="button" class="view-tab" data-view="risk" role="tab" aria-selected="false">Risk</button>
     <button type="button" class="view-tab" data-view="short-alpha" role="tab" aria-selected="false">Short Alpha</button>
     <button type="button" class="view-tab" data-view="watchlist" role="tab" aria-selected="false">Watchlist</button>
@@ -1652,12 +1656,14 @@
     <button type="button" class="view-tab" data-view="insights" role="tab" aria-selected="false">Insights</button>
     <button type="button" class="view-tab" data-view="activist" role="tab" aria-selected="false">Activist</button>
     <button type="button" class="view-tab" data-view="darwin" role="tab" aria-selected="false">Darwin</button>
-    <button type="button" class="view-tab" data-view="drew" role="tab" aria-selected="false">Drew</button>
-    <button type="button" class="view-tab" data-view="michael" role="tab" aria-selected="false">Michael</button>
   </nav>
 
   <main id="main-content">
   <section class="summary-strip" id="summary"></section>
+
+  <section class="portfolio-panel active" id="portfolio-panel" aria-label="IBKR portfolio"><div id="portfolio-content"></div></section>
+  <section class="portfolio-panel" id="spx-0dte-panel" aria-label="SPX 0DTE strategy"><div id="spx-0dte-content"></div></section>
+  <section class="portfolio-panel" id="letf-panel" aria-label="Leveraged ETF strategies"><div id="letf-content"></div></section>
 
   <div class="holdings-view" id="holdings-view">
   <div class="toolbar">
@@ -1804,6 +1810,7 @@
 <script src="short-alpha-viz.js"></script>
 <script src="warrant-viz.js"></script>
 <script src="sleeve-viz.js"></script>
+<script src="portfolio-viz.js"></script>
 <script src="oauth.js"></script>
 <script>
 const GH_REPO = 'magis-capital-partners/single-stock-investments';
@@ -1978,7 +1985,7 @@ function syncHoldingsQuery() {
   });
   window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
 }
-let activeView = 'holdings';
+let activeView = 'portfolio';
 let valuationOpenEvidenceTab = false;
 let activeDarwinAccount = 'roth';
 let expandedPersona = null;
@@ -2136,6 +2143,14 @@ function setAppHash(nextHash) {
 }
 
 function parseRouteFromHashString(hash) {
+  const portfolioMatch = /^#\/portfolio(?:\/(all|drew|michael))?(?:\/(positions|risk|margin|performance|orders|reconciliation))?$/i.exec(hash || '');
+  if (portfolioMatch) {
+    return { view: 'portfolio', scope: (portfolioMatch[1] || 'all').toLowerCase(), section: (portfolioMatch[2] || 'positions').toLowerCase(), ticker: null, watchlistSub: null };
+  }
+  const strategyMatch = /^#\/(spx-0dte|letf)(?:\/(overview|b1|b2|b3|b4|b5))?$/i.exec(hash || '');
+  if (strategyMatch) {
+    return { view: strategyMatch[1].toLowerCase(), strategySection: (strategyMatch[2] || 'overview').toLowerCase(), ticker: null, watchlistSub: null };
+  }
   const holdingsMatch = /^#\/holdings(?:\/([^/?#]+))?$/i.exec(hash || '');
   if (holdingsMatch) {
     return {
@@ -2155,7 +2170,9 @@ function parseRouteFromHashString(hash) {
   const sleeveMatch = /^#\/(drew|michael)(?:\/([^/?#]+))?$/i.exec(hash || '');
   if (sleeveMatch) {
     return {
-      view: sleeveMatch[1].toLowerCase(),
+      view: 'portfolio',
+      scope: sleeveMatch[1].toLowerCase(),
+      section: 'positions',
       ticker: sleeveMatch[2] ? decodeURIComponent(sleeveMatch[2]).toUpperCase() : null,
       watchlistSub: null,
     };
@@ -2176,7 +2193,13 @@ function parseRouteFromHash() {
 }
 
 function syncRouteHash() {
-  if (activeView === 'holdings') {
+  if (activeView === 'portfolio') {
+    setAppHash(`#/portfolio/${window.PortfolioViz?.state.scope || 'all'}/${window.PortfolioViz?.state.section || 'positions'}`);
+  } else if (activeView === 'spx-0dte') {
+    setAppHash(`#/spx-0dte/${window.PortfolioViz?.state.strategySection || 'overview'}`);
+  } else if (activeView === 'letf') {
+    setAppHash(`#/letf/${window.PortfolioViz?.state.strategySection || 'overview'}`);
+  } else if (activeView === 'holdings') {
     setAppHash(selected ? `#/holdings/${encodeURIComponent(selected)}` : '#/holdings');
   } else if (activeView === 'watchlist') {
     const sub = WATCHLIST_VIEWS.has(watchlistViewMode) ? watchlistViewMode : defaultWatchlistView();
@@ -2196,9 +2219,8 @@ function applyRouteFromHash() {
     watchlistViewMode = route.watchlistSub;
     try { localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistViewMode); } catch (_) { /* ignore */ }
   }
-  if ((route.view === 'drew' || route.view === 'michael') && route.ticker) {
-    sleevePrefill[route.view] = route.ticker;
-  }
+  if (route.view === 'portfolio' && window.PortfolioViz) PortfolioViz.setRoute(route.scope || 'all', route.section || 'positions');
+  if ((route.view === 'spx-0dte' || route.view === 'letf') && window.PortfolioViz) PortfolioViz.setStrategyRoute(route.strategySection || 'overview');
   setView(route.view, { syncHash: false });
   if (route.view === 'holdings' && route.ticker) {
     const hit = data.tickers.find(x => x.ticker === route.ticker);
@@ -3107,7 +3129,7 @@ async function load() {
   renderInsights();
   renderActivist();
   renderMarketRiskView();
-  if (!applyRouteFromHash() && data.tickers.length) selectTicker(data.tickers[0].ticker);
+  if (!applyRouteFromHash()) setView('portfolio');
   else if (activeView === 'watchlist') renderWatchlistTab();
 }
 
@@ -3255,6 +3277,10 @@ function renderSleeveTab(owner) {
 }
 
 function setView(view, opts = {}) {
+  if (view === 'drew' || view === 'michael') {
+    if (window.PortfolioViz) PortfolioViz.setRoute(view, 'positions');
+    view = 'portfolio';
+  }
   activeView = view;
   document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
     const active = b.dataset.view === view;
@@ -3262,6 +3288,9 @@ function setView(view, opts = {}) {
     b.setAttribute('aria-selected', String(active));
   });
   document.getElementById('holdings-view').classList.toggle('hidden', view !== 'holdings');
+  document.getElementById('portfolio-panel')?.classList.toggle('active', view === 'portfolio');
+  document.getElementById('spx-0dte-panel')?.classList.toggle('active', view === 'spx-0dte');
+  document.getElementById('letf-panel')?.classList.toggle('active', view === 'letf');
   document.getElementById('darwin-panel').classList.toggle('active', view === 'darwin');
   document.getElementById('insights-panel').classList.toggle('active', view === 'insights');
   document.getElementById('activist-panel').classList.toggle('active', view === 'activist');
@@ -3288,6 +3317,9 @@ function setView(view, opts = {}) {
   if (view === 'activist') renderActivist();
   if (view === 'darwin') renderDarwin();
   if (view === 'drew' || view === 'michael') renderSleeveTab(view);
+  if (view === 'portfolio' && window.PortfolioViz) PortfolioViz.openPortfolio(() => syncRouteHash());
+  if (view === 'spx-0dte' && window.PortfolioViz) PortfolioViz.openStrategy('spx_0dte', () => syncRouteHash());
+  if (view === 'letf' && window.PortfolioViz) PortfolioViz.openStrategy('ls_risk', () => syncRouteHash());
   if (opts.syncHash !== false) syncRouteHash();
 }
 
