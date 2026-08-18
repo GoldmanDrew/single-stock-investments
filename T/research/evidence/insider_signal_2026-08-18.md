@@ -1,0 +1,28 @@
+# T — Insider conviction (2026-08-18)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| Desroches Pascal | 2026-03-31 | 121297 | $28.99 | $3516400.03 | 2.278 |
+| Sabrina Sanders S | 2026-03-31 | 1588 | $28.99 | $46036.12 | 1.898 |
+| McElfresh Jeffery S. | 2026-03-31 | 13018 | $28.99 | $377391.82 | 1.747 |
+| Desroches Pascal | 2026-06-30 | 2003 | $20.7 | $41462.1 | 1.268 |
+| Desroches Pascal | 2026-01-30 | 3021 | $26.21 | $79180.41 | 1.24 |
+
+**Routine / planned sales (context):**
+
+- Desroches Pascal: 52252 @ $28.98 on 2026-03-10
+- Desroches Pascal: 352000 @ $0.0 on 2026-02-25
+- Desroches Pascal: 10504 @ $28.8 on 2026-02-13
+
+Source: `_system/reference/market-data/insider/T_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
