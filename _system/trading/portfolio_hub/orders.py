@@ -63,7 +63,7 @@ class GuardedOrderService:
     def __init__(self, ledger: PortfolioLedger, broker: OrderBroker, approval_secret: str,
                  *, max_notional: Decimal = Decimal("25000"), approval_ttl_seconds: int = 120,
                  live_enabled: bool = False, quote_max_age_seconds: int = 10,
-                 max_price_deviation_bps: Decimal = Decimal("500")):
+                 max_price_deviation_bps: Decimal = Decimal("500"), kill_switch: bool = False):
         if not approval_secret:
             raise ValueError("approval_secret is required")
         self.ledger = ledger
@@ -74,8 +74,11 @@ class GuardedOrderService:
         self.live_enabled = live_enabled
         self.quote_max_age_seconds = quote_max_age_seconds
         self.max_price_deviation_bps = max_price_deviation_bps
+        self.kill_switch = kill_switch
 
     def create(self, intent: OrderIntent) -> dict[str, Any]:
+        if self.kill_switch:
+            raise ValueError("kill switch engaged")
         ticket = intent.normalized()
         self._validate(ticket)
         now = utc_now()
@@ -146,6 +149,8 @@ class GuardedOrderService:
         order = self.get(intent_uuid)
         if order["state"] != "Approved":
             raise ValueError("order must be Approved")
+        if self.kill_switch:
+            return self._transition(intent_uuid, "Rejected", "kill_switch_engaged", {})
         if order["mode"] == "live" and not self.live_enabled:
             return self._transition(intent_uuid, "Rejected", "live_interlock_disabled", {})
         self._transition(intent_uuid, "Submitting", "submit_started", {})

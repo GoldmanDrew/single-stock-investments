@@ -39,8 +39,23 @@ export async function onRequestGet(context) {
     return json({
       schema_version: "portfolio_risk.v1", scope: owner, gross_exposure: gross, net_exposure: net,
       concentration, linear_sensitivities: linear,
+      factors: owner === "all" ? (strategyResult.results || []).flatMap((stored) => {
+        const payload = JSON.parse(stored.payload_json);
+        return (payload.rows || []).filter((row) => row.metrics && (row.metrics.beta_exposure != null || row.metrics.delta_exposure != null)).map((row) => ({
+          row_id: row.row_id, symbol: row.symbol, producer: payload.producer, bucket: row.bucket,
+          reconciliation_role: row.reconciliation_role, exposure_basis: row.exposure_basis,
+          beta_exposure: row.metrics.beta_exposure ?? null, delta_exposure: row.metrics.delta_exposure ?? null,
+          supported_scopes: payload.supported_scopes || ["account"],
+        }));
+      }) : [],
+      scenarios: [],
       coverage: { broker_positions: positions.length, producer_atomic_rows: atomicRows, linked_atomic_rows: linkedRows },
-      nonlinear: { supported: owner === "all", value: null, null_reason: "scenario vectors have not been published at this scope" },
+      nonlinear: { supported: owner === "all", value: null, null_reason: owner === "all" ? "scenario vectors have not been published at this scope" : "nonlinear metrics are not pro-rated across owners" },
+      lineage: {
+        exposures: { source: "IBKR positions", value_kind: "broker_reported", as_of: book?.snapshot?.as_of || null },
+        factors: { source: "strategy_snapshot.v1", value_kind: "model_estimate" },
+        scenarios: { source: null, null_reason: "scenario vectors have not been published" },
+      },
       request_id: id,
     }, 200, { "cache-control": "private, no-store" });
   } catch (error) { return failure(error, id); }

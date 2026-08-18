@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -106,3 +106,43 @@ def test_default_sell_is_reduce_only_and_cannot_cross_zero(ledger):
     created = service.create(intent)
     assert created["reduce_only"] == 1
     assert service.preview(created["intent_uuid"])["state"] == "Rejected"
+
+
+def test_stale_quote_reject_kill_switch_and_foreign_order_coexistence(ledger):
+    stale = FakeBroker()
+    stale.quote = lambda conid: {
+        "conid": conid, "bid": "9.99", "ask": "10.01",
+        "as_of": (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat(),
+        "multiplier": "1", "min_tick": "0.01", "current_position": "10",
+    }
+    stale_service = GuardedOrderService(ledger, stale, "test-secret")
+    assert stale_service.preview(stale_service.create(make_intent())["intent_uuid"])["state"] == "Rejected"
+
+    with pytest.raises(ValueError, match="kill switch"):
+        GuardedOrderService(ledger, FakeBroker(), "test-secret", kill_switch=True).create(make_intent())
+
+    service = GuardedOrderService(ledger, FakeBroker(), "test-secret")
+    approved = approve(service, service.create(make_intent()))
+    service.kill_switch = True
+    assert service.submit(approved["intent_uuid"])["state"] == "Rejected"
+
+    foreign = GuardedOrderService(ledger, FakeBroker(), "test-secret")
+    submitted = foreign.submit(approve(foreign, foreign.create(make_intent()))["intent_uuid"])
+    ledger.connection.execute("UPDATE order_intents SET order_ref=?, client_id=?, order_id=? WHERE intent_uuid=?", ("TWS|manual", 0, 700, submitted["intent_uuid"]))
+    with pytest.raises(ValueError, match="ownership is not proven"):
+        foreign.request_cancel(submitted["intent_uuid"])
+
+
+def test_gateway_restart_recovers_owned_working_order(ledger):
+    broker = FakeBroker()
+    service = GuardedOrderService(ledger, broker, "test-secret")
+    approved = approve(service, service.create(make_intent()))
+    broker.uncertain = True
+    uncertain = service.submit(approved["intent_uuid"])
+    assert uncertain["state"] == "SubmitUncertain"
+    broker.placed = []
+    broker.uncertain = False
+    broker.find_owned_order = lambda order_ref: {"order_ref": order_ref, "perm_id": 5001, "gateway_session_id": "gw-restart"}
+    recovered = service.reconcile_uncertain(approved["intent_uuid"])
+    assert recovered["state"] == "Acknowledged"
+

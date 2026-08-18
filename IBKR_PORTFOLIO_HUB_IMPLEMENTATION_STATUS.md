@@ -1,11 +1,13 @@
 # IBKR Portfolio Hub implementation status
 
-Date: 2026-08-17
+Date: 2026-08-18
 
 ## Implemented in this repository
 
 - Portfolio / All / Drew / Michael navigation, full positions grid, Risk, Margin & Liquidity, Performance, Orders, and Reconciliation views.
-- Separate SPX 0DTE and Leveraged ETF Overview/B1–B5 product pages.
+- Position detail drawers, linked-symbol navigation, configurable columns, saved views, click-through metric lineage, factor/scenario drill-down, and NAV-vs-benchmark charting with withheld SPY until cash-flow coverage exists.
+- Visible quarantine for unallocated conIds and opening cash; unresolved ownership never defaults to Drew or Michael.
+- Separate SPX 0DTE and Leveraged ETF Overview/B1–B5 product pages, with dual-publish adapters that keep SPX, live B5, and B5-product research semantics apart.
 - Versioned contracts for broker snapshots, canonical positions, strategy snapshots, Flex EOD, allocation projections, and order intents.
 - SQLite/WAL private ledger with transactional outbox, snapshot watermarks, `account + conId + model_code` identity, allocation lots, multi-currency cash events, immutable broker/order/execution events, and online backups.
 - Quantity and cash reconciliation; incomplete broker snapshots are never interpreted as flat.
@@ -14,20 +16,21 @@ Date: 2026-08-17
 - Explicit SPX, LS-risk, live-B5, and research-B5 adapters with role/basis/denominator/provenance boundaries.
 - Cloudflare v2 private read model using D1 plus immutable R2 evidence, body-bound signed ingest, replay and business-idempotency controls, and origin-side Access JWT verification.
 - Deploy-time exclusion and scanning of private static artifacts and broker identifiers; post-deploy unauthenticated denial tests.
-- Paper-first exact-contract Python limit-order API with quote freshness, NBBO price band, market tick, notional, reduce-only, what-if, ticket-bound approval, positive orderRef, partial fills, cancel/fill races, and uncertain-send reconciliation.
+- Pages deploy continues if Access/R2/ingest secrets are still missing; portfolio APIs stay fail-closed and public research still publishes.
+- Paper-first exact-contract Python limit-order API with quote freshness, NBBO price band, market tick, notional, reduce-only, what-if, ticket-bound approval, positive orderRef, partial fills, cancel/fill races, kill switch, foreign-order non-cancel, Gateway-restart recovery, and uncertain-send reconciliation.
 - NY4 systemd definitions for collector, publisher, health monitor, and backups; client-ID/ownership ADR and incident/restore runbook.
-- Legacy bootstrap review tooling that refuses ambiguous ticker-to-conId or conflicting-owner mappings.
+- Legacy bootstrap review tooling that refuses ambiguous ticker-to-conId or conflicting-owner mappings, quarantines unmatched cash, and classifies SPX/B1–B5 only from positive evidence.
 
 ## External activation gates
 
 These cannot be completed safely from a source checkout and intentionally fail closed:
 
-1. Configure Cloudflare Access application/audience, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `PORTFOLIO_INGEST_TOKEN`, `IBKR_ACCOUNT_IDS_FOR_SCAN`, and the private R2 bucket through the deployment environment.
+1. Configure Cloudflare Access application/audience, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `PORTFOLIO_INGEST_TOKEN`, `IBKR_ACCOUNT_IDS_FOR_SCAN`, and the private R2 bucket through the Magis deployment environment. GitHub does not yet have those portfolio secrets, and R2 is not enabled on the personal Cloudflare account attached to this workstation.
 2. Install the NY4 services, inject the account alias/ID and Gateway settings, register unique client IDs, and prove account/order visibility.
 3. Provision the required Flex queries and credentials, then reconcile one completed statement through trades, commissions, cash, NAV, and positions.
 4. Deploy positive SPX and LS `orderRef` namespaces in their producer repositories, dual-publish the versioned artifacts, and classify 100% of working orders before central paper submission.
 5. Export both local SleeveStore and hosted D1 v1 data, review the generated bootstrap artifact, approve exact conId allocations and opening cash, then dual-run v1/v2.
-6. Pass paper scenarios against the real Gateway: duplicate intent, reject, partial fill, cancel/fill race, Gateway restart, disconnect-after-send, stale quote, kill switch, and foreign/manual order coexistence.
+6. Pass paper scenarios against the real Gateway: duplicate intent, reject, partial fill, cancel/fill race, Gateway restart, disconnect-after-send, stale quote, kill switch, and foreign/manual order coexistence. Simulated versions of those scenarios now exist in-repo.
 7. Enable a tightly capped live canary only after explicit human approval. Source defaults remain dry-run/paper and `live_enabled=false`.
 
-No live order, Cloudflare deployment, credential change, sibling-repository change, or allocation guess was performed by this implementation.
+No live order, Magis Cloudflare credential change, sibling-repository change, or allocation guess was performed by this implementation.

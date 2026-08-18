@@ -30,6 +30,17 @@ export async function onRequestGet(context) {
       null_reason: owner === "all" ? "external cash-flow coverage is not complete" : "owner NAV requires complete allocation and cash history",
       pnl_series: { intraday: "ibkr_pnl", completed_session: "flex_immutable", restatements: "separate" },
       completed_sessions: flex.results || [],
+      benchmark: {
+        symbol: "SPY",
+        series: [],
+        null_reason: "benchmark series is withheld until a complete cash-flow-aware NAV history exists",
+      },
+      lineage: {
+        nav: { source: "IBKR account summary", tag: "NetLiquidation", value_kind: "broker_reported" },
+        sessions: { source: "IBKR Flex EOD", value_kind: "completed_session" },
+        twr: { source: null, null_reason: owner === "all" ? "external cash-flow coverage is not complete" : "owner NAV requires complete allocation and cash history" },
+        benchmark: { source: null, symbol: "SPY", null_reason: "benchmark series has not been published" },
+      },
       request_id: id,
     }, 200, { "cache-control": "private, no-store" });
   } catch (error) { return failure(error, id); }

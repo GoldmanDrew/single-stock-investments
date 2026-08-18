@@ -42,3 +42,23 @@ test("portfolio ingest signature is body-bound", async () => {
   assert.deepEqual(await verifyPortfolioHmac(request, { PORTFOLIO_INGEST_TOKEN: secret }, body), { timestamp, nonce });
   assert.equal(await verifyPortfolioHmac(request, { PORTFOLIO_INGEST_TOKEN: secret }, new TextEncoder().encode("changed")), false);
 });
+
+test("open orders are validated without mutating storage", () => {
+  const payload = accountSnapshot();
+  payload.open_orders = [{ order_id: 7, ownership: "foreign" }];
+  assert.equal(validateAccountSnapshot(payload).open_orders[0].ownership, "foreign");
+  const bad = accountSnapshot();
+  bad.open_orders = [{ order_id: 7, ownership: "shared" }];
+  assert.throws(() => validateAccountSnapshot(bad), /open-order/);
+});
+
+test("B5 product snapshots cannot broker-reconcile", () => {
+  const payload = {
+    schema_version: "strategy_snapshot.v1", producer: "ls_bucket5_product", source_run_id: "p1",
+    as_of: "2026-08-17T14:00:00Z", complete: true,
+    rows: [{ row_id: "r1", reconciliation_role: "research_only", exposure_basis: "research" }],
+  };
+  assert.equal(validateStrategySnapshot(payload).producer, "ls_bucket5_product");
+  payload.rows[0].conid = 12;
+  assert.throws(() => validateStrategySnapshot(payload), /cannot broker-reconcile/);
+});

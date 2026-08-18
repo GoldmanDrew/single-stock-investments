@@ -53,16 +53,28 @@ export function validateAccountSnapshot(payload) {
       throw new TypeError("Invalid broker open-order row");
     }
   }
-  for (const row of payload.open_orders || []) statements.push(db.prepare(`INSERT INTO portfolio_broker_orders
-    (source_run_id,account_alias,client_id,order_id,perm_id,conid,symbol,action,order_type,total_quantity_decimal,limit_price_decimal,tif,status,order_ref,ownership,parent_id,oca_group,as_of)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(payload.source_run_id, payload.account_alias, row.client_id ?? null, row.order_id, row.perm_id ?? null, row.conid ?? null, row.symbol || null, row.action || null, row.order_type || null, row.total_quantity ?? null, row.limit_price ?? null, row.tif || null, row.status || null, row.order_ref || null, row.ownership || "foreign", row.parent_id ?? null, row.oca_group || null, row.as_of || payload.as_of));
   return payload;
 }
 
+const STRATEGY_PRODUCERS = new Set(["spx_0dte", "ls_risk", "ls_bucket5_live", "ls_bucket5_product"]);
+
 export function validateStrategySnapshot(payload) {
   if (payload?.schema_version !== "strategy_snapshot.v1" || !payload.producer
-      || !payload.source_run_id || !payload.as_of || typeof payload.complete !== "boolean"
-      || !Array.isArray(payload.rows)) throw new TypeError("Invalid strategy_snapshot.v1 envelope");
+      || !STRATEGY_PRODUCERS.has(payload.producer) || !payload.source_run_id || !payload.as_of
+      || typeof payload.complete !== "boolean" || !Array.isArray(payload.rows)) {
+    throw new TypeError("Invalid strategy_snapshot.v1 envelope");
+  }
+  for (const row of payload.rows) {
+    if (!row?.row_id || !row.reconciliation_role || !row.exposure_basis) {
+      throw new TypeError("Invalid strategy snapshot row");
+    }
+    if (payload.producer === "ls_bucket5_product" && (row.reconciliation_role !== "research_only" || row.conid)) {
+      throw new TypeError("B5 product snapshot cannot broker-reconcile");
+    }
+    if (payload.producer === "ls_bucket5_live" && row.bucket !== "B5") {
+      throw new TypeError("live B5 snapshot leaked a non-B5 row");
+    }
+  }
   return payload;
 }
 
@@ -126,6 +138,16 @@ export async function storeAccountSnapshot(env, payload, bytes) {
       row.right || null, row.multiplier || null, String(row.quantity), row.average_cost ?? null, row.mark ?? null,
       row.market_value ?? null, row.unrealized_pnl ?? null, row.realized_pnl ?? null, row.daily_pnl ?? null,
       row.source, row.quality || "unknown", row.as_of,
+    ));
+  }
+  for (const row of payload.open_orders || []) {
+    statements.push(db.prepare(`INSERT INTO portfolio_broker_orders
+      (source_run_id,account_alias,client_id,order_id,perm_id,conid,symbol,action,order_type,total_quantity_decimal,limit_price_decimal,tif,status,order_ref,ownership,parent_id,oca_group,as_of)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+      payload.source_run_id, payload.account_alias, row.client_id ?? null, row.order_id, row.perm_id ?? null,
+      row.conid ?? null, row.symbol || null, row.action || null, row.order_type || null, row.total_quantity ?? null,
+      row.limit_price ?? null, row.tif || null, row.status || null, row.order_ref || null, row.ownership || "foreign",
+      row.parent_id ?? null, row.oca_group || null, row.as_of || payload.as_of,
     ));
   }
   await db.batch(statements);

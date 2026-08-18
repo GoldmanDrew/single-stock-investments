@@ -12,6 +12,8 @@ from .ledger import PortfolioLedger
 from .broker import BrokerProfile, IBAsyncCollector
 from .publisher import publish_payload
 from .adapters import normalize_ls_bucket5_live, normalize_ls_bucket5_product, normalize_ls_snapshot, normalize_spx_status
+from .bootstrap import apply_approved_bootstrap, build_bootstrap_plan
+from .dual_publish import build_dual_publish_bundle, publish_dual_bundle, write_dual_publish_bundle
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,7 +40,23 @@ def main(argv: list[str] | None = None) -> int:
     backup = commands.add_parser("backup"); backup.add_argument("--output-dir", type=Path, required=True)
     for name in ("adapt-spx", "adapt-ls", "adapt-b5-live", "adapt-b5-product"):
         adapter = commands.add_parser(name); adapter.add_argument("input", type=Path); adapter.add_argument("output", type=Path)
-    publish_file = commands.add_parser("publish-file"); publish_file.add_argument("payload", type=Path); publish_file.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
+    bootstrap = commands.add_parser("bootstrap-plan")
+    bootstrap.add_argument("--positions", type=Path, required=True)
+    bootstrap.add_argument("--tags", type=Path)
+    bootstrap.add_argument("--hosted", type=Path)
+    bootstrap.add_argument("--cash", type=Path)
+    bootstrap.add_argument("--producers", type=Path)
+    bootstrap.add_argument("--output", type=Path, required=True)
+    apply_boot = commands.add_parser("bootstrap-apply")
+    apply_boot.add_argument("review", type=Path)
+    apply_boot.add_argument("--effective-at", required=True)
+    dual = commands.add_parser("dual-publish")
+    dual.add_argument("--spx", type=Path)
+    dual.add_argument("--ls", type=Path)
+    dual.add_argument("--b5-live", type=Path)
+    dual.add_argument("--b5-product", type=Path)
+    dual.add_argument("--output-dir", type=Path, required=True)
+    dual.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
     args = parser.parse_args(argv)
     ledger = PortfolioLedger(args.db)
     try:
@@ -89,6 +107,25 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "publish-file":
             if not args.url: raise RuntimeError("PORTFOLIO_INGEST_URL is required")
             print(json.dumps(publish_payload(args.url, os.environ.get("PORTFOLIO_INGEST_TOKEN", ""), json.loads(args.payload.read_text(encoding="utf-8"))), indent=2))
+        elif args.command == "bootstrap-plan":
+            review = build_bootstrap_plan(
+                broker_positions=json.loads(args.positions.read_text(encoding="utf-8")),
+                local_tags=json.loads(args.tags.read_text(encoding="utf-8")) if args.tags else {},
+                hosted_rows=json.loads(args.hosted.read_text(encoding="utf-8")) if args.hosted else [],
+                cash_balances=json.loads(args.cash.read_text(encoding="utf-8")) if args.cash else [],
+                producer_rows=json.loads(args.producers.read_text(encoding="utf-8")) if args.producers else [],
+            )
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(review, indent=2) + "\n", encoding="utf-8")
+            print(json.dumps({"proposed": len(review["proposed"]), "quarantined": len(review["quarantined"]), "cash": len(review["cash_events"])}))
+        elif args.command == "bootstrap-apply":
+            print(json.dumps(apply_approved_bootstrap(ledger, json.loads(args.review.read_text(encoding="utf-8")), effective_at=args.effective_at), indent=2))
+        elif args.command == "dual-publish":
+            snapshots = build_dual_publish_bundle(spx=args.spx, ls_risk=args.ls, ls_bucket5_live=args.b5_live, ls_bucket5_product=args.b5_product)
+            written = write_dual_publish_bundle(snapshots, args.output_dir)
+            if args.url:
+                print(json.dumps(publish_dual_bundle(args.url, os.environ.get("PORTFOLIO_INGEST_TOKEN", ""), snapshots), indent=2))
+            print(json.dumps({"written": [str(path) for path in written], "producers": [row["producer"] for row in snapshots]}))
     finally:
         ledger.close()
     return 0
