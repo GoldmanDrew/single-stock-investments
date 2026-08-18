@@ -109,22 +109,11 @@ runs:
           DATABASE_ID="$(resolve_database_id)"
         fi
 
-        PRIVATE_ARCHIVE_READY=0
-        BUCKETS="$($WRANGLER r2 bucket list --json 2>/dev/null || true)"
-        if jq -e --arg name "$PRIVATE_BUCKET" '
-          (if type == "array" then . elif type == "object" then (.buckets // .result // []) else [] end)
-          | any((.name // .bucket) == $name)
-        ' <<<"$BUCKETS" >/dev/null 2>&1; then
-          PRIVATE_ARCHIVE_READY=1
-        else
-          CREATE_LOG="$RUNNER_TEMP/cf-r2-create.log"
-          if "$WRANGLER" r2 bucket create "$PRIVATE_BUCKET" >"$CREATE_LOG" 2>&1; then
-            PRIVATE_ARCHIVE_READY=1
-          else
-            echo "Private R2 bucket is not available yet; portfolio ingest stays fail-closed."
-            cat "$CREATE_LOG" >&2 || true
-          fi
-        fi
+        # Magis bucket already exists. Wrangler r2 list/create can fail when the
+        # deploy token lacks R2 admin; skip that probe and always bind so ingest
+        # does not stay fail-closed.
+        PRIVATE_ARCHIVE_READY=1
+        echo "Binding PRIVATE_ARTIFACTS to $PRIVATE_BUCKET."
         if [ -z "$DATABASE_ID" ]; then
           echo "Cloudflare did not return a database ID for $DATABASE_NAME" >&2
           exit 1
