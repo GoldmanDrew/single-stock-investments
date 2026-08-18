@@ -17,6 +17,9 @@ on:
       - Auto - IR Recovery
     types: [completed]
     branches: [main]
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 permissions:
   actions: read
@@ -26,14 +29,14 @@ permissions:
   checks: read
 
 concurrency:
-  group: ci-autofix-${{ github.event.workflow_run.id }}
+  group: ci-autofix-${{ github.event.workflow_run.id || github.event_name }}
   cancel-in-progress: false
 
 jobs:
   triage-and-dispatch:
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.name != 'Auto - CI Repair'
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.name != 'Auto - CI Repair'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Skip fast failures
@@ -67,6 +70,7 @@ jobs:
             _system/ci_autofix
             _system/scripts/llm_call_gate.py
             _system/config/llm_usage_policy.json
+            .github/ci-autofix.yml
           sparse-checkout-cone-mode: false
           filter: blob:none
 
@@ -99,6 +103,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           CI_AUTOFIX_RUN_ID: ${{ github.event.workflow_run.id }}
           CI_AUTOFIX_FORCE_AGENT: "false"
           LLM_LEDGER_PATH: .llm-state/ci_autofix/ledger.jsonl
@@ -116,3 +122,38 @@ jobs:
       - name: Skipped short failure
         if: github.event_name == 'workflow_run' && steps.duration.outputs.long_enough != 'true'
         run: echo "Skipping CI Autofix — upstream failure shorter than 5 minutes."
+
+  followup:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/ci_autofix
+            .github/ci-autofix.yml
+          sparse-checkout-cone-mode: false
+          filter: blob:none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: _system/ci_autofix/package-lock.json
+
+      - name: Install CI Autofix dependencies
+        working-directory: _system/ci_autofix
+        run: npm ci
+
+      - name: Close the Slack inbox loop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: node _system/ci_autofix/followup.mjs

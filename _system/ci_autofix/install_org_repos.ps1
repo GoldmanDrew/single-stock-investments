@@ -101,6 +101,8 @@ on:
 $workflowRunList
     types: [completed]
     branches: [main]
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       run_id:
@@ -119,7 +121,7 @@ permissions:
   checks: read
 
 concurrency:
-  group: ci-autofix-`${{ github.event.workflow_run.id || github.event.inputs.run_id }}
+  group: ci-autofix-`${{ github.event.workflow_run.id || github.event.inputs.run_id || github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -131,7 +133,7 @@ jobs:
         github.event.workflow_run.name != 'CI Autofix'
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -162,6 +164,8 @@ jobs:
           GITHUB_TOKEN: `${{ github.token }}
           CURSOR_API_KEY: `${{ secrets.CURSOR_API_KEY }}
           SLACK_WEBHOOK_URL: `${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: `${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: `${{ secrets.SLACK_CHANNEL_ID }}
           CI_AUTOFIX_RUN_ID: `${{ github.event.inputs.run_id || github.event.workflow_run.id }}
           CI_AUTOFIX_FORCE_AGENT: `${{ github.event.inputs.force_agent || 'false' }}
           LLM_LEDGER_PATH: .llm-state/ci_autofix/ledger.jsonl
@@ -174,6 +178,35 @@ jobs:
           name: llm-audit-ci-`${{ github.run_id }}
           path: .llm-state/ci_autofix/ledger.jsonl
           if-no-files-found: ignore
+
+  followup:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: _system/ci_autofix/package-lock.json
+
+      - name: Install CI Autofix dependencies
+        working-directory: _system/ci_autofix
+        run: npm ci
+
+      - name: Close the Slack inbox loop
+        env:
+          GH_TOKEN: `${{ github.token }}
+          GITHUB_TOKEN: `${{ github.token }}
+          CURSOR_API_KEY: `${{ secrets.CURSOR_API_KEY }}
+          SLACK_WEBHOOK_URL: `${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: `${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: `${{ secrets.SLACK_CHANNEL_ID }}
+        run: node _system/ci_autofix/followup.mjs
 "@
 
     $config = @"
@@ -203,6 +236,8 @@ github:
 slack:
   enabled: true
   mention: ""
+  notify_human_needed: true
+  mute_notify_only: true
 
 classify:
   notify_only:

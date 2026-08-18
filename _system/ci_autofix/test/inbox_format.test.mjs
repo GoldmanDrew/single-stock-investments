@@ -25,6 +25,11 @@ test("mutes ordinary notify-only failures", () => {
   assert.equal(isHumanNeeded({ reason: "Change surface too broad: 5 failed jobs exceeds 2." }), true);
 });
 
+test("mute_notify_only false posts every notify-only failure", () => {
+  const config = { slack: { enabled: true, mute_notify_only: false, notify_human_needed: true } };
+  assert.equal(shouldPostSlack("human_needed", { category: "transient", reason: "timeout" }, config), true);
+});
+
 test("posts working and completion kinds even when classification is quiet", () => {
   const config = { slack: { enabled: true } };
   assert.equal(shouldPostSlack("working", { category: "test_failure" }, config), true);

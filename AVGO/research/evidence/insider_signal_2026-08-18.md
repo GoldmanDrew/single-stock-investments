@@ -2,18 +2,18 @@
 
 > Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
 
-**ICS:** 6.69 (strong) · **Bull case support:** moderate
+**ICS:** 6.43 (strong) · **Bull case support:** moderate
 
 | Scenario | Prior weight | Tilted weight |
 |----------|--------------|---------------|
 | Bear | 20% | 20% |
-| Base | 55% | 48% |
-| Bull | 25% | 32% |
+| Base | 55% | 49% |
+| Bull | 25% | 31% |
 
 | Insider | Date | Shares | Price | Value | Contrib |
 |---------|------|--------|-------|-------|---------|
 | You Harry L. | 2026-06-11 | 1000 | $373.57 | $373570.0 | 1.739 |
-| You Harry L. | 2025-09-08 | 2050 | $344.7794 | $706797.77 | 1.516 |
+| You Harry L. | 2025-09-08 | 2050 | $344.7794 | $706797.77 | 1.289 |
 | You Harry L. | 2025-09-10 | 500 | $363.375 | $181687.5 | 1.2 |
 | You Harry L. | 2025-09-09 | 1000 | $339.385 | $339385.0 | 1.184 |
 | You Harry L. | 2025-12-18 | 1000 | $325.129 | $325129.0 | 1.178 |

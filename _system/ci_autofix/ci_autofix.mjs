@@ -180,7 +180,20 @@ async function main() {
     recordLlmCall(signature, classification.category, "completed");
   } catch (err) {
     recordLlmCall(signature, classification.category, "failed");
-    throw err;
+    await postDecision({
+      config,
+      kind: VERDICT.AGENT_FAILED,
+      repo,
+      workflow: run.name,
+      diagnosis: err?.message || String(err),
+      next: "Cursor did not start. Check CURSOR_API_KEY and the Autofix job logs.",
+      runUrl,
+      threadTs: working?.threadTs,
+      updateTs: working?.ts,
+      channel: working?.channel,
+    });
+    console.error(err);
+    process.exit(1);
   }
 
   if (working?.ts && launched.agentId) {
@@ -231,7 +244,7 @@ async function main() {
         `Workflow: ${run.name}`,
         `Failed run: ${runUrl}`,
         `Agent: ${launched.url}`,
-        `Signature: ${signature}`,
+        `CI-Autofix-Agent-Signature: ${signature}`,
       ].join("\n")
     ),
     labels: ["ci-autofix", "followup"],

@@ -142,4 +142,22 @@ foreach ($repo in $repos) {
 }
 
 Save-State $StatePath $state
+
+Write-Host "Refreshing Cursor / Slack follow-ups"
+Push-Location $RepoRoot
+try {
+    $env:CI_AUTOFIX_ORG = $Org
+    $env:GH_TOKEN = $token
+    $env:GITHUB_TOKEN = $token
+    & node (Join-Path $ScriptDir "followup.mjs")
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "followup.mjs exited with code $LASTEXITCODE"
+    }
+} catch {
+    Write-Warning "Follow-up sweep failed: $($_.Exception.Message)"
+} finally {
+    Pop-Location
+}
+
+Save-State $StatePath $state
 Stop-Transcript | Out-Null

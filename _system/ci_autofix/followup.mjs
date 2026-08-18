@@ -228,6 +228,7 @@ async function save(issue, repo, record, state) {
       `Failed run: ${record.run_url}`,
       `Agent: ${record.agent_url || record.agent_id}`,
       record.pr_url ? `PR: ${record.pr_url}` : "PR: none yet",
+      record.signature ? `CI-Autofix-Agent-Signature: ${record.signature}` : "",
       `Stage: ${record.stage}`,
     ].join("\n")),
     record
