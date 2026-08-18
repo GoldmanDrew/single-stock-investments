@@ -6,15 +6,15 @@
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | capital_cycle |
-| **Moat** (Munger) | narrow |
-| **Dhando** (Pabrai) | partial |
+| **Archetype** (Stahl) | compounder |
+| **Moat** (Munger) | unproven |
+| **Dhando** (Pabrai) | pending |
 | **Stance** | watch |
-| **Cycle** | trough |
-| **Implied 7yr IRR** (base) | -23.13% (contract base, provisional) |
-| **IRR method** | predictable_cash_flow |
-| **Lawrence bucket** | capital_intensive |
-| **Payoff lens** | levered |
+| **Cycle** | - |
+| **Implied 7yr IRR** (base) | -4.01% (contract base) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
+| **Payoff lens** | pending |
 | **MOI bucket** | pending |
 
 **Deep dive:** `ALB/research/deep_dive_2026-07-21.md` (auto-sync)

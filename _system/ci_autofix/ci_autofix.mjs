@@ -1,16 +1,28 @@
-#!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import process from "node:process";
-import YAML from "yaml";
-import { Agent, CursorAgentError } from "@cursor/sdk";
+import { loadConfig } from "./config.mjs";
+import { launchCloudAgent } from "./cursor_cloud.mjs";
+import {
+  createIssue,
+  github,
+  repoParts,
+} from "./github_api.mjs";
+import {
+  followupIssueBody,
+  isHumanNeeded,
+  oneLineDiagnosis,
+  shouldPostSlack,
+  truncate,
+  VERDICT,
+} from "./inbox_format.mjs";
+import { postDecision } from "./slack_inbox.mjs";
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 const runId = process.env.CI_AUTOFIX_RUN_ID;
 const cursorApiKey = process.env.CURSOR_API_KEY;
-const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 const forceAgent = String(process.env.CI_AUTOFIX_FORCE_AGENT || "false").toLowerCase() === "true";
 const eventPath = process.env.GITHUB_EVENT_PATH;
 const llmLedgerPath = process.env.LLM_LEDGER_PATH || ".llm-state/ci_autofix/ledger.jsonl";
@@ -22,15 +34,17 @@ if (!repo) fail("GITHUB_REPOSITORY is required.");
 if (!token) fail("GITHUB_TOKEN/GH_TOKEN is required.");
 if (!runId) fail("CI_AUTOFIX_RUN_ID is required.");
 
-const [owner, name] = repo.split("/");
 const repoUrl = `https://github.com/${repo}`;
 
 main().catch(async (err) => {
   console.error(err);
-  await notifySlack({
-    level: "error",
-    title: `CI Autofix crashed in ${repo}`,
-    text: err?.stack || err?.message || String(err),
+  await postDecision({
+    config,
+    kind: VERDICT.AGENT_FAILED,
+    repo,
+    workflow: "CI Autofix",
+    diagnosis: err?.message || String(err),
+    next: "Check the Autofix job logs. This crash happened before a repair agent finished.",
   });
   process.exit(1);
 });
@@ -41,7 +55,7 @@ async function main() {
     return;
   }
 
-  const run = await github(`/repos/${owner}/${name}/actions/runs/${runId}`);
+  const run = await github(`/repos/${repoParts(repo).owner}/${repoParts(repo).name}/actions/runs/${runId}`);
   const jobs = await getJobs();
   const failedJobs = jobs.filter((job) => ["failure", "cancelled", "timed_out", "startup_failure"].includes(job.conclusion));
   const failedLog = getFailedLog();
@@ -67,6 +81,7 @@ async function main() {
   }
   const runUrl = run.html_url || `${repoUrl}/actions/runs/${runId}`;
   const summary = makeSummary({ run, failedJobs, failedLog, classification, runUrl });
+  const diagnosis = oneLineDiagnosis(failedLog, classification.reason);
 
   console.log(summary);
 
@@ -74,21 +89,27 @@ async function main() {
   const shouldNotifyOnly = classification.action === "notify_only" && config.github?.create_issue_for_notify_only !== false;
   if (shouldNotifyOnly) {
     await createIssue({
+      repo,
       title: `[ci-autofix] ${repo}: ${run.name} failed (${classification.category})`,
       body: summary,
       labels,
     });
   }
 
-  await notifySlack({
-    level: classification.action === "cursor_agent" ? "warning" : "info",
-    title: `${repo}: ${run.name} failed`,
-    text: summary,
-    runUrl,
-    category: classification.category,
-  });
-
   if (classification.action !== "cursor_agent" && !forceAgent) {
+    if (shouldPostSlack("human_needed", classification, config)) {
+      await postDecision({
+        config,
+        kind: VERDICT.HUMAN_NEEDED,
+        repo,
+        workflow: run.name,
+        diagnosis,
+        next: nextForHuman(classification),
+        runUrl,
+      });
+    } else {
+      console.log(`Slack muted for notify-only ${classification.category}: ${classification.reason}`);
+    }
     console.log(`No Cursor dispatch: ${classification.reason}`);
     return;
   }
@@ -96,81 +117,132 @@ async function main() {
   const llmGate = reserveLlmCall(signature, classification.category, forceAgent);
   if (!llmGate.approved) {
     console.log(`No Cursor dispatch: shared LLM gate ${llmGate.gate_reason}`);
+    if (isHumanNeeded({ ...classification, reason: llmGate.gate_reason || classification.reason })) {
+      await postDecision({
+        config,
+        kind: VERDICT.HUMAN_NEEDED,
+        repo,
+        workflow: run.name,
+        diagnosis: `${diagnosis} Cursor was not dispatched (${llmGate.gate_reason}).`,
+        next: "Raise the LLM budget or wait for cooldown, then re-run Autofix.",
+        runUrl,
+      });
+    }
     return;
   }
 
   if (!cursorApiKey) {
     const text = `${summary}\n\nCursor was not dispatched because CURSOR_API_KEY is not configured.`;
     await createIssue({
+      repo,
       title: `[ci-autofix] ${repo}: Cursor not configured for ${run.name}`,
       body: text,
       labels,
     });
-    await notifySlack({
-      level: "warning",
-      title: `${repo}: Cursor not configured`,
-      text,
+    await postDecision({
+      config,
+      kind: VERDICT.HUMAN_NEEDED,
+      repo,
+      workflow: run.name,
+      diagnosis: "CURSOR_API_KEY is not configured, so Autofix cannot start a repair agent.",
+      next: "Set the org secret, then re-run the failed workflow.",
       runUrl,
-      category: "configuration",
     });
     recordLlmCall(signature, classification.category, "failed");
     return;
   }
 
-  let agentResult;
+  const working = shouldPostSlack("working", classification, config)
+    ? await postDecision({
+      config,
+      kind: VERDICT.WORKING,
+      repo,
+      workflow: run.name,
+      diagnosis,
+      next: "Wait for a draft PR in this thread, or open the agent in Cursor. Reply `@Cursor` here to add instructions once the agent exists.",
+      runUrl,
+    })
+    : null;
+
+  let launched;
   try {
-    agentResult = await dispatchCursor({ run, failedJobs, failedLog, classification, runUrl });
+    launched = await launchCloudAgent({
+      prompt: buildCursorPrompt({ run, failedJobs, failedLog, classification, runUrl }),
+      repoUrl,
+      startingRef: run.head_branch || run.head_sha,
+      model: config.cursor?.model || "composer-2.5",
+      name: `CI Autofix: ${run.name}`,
+      envVars: {
+        CI_AUTOFIX_RUN_ID: String(runId),
+        CI_AUTOFIX_RUN_URL: runUrl,
+      },
+    });
     recordLlmCall(signature, classification.category, "completed");
   } catch (err) {
     recordLlmCall(signature, classification.category, "failed");
     throw err;
   }
-  const agentText = [
-    `Cursor Cloud Agent dispatched for ${repo}.`,
-    `Workflow: ${run.name}`,
-    `Run: ${runUrl}`,
-    `Agent ID: ${agentResult.agentId || "unknown"}`,
-    agentResult.prUrl ? `PR: ${agentResult.prUrl}` : "PR: not returned by Cursor",
-    agentResult.status ? `Status: ${agentResult.status}` : "",
-    agentResult.result ? `Summary: ${agentResult.result.slice(0, 1200)}` : "",
-  ].filter(Boolean).join("\n");
 
-  await notifySlack({
-    level: "success",
-    title: `${repo}: Cursor agent dispatched`,
-    text: agentText,
-    runUrl,
-    category: "cursor_agent",
-  });
-}
-
-function loadConfig() {
-  const path = ".github/ci-autofix.yml";
-  if (!existsSync(path)) return {};
-  return YAML.parse(readFileSync(path, "utf8")) || {};
-}
-
-async function github(path, options = {}) {
-  const res = await fetch(`https://api.github.com${path}`, {
-    ...options,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(options.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GitHub API ${res.status} ${path}: ${body}`);
+  if (working?.ts && launched.agentId) {
+    await postDecision({
+      config,
+      kind: VERDICT.WORKING,
+      repo,
+      workflow: run.name,
+      diagnosis,
+      next: "Cursor agent is running. Wait for the PR in this thread, or Open in Cursor.",
+      runUrl,
+      agentId: launched.agentId,
+      threadTs: working.threadTs,
+      updateTs: working.ts,
+      channel: working.channel,
+    });
   }
-  if (res.status === 204) return null;
-  return res.json();
+
+  const followupRecord = {
+    version: 1,
+    repo,
+    run_id: String(runId),
+    run_url: runUrl,
+    workflow: run.name,
+    signature,
+    category: classification.category,
+    diagnosis,
+    agent_id: launched.agentId,
+    cursor_run_id: launched.runId || "",
+    agent_url: launched.url,
+    slack: {
+      channel: working?.channel || "",
+      thread_ts: working?.threadTs || working?.ts || "",
+      parent_ts: working?.ts || "",
+    },
+    pr_url: "",
+    stage: "working",
+    announced: { working: true, complete: false, fix_ci: null, stale: false },
+    launched_at: new Date().toISOString(),
+  };
+
+  await createIssue({
+    repo,
+    title: `[ci-autofix followup] ${repo}: ${run.name}`,
+    body: followupIssueBody(
+      followupRecord,
+      [
+        `Workflow: ${run.name}`,
+        `Failed run: ${runUrl}`,
+        `Agent: ${launched.url}`,
+        `Signature: ${signature}`,
+      ].join("\n")
+    ),
+    labels: ["ci-autofix", "followup"],
+  });
+
+  console.log(`Cursor Cloud Agent launched: ${launched.agentId} ${launched.url}`);
 }
 
-async function getJobs() {
-  const out = await github(`/repos/${owner}/${name}/actions/runs/${runId}/jobs?per_page=100`);
-  return out.jobs || [];
+function getJobs() {
+  const { owner, name } = repoParts(repo);
+  return github(`/repos/${owner}/${name}/actions/runs/${runId}/jobs?per_page=100`).then((out) => out.jobs || []);
 }
 
 function getFailedLog() {
@@ -336,6 +408,7 @@ function failureSignature(run, failedJobs, failedLog) {
 
 async function repeatedFailureCount(run) {
   if (!run.workflow_id || !run.head_sha) return 1;
+  const { owner, name } = repoParts(repo);
   const data = await github(`/repos/${owner}/${name}/actions/workflows/${run.workflow_id}/runs?head_sha=${encodeURIComponent(run.head_sha)}&status=completed&per_page=20`);
   const separateRuns = (data.workflow_runs || []).filter((row) => ["failure", "timed_out"].includes(row.conclusion)).length;
   return Math.max(separateRuns, Number(run.run_attempt || 1));
@@ -401,105 +474,12 @@ function makeSummary({ run, failedJobs, failedLog, classification, runUrl }) {
   ].join("\n");
 }
 
-async function createIssue({ title, body, labels }) {
-  try {
-    await ensureLabels(labels);
-    const issue = await github(`/repos/${owner}/${name}/issues`, {
-      method: "POST",
-      body: JSON.stringify({ title, body, labels }),
-    });
-    console.log(`Created issue: ${issue.html_url}`);
-    return issue;
-  } catch (err) {
-    console.warn(`Could not create issue: ${err.message}`);
-    return null;
-  }
-}
-
-async function ensureLabels(labels = []) {
-  for (const label of labels) {
-    try {
-      await github(`/repos/${owner}/${name}/labels/${encodeURIComponent(label)}`);
-    } catch {
-      try {
-        await github(`/repos/${owner}/${name}/labels`, {
-          method: "POST",
-          body: JSON.stringify({ name: label, color: label === "needs-attention" ? "d93f0b" : "5319e7" }),
-        });
-      } catch {
-        // Non-fatal. The issue can still be created without labels in some permission configurations.
-      }
-    }
-  }
-}
-
-async function notifySlack({ level, title, text, runUrl, category }) {
-  if (!slackWebhookUrl || config.slack?.enabled === false) {
-    console.log("Slack notification skipped; SLACK_WEBHOOK_URL is not configured or Slack is disabled.");
-    return;
-  }
-  const mention = config.slack?.mention ? `${config.slack.mention} ` : "";
-  const color = level === "success" ? "#2eb67d" : level === "error" ? "#e01e5a" : "#ecb22e";
-  const payload = {
-    text: `${mention}${title}`,
-    attachments: [
-      {
-        color,
-        title,
-        title_link: runUrl,
-        fields: [
-          { title: "Repository", value: repo, short: true },
-          { title: "Category", value: category || "unknown", short: true },
-        ],
-        text: truncate(text, 7000),
-        mrkdwn_in: ["text"],
-      },
-    ],
-  };
-  const res = await fetch(slackWebhookUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    console.warn(`Slack webhook failed: ${res.status} ${await res.text()}`);
-  }
-}
-
-async function dispatchCursor({ run, failedJobs, failedLog, classification, runUrl }) {
-  const prompt = buildCursorPrompt({ run, failedJobs, failedLog, classification, runUrl });
-  const startingRef = run.head_branch || run.head_sha;
-  const repoSpec = startingRef ? { url: repoUrl, startingRef } : { url: repoUrl };
-
-  try {
-    const result = await Agent.prompt(prompt, {
-      apiKey: cursorApiKey,
-      model: { id: config.cursor?.model || "composer-2.5" },
-      cloud: {
-        repos: [repoSpec],
-        autoCreatePR: true,
-        skipReviewerRequest: true,
-        envVars: {
-          CI_AUTOFIX_RUN_ID: String(runId),
-          CI_AUTOFIX_RUN_URL: runUrl,
-        },
-      },
-    });
-
-    console.log("Cursor status:", result.status);
-    console.log("Cursor agent ID:", result.agentId);
-    if (result.prUrl) console.log("Cursor PR:", result.prUrl);
-
-    if (result.status === "error") {
-      throw new Error(`Cursor agent returned error: ${result.result || "unknown error"}`);
-    }
-    return result;
-  } catch (err) {
-    if (err instanceof CursorAgentError) {
-      throw new Error(`Cursor startup failed: ${err.message}; retryable=${err.isRetryable}`);
-    }
-    throw err;
-  }
+function nextForHuman(classification) {
+  if (classification.category === "credentials") return "Fix the missing or invalid secret, then re-run the workflow.";
+  if (classification.category === "permissions") return "Fix token or integration permissions, then re-run the workflow.";
+  if (classification.category === "platform") return "This is a GitHub billing/runner issue, not a code bug. Restore Actions capacity.";
+  if (/too broad/i.test(classification.reason || "")) return "The failure is too wide for Autofix. Inspect the run and split the fix.";
+  return classification.reason || "Inspect the failed run. Autofix will not start an agent for this class of failure.";
 }
 
 function buildCursorPrompt({ run, failedJobs, failedLog, classification, runUrl }) {
@@ -546,13 +526,15 @@ ${truncate(failedLog, config.cursor?.max_log_chars || 45000)}
 
 Include this exact marker in the pull request body:
 CI-Autofix-Agent-Signature: ${classification.signature}
-`;
-}
 
-function truncate(value, max) {
-  const text = String(value || "");
-  if (text.length <= max) return text;
-  return `${text.slice(0, Math.floor(max * 0.65))}\n\n... [truncated ${text.length - max} chars] ...\n\n${text.slice(-Math.floor(max * 0.35))}`;
+Your LAST message must use this exact shape, one field per line:
+DIAGNOSIS: <one sentence>
+FILES: <comma-separated paths, or none>
+RISK: low|medium|high — <why>
+MERGE?: yes|no — <why>
+COMMANDS: <what you ran>
+NEXT: <what a human should do in Slack>
+`;
 }
 
 function fail(message) {
