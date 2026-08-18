@@ -2,6 +2,21 @@
 
 Personal single-stock research workspace with Marvin (research agent) infrastructure.
 
+## Add a resource (simple)
+
+Drop the PDF in the right Google Drive folder. The vault and dashboard then ingest it. Do not put licensed files in this repo.
+
+| What you have | Google Drive | Research vault | Then run |
+|---------------|--------------|----------------|----------|
+| Fund / LP letter | [Letters/{YYYY Qn}](https://drive.google.com/drive/folders/1z8P-tKj3lvWmx72bXUxJQ9BcUmKrhTg4) | `research-vault/superinvestor-letters/{YYYY}Q{n}/` | `make letter-import-drive` |
+| Book or wisdom PDF (authorized copy only) | [Research Sources/Investment Wisdom/{author}](https://drive.google.com/drive/folders/1zjhPYsBH9eoV36wm8G_9X5vGt1YY_9Ql) | `research-vault/investment-wisdom/{author}/` | extract `.txt` + short README |
+| Magis manager meeting | `Manager Meetings/{YYYY-MM-DD}/` | `research-vault/manager-meetings/{YYYY-MM-DD}/` | `python _system/scripts/sync_manager_meetings_drive.py` |
+| VIC / outside writeup / company deck / activist (has a ticker) | [Admin/Intake/{Kind}/{TICKER}](https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C) | stays in this repo under `{TICKER}/` | hourly Drive Intake Sync |
+
+**Do not** put letters or books in `Admin/Intake`. **Do not** put books in `Letters/`. **Do not** commit licensed PDFs here.
+
+Michael's Cursor bot: read [`_system/agents/MICHAEL.md`](_system/agents/MICHAEL.md) and follow that routing every time. Detail: [`_system/reference/document-store/drive_intake_readme.md`](_system/reference/document-store/drive_intake_readme.md), [`research-vault` README](https://github.com/magis-capital-partners/research-vault).
+
 ## Holdings
 
 8697.T · 3905.T · APLD · QDEL · TEQ.ST · ICE · CSGP · SPGI · FRMO · OTCM · CPRT · BN · AMZN · GOOGL · KEWL · CSU · DHR · WBI
@@ -60,6 +75,7 @@ https://single-stock-investments-2wt.pages.dev/
 - [`_system/agents/VICKI.md`](_system/agents/VICKI.md) — browser / IR harvest
 - [`_system/agents/MILLY.md`](_system/agents/MILLY.md) — adversarial reviewer that stress-tests Marvin's deep dives against primary filings and bear cases; re-passes via `milly_repass.py`
 - [`_system/agents/PODCAST.md`](_system/agents/PODCAST.md) — discovers watchlist/officer podcast episodes, transcribes, resolves guest/company/ticker, and publishes gated highlights (`resolve_podcast_entities.py`, `build_podcast_insights.py`)
+- [`_system/agents/MICHAEL.md`](_system/agents/MICHAEL.md) — routes books, fund letters, and ticker PDFs to Drive + research-vault so the corpus compounds
 
 ## Investment Committee
 

@@ -270,10 +270,14 @@ def enrich_candidates(*, universe: str, tickers: set[str], as_of: str) -> list[d
     return cases
 
 
-def quota_sample(cases: list[dict], *, limit: int, taxonomy: dict) -> tuple[list[dict], dict]:
+def quota_sample(cases: list[dict], *, limit: int, taxonomy: dict, allowed_forms: set[str] | None = None) -> tuple[list[dict], dict]:
     policy = taxonomy.get("sampling_policy") or {}
     targets = {name: math.ceil(limit * float(pct)) for name, pct in (policy.get("stratum_target_pct") or {}).items()}
-    form_targets = {name: math.ceil(limit * float(pct)) for name, pct in (policy.get("form_min_pct") or {}).items()}
+    form_targets = {
+        name: math.ceil(limit * float(pct))
+        for name, pct in (policy.get("form_min_pct") or {}).items()
+        if allowed_forms is None or name in allowed_forms
+    }
     issuer_cap = max(1, math.floor(limit * float(policy.get("issuer_cap_pct", 0.05))))
     ordered = sorted(cases, key=lambda row: (-int(row.get("candidate_priority") or 0), row["ticker"], row["case_id"]))
     selected: list[dict] = []
@@ -362,8 +366,32 @@ def create_label_packets(cases: list[dict], output_dir: Path, *, batch_id: str) 
                     "do_not_use": ["issuer identity", "source path", "precomputed suggestions", "existing labels", "split"],
                 },
             })
+    # Give the two reviewers deterministically different orders.  Blind IDs
+    # alone are insufficient isolation when both packets retain the exact same
+    # row order: ordinal position becomes an accidental cross-review key.
+    order = {
+        case["case_id"]: _sha256(f"{batch_id}|packet-order|{case['case_id']}")
+        for case in cases
+    }
+    blind_to_case = {
+        blind_id: case_id
+        for case_id, entry in manifest["cases"].items()
+        for blind_id in entry["blind_ids"].values()
+    }
+    packets["extractor"].sort(key=lambda row: order[blind_to_case[row["blind_id"]]])
+    packets["skeptic"].sort(key=lambda row: order[blind_to_case[row["blind_id"]]], reverse=True)
     for role, rows in packets.items():
         write_jsonl(labeler_dir / f"{role}_packet.jsonl", rows)
+        write_jsonl(labeler_dir / f"{role}_labels.template.jsonl", [
+            {
+                "blind_id": row["blind_id"],
+                "review_context_id": "",
+                "events": [],
+                "no_event_tags": [],
+                "no_material_change": False,
+            }
+            for row in rows
+        ])
     (control_dir / "blind_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return {"batch_id": batch_id, "cases": len(cases), "labeler_dir": str(labeler_dir), "control_dir": str(control_dir)}
 
@@ -374,6 +402,20 @@ def _event_signature(event: dict) -> tuple:
         tuple(sorted(str(tag) for tag in (event.get("tags") or []))),
         str(event.get("direction") or ""),
         bool(event.get("review_required")),
+    )
+
+
+def _blind_event_signature(event: dict) -> tuple:
+    """Exact review signature; evaluation matching intentionally stays looser."""
+    return _event_signature(event) + (
+        str(event.get("severity") or ""),
+        str(event.get("confidence") or ""),
+        tuple(sorted(str(evidence_id) for evidence_id in (event.get("evidence_ids") or []))),
+        _normalise_excerpt(str(event.get("claim") or ""), maximum=10_000),
+        _normalise_excerpt(str(event.get("falsifier") or ""), maximum=10_000),
+        event.get("prior_value"),
+        event.get("new_value"),
+        str(event.get("unit") or ""),
     )
 
 
@@ -399,9 +441,13 @@ def _labels_by_case(rows: list[dict], manifest: dict, role: str) -> dict[str, di
 
 
 def _labels_agree(extractor: dict, skeptic: dict, taxonomy: dict) -> bool:
-    left = sorted(_event_signature(event) for event in extractor.get("events") or [])
-    right = sorted(_event_signature(event) for event in skeptic.get("events") or [])
-    if left != right or bool(extractor.get("no_material_change")) != bool(skeptic.get("no_material_change")):
+    left = sorted(_blind_event_signature(event) for event in extractor.get("events") or [])
+    right = sorted(_blind_event_signature(event) for event in skeptic.get("events") or [])
+    if (
+        left != right
+        or sorted(str(tag) for tag in extractor.get("no_event_tags") or []) != sorted(str(tag) for tag in skeptic.get("no_event_tags") or [])
+        or bool(extractor.get("no_material_change")) != bool(skeptic.get("no_material_change"))
+    ):
         return False
     always = set(taxonomy.get("always_human_review_tags") or [])
     return not any(set(event.get("tags") or []) & always for event in extractor.get("events") or [])
@@ -418,6 +464,11 @@ def _blind_label_errors(label: dict, case: dict, taxonomy: dict) -> list[str]:
     if not copy["expected"]["events"] and not copy["expected"]["no_material_change"]:
         errors.append(f"{case['case_id']}: blind label with no events must set no_material_change=true")
     return errors
+
+
+def _review_context(label: dict | None) -> str:
+    """Return the isolated review-run identifier supplied with a label."""
+    return str((label or {}).get("review_context_id") or "").strip()
 
 
 def ingest_blind_labels(cases: list[dict], manifest: dict, extractor_rows: list[dict], skeptic_rows: list[dict], *, as_of: str) -> tuple[list[dict], list[dict]]:
@@ -449,15 +500,167 @@ def ingest_blind_labels(cases: list[dict], manifest: dict, extractor_rows: list[
             copy["expected"] = expected
             copy["label_status"] = "labeled"
             copy["provenance"]["adjudicated_by"] = ["blind_extractor", "blind_skeptic", "auto_consensus"]
-            copy["provenance"]["rationale"] = "Two blind labelers agreed on a low-risk label; pending audit or explicit promotion."
+            contexts = {"extractor": _review_context(left), "skeptic": _review_context(right)}
+            copy["provenance"]["blind_review_contexts"] = contexts
+            copy["provenance"]["blind_review_independence"] = (
+                "verified" if all(contexts.values()) and len(set(contexts.values())) == 2 else "unverified"
+            )
+            copy["provenance"]["rationale"] = "Two blind labelers agreed on a low-risk label; pending independent-provenance gate, audit, or explicit promotion."
         else:
-            adjudication.append({"case_id": case_id, "reason": "blind_disagreement_or_always_review", "extractor": left, "skeptic": right, "case": copy})
+            signatures_agree = (
+                sorted(_blind_event_signature(event) for event in left.get("events") or [])
+                == sorted(_blind_event_signature(event) for event in right.get("events") or [])
+                and sorted(str(tag) for tag in left.get("no_event_tags") or []) == sorted(str(tag) for tag in right.get("no_event_tags") or [])
+                and bool(left.get("no_material_change")) == bool(right.get("no_material_change"))
+            )
+            reason = "always_review_consensus" if signatures_agree else "blind_disagreement"
+            adjudication.append({"case_id": case_id, "reason": reason, "extractor": left, "skeptic": right, "case": copy})
         updated.append(copy)
     return updated, adjudication
 
 
-def promote_cases(cases: list[dict], gold_rows: list[dict], decisions: list[dict], *, as_of: str, include_auto: bool) -> list[dict]:
+def promotion_gate_report(cases: list[dict], decisions: list[dict], *, include_auto: bool) -> dict:
+    """Check that a proposed benchmark row has independently operated reviews."""
+    by_decision = {str(row.get("case_id")): row for row in decisions}
+    rows: list[dict] = []
+    for case in cases:
+        decision = by_decision.get(str(case.get("case_id")))
+        if not decision and not (include_auto and case.get("label_status") == "labeled"):
+            continue
+        contexts = (case.get("provenance") or {}).get("blind_review_contexts") or {}
+        extractor_context = str(contexts.get("extractor") or "").strip()
+        skeptic_context = str(contexts.get("skeptic") or "").strip()
+        reasons: list[str] = []
+        if not extractor_context:
+            reasons.append("missing_extractor_review_context")
+        if not skeptic_context:
+            reasons.append("missing_skeptic_review_context")
+        if extractor_context and skeptic_context and extractor_context == skeptic_context:
+            reasons.append("shared_blind_review_context")
+        adjudicator_context = ""
+        if decision:
+            adjudicator_context = str(decision.get("review_context_id") or "").strip()
+            if not adjudicator_context:
+                reasons.append("missing_adjudicator_review_context")
+            elif adjudicator_context in {extractor_context, skeptic_context}:
+                reasons.append("adjudicator_context_not_independent")
+        rows.append({
+            "case_id": case.get("case_id"),
+            "route": "adjudicated" if decision else "auto_consensus",
+            "eligible": not reasons,
+            "review_contexts": {
+                "extractor": extractor_context or None,
+                "skeptic": skeptic_context or None,
+                "adjudicator": adjudicator_context or None,
+            },
+            "reasons": reasons,
+        })
+    blocked = [row for row in rows if not row["eligible"]]
+    return {
+        "schema_version": 1,
+        "candidate_promotions": len(rows),
+        "eligible_promotions": len(rows) - len(blocked),
+        "blocked_promotions": len(blocked),
+        "eligible": not blocked,
+        "blocked_reason_counts": dict(sorted(Counter(reason for row in blocked for reason in row["reasons"]).items())),
+        "cases": rows,
+    }
+
+
+def label_ingest_report(cases: list[dict], labeled: list[dict], adjudication: list[dict]) -> dict:
+    """Create an audit-friendly summary without exposing labels to reviewers."""
+    reasons = Counter(str(row.get("reason") or "unknown") for row in adjudication)
+    statuses = Counter(str(row.get("label_status") or "candidate") for row in labeled)
+    queue_tags: Counter = Counter()
+    for row in adjudication:
+        for role in ("extractor", "skeptic"):
+            for event in ((row.get(role) or {}).get("events") or []):
+                queue_tags.update(str(tag) for tag in (event.get("tags") or []))
+    total = len(cases)
+    auto_consensus = statuses.get("labeled", 0)
+    paired = total - reasons.get("missing_blind_label", 0)
+    valid_pairs = paired - reasons.get("invalid_blind_label", 0)
+    return {
+        "schema_version": 1,
+        "cases": total,
+        "paired_labels": paired,
+        "valid_label_pairs": valid_pairs,
+        "auto_consensus": auto_consensus,
+        "adjudication_queue": len(adjudication),
+        "valid_pair_consensus_rate": round(auto_consensus / valid_pairs, 4) if valid_pairs else 0.0,
+        "statuses": dict(sorted(statuses.items())),
+        "queue_reasons": dict(sorted(reasons.items())),
+        "queue_tags": dict(sorted(queue_tags.items())),
+    }
+
+
+def create_adjudication_packets(queue: list[dict], output_dir: Path, *, batch_id: str) -> dict:
+    """Package disputed blind reviews for an isolated adjudicator; never label or promote."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    packets: list[dict] = []
+    templates: list[dict] = []
+    for entry in sorted(queue, key=lambda row: str(row.get("case_id") or "")):
+        case = entry.get("case") or {}
+        case_id = str(entry.get("case_id") or case.get("case_id") or "")
+        packet_id = "adjudication-" + _sha256(f"{batch_id}|{case_id}")[:16]
+        packets.append({
+            "schema_version": 1,
+            "packet_id": packet_id,
+            "case_id": case_id,
+            "queue_reason": entry.get("reason"),
+            "ticker": case.get("ticker"),
+            "filing": case.get("filing"),
+            "evidence": case.get("evidence") or [],
+            "extractor_label": entry.get("extractor"),
+            "skeptic_label": entry.get("skeptic"),
+            "task": {
+                "instruction": "Resolve the disagreement from the supplied filing evidence. Return only source-supported events, explicitly reject unsupported keyword leads, and explain the disposition. This response is a decision record, not a gold promotion.",
+                "required_fields": ["case_id", "adjudicator", "review_context_id", "events", "no_event_tags", "no_material_change", "rationale"],
+                "gold_promotion": "forbidden",
+            },
+        })
+        templates.append({"packet_id": packet_id, "case_id": case_id, "adjudicator": "", "review_context_id": "", "events": [], "no_event_tags": [], "no_material_change": False, "rationale": ""})
+    write_jsonl(output_dir / "adjudicator_packet.jsonl", packets)
+    write_jsonl(output_dir / "adjudication_decisions.template.jsonl", templates)
+    return {"batch_id": batch_id, "packets": len(packets), "output_dir": str(output_dir)}
+
+
+def create_consensus_audit_packets(cases: list[dict], output_dir: Path, *, batch_id: str, sample_size: int, event_min: int = 2) -> dict:
+    """Select a deterministic, issuer-safe audit sample from auto-consensus labels."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    eligible = [case for case in cases if case.get("label_status") == "labeled"]
+    ordered = sorted(eligible, key=lambda case: _sha256(f"{batch_id}|audit|{case['case_id']}"))
+    event_cases = [case for case in ordered if (case.get("expected") or {}).get("events")]
+    selected = event_cases[:min(max(0, event_min), max(0, sample_size))]
+    selected_ids = {case["case_id"] for case in selected}
+    selected.extend(case for case in ordered if case["case_id"] not in selected_ids)
+    selected = selected[:max(0, sample_size)]
+    packets = [{
+        "schema_version": 1,
+        "packet_id": "audit-" + _sha256(f"{batch_id}|{case['case_id']}")[:16],
+        "case_id": case["case_id"],
+        "ticker": case.get("ticker"),
+        "filing": case.get("filing"),
+        "evidence": case.get("evidence") or [],
+        "consensus_label": case.get("expected"),
+        "task": {
+            "instruction": "Audit the consensus label against supplied evidence. Return accept, revise, or reject with a source-grounded rationale. Do not promote the case to gold.",
+            "gold_promotion": "forbidden",
+        },
+    } for case in selected]
+    write_jsonl(output_dir / "consensus_audit_packet.jsonl", packets)
+    return {"batch_id": batch_id, "eligible_consensus": len(eligible), "eligible_events": len(event_cases), "event_min": event_min, "audit_sample": len(packets), "output_dir": str(output_dir)}
+
+
+def promote_cases(cases: list[dict], gold_rows: list[dict], decisions: list[dict], *, as_of: str, include_auto: bool, allow_unverified_provenance: bool = False) -> list[dict]:
     taxonomy = load_taxonomy()
+    gate = promotion_gate_report(cases, decisions, include_auto=include_auto)
+    if not gate["eligible"] and not allow_unverified_provenance:
+        raise ValueError(
+            "Cannot promote without independent review provenance: "
+            + json.dumps(gate["blocked_reason_counts"], sort_keys=True)
+            + ". Use --allow-unverified-provenance only for a clearly named proposed-gold artifact, never the locked benchmark."
+        )
     by_decision = {str(row.get("case_id")): row for row in decisions}
     promoted = list(gold_rows)
     existing = {row["case_id"] for row in gold_rows}
@@ -541,6 +744,17 @@ def _parser() -> argparse.ArgumentParser:
     ingest.add_argument("--skeptic", type=Path, required=True)
     ingest.add_argument("--output", type=Path, required=True)
     ingest.add_argument("--adjudication-output", type=Path, required=True)
+    ingest.add_argument("--summary-output", type=Path, help="Defaults to <output>.summary.json")
+    adjudication_packets = sub.add_parser("create-adjudication-packets", help="Package disputed labels for a separate adjudicator; never promotes")
+    adjudication_packets.add_argument("--adjudication-queue", type=Path, required=True)
+    adjudication_packets.add_argument("--output-dir", type=Path, required=True)
+    adjudication_packets.add_argument("--batch-id", required=True)
+    audit = sub.add_parser("create-consensus-audit", help="Create a deterministic audit sample from consensus labels")
+    audit.add_argument("--labeled", type=Path, required=True)
+    audit.add_argument("--output-dir", type=Path, required=True)
+    audit.add_argument("--batch-id", required=True)
+    audit.add_argument("--sample-size", type=int, default=5)
+    audit.add_argument("--event-min", type=int, default=2, help="Minimum consensus event cases to audit when available")
     ingest.add_argument("--as-of", default=date.today().isoformat())
     promote = sub.add_parser("promote", help="Promote only adjudicated (or explicitly allowed consensus) labels to gold")
     promote.add_argument("--labeled", type=Path, required=True)
@@ -549,6 +763,12 @@ def _parser() -> argparse.ArgumentParser:
     promote.add_argument("--output", type=Path, required=True)
     promote.add_argument("--as-of", default=date.today().isoformat())
     promote.add_argument("--include-auto-consensus", action="store_true")
+    promote.add_argument("--allow-unverified-provenance", action="store_true", help="Permit only an explicitly named proposed-gold artifact to bypass the independent-review gate")
+    gate = sub.add_parser("promotion-gate", help="Report whether review provenance permits benchmark promotion")
+    gate.add_argument("--labeled", type=Path, required=True)
+    gate.add_argument("--decisions", type=Path)
+    gate.add_argument("--include-auto-consensus", action="store_true")
+    gate.add_argument("--output", type=Path)
     failures = sub.add_parser("queue-failures", help="Create regression queue from false positives and false negatives")
     failures.add_argument("--gold", type=Path, default=DEFAULT_GOLD)
     failures.add_argument("--predictions", type=Path, required=True)
@@ -572,17 +792,38 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2))
         return 0
     if args.command == "ingest-labels":
+        candidates = read_jsonl(args.candidates)
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-        labeled, adjudication = ingest_blind_labels(read_jsonl(args.candidates), manifest, read_jsonl(args.extractor), read_jsonl(args.skeptic), as_of=args.as_of)
+        labeled, adjudication = ingest_blind_labels(candidates, manifest, read_jsonl(args.extractor), read_jsonl(args.skeptic), as_of=args.as_of)
         write_jsonl(args.output, labeled)
         write_jsonl(args.adjudication_output, adjudication)
-        print(json.dumps({"labeled": sum(row.get("label_status") == "labeled" for row in labeled), "adjudication_queue": len(adjudication)}, indent=2))
+        report = label_ingest_report(candidates, labeled, adjudication)
+        summary_output = args.summary_output or args.output.with_suffix(args.output.suffix + ".summary.json")
+        summary_output.parent.mkdir(parents=True, exist_ok=True)
+        summary_output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({**report, "summary_output": str(summary_output)}, indent=2))
+        return 0
+    if args.command == "create-adjudication-packets":
+        result = create_adjudication_packets(read_jsonl(args.adjudication_queue), args.output_dir, batch_id=args.batch_id)
+        print(json.dumps(result, indent=2))
+        return 0
+    if args.command == "create-consensus-audit":
+        result = create_consensus_audit_packets(read_jsonl(args.labeled), args.output_dir, batch_id=args.batch_id, sample_size=args.sample_size, event_min=max(0, args.event_min))
+        print(json.dumps(result, indent=2))
         return 0
     if args.command == "promote":
         decisions = read_jsonl(args.decisions) if args.decisions else []
-        rows = promote_cases(read_jsonl(args.labeled), read_jsonl(args.gold), decisions, as_of=args.as_of, include_auto=args.include_auto_consensus)
+        rows = promote_cases(read_jsonl(args.labeled), read_jsonl(args.gold), decisions, as_of=args.as_of, include_auto=args.include_auto_consensus, allow_unverified_provenance=args.allow_unverified_provenance)
         write_jsonl(args.output, rows)
         print(json.dumps({"gold_cases": len(rows), "output": str(args.output)}, indent=2))
+        return 0
+    if args.command == "promotion-gate":
+        report = promotion_gate_report(read_jsonl(args.labeled), read_jsonl(args.decisions) if args.decisions else [], include_auto=args.include_auto_consensus)
+        rendered = json.dumps(report, indent=2) + "\n"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+        print(rendered, end="")
         return 0
     if args.command == "queue-failures":
         rows = failure_queue(read_jsonl(args.gold), read_jsonl(args.predictions))

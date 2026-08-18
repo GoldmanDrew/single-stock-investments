@@ -19,3 +19,7 @@ Primary tabs **Drew** (`#/drew`) and **Michael** (`#/michael`) read `GET /api/v1
 **IB sync** (`python -m _system.trading.sleeves.sync_ib`) requires `IBKR_ACCOUNT` and reads the same account as ls-algo and SPX 0DTE (TWS `127.0.0.1:7496`, or `--flex` OpenPositions XML). HMAC `POST /api/v1/sleeves/ingest` updates D1 when `SLEEVE_INGEST_TOKEN` is set.
 
 Holdings-table **D** / **M** buttons open the matching tab with that ticker in the note drawer. They do not place orders.
+
+## Letters and books
+
+Michael's Cursor bot files new PDFs per [`_system/agents/MICHAEL.md`](../_system/agents/MICHAEL.md). Letters go to Drive `Letters/{YYYY Qn}/` then the research vault. Books go to `Research Sources/Investment Wisdom/{author}/`. Ticker writeups use `Admin/Intake`. Do not mix those three.
