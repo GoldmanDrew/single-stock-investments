@@ -56,7 +56,7 @@ This repo has a local `.github/workflows/ci-autofix.yml` that:
 - triages failed watched workflows and launches Cursor without waiting for the agent to finish
 - every 15 minutes, sweeps open `ci-autofix` / `followup` issues, checks the Cursor run + fix-PR checks, and updates the Slack thread
 
-Manual follow-up sweep:
+Manual follow-up sweep from this repo:
 
 ```powershell
 cd C:\Users\drewg\Projects\dashboards\single-stock-investments

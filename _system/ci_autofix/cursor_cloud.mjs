@@ -6,11 +6,15 @@ function apiKey() {
   return key;
 }
 
-export async function cursorApi(path, { method = "GET", body } = {}) {
+export async function cursorApi(path, { method = "GET", body, authMode = "bearer" } = {}) {
+  const key = apiKey();
+  const authorization = authMode === "basic"
+    ? `Basic ${Buffer.from(`${key}:`).toString("base64")}`
+    : `Bearer ${key}`;
   const res = await fetch(`${API}${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${apiKey()}`,
+      Authorization: authorization,
       Accept: "application/json",
       ...(body ? { "content-type": "application/json" } : {}),
     },
@@ -22,6 +26,9 @@ export async function cursorApi(path, { method = "GET", body } = {}) {
     data = text ? JSON.parse(text) : null;
   } catch {
     data = { raw: text };
+  }
+  if (res.status === 401 && authMode === "bearer") {
+    return cursorApi(path, { method, body, authMode: "basic" });
   }
   if (!res.ok) {
     throw new Error(`Cursor API ${res.status} ${method} ${path}: ${text.slice(0, 2000)}`);

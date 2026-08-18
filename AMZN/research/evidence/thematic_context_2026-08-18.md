@@ -5,18 +5,18 @@
 | Indicator | Latest | As of | YoY | Direction | In base IRR? |
 |-----------|--------|-------|-----|-----------|--------------|
 | Hyperscaler capex guide (USD bn, latest) | 467.3 | 2026-08-18 | n/a | flat | no (context) |
-| Henry Hub natural gas spot (USD/MMBtu) | 2.7079999446868896 | 2026-08-18 | -6.3% | down | no (context) |
-| US avg electricity price (cents/kWh) | 0.198 (stale) | 2026-06-01 | +4.2% | up | no (context) |
-| WTI crude (USD/bbl) | 84.36000061035156 | 2026-08-18 | +33.0% | up | no (context) |
+| Henry Hub natural gas spot (USD/MMBtu) | 2.694999933242798 | 2026-08-18 | -6.7% | down | no (context) |
+| US avg electricity price (cents/kWh) | 0.197 | 2026-07-01 | +4.2% | up | no (context) |
+| WTI crude (USD/bbl) | 83.88999938964844 | 2026-08-18 | +32.3% | up | no (context) |
 | Permian crude / oil-gas activity proxy | 100.9468 (stale) | 2026-06-01 | +1.8% | up | no (context) |
 | TPL water segment revenue (USD m, FY) | 307.5 | 2026-06-01 | n/a | flat | no (context) |
-| US Treasury 10Y yield (%) | 4.73799991607666 | 2026-08-18 | +9.1% | up | no (context) |
-| US Treasury 2Y yield (%) | 4.394000053405762 | 2026-08-18 | +14.0% | up | no (context) |
+| US Treasury 10Y yield (%) | 4.711999893188477 | 2026-08-17 | +8.5% | up | no (context) |
+| US Treasury 2Y yield (%) | 4.381999969482422 | 2026-08-17 | +13.7% | up | no (context) |
 | High-yield OAS credit spread (%) | 1.17 | 2026-08-14 | +179.1% | up | no (context) |
 | High-yield OAS credit spread (%) | 1.17 | 2026-08-14 | +179.1% | up | no (context) |
-| US Treasury 10Y yield (%) | 4.73799991607666 | 2026-08-18 | +9.1% | up | no (context) |
-| US Treasury 2Y yield (%) | 4.394000053405762 | 2026-08-18 | +14.0% | up | no (context) |
-| Trade-weighted USD index (broad) | 99.63999938964844 | 2026-08-18 | +1.5% | up | no (context) |
+| US Treasury 10Y yield (%) | 4.711999893188477 | 2026-08-17 | +8.5% | up | no (context) |
+| US Treasury 2Y yield (%) | 4.381999969482422 | 2026-08-17 | +13.7% | up | no (context) |
+| Trade-weighted USD index (broad) | 99.65799713134766 | 2026-08-18 | +1.5% | up | no (context) |
 | VIX index level | 15.75 | 2026-08-18 | +5.1% | up | no (context) |
 | HYG vs TLT 1-month return spread (%) | 2.46 | 2026-08-14 | +236.7% | up | no (context) |
 | SPY 20-day realized vol (annualized %) | 13.44 | 2026-08-14 | +26.9% | up | no (context) |
