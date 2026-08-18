@@ -111,6 +111,10 @@ export async function postDecision({
     .filter(Boolean)
     .join("\n");
 
+  if (updateTs && !(slackBotToken && channelId)) {
+    return null;
+  }
+
   if (slackBotToken && channelId) {
     try {
       await joinChannel(channelId);

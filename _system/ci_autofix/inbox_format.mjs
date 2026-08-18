@@ -58,7 +58,9 @@ export function shouldPostSlack(kind, classification, config = {}) {
     return true;
   }
   if (kind === "human_needed") {
-    return config.slack?.notify_human_needed !== false && isHumanNeeded(classification);
+    if (config.slack?.notify_human_needed === false) return false;
+    if (config.slack?.mute_notify_only === false) return true;
+    return isHumanNeeded(classification);
   }
   return false;
 }

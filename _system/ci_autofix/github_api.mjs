@@ -116,8 +116,9 @@ export async function getCheckRuns({ repo: repoFullName, sha }) {
 
 export function repoFromIssue(issue, fallback) {
   if (issue.repository?.full_name) return issue.repository.full_name;
-  const match = String(issue.repository_url || issue.html_url || "").match(/github\.com\/repos\/([^/]+\/[^/]+)/)
-    || String(issue.html_url || "").match(/github\.com\/([^/]+\/[^/]+)\//);
-  if (match) return match[1];
+  const apiMatch = String(issue.repository_url || "").match(/repos\/([^/]+\/[^/]+)$/);
+  if (apiMatch) return apiMatch[1];
+  const htmlMatch = String(issue.html_url || "").match(/github\.com\/([^/]+\/[^/]+)\//);
+  if (htmlMatch) return htmlMatch[1];
   return fallback;
 }
