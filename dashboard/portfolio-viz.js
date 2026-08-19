@@ -21,10 +21,10 @@
 
   const state = {
     scope: 'all', section: 'positions', strategySection: 'overview', book: null,
-    orders: null, performance: null, accountPerformance: null, margin: null, risk: null,
+    orders: null, paperOrders: null, performance: null, accountPerformance: null, margin: null, risk: null,
     strategy: null, query: '', positionFilter: 'all', sortKey: 'market_value_decimal',
     sortDirection: 'desc', density: localStorage.getItem('portfolio-density') || 'comfortable', onRoute: null,
-    selectedPositionKey: null, lineage: null, showColumns: false, savedViewName: '',
+    selectedPositionKey: null, lineage: null, showColumns: false, savedViewName: '', orderNotice: null,
     visibleColumns: loadColumns(), savedViews: loadViews(),
   };
   const sections = ['positions', 'risk', 'margin', 'performance', 'orders', 'reconciliation'];
@@ -62,6 +62,18 @@
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { accept: 'application/json' } });
     if (!response.ok) throw new Error(response.status === 401 ? 'Sign in through Cloudflare Access to view the IBKR book.' : `Portfolio API ${response.status}`);
     return response.json();
+  }
+
+  async function sendJson(url, options) {
+    const response = await fetch(url, {
+      credentials: 'same-origin', cache: 'no-store',
+      ...options,
+      headers: { accept: 'application/json', 'content-type': 'application/json', 'x-paper-order-mode': 'paper', ...(options?.headers || {}) },
+    });
+    let payload = {};
+    try { payload = await response.json(); } catch (_) { /* use status fallback */ }
+    if (!response.ok) throw new Error(payload.error || `Paper order API ${response.status}`);
+    return payload;
   }
 
   function openLineage(metric, source, detail) {
@@ -102,7 +114,7 @@
     const maintenance = num(values.MaintMarginReq); const excess = num(values.ExcessLiquidity);
     const cushion = num(values.Cushion); const marginLoad = nav > 0 && maintenance != null ? Math.max(0, Math.min(1, maintenance / nav)) : null;
     const dataState = book?.status === 'complete' ? 'Broker feed complete' : 'Broker feed unavailable';
-    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state"><i class="${book?.status === 'complete' ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>READ ONLY</span> Orders stay in the approved Python workflow.</div></div></section>`;
+    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state"><i class="${book?.status === 'complete' ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>BROKER READ ONLY</span> Paper tickets never route to IBKR.</div></div></section>`;
   }
 
   function accountFacts(book) {
@@ -218,7 +230,151 @@
   function ordersView() {
     const events = state.orders?.events || [];
     const broker = state.orders?.broker_open_orders || [];
-    return `<div class="ph-alert"><strong>Python command plane only.</strong> The browser is read-only. Orders require a qualified conId, quote and what-if preview, ticket-bound approval, positive orderRef, and reconciliation.</div><div class="ph-toolbar"><strong>Broker open orders · ${broker.length}</strong><span class="ph-dim">Foreign/manual orders are visible and never cancellable by the hub.</span></div><div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Symbol</th><th>ConId</th><th>Action</th><th>Qty</th><th>Limit</th><th>Status</th><th>Ownership</th><th>Client / order / perm</th><th>Order ref</th></tr></thead><tbody>${broker.map((row) => `<tr><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol)}">${esc(row.symbol)}</button></td><td>${esc(row.conid)}</td><td>${esc(row.action)}</td><td>${quantity(row.total_quantity_decimal)}</td><td>${money(row.limit_price_decimal)}</td><td>${esc(row.status)}</td><td><span class="ph-pill ${row.ownership === 'hub' ? 'live' : ''}">${esc(row.ownership)}</span></td><td>${esc(row.client_id)} / ${esc(row.order_id)} / ${esc(row.perm_id)}</td><td>${esc(row.order_ref || '—')}</td></tr>`).join('')}</tbody></table>${broker.length ? '' : '<div class="ph-empty"><div><b>No broker open orders</b>The latest complete snapshot contains no working orders.</div></div>'}</div><div class="ph-toolbar"><strong>Central intent history</strong></div><div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Intent</th><th>Order ref</th><th>ConId</th><th>State</th><th>Event</th><th>Time</th></tr></thead><tbody>${events.map((row) => `<tr><td>${esc(row.intent_uuid)}</td><td>${esc(row.order_ref)}</td><td>${row.conid}</td><td>${esc(row.state)}</td><td>${esc(row.event_type)}</td><td>${esc(row.created_at)}</td></tr>`).join('')}</tbody></table>${events.length ? '' : '<div class="ph-empty"><div><b>No central order events</b>Paper orders will appear after the private bridge publishes its audit outbox.</div></div>'}</div>`;
+    const paper = state.paperOrders?.orders || [];
+    const viewer = state.paperOrders?.viewer || {};
+    const orderOwner = viewer.order_owner || null;
+    const ownerLabel = orderOwner ? orderOwner[0].toUpperCase() + orderOwner.slice(1) : 'Unassigned';
+    const canEnter = Boolean(orderOwner && state.scope === orderOwner && !state.paperOrders?.error);
+    const positionOptions = (state.book?.positions || [])
+      .filter((row, index, rows) => rows.findIndex((candidate) => Number(candidate.conid) === Number(row.conid)) === index)
+      .map((row) => `<option value="${esc(row.conid)}" data-symbol="${esc(row.symbol)}" data-sec-type="${esc(row.sec_type)}">${esc(row.local_symbol || row.symbol)} · ${esc(row.sec_type)} · conId ${esc(row.conid)}</option>`)
+      .join('');
+    const lockMessage = state.paperOrders?.error
+      ? state.paperOrders.error
+      : !orderOwner
+        ? 'This Access login has no paper-order role. Add it to exactly one owner map before order entry can be used.'
+        : state.scope === 'all'
+          ? `Choose the ${ownerLabel} portfolio to open your owner-locked paper ticket.`
+          : `Signed in for ${ownerLabel}. Order entry cannot be opened on the ${state.scope[0].toUpperCase() + state.scope.slice(1)} portfolio.`;
+    const ticket = canEnter ? `
+      <section class="ph-order-desk" aria-labelledby="ph-paper-order-title">
+        <div class="ph-order-custody">
+          <span class="ph-paper-stamp">PAPER · NEVER TRANSMITTED</span>
+          <strong>${esc(ownerLabel)} portfolio</strong>
+          <span>${esc(viewer.email || 'Access login verified')}</span>
+        </div>
+        <div class="ph-order-desk-body">
+          <div class="ph-order-intro"><div><div class="ph-kicker">Owner-locked order entry</div><h3 id="ph-paper-order-title">Queue a paper limit</h3></div><p>The login fixes the owner. This ticket is stored only in the paper ledger and has no broker route.</p></div>
+          <form class="ph-order-form" data-ph-paper-order>
+            <label class="ph-order-field ph-order-shortcut"><span>Existing contract shortcut</span><select data-ph-contract-shortcut><option value="">Enter a contract manually</option>${positionOptions}</select></label>
+            <label class="ph-order-field"><span>Symbol</span><input name="symbol" maxlength="24" autocomplete="off" spellcheck="false" required placeholder="MSFT"></label>
+            <label class="ph-order-field"><span>Security type</span><select name="sec_type" required><option value="STK">Stock</option><option value="ETF">ETF</option><option value="OPT">Option</option><option value="WAR">Warrant</option></select></label>
+            <label class="ph-order-field"><span>IB contract ID</span><input name="conid" inputmode="numeric" pattern="[0-9]+" min="1" required placeholder="272093"></label>
+            <label class="ph-order-field"><span>Side</span><select name="side" required><option value="BUY">Buy</option><option value="SELL">Sell</option></select></label>
+            <label class="ph-order-field"><span>Quantity</span><input name="quantity" inputmode="decimal" type="number" min="0.000001" step="any" required placeholder="10"></label>
+            <label class="ph-order-field"><span>DAY limit price · USD</span><input name="limit_price" inputmode="decimal" type="number" min="0.000001" step="any" required placeholder="415.25"></label>
+            <label class="ph-order-field ph-order-rationale"><span>Decision note <small>optional</small></span><textarea name="rationale" maxlength="500" rows="3" placeholder="Why this paper order belongs in the portfolio"></textarea></label>
+            <aside class="ph-order-review" aria-label="Paper order review">
+              <div class="ph-kicker">Ticket preview</div>
+              <dl><div><dt>Owner</dt><dd>${esc(ownerLabel)} · locked</dd></div><div><dt>Route</dt><dd>Paper ledger only</dd></div><div><dt>Estimated notional</dt><dd data-ph-paper-notional>—</dd></div><div><dt>Current → paper position</dt><dd data-ph-paper-position>—</dd></div><div><dt>Quote / margin</dt><dd>Not modeled · queue only</dd></div></dl>
+              <label class="ph-order-confirm"><input type="checkbox" name="paper_confirmed" required><span>I understand this will not place a broker order.</span></label>
+              <button type="submit" class="ph-order-submit">Queue paper order</button>
+              <div class="ph-order-status" data-ph-order-status aria-live="polite"></div>
+            </aside>
+          </form>
+        </div>
+      </section>` : `
+      <section class="ph-order-lock" aria-label="Paper order owner lock">
+        <div class="ph-paper-stamp">PAPER ENTRY LOCKED</div><div><h3>${esc(ownerLabel)} login boundary</h3><p>${esc(lockMessage)}</p></div>
+        ${orderOwner && state.scope !== orderOwner ? `<button type="button" data-ph-open-order-owner="${esc(orderOwner)}">Open ${esc(ownerLabel)} order entry</button>` : ''}
+      </section>`;
+    const notice = state.orderNotice ? `<div class="ph-order-notice ${state.orderNotice.type === 'error' ? 'error' : ''}" role="status">${esc(state.orderNotice.message)}</div>` : '';
+    return `${ticket}${notice}
+      <div class="ph-toolbar"><strong>${esc(ownerLabel)} paper queue · ${paper.filter((row) => row.status === 'paper_queued').length}</strong><span class="ph-dim">Owner-filtered · audit stored in D1 · never published to the broker bridge</span></div>
+      <div class="ph-table-wrap"><table class="ph-table ph-paper-table"><thead><tr><th>Created</th><th>Symbol / contract</th><th>Side</th><th>Qty</th><th>DAY limit</th><th>Notional</th><th>Status</th><th>Action</th></tr></thead><tbody>${paper.map((row) => {
+        const notional = (num(row.quantity_decimal) || 0) * (num(row.limit_price_decimal) || 0);
+        return `<tr><td>${esc(row.created_at)}</td><td><b>${esc(row.symbol)}</b><br><span class="ph-dim">${esc(row.sec_type)} · ${esc(row.conid)}</span></td><td>${esc(row.side)}</td><td>${quantity(row.quantity_decimal)}</td><td>${money(row.limit_price_decimal)}</td><td>${money(notional)}</td><td><span class="ph-pill ${row.status === 'paper_queued' ? 'paper' : ''}">${esc(String(row.status || '').replace('paper_', ''))}</span></td><td>${row.status === 'paper_queued' ? `<button type="button" class="ph-order-cancel" data-ph-cancel-paper="${esc(row.paper_order_id)}">Cancel paper</button>` : '—'}</td></tr>`;
+      }).join('')}</tbody></table>${paper.length ? '' : '<div class="ph-order-empty"><b>No paper orders yet</b><span>Your first owner-authorized ticket will appear here.</span></div>'}</div>
+      <details class="ph-order-audit"><summary>Broker and central order audit</summary>
+        <div class="ph-alert"><strong>Live command plane remains private.</strong> Browser paper orders cannot reach Python, IB Gateway, or IBKR. Qualified live orders still require the separate guarded workflow.</div>
+        <div class="ph-toolbar"><strong>Broker open orders · ${broker.length}</strong><span class="ph-dim">Foreign/manual orders are visible and never cancellable by the hub.</span></div>
+        <div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Symbol</th><th>ConId</th><th>Action</th><th>Qty</th><th>Limit</th><th>Status</th><th>Ownership</th><th>Client / order / perm</th><th>Order ref</th></tr></thead><tbody>${broker.map((row) => `<tr><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol)}">${esc(row.symbol)}</button></td><td>${esc(row.conid)}</td><td>${esc(row.action)}</td><td>${quantity(row.total_quantity_decimal)}</td><td>${money(row.limit_price_decimal)}</td><td>${esc(row.status)}</td><td><span class="ph-pill ${row.ownership === 'hub' ? 'live' : ''}">${esc(row.ownership)}</span></td><td>${esc(row.client_id)} / ${esc(row.order_id)} / ${esc(row.perm_id)}</td><td>${esc(row.order_ref || '—')}</td></tr>`).join('')}</tbody></table>${broker.length ? '' : '<div class="ph-order-empty"><b>No broker open orders</b><span>The latest complete snapshot contains no working orders.</span></div>'}</div>
+        <div class="ph-toolbar"><strong>Central intent history</strong></div><div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Intent</th><th>Order ref</th><th>ConId</th><th>State</th><th>Event</th><th>Time</th></tr></thead><tbody>${events.map((row) => `<tr><td>${esc(row.intent_uuid)}</td><td>${esc(row.order_ref)}</td><td>${row.conid}</td><td>${esc(row.state)}</td><td>${esc(row.event_type)}</td><td>${esc(row.created_at)}</td></tr>`).join('')}</tbody></table>${events.length ? '' : '<div class="ph-order-empty"><b>No central order events</b><span>The private bridge has not published an audit event.</span></div>'}</div>
+      </details>`;
+  }
+
+  function updatePaperOrderPreview(form) {
+    if (!form) return;
+    const qty = num(new FormData(form).get('quantity'));
+    const price = num(new FormData(form).get('limit_price'));
+    const conid = Number(new FormData(form).get('conid'));
+    const side = String(new FormData(form).get('side') || 'BUY');
+    const row = (state.book?.positions || []).find((candidate) => Number(candidate.conid) === conid);
+    const ownerLots = (row?.allocations || []).filter((lot) => lot.owner === state.scope);
+    const allocated = ownerLots.reduce((sum, lot) => sum + (num(lot.quantity_decimal) || 0), 0);
+    const current = row ? (ownerLots.length ? allocated : state.scope === 'all' ? (num(row.quantity_decimal) || 0) : 0) : 0;
+    const post = qty == null ? null : current + (side === 'SELL' ? -qty : qty);
+    const notional = form.querySelector('[data-ph-paper-notional]');
+    const position = form.querySelector('[data-ph-paper-position]');
+    if (notional) notional.textContent = qty != null && price != null ? money(qty * price) : '—';
+    if (position) position.textContent = qty != null ? `${quantity(current)} → ${quantity(post)}` : `${quantity(current)} → —`;
+  }
+
+  function bindOrderDesk(root) {
+    root.querySelector('[data-ph-open-order-owner]')?.addEventListener('click', (event) => {
+      state.scope = event.currentTarget.dataset.phOpenOrderOwner;
+      state.onRoute?.();
+      loadBook();
+    });
+    const form = root.querySelector('[data-ph-paper-order]');
+    if (form) {
+      const shortcut = form.querySelector('[data-ph-contract-shortcut]');
+      shortcut?.addEventListener('change', () => {
+        const option = shortcut.selectedOptions?.[0];
+        if (!option?.value) return;
+        form.elements.conid.value = option.value;
+        form.elements.symbol.value = option.dataset.symbol || '';
+        form.elements.sec_type.value = option.dataset.secType || 'STK';
+        updatePaperOrderPreview(form);
+      });
+      form.querySelectorAll('input,select').forEach((control) => control.addEventListener('input', () => updatePaperOrderPreview(form)));
+      updatePaperOrderPreview(form);
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const button = form.querySelector('.ph-order-submit');
+        const status = form.querySelector('[data-ph-order-status]');
+        const values = new FormData(form);
+        button.disabled = true;
+        status.className = 'ph-order-status';
+        status.textContent = 'Queuing paper ticket…';
+        try {
+          const payload = await sendJson('/api/v2/portfolio/paper-orders', {
+            method: 'POST',
+            body: JSON.stringify({
+              client_request_id: crypto.randomUUID(),
+              symbol: values.get('symbol'),
+              sec_type: values.get('sec_type'),
+              conid: values.get('conid'),
+              side: values.get('side'),
+              quantity: values.get('quantity'),
+              limit_price: values.get('limit_price'),
+              order_type: 'LMT', tif: 'DAY', mode: 'paper', transmitted: false,
+              rationale: values.get('rationale'),
+            }),
+          });
+          state.orderNotice = { type: 'success', message: `${payload.order.side} ${payload.order.quantity_decimal} ${payload.order.symbol} queued in the ${payload.order.owner} paper book.` };
+          state.paperOrders = await getJson('/api/v2/portfolio/paper-orders');
+          renderPortfolio();
+        } catch (error) {
+          status.className = 'ph-order-status error';
+          status.textContent = error.message;
+          button.disabled = false;
+        }
+      });
+    }
+    root.querySelectorAll('[data-ph-cancel-paper]').forEach((button) => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await sendJson(`/api/v2/portfolio/paper-orders/${encodeURIComponent(button.dataset.phCancelPaper)}`, { method: 'DELETE', body: '{}' });
+        state.orderNotice = { type: 'success', message: 'Paper order cancelled. No broker instruction was sent.' };
+        state.paperOrders = await getJson('/api/v2/portfolio/paper-orders');
+        renderPortfolio();
+      } catch (error) {
+        state.orderNotice = { type: 'error', message: error.message };
+        renderPortfolio();
+      }
+    }));
   }
 
   function reconciliationView(book) {
@@ -229,7 +385,14 @@
 
   async function loadActiveSectionData() {
     try {
-      if (state.section === 'orders' || state.selectedPositionKey) state.orders = await getJson('/api/v2/portfolio/orders');
+      if (state.section === 'orders') {
+        const [central, paper] = await Promise.allSettled([
+          getJson('/api/v2/portfolio/orders'),
+          getJson('/api/v2/portfolio/paper-orders'),
+        ]);
+        state.orders = central.status === 'fulfilled' ? central.value : { error: central.reason.message, events: [], broker_open_orders: [] };
+        state.paperOrders = paper.status === 'fulfilled' ? paper.value : { error: paper.reason.message, orders: [], viewer: {} };
+      } else if (state.selectedPositionKey) state.orders = await getJson('/api/v2/portfolio/orders');
       if (state.section === 'performance') state.performance = await getJson(`/api/v2/portfolio/performance?owner=${state.scope}`);
       if (state.section === 'margin' && !state.margin) state.margin = await getJson('/api/v2/portfolio/margin');
       if (state.section === 'risk') state.risk = await getJson(`/api/v2/portfolio/risk?owner=${state.scope}`);
@@ -251,8 +414,10 @@
   function renderPortfolio() {
     const root = document.getElementById('portfolio-content'); if (!root) return;
     const book = state.book;
-    root.innerHTML = `<div class="ph-shell">${shellHeader(book)}${book?.status === 'complete' ? sectionView(book) : `<div class="ph-empty"><div><b>Waiting for the first complete IBKR snapshot</b>${esc(book?.reason || 'The private collector has not published broker truth yet.')}</div></div>`}</div>`;
+    const sectionAvailable = book?.status === 'complete' || state.section === 'orders';
+    root.innerHTML = `<div class="ph-shell">${shellHeader(book)}${sectionAvailable ? sectionView(book) : `<div class="ph-empty"><div><b>Waiting for the first complete IBKR snapshot</b>${esc(book?.reason || 'The private collector has not published broker truth yet.')}</div></div>`}</div>`;
     bindCommon(root);
+    if (state.section === 'orders') bindOrderDesk(root);
     root.querySelector('[data-ph-search]')?.addEventListener('input', (event) => { state.query = event.target.value; renderPortfolio(); const input = root.querySelector('[data-ph-search]'); input?.focus(); input?.setSelectionRange(state.query.length, state.query.length); });
     root.querySelectorAll('[data-ph-filter]').forEach((button) => button.addEventListener('click', () => { state.positionFilter = button.dataset.phFilter; renderPortfolio(); }));
     root.querySelectorAll('[data-ph-sort]').forEach((button) => button.addEventListener('click', () => { const key = button.dataset.phSort; state.sortDirection = state.sortKey === key && state.sortDirection === 'desc' ? 'asc' : 'desc'; state.sortKey = key; renderPortfolio(); }));
