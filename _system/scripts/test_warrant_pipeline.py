@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import copy
 import unittest
-from datetime import date
+from datetime import date, timedelta
 
-from warrant_common import gate_state, validate_registry
+from warrant_common import gate_state, quote_age_days, validate_registry
 from resolve_warrant_outcomes import corporate_action_terminal
 
 
@@ -85,6 +85,12 @@ class WarrantPipelineTests(unittest.TestCase):
         terminal = corporate_action_terminal(candidate, date(2026, 7, 1))
         self.assertEqual(terminal["close"], 0.01)
         self.assertEqual(terminal["outcome_kind"], "redeemed")
+
+    def test_quote_age_uses_fetch_stamp_not_last_trade(self) -> None:
+        old_print = (date.today() - timedelta(days=12)).isoformat()
+        fresh_fetch = date.today().isoformat() + "T20:51:54Z"
+        age = quote_age_days({"quote_date": old_print, "fetched_at": fresh_fetch, "close": 0.002})
+        self.assertEqual(age, 0)
 
 
 if __name__ == "__main__":

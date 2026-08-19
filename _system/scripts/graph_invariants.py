@@ -613,11 +613,20 @@ def inv_p6(conn, root, today) -> Result:
 
     A feed may also declare ``assert_fields`` to have its CONTENTS checked;
     see ``_content_violations`` for why a fresh stamp is not evidence of a
-    live feed."""
+    live feed.
+
+    ``today`` may be a ``date`` (live ``run()``) or a timezone-aware
+    ``datetime`` (injected clocks). Date-only callers keep wall-clock
+    freshness so a 24h window still means 24 hours, not midnight-to-stamp.
+    Datetime callers are honored so unit tests do not depend on wall clock."""
     config = graph_build.load_json(
         root / "_system" / "graph" / "graph_sources.json") or {}
     feeds = config.get("data_feeds", {}) if isinstance(config, dict) else {}
-    now = datetime.now(timezone.utc)
+    if isinstance(today, datetime):
+        now = today if today.tzinfo else today.replace(tzinfo=timezone.utc)
+        now = now.astimezone(timezone.utc)
+    else:
+        now = datetime.now(timezone.utc)
     violations, ages, fresh = [], [], 0
     for name, feed in sorted(feeds.items()):
         if name.startswith("_") or not isinstance(feed, dict):

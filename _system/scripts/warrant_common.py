@@ -306,5 +306,11 @@ def gate_state(record: dict, warrant_quote: dict, common_quote: dict) -> dict:
 
 
 def quote_age_days(quote: dict) -> int | None:
-    quoted = parse_date(quote.get("quote_date"))
-    return (date.today() - quoted).days if quoted else None
+    """Days since the delayed mark was last fetched, else last print date.
+
+    A successful Yahoo pull with an old last-trade date is still a current
+    delayed mark. Illiquid names were failing P6 because quote_date lagged
+    fetched_at by more than five days while the vendor fetch itself was fresh.
+    """
+    stamp = parse_date(quote.get("fetched_at")) or parse_date(quote.get("quote_date"))
+    return (date.today() - stamp).days if stamp else None

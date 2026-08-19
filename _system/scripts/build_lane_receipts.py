@@ -20,7 +20,7 @@ def build(root: Path = ROOT, repository: str | None = None) -> dict:
         if not workflow:
             continue
         command = ["gh", "run", "list", "--workflow", workflow, "--status", "success",
-                   "--limit", "1", "--json", "databaseId,createdAt,updatedAt,headSha,url,conclusion"]
+                   "--limit", "20", "--json", "databaseId,createdAt,updatedAt,headSha,url,conclusion"]
         if repository:
             command.extend(["--repo", repository])
         result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
@@ -32,7 +32,7 @@ def build(root: Path = ROOT, repository: str | None = None) -> dict:
             missing.append({"lane": lane["name"], "workflow": workflow,
                             "error": result.stderr.strip()[:300]})
             continue
-        row = rows[0]
+        row = max(rows, key=lambda item: str(item.get("updatedAt") or item.get("createdAt") or ""))
         payload = {
             "schema_version": "1.0", "lane": lane["name"], "workflow_file": workflow,
             "last_success_at": row.get("updatedAt") or row.get("createdAt"),
@@ -41,6 +41,18 @@ def build(root: Path = ROOT, repository: str | None = None) -> dict:
         }
         target = root / "_system/data/lane_receipts" / f"{lane['name']}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
+        existing = {}
+        if target.exists():
+            try:
+                existing = json.loads(target.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                existing = {}
+        # Never replace a fresher committed receipt with an older API hit.
+        # The 2026-08-19 health job rewound committee from today to 2026-08-07
+        # because `gh run list --limit 1` did not return the newest success.
+        if str(existing.get("last_success_at") or "") > str(payload["last_success_at"] or ""):
+            written.append(existing)
+            continue
         target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         written.append(payload)
     return {"written": written, "missing": missing}
