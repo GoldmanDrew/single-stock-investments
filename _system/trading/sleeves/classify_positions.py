@@ -89,6 +89,15 @@ def classify_position(
         if index_name in SPX_NAMES or "SPXW" in local or local.startswith("XSP"):
             return Classification(index_name or "SPX", "spx_0dte", "spxw_option", None)
 
+    # Strategy ownership precedes every owner override. Any LS-algo position
+    # (ETF, underlying, or option on either) remains in the systematic universe.
+    if any(tag in ref for tag in ETF_LS_REFS):
+        return Classification(under or ticker, "etf_ls", "order_ref", None)
+
+    strategy_name = under or ticker if sec in {"OPT", "FOP"} else ticker
+    if strategy_name in letf:
+        return Classification(strategy_name, "etf_ls", "etf_ls_universe", None)
+
     if DREW_REF in ref or ticker in drew:
         return Classification(ticker, "drew", "drew_new", "drew")
 
@@ -99,19 +108,11 @@ def classify_position(
         name = under or ticker
         if name in family:
             return Classification(name, "michael", "blacklist_family", "michael")
-        if name in letf:
-            return Classification(name, "etf_ls", "etf_ls_universe", None)
         if MICHAEL_REF in ref:
             return Classification(name or ticker, "michael", "michael_new", "michael")
         if name:
             return Classification(name, "michael", "residual", "michael")
         return Classification(ticker, "ignored", "option_not_stock", None)
-
-    if any(tag in ref for tag in ETF_LS_REFS):
-        return Classification(ticker, "etf_ls", "order_ref", None)
-
-    if ticker in letf:
-        return Classification(ticker, "etf_ls", "etf_ls_universe", None)
 
     if MICHAEL_REF in ref:
         return Classification(ticker, "michael", "michael_new", "michael")

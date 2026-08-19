@@ -1496,7 +1496,7 @@
       )).join(' ');
     }
     const fallback = renderFilingEvidenceLinks(event, linkHtml, ghRepo);
-    if (fallback && fallback !== 'â€”') return fallback;
+    if (fallback && fallback !== '—') return fallback;
     return '<span class="event-evidence-missing">Evidence missing</span>';
   }
 
@@ -4980,6 +4980,12 @@
       { id: 'memory', label: 'Research memory' },
       { id: 'sources', label: 'Pipeline status' },
     ];
+    const sectionGroups = [
+      { label: 'Signals', ids: ['events', 'inflections', 'index_watch'] },
+      { label: 'Sources', ids: ['letters', 'podcasts', 'funds', 'documents'] },
+      { label: 'Synthesis', ids: ['consensus', 'tickers'] },
+      { label: 'Memory & health', ids: ['memory', 'sources'] },
+    ];
 
     let body = '';
     if (activeSection === 'inflections') {
@@ -5123,8 +5129,8 @@
       <p class="subhead" style="margin-bottom:14px">
         Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
       </p>
-      <nav class="view-tabs" id="insights-section-tabs" style="margin-bottom:10px">
-        ${sections.map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}
+      <nav class="insights-section-groups" id="insights-section-tabs" aria-label="Insights workbench" style="margin-bottom:10px">
+        ${sectionGroups.map(group => `<div class="insights-section-group"><span>${group.label}</span><div>${group.ids.map(id => sections.find(section => section.id === id)).filter(Boolean).map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}</div></div>`).join('')}
       </nav>
       <div class="detail-section${activeSection === 'consensus' ? ' consensus-toolbar' : ''}" style="display:grid;gap:8px;margin-bottom:12px">
         ${activeSection === 'consensus' ? `<div class="consensus-toolbar-main">

@@ -58,6 +58,7 @@ def extreme_return_corroborated(
         return False
     return bool((contract.get("model_checks") or {}).get("extreme_return_validated"))
 INSIGHTS_PATH = ROOT / "dashboard" / "data" / "insights.json"
+INSIGHTS_DIR = ROOT / "dashboard" / "data" / "insights"
 ACTIVIST_FEED_PATH = ROOT / "dashboard" / "data" / "activist_feed.json"
 INDEX_MEMBERSHIP_PATH = ROOT / "dashboard" / "data" / "index_membership.json"
 INDEX_STATUS_ENUM = {"member", "inclusion_candidate", "deletion_risk", "ineligible", "n_a"}
@@ -228,7 +229,7 @@ def main() -> int:
     registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     if payload.get("insights"):
         errors.append(
-            "dashboard_data.json must not embed insights; load dashboard/data/insights.json separately"
+            "dashboard_data.json must not embed insights; load dashboard/data/insights/ shards separately"
         )
     if payload.get("research_memory"):
         errors.append(
@@ -257,10 +258,25 @@ def main() -> int:
             errors.append(f"{INSIGHTS_PATH} contains unresolved git merge conflict markers")
         else:
             insights = json.loads(raw_insights)
-    elif deploy_only:
-        warnings.append(
-            "insights.json absent (gitignored); SPA loads dashboard/data/insights/ shards"
-        )
+    elif (INSIGHTS_DIR / "manifest.json").exists():
+        shard_paths = sorted(INSIGHTS_DIR.glob("*.json"))
+        total_size = sum(path.stat().st_size for path in shard_paths)
+        if total_size >= GITHUB_HARD_LIMIT_BYTES:
+            errors.append(
+                f"insights shards total {total_size / (1024 * 1024):.1f}MB and exceed GitHub's 100MB limit"
+            )
+        for path in shard_paths:
+            raw_shard = path.read_text(encoding="utf-8")
+            if any(marker in raw_shard for marker in CONFLICT_MARKERS):
+                errors.append(f"{path} contains unresolved git merge conflict markers")
+                continue
+            try:
+                shard = json.loads(raw_shard)
+            except json.JSONDecodeError:
+                errors.append(f"{path} is invalid JSON")
+                continue
+            if isinstance(shard, dict):
+                insights.update(shard)
     else:
         errors.append("missing dashboard insights payload")
     holdings = sorted((registry.get("holdings") or {}).keys())

@@ -184,13 +184,23 @@ runs:
         if [ -z "${PORTFOLIO_INGEST_TOKEN:-}" ] || [ -z "${CF_ACCESS_TEAM_DOMAIN:-}" ] || [ -z "${CF_ACCESS_AUD:-}" ]; then
           echo "Portfolio Access/ingest secrets are not fully provisioned; public Pages deploy continues and portfolio APIs stay fail-closed."
         fi
+        if [ -z "${PORTFOLIO_DREW_ACCESS_EMAILS:-}" ] || [ -z "${PORTFOLIO_MICHAEL_ACCESS_EMAILS:-}" ]; then
+          echo "Portfolio owner login maps are not fully provisioned; paper order entry stays fail-closed."
+        fi
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
         SECRET_FILE="$RUNNER_TEMP/market-risk-pages-secrets.json"
         trap 'rm -f "$SECRET_FILE"' EXIT
         python - "$SECRET_FILE" <<'PY'
         import json, os, sys
         secrets = {"MARKET_RISK_INGEST_TOKEN": os.environ["MARKET_RISK_INGEST_TOKEN"]}
-        for key in ("PORTFOLIO_INGEST_TOKEN", "CF_ACCESS_TEAM_DOMAIN", "CF_ACCESS_AUD", "SLEEVE_INGEST_TOKEN"):
+        for key in (
+            "PORTFOLIO_INGEST_TOKEN",
+            "CF_ACCESS_TEAM_DOMAIN",
+            "CF_ACCESS_AUD",
+            "SLEEVE_INGEST_TOKEN",
+            "PORTFOLIO_DREW_ACCESS_EMAILS",
+            "PORTFOLIO_MICHAEL_ACCESS_EMAILS",
+        ):
             value = os.environ.get(key)
             if value:
                 secrets[key] = value

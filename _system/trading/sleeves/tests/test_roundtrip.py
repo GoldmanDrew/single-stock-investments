@@ -46,7 +46,7 @@ def test_ib_sync_seeds_michael_and_drew_fill_roundtrip(tmp_path):
     michael = build_book("michael", store)
     tickers = {p["ticker"] for p in michael["positions"]}
     assert "CSU" in tickers
-    assert "APLZ" in tickers
+    assert "APLZ" not in tickers
     assert "TQQQ" not in tickers
     assert "SPX" not in tickers
     quote = {

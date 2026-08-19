@@ -2771,6 +2771,22 @@ def load_activist_feed() -> dict | None:
         return None
 
 
+def load_insights_document() -> dict | None:
+    """Load the current sharded Insights contract, with legacy monolith fallback."""
+    legacy = _load_json(DATA_DIR / "insights.json")
+    if legacy:
+        return legacy
+    shard_dir = DATA_DIR / "insights"
+    if not shard_dir.is_dir():
+        return None
+    merged: dict = {}
+    for path in sorted(shard_dir.glob("*.json")):
+        shard = _load_json(path)
+        if isinstance(shard, dict):
+            merged.update(shard)
+    return merged or None
+
+
 def activist_summary_for_ticker(ticker: str) -> dict:
     feed = load_activist_feed()
     by_ticker = (feed or {}).get("by_ticker") or {}
@@ -2790,7 +2806,7 @@ def build() -> dict:
     holdings = parse_holdings()
     portfolio_class = load_classification()
     tickers = list_tickers()
-    insights_doc = _load_json(DATA_DIR / "insights.json")
+    insights_doc = load_insights_document()
     memory_doc = _load_json(RESEARCH_MEMORY_PATH)
     registry_doc = _load_json(DOCUMENT_REGISTRY_PATH) or {}
     registry_docs = list(registry_doc.get("documents") or [])
@@ -3181,7 +3197,7 @@ def main() -> None:
     prior_by_ticker = load_prior_rows()
     document_registry = build_document_registry()
     document_catalog = build_document_catalog(document_registry)
-    insights_doc = _load_json(DATA_DIR / "insights.json")
+    insights_doc = load_insights_document()
     memory_doc = build_research_memory()
     learning_loop = build_learning_loop_summary()
     if memory_doc and learning_loop:
@@ -3207,7 +3223,7 @@ def main() -> None:
     payload["equity_models"] = equity_payload
     if insights_doc:
         payload["insights_ref"] = {
-            "path": "dashboard/data/insights.json",
+            "path": "dashboard/data/insights/manifest.json",
             "generated_at": insights_doc.get("generated_at"),
             "record_count": insights_doc.get("record_count"),
         }

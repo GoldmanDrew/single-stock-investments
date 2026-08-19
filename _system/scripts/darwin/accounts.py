@@ -86,6 +86,9 @@ def build_serving(portfolios: dict[str, dict]) -> dict:
             "backtest_sharpe": champ.get("sharpe_annualized"),
             "paper": paper.get("last_mark"),
             "paper_inception": paper.get("inception_date"),
+            "paper_status": paper.get("status", "tracking"),
+            "paper_schema_version": paper.get("schema_version"),
+            "paper_legacy_quarantine": paper.get("legacy_quarantine"),
             "portfolio": port,
         }
     bundle = {

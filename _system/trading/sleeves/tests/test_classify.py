@@ -46,12 +46,12 @@ def test_xsp_option_excluded():
     assert cls.bucket == "spx_0dte"
 
 
-def test_etf_ls_excluded_unless_blacklist_family():
+def test_etf_ls_excluded_even_when_in_blacklist_family():
     tqqq = classify_position({"symbol": "TQQQ", "secType": "STK"}, blacklist_family={"APLD"}, etf_ls_symbols={"TQQQ"})
     assert tqqq.bucket == "etf_ls"
     aplz = classify_position({"symbol": "APLZ", "secType": "STK"}, blacklist_family={"APLD", "APLZ"}, etf_ls_symbols={"TQQQ", "APLZ"})
-    assert aplz.bucket == "michael"
-    assert aplz.reason == "blacklist_family"
+    assert aplz.bucket == "etf_ls"
+    assert aplz.reason == "etf_ls_universe"
 
 
 def test_order_ref_etf_ls():
@@ -71,7 +71,7 @@ def test_snapshot_universe_includes_underlyings():
         assert name not in letf
 
 
-def test_ls_algo_universe_excluded_unless_blacklisted():
+def test_ls_algo_universe_always_excluded_from_michael():
     nvda = classify_position(
         {"symbol": "NVDA", "secType": "STK"},
         blacklist_family={"APLD"},
@@ -83,8 +83,8 @@ def test_ls_algo_universe_excluded_unless_blacklisted():
         blacklist_family={"APLD", "APLZ"},
         etf_ls_symbols={"APLD", "APLZ", "NVDA"},
     )
-    assert apld.bucket == "michael"
-    assert apld.reason == "blacklist_family"
+    assert apld.bucket == "etf_ls"
+    assert apld.reason == "etf_ls_universe"
 
 
 def test_residual_and_drew():
@@ -97,7 +97,7 @@ def test_residual_and_drew():
         blacklist_family=set(),
         etf_ls_symbols={"MSFT"},
     )
-    assert drew.bucket == "drew"
+    assert drew.bucket == "etf_ls"
 
 
 def test_classify_positions_audit():
@@ -131,4 +131,4 @@ def test_equity_option_follows_underlying():
         blacklist_family={"APLD"},
         etf_ls_symbols={"APLD"},
     )
-    assert apld.bucket == "michael" and apld.reason == "blacklist_family"
+    assert apld.bucket == "etf_ls" and apld.reason == "etf_ls_universe"

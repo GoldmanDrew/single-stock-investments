@@ -4,13 +4,13 @@
 
 | Indicator | Latest | As of | YoY | Direction | In base IRR? |
 |-----------|--------|-------|-----|-----------|--------------|
-| High-yield OAS credit spread (%) | 1.17 | 2026-08-14 | +179.1% | up | no (context) |
-| US Treasury 10Y yield (%) | 4.73799991607666 | 2026-08-18 | +9.1% | up | no (context) |
-| US Treasury 2Y yield (%) | 4.394000053405762 | 2026-08-18 | +14.0% | up | no (context) |
-| Trade-weighted USD index (broad) | 99.63999938964844 | 2026-08-18 | +1.5% | up | no (context) |
-| VIX index level | 15.75 | 2026-08-18 | +5.1% | up | no (context) |
-| HYG vs TLT 1-month return spread (%) | 2.46 | 2026-08-14 | +236.7% | up | no (context) |
-| SPY 20-day realized vol (annualized %) | 13.44 | 2026-08-14 | +26.9% | up | no (context) |
+| High-yield OAS credit spread (%) | 1.03 | 2026-08-18 | +206.2% | up | no (context) |
+| US Treasury 10Y yield (%) | 4.706000328063965 | 2026-08-18 | +8.4% | up | no (context) |
+| US Treasury 2Y yield (%) | 4.366999626159668 | 2026-08-18 | +13.3% | up | no (context) |
+| Trade-weighted USD index (broad) | 99.63600158691406 | 2026-08-18 | +1.5% | up | no (context) |
+| VIX index level | 15.84000015258789 | 2026-08-18 | +5.7% | up | no (context) |
+| HYG vs TLT 1-month return spread (%) | 2.47 | 2026-08-18 | +380.7% | up | no (context) |
+| SPY 20-day realized vol (annualized %) | 13.43 | 2026-08-18 | +26.7% | up | no (context) |
 | AGI expert-horizon years ahead (public quotes) | 5.0 | 2026-06-01 | +0.0% | flat | no (context) |
 | Robotaxi expert-horizon years ahead (public quotes) | 2.0 | 2026-06-01 | +0.0% | flat | no (context) |
 
