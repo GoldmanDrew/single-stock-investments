@@ -1,97 +1,3094 @@
 {
   "schema_version": "2.0",
   "ticker": "AMR",
-  "as_of": "2026-08-11",
+  "as_of": "2026-08-19",
   "decision": {
     "status": "evidence_blocked",
-    "price_per_share": null,
-    "market_cap_m": null,
-    "enterprise_value_m": null,
-    "value_per_share": {},
-    "annualized_return_at_price_pct": {},
-    "downside_to_low_pct": null,
-    "unvalued_component_count": 1,
-    "unresolved_evidence_count": 1,
+    "price_per_share": 169.44,
+    "market_cap_m": 2148.34,
+    "enterprise_value_m": 1715.54,
+    "value_per_share": {
+      "low": 0.4504,
+      "base": 9.5529,
+      "high": 19.7586
+    },
+    "annualized_return_at_price_pct": {
+      "low": -57.14,
+      "base": -33.69,
+      "high": -26.43
+    },
+    "downside_to_low_pct": -99.73,
+    "unvalued_component_count": 0,
+    "unresolved_evidence_count": 0,
+    "proof_complete_pct": 100.0,
+    "model_hash": "563fc1c2a47a33e13350b6c2e34ccf34e9f627399cd08d507b547d7ec2d559dd",
     "primary_power_zone": "Capital cycle and normalized industry economics",
     "owner_decision": null,
-    "next_action": "Gather the listed primary evidence and compile the first proof-complete component model; never substitute an analyst plug."
+    "next_action": "Freeze the evidence packet and select three method-independent raters."
   },
   "business": {
-    "status": "incomplete",
-    "components": [],
+    "status": "complete",
+    "components": [
+      {
+        "component_id": "midcycle_met_coal_operations",
+        "label": "Alabama met coal longwall operations at mid-cycle utilization",
+        "category": "operating_business",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Normalized owner cash from CAPP mines and Mine No. 7 at mid-cycle utilization",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "midcycle_capacity_value",
+          "version": "1.0",
+          "label": "Capital-cycle normalized capacity value",
+          "power_zones": [
+            "capital_cycle"
+          ],
+          "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+          "sources": [
+            {
+              "ref": "_system/frameworks/power_zones.json",
+              "locator": "capital_cycle profile"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 5.3975,
+          "base": 9.0167,
+          "high": 13.9199
+        },
+        "legacy_range_per_share": {
+          "low": 5.5,
+          "base": 9.0,
+          "high": 14.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 5.3975,
+            "base": 9.0167,
+            "high": 13.9199
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 150.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 1.9,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 285.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "150 \u00d7 1.9",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 5.39752282,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "285 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 230.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 2.07,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 476.1,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "230 \u00d7 2.07",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 9.01670391,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "476.1 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 350.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 2.1,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 735.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "350 \u00d7 2.1",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 13.91992728,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "735 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+              "as_of": "2026-08-03",
+              "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "be8748f51bffdd6538877441d4fc232bad46e7fc7d624b69e0c2040af07fdfad"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "FY2022-FY2025 operating cash flow $842M/$701M/$367M/$229M; FY2025 production 9.3M metric tons; longwall mines No. 4 and No. 7 (10-K FY2025)",
+        "scenario_assumptions": "Mid-cycle owner cash $230M base \u00d7 capital-cycle multiple / 52.8M shares; trough FY2025 anchor, not peak 2022.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low/base/high vary normalized owner cash and capitalization multiple.",
+        "falsifier": "Met coal prices stay below cash cost for four quarters and FY owner cash falls below $150M.",
+        "overlap_key": "met_coal_operating_cash",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "net_cash_position",
+        "label": "Net cash after long-term debt",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Distributable net cash after long-term debt and operating liquidity buffer",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "net_asset_value",
+          "version": "1.0",
+          "label": "Reconciled net asset value",
+          "power_zones": [
+            "scarce_asset_optionality",
+            "catalyst_asset_value",
+            "credit_and_normalized_returns"
+          ],
+          "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+              "locator": "Economic ownership and unit NAV"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 2.0037,
+          "base": 2.9506,
+          "high": 2.9506
+        },
+        "legacy_range_per_share": {
+          "low": 2.0,
+          "base": 2.95,
+          "high": 3.5
+        },
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 2.0037,
+            "base": 2.9506,
+            "high": 2.9506
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 50.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 105.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 50",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.00371198,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "105.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 0",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.95064581,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "155.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 0",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.95064581,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "155.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "cash_m",
+              "ref": "AMR/research/evidence/sec_companyfacts.json",
+              "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+              "as_of": "2026-06-30",
+              "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+              "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+            },
+            {
+              "node_id": "debt_m",
+              "ref": "AMR/research/evidence/sec_companyfacts.json",
+              "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+              "as_of": "2026-06-30",
+              "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+              "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+            },
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page share count",
+              "as_of": "2026-08-03",
+              "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "8550bbb893506a719759ed09b9b005836fd79d88cc6d534f8577e10b6de5c7ec"
+        },
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "Cash $310.4M less long-term debt $154.6M at June 30, 2026 / 52.8M shares (10-Q Q2 2026)",
+        "scenario_assumptions": null,
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low case haircuts surplus cash needed for CAPP reserves development and working capital.",
+        "falsifier": "A directly comparable transaction or asset-specific impairment supports a value below the low-case unit mark after like-for-like adjustments.",
+        "overlap_key": "balance_sheet_cash",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "blue_creek_development",
+        "label": "CAPP reserves second longwall development option",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Incremental longwall capacity at CAPP reserves net of remaining development spend",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "risk_adjusted_milestone_value",
+          "version": "1.0",
+          "label": "Milestone risk-adjusted present value",
+          "power_zones": [
+            "binary_milestone"
+          ],
+          "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/optionality_valuation.md",
+              "locator": "Milestone-based option framework"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -0.9469,
+          "base": 0.0947,
+          "high": 2.8881
+        },
+        "legacy_range_per_share": {
+          "low": 0.0,
+          "base": 2.0,
+          "high": 6.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "risk_adjusted_milestone_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -0.9469,
+            "base": 0.0947,
+            "high": 2.8881
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 50.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 0.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "0 \u00d7 0",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": -50.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "0 - 50",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": -0.94693383,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "-50 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.35,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 300.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 100.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 105.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "300 \u00d7 0.35",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 5.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "105 - 100",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 0.09469338,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.55,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 550.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 150.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 302.5,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "550 \u00d7 0.55",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 152.5,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "302.5 - 150",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 2.88814818,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "152.5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page share count",
+              "as_of": "2026-08-03",
+              "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "67f640e6c907f36361803f425bb3d72d97b724d89397d220f768f35d7c5b6944"
+        },
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "CAPP reserves longwall development disclosed in 10-K Item 1; company optimizing first longwall before second; federal coal lease renewals filed January 2026 (8-K 2026-01-16)",
+        "scenario_assumptions": "Risk-weighted incremental capacity value net of remaining development spend; zero in Lawrence consolidated FCF path.",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Second longwall steady-state production estimated 2028-2030 based on development disclosures in 10-K Item 1 and January 2026 lease renewals.",
+          "probability_basis": "Base 35% reflects partial completion risk; company optimizing first longwall before second (10-K Item 1).",
+          "remaining_capital_basis": "Base $100M remaining owner-funded mining capex and pre-production spend before second longwall reaches steady state."
+        },
+        "tax_and_realization_adjustments": "Low/base/high vary success probability, gross success value, and remaining development cost.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "overlap_key": "blue_creek_capacity",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "met_coal_cycle_reserve",
+        "label": "Met coal supply-response and price-normalization reserve",
+        "category": "liability_or_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Explicit deduction for cyclical price mean reversion and supply response",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "midcycle_capacity_value",
+          "version": "1.0",
+          "label": "Capital-cycle normalized capacity value",
+          "power_zones": [
+            "capital_cycle"
+          ],
+          "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+          "sources": [
+            {
+              "ref": "_system/frameworks/power_zones.json",
+              "locator": "capital_cycle profile"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -6.0039,
+          "base": -2.5091,
+          "high": -0.0
+        },
+        "legacy_range_per_share": {
+          "low": -6.0,
+          "base": -2.5,
+          "high": 0.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -6.0039,
+            "base": -2.5091,
+            "high": -0.0
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.067,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 6.00387,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0.067",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -6.00387,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(6.00387)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.028,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 2.50908,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0.028",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -2.50908,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(2.50908)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 0.0,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -0.0,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(0)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "price",
+              "ref": "AMR/research/pricing_analysis.json",
+              "locator": "Yahoo HCC close 2026-08-06",
+              "as_of": "2026-08-06",
+              "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+              "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "6d92e91981fe01a582f0fa7346364407b163f10b8214ffab45c92edd2b6c1252"
+        },
+        "evidence_tier": "judgment",
+        "evidence_level": "analyst_estimated",
+        "evidence": "Capital-cycle failure mode: peak margins capitalized; global met coal supply can respond when prices recover (10-K risk factors; Power Zone capital_cycle profile)",
+        "scenario_assumptions": "Explicit deduction for cyclical price mean reversion and supply response not captured in trough-normalized owner cash.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk.",
+        "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+        "overlap_key": "cycle_price_risk",
+        "assumption_type": "judgment"
+      }
+    ],
     "component_coverage": {
-      "unvalued_component_count": 1
+      "all_material_components_identified": true,
+      "material_component_count": 4,
+      "additive_component_count": 4,
+      "embedded_component_count": 0,
+      "unvalued_component_count": 0,
+      "double_counting_flags": []
     },
     "facts": [],
     "estimates": [],
-    "judgments": []
+    "judgments": [
+      {
+        "component_id": "midcycle_met_coal_operations",
+        "label": "Alabama met coal longwall operations at mid-cycle utilization",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2022-FY2025 operating cash flow $842M/$701M/$367M/$229M; FY2025 production 9.3M metric tons; longwall mines No. 4 and No. 7 (10-K FY2025)",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_cash_position",
+        "label": "Net cash after long-term debt",
+        "kind": "judgment",
+        "evidence_tier": "filing",
+        "evidence": "Cash $310.4M less long-term debt $154.6M at June 30, 2026 / 52.8M shares (10-Q Q2 2026)",
+        "method": "net_asset_value",
+        "valuation_status": "calculated"
+      },
+      {
+        "component_id": "blue_creek_development",
+        "label": "CAPP reserves second longwall development option",
+        "kind": "judgment",
+        "evidence_tier": "filing",
+        "evidence": "CAPP reserves longwall development disclosed in 10-K Item 1; company optimizing first longwall before second; federal coal lease renewals filed January 2026 (8-K 2026-01-16)",
+        "method": "risk_adjusted_milestone_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "met_coal_cycle_reserve",
+        "label": "Met coal supply-response and price-normalization reserve",
+        "kind": "judgment",
+        "evidence_tier": "judgment",
+        "evidence": "Capital-cycle failure mode: peak margins capitalized; global met coal supply can respond when prices recover (10-K risk factors; Power Zone capital_cycle profile)",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
   },
   "valuation": {
     "status": "evidence_blocked",
-    "market": {},
-    "valuation": {},
-    "components": [],
+    "market": {
+      "price_per_share": 169.44,
+      "fully_diluted_shares": 12679045,
+      "market_cap_m": 2148.34,
+      "enterprise_value_m": 1715.54
+    },
+    "valuation": {
+      "value_per_share": {
+        "low": 0.4504,
+        "base": 9.5529,
+        "high": 19.7586
+      },
+      "priced_components_per_share": {
+        "low": 0.4504,
+        "base": 9.5529,
+        "high": 19.7586
+      },
+      "legacy_value_per_share": {
+        "low": 1.5,
+        "base": 11.45,
+        "high": 23.5
+      },
+      "probability_weighted_value_per_share": 9.5529,
+      "expected_distributions_per_share": 0.0,
+      "annualized_return_at_price_pct": {
+        "low": -57.14,
+        "base": -33.69,
+        "high": -26.43
+      },
+      "downside_to_low_pct": -99.73,
+      "horizon_years": 7,
+      "equity_liability_floor": 0.0,
+      "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    },
+    "components": [
+      {
+        "component_id": "midcycle_met_coal_operations",
+        "label": "Alabama met coal longwall operations at mid-cycle utilization",
+        "category": "operating_business",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Normalized owner cash from CAPP mines and Mine No. 7 at mid-cycle utilization",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "midcycle_capacity_value",
+          "version": "1.0",
+          "label": "Capital-cycle normalized capacity value",
+          "power_zones": [
+            "capital_cycle"
+          ],
+          "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+          "sources": [
+            {
+              "ref": "_system/frameworks/power_zones.json",
+              "locator": "capital_cycle profile"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 5.3975,
+          "base": 9.0167,
+          "high": 13.9199
+        },
+        "legacy_range_per_share": {
+          "low": 5.5,
+          "base": 9.0,
+          "high": 14.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 5.3975,
+            "base": 9.0167,
+            "high": 13.9199
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 150.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 1.9,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 285.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "150 \u00d7 1.9",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 5.39752282,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "285 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 230.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 2.07,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 476.1,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "230 \u00d7 2.07",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 9.01670391,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "476.1 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Diluted shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+                  "as_of": "2026-08-03",
+                  "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+                },
+                "rationale": null
+              },
+              {
+                "id": "normalized_owner_cash_m",
+                "label": "Mid-cycle normalized owner cash after sustaining capital",
+                "kind": "judgment",
+                "value": 350.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Base between FY2025 trough OCF $229M and four-year average less sustaining capex; low assumes prolonged weak pricing; high assumes partial reversion toward 2024 economics."
+              },
+              {
+                "id": "owner_cash_multiple",
+                "label": "Capital-cycle owner-cash capitalization multiple",
+                "kind": "judgment",
+                "value": 2.1,
+                "unit": "multiple",
+                "source": null,
+                "rationale": "Through-cycle multiple on normalized owner cash for a low-cost longwall producer; not peak-margin capitalization."
+              },
+              {
+                "id": "equity_value_m",
+                "label": "Equity value of met coal operations",
+                "kind": "calculation",
+                "value": 735.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "normalized_owner_cash_m \u00d7 owner_cash_multiple",
+                "substituted_formula": "350 \u00d7 2.1",
+                "dependencies": [
+                  "normalized_owner_cash_m",
+                  "owner_cash_multiple"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Mid-cycle value per share",
+                "kind": "calculation",
+                "value": 13.91992728,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "equity_value_m \u00f7 shares_m",
+                "substituted_formula": "735 \u00f7 52.802",
+                "dependencies": [
+                  "equity_value_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+              "as_of": "2026-08-03",
+              "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "be8748f51bffdd6538877441d4fc232bad46e7fc7d624b69e0c2040af07fdfad"
+        },
+        "evidence_tier": "primary_derived",
+        "evidence_level": "primary_derived",
+        "evidence": "FY2022-FY2025 operating cash flow $842M/$701M/$367M/$229M; FY2025 production 9.3M metric tons; longwall mines No. 4 and No. 7 (10-K FY2025)",
+        "scenario_assumptions": "Mid-cycle owner cash $230M base \u00d7 capital-cycle multiple / 52.8M shares; trough FY2025 anchor, not peak 2022.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low/base/high vary normalized owner cash and capitalization multiple.",
+        "falsifier": "Met coal prices stay below cash cost for four quarters and FY owner cash falls below $150M.",
+        "overlap_key": "met_coal_operating_cash",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "net_cash_position",
+        "label": "Net cash after long-term debt",
+        "category": "financial_asset",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Distributable net cash after long-term debt and operating liquidity buffer",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "net_asset_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "net_asset_value",
+          "version": "1.0",
+          "label": "Reconciled net asset value",
+          "power_zones": [
+            "scarce_asset_optionality",
+            "catalyst_asset_value",
+            "credit_and_normalized_returns"
+          ],
+          "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+              "locator": "Economic ownership and unit NAV"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": 2.0037,
+          "base": 2.9506,
+          "high": 2.9506
+        },
+        "legacy_range_per_share": {
+          "low": 2.0,
+          "base": 2.95,
+          "high": 3.5
+        },
+        "valuation_status": "calculated",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": 2.0037,
+            "base": 2.9506,
+            "high": 2.9506
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 50.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 105.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 50",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.00371198,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "105.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 0",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.95064581,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "155.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "cash_m",
+                "label": "Cash and restricted cash",
+                "kind": "fact",
+                "value": 310.4,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+                },
+                "rationale": null
+              },
+              {
+                "id": "debt_m",
+                "label": "Long-term debt",
+                "kind": "fact",
+                "value": 154.6,
+                "unit": "USD_m",
+                "source": {
+                  "ref": "AMR/research/evidence/sec_companyfacts.json",
+                  "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+                  "as_of": "2026-06-30",
+                  "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+                  "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+                },
+                "rationale": null
+              },
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "operating_cash_buffer_m",
+                "label": "Operating liquidity retained above distributable net cash",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Low case haircuts surplus cash needed for CAPP reserves development and working capital."
+              },
+              {
+                "id": "net_cash_m",
+                "label": "Net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "cash_m - debt_m",
+                "substituted_formula": "310.4 - 154.6",
+                "dependencies": [
+                  "cash_m",
+                  "debt_m"
+                ]
+              },
+              {
+                "id": "distributable_net_cash_m",
+                "label": "Distributable net cash",
+                "kind": "calculation",
+                "value": 155.8,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "net_cash_m - operating_cash_buffer_m",
+                "substituted_formula": "155.8 - 0",
+                "dependencies": [
+                  "net_cash_m",
+                  "operating_cash_buffer_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Net cash per share",
+                "kind": "calculation",
+                "value": 2.95064581,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "distributable_net_cash_m \u00f7 shares_m",
+                "substituted_formula": "155.8 \u00f7 52.802",
+                "dependencies": [
+                  "distributable_net_cash_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "cash_m",
+              "ref": "AMR/research/evidence/sec_companyfacts.json",
+              "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+              "as_of": "2026-06-30",
+              "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+              "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+            },
+            {
+              "node_id": "debt_m",
+              "ref": "AMR/research/evidence/sec_companyfacts.json",
+              "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+              "as_of": "2026-06-30",
+              "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+              "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+            },
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page share count",
+              "as_of": "2026-08-03",
+              "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "8550bbb893506a719759ed09b9b005836fd79d88cc6d534f8577e10b6de5c7ec"
+        },
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "Cash $310.4M less long-term debt $154.6M at June 30, 2026 / 52.8M shares (10-Q Q2 2026)",
+        "scenario_assumptions": null,
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low case haircuts surplus cash needed for CAPP reserves development and working capital.",
+        "falsifier": "A directly comparable transaction or asset-specific impairment supports a value below the low-case unit mark after like-for-like adjustments.",
+        "overlap_key": "balance_sheet_cash",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "blue_creek_development",
+        "label": "CAPP reserves second longwall development option",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Incremental longwall capacity at CAPP reserves net of remaining development spend",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "risk_adjusted_milestone_value",
+          "version": "1.0",
+          "label": "Milestone risk-adjusted present value",
+          "power_zones": [
+            "binary_milestone"
+          ],
+          "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/optionality_valuation.md",
+              "locator": "Milestone-based option framework"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -0.9469,
+          "base": 0.0947,
+          "high": 2.8881
+        },
+        "legacy_range_per_share": {
+          "low": 0.0,
+          "base": 2.0,
+          "high": 6.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "risk_adjusted_milestone_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -0.9469,
+            "base": 0.0947,
+            "high": 2.8881
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 50.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 0.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "0 \u00d7 0",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": -50.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "0 - 50",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": -0.94693383,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "-50 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.35,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 300.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 100.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 105.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "300 \u00d7 0.35",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 5.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "105 - 100",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 0.09469338,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.55,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 550.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 150.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 302.5,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "550 \u00d7 0.55",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 152.5,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "302.5 - 150",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 2.88814818,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "152.5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page share count",
+              "as_of": "2026-08-03",
+              "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "67f640e6c907f36361803f425bb3d72d97b724d89397d220f768f35d7c5b6944"
+        },
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "CAPP reserves longwall development disclosed in 10-K Item 1; company optimizing first longwall before second; federal coal lease renewals filed January 2026 (8-K 2026-01-16)",
+        "scenario_assumptions": "Risk-weighted incremental capacity value net of remaining development spend; zero in Lawrence consolidated FCF path.",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Second longwall steady-state production estimated 2028-2030 based on development disclosures in 10-K Item 1 and January 2026 lease renewals.",
+          "probability_basis": "Base 35% reflects partial completion risk; company optimizing first longwall before second (10-K Item 1).",
+          "remaining_capital_basis": "Base $100M remaining owner-funded mining capex and pre-production spend before second longwall reaches steady state."
+        },
+        "tax_and_realization_adjustments": "Low/base/high vary success probability, gross success value, and remaining development cost.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "overlap_key": "blue_creek_capacity",
+        "assumption_type": "judgment"
+      },
+      {
+        "component_id": "met_coal_cycle_reserve",
+        "label": "Met coal supply-response and price-normalization reserve",
+        "category": "liability_or_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Explicit deduction for cyclical price mean reversion and supply response",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "midcycle_capacity_value",
+          "version": "1.0",
+          "label": "Capital-cycle normalized capacity value",
+          "power_zones": [
+            "capital_cycle"
+          ],
+          "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+          "sources": [
+            {
+              "ref": "_system/frameworks/power_zones.json",
+              "locator": "capital_cycle profile"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -6.0039,
+          "base": -2.5091,
+          "high": -0.0
+        },
+        "legacy_range_per_share": {
+          "low": -6.0,
+          "base": -2.5,
+          "high": 0.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "midcycle_capacity_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -6.0039,
+            "base": -2.5091,
+            "high": -0.0
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.067,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 6.00387,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0.067",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -6.00387,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(6.00387)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.028,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 2.50908,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0.028",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -2.50908,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(2.50908)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "price",
+                "label": "Share price today",
+                "kind": "fact",
+                "value": 89.61,
+                "unit": "USD_per_share",
+                "source": {
+                  "ref": "AMR/research/pricing_analysis.json",
+                  "locator": "Yahoo HCC close 2026-08-06",
+                  "as_of": "2026-08-06",
+                  "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+                  "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+                },
+                "rationale": null
+              },
+              {
+                "id": "cycle_haircut_pct",
+                "label": "Cycle reserve as fraction of price",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk."
+              },
+              {
+                "id": "gross_reserve",
+                "label": "Gross cycle reserve",
+                "kind": "calculation",
+                "value": 0.0,
+                "unit": "USD_per_share",
+                "operation": "multiply",
+                "formula": "price \u00d7 cycle_haircut_pct",
+                "substituted_formula": "89.61 \u00d7 0",
+                "dependencies": [
+                  "price",
+                  "cycle_haircut_pct"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "Cycle reserve per share",
+                "kind": "calculation",
+                "value": -0.0,
+                "unit": "USD_per_share",
+                "operation": "negative",
+                "formula": "-(gross_reserve)",
+                "substituted_formula": "-(0)",
+                "dependencies": [
+                  "gross_reserve"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "price",
+              "ref": "AMR/research/pricing_analysis.json",
+              "locator": "Yahoo HCC close 2026-08-06",
+              "as_of": "2026-08-06",
+              "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+              "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "6d92e91981fe01a582f0fa7346364407b163f10b8214ffab45c92edd2b6c1252"
+        },
+        "evidence_tier": "judgment",
+        "evidence_level": "analyst_estimated",
+        "evidence": "Capital-cycle failure mode: peak margins capitalized; global met coal supply can respond when prices recover (10-K risk factors; Power Zone capital_cycle profile)",
+        "scenario_assumptions": "Explicit deduction for cyclical price mean reversion and supply response not captured in trough-normalized owner cash.",
+        "probability_and_timing": null,
+        "tax_and_realization_adjustments": "Low case assumes market embeds unsustainable mid-cycle optimism; base reflects moderate supply-response risk.",
+        "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+        "overlap_key": "cycle_price_risk",
+        "assumption_type": "judgment"
+      }
+    ],
     "scenario_contract": {
-      "rule": "Build causal low/base/high scenarios before drawing a conclusion."
+      "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+      "top_value_drivers": [
+        {
+          "component_id": "midcycle_met_coal_operations",
+          "label": "Alabama met coal longwall operations at mid-cycle utilization",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 9.0167,
+          "legacy_base_per_share": 9.0,
+          "range_width_per_share": 8.5224,
+          "scenario_assumptions": "Mid-cycle owner cash $230M base \u00d7 capital-cycle multiple / 52.8M shares; trough FY2025 anchor, not peak 2022."
+        },
+        {
+          "component_id": "met_coal_cycle_reserve",
+          "label": "Met coal supply-response and price-normalization reserve",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": -2.5091,
+          "legacy_base_per_share": -2.5,
+          "range_width_per_share": 6.0039,
+          "scenario_assumptions": "Explicit deduction for cyclical price mean reversion and supply response not captured in trough-normalized owner cash."
+        },
+        {
+          "component_id": "blue_creek_development",
+          "label": "CAPP reserves second longwall development option",
+          "valuation_status": "bounded_estimate",
+          "base_per_share": 0.0947,
+          "legacy_base_per_share": 2.0,
+          "range_width_per_share": 3.835,
+          "scenario_assumptions": "Risk-weighted incremental capacity value net of remaining development spend; zero in Lawrence consolidated FCF path."
+        },
+        {
+          "component_id": "net_cash_position",
+          "label": "Net cash after long-term debt",
+          "valuation_status": "calculated",
+          "base_per_share": 2.9506,
+          "legacy_base_per_share": 2.95,
+          "range_width_per_share": 0.9469,
+          "scenario_assumptions": null
+        }
+      ],
+      "reverse_expectations": null
     },
     "calculation_proof_summary": {
-      "component_count": 0,
-      "priced_component_count": 0,
-      "proof_complete_pct": 0,
+      "component_count": 4,
+      "priced_component_count": 4,
+      "proof_complete_pct": 100.0,
       "status_counts": {
-        "unpriced": 1
+        "bounded_estimate": 3,
+        "calculated": 1,
+        "legacy_sensitivity": 0,
+        "unpriced": 0
       },
-      "all_material_components_priced": false,
+      "all_material_components_priced": true,
       "calculation_errors": [],
-      "aggregate_proof_hash": null
+      "aggregate_proof_hash": "f62316998a083d4957c2cdd7608ff2b78067fb18fb4c67c01f137c7910a4e305"
     },
     "model_checks": {
-      "all_material_components_priced": false
+      "calculation_graphs_valid": true,
+      "component_sum_reconciles": true,
+      "no_double_counting": true,
+      "all_material_components_priced": true,
+      "positive_base_or_explicit_zero_value": true,
+      "low_base_high_ordered": true,
+      "source_identity_and_freshness_valid": true,
+      "extreme_return_validated": false
     },
-    "source_lineage": [],
+    "source_lineage": [
+      {
+        "component_id": "midcycle_met_coal_operations",
+        "node_id": "shares_m",
+        "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+        "locator": "Cover page; 52,801,964 common shares outstanding August 3, 2026",
+        "as_of": "2026-08-03",
+        "source_id": "54e1d977695bed279f1af15780f4dab303bcbf3c45c8eb13a27759e31d33bbc5"
+      },
+      {
+        "component_id": "net_cash_position",
+        "node_id": "cash_m",
+        "ref": "AMR/research/evidence/sec_companyfacts.json",
+        "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents; 10-Q filed 2026-08-05",
+        "as_of": "2026-06-30",
+        "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+        "source_id": "7588a40e561d6e85d102505ad01f90f40781612017f52bf6aed6aa7f0eed32a2"
+      },
+      {
+        "component_id": "net_cash_position",
+        "node_id": "debt_m",
+        "ref": "AMR/research/evidence/sec_companyfacts.json",
+        "locator": "LongTermDebtNoncurrent; 10-Q filed 2026-08-05",
+        "as_of": "2026-06-30",
+        "content_sha256": "13c5cf0027281e22da49b9dcd7ed5075b6d4738603060a982aa5a3a25acc7d4c",
+        "source_id": "af588b430e6ba92cc28301467563b37e0399f763045a840ced41c71edd0099d9"
+      },
+      {
+        "component_id": "net_cash_position",
+        "node_id": "shares_m",
+        "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+        "locator": "Cover page share count",
+        "as_of": "2026-08-03",
+        "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+      },
+      {
+        "component_id": "blue_creek_development",
+        "node_id": "shares_m",
+        "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+        "locator": "Cover page share count",
+        "as_of": "2026-08-03",
+        "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+      },
+      {
+        "component_id": "met_coal_cycle_reserve",
+        "node_id": "price",
+        "ref": "AMR/research/pricing_analysis.json",
+        "locator": "Yahoo HCC close 2026-08-06",
+        "as_of": "2026-08-06",
+        "content_sha256": "c7d3ba1b095178870613e6913a52875d611fd4de7e3652040094a1942e10be84",
+        "source_id": "1630fe135fd6478d51a680a378a540b10a43378b793fb3adb6f7f361489b6f0e"
+      }
+    ],
     "change_control": {
-      "model_hash": null,
-      "method_versions": [],
-      "change_log": []
+      "model_hash": "563fc1c2a47a33e13350b6c2e34ccf34e9f627399cd08d507b547d7ec2d559dd",
+      "method_versions": [
+        "midcycle_capacity_value@1.0",
+        "net_asset_value@1.0",
+        "risk_adjusted_milestone_value@1.0"
+      ],
+      "change_log": [],
+      "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
     }
   },
   "optionality": {
-    "status": "not_yet_mapped",
-    "option_count": 0,
-    "options": [],
-    "rule": "Optionality remains unvalued until the component map is complete."
+    "status": "present",
+    "option_count": 1,
+    "options": [
+      {
+        "component_id": "blue_creek_development",
+        "label": "CAPP reserves second longwall development option",
+        "category": "real_option",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "ownership_claim": "Incremental longwall capacity at CAPP reserves net of remaining development spend",
+        "ownership_percentage": 1.0,
+        "quantity": {
+          "value": 1,
+          "unit": "per-share economic claim"
+        },
+        "method": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "method_provenance": {
+          "method_id": "risk_adjusted_milestone_value",
+          "version": "1.0",
+          "label": "Milestone risk-adjusted present value",
+          "power_zones": [
+            "binary_milestone"
+          ],
+          "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+          "sources": [
+            {
+              "ref": "_system/frameworks/optionality_valuation.md",
+              "locator": "Milestone-based option framework"
+            }
+          ]
+        },
+        "comparable_ids": [],
+        "range_per_share": {
+          "low": -0.9469,
+          "base": 0.0947,
+          "high": 2.8881
+        },
+        "legacy_range_per_share": {
+          "low": 0.0,
+          "base": 2.0,
+          "high": 6.0
+        },
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "status": "valid",
+          "method_id": "risk_adjusted_milestone_value",
+          "method_version": "1.0",
+          "outputs": {
+            "low": -0.9469,
+            "base": 0.0947,
+            "high": 2.8881
+          },
+          "output_unit": "USD_per_share",
+          "traces": {
+            "low": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 0.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 50.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 0.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "0 \u00d7 0",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": -50.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "0 - 50",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": -0.94693383,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "-50 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "base": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.35,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 300.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 100.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 105.0,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "300 \u00d7 0.35",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 5.0,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "105 - 100",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 0.09469338,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ],
+            "high": [
+              {
+                "id": "shares_m",
+                "label": "Shares outstanding",
+                "kind": "fact",
+                "value": 52.802,
+                "unit": "million_shares",
+                "source": {
+                  "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+                  "locator": "Cover page share count",
+                  "as_of": "2026-08-03",
+                  "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+                },
+                "rationale": null
+              },
+              {
+                "id": "success_probability",
+                "label": "Probability CAPP reserves reaches planned second-longwall economics",
+                "kind": "judgment",
+                "value": 0.55,
+                "unit": "ratio",
+                "source": null,
+                "rationale": "Development underway but timing and capital intensity uncertain; base reflects partial completion risk."
+              },
+              {
+                "id": "success_value_m",
+                "label": "Gross success value to equity",
+                "kind": "judgment",
+                "value": 550.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Incremental NPV of additional longwall capacity at mid-cycle met coal margins; not replacement-cost capitalization."
+              },
+              {
+                "id": "remaining_cost_m",
+                "label": "Remaining owner-funded development cost",
+                "kind": "judgment",
+                "value": 150.0,
+                "unit": "USD_m",
+                "source": null,
+                "rationale": "Mining asset capex and pre-production spend before second longwall reaches steady state."
+              },
+              {
+                "id": "risked_value_m",
+                "label": "Risk-adjusted gross value",
+                "kind": "calculation",
+                "value": 302.5,
+                "unit": "USD_m",
+                "operation": "multiply",
+                "formula": "success_value_m \u00d7 success_probability",
+                "substituted_formula": "550 \u00d7 0.55",
+                "dependencies": [
+                  "success_value_m",
+                  "success_probability"
+                ]
+              },
+              {
+                "id": "net_option_m",
+                "label": "Net option value",
+                "kind": "calculation",
+                "value": 152.5,
+                "unit": "USD_m",
+                "operation": "subtract",
+                "formula": "risked_value_m - remaining_cost_m",
+                "substituted_formula": "302.5 - 150",
+                "dependencies": [
+                  "risked_value_m",
+                  "remaining_cost_m"
+                ]
+              },
+              {
+                "id": "value_per_share",
+                "label": "CAPP reserves option per share",
+                "kind": "calculation",
+                "value": 2.88814818,
+                "unit": "USD_per_share",
+                "operation": "divide",
+                "formula": "net_option_m \u00f7 shares_m",
+                "substituted_formula": "152.5 \u00f7 52.802",
+                "dependencies": [
+                  "net_option_m",
+                  "shares_m"
+                ]
+              }
+            ]
+          },
+          "source_lineage": [
+            {
+              "node_id": "shares_m",
+              "ref": "AMR/investor-documents/sec-edgar/10-Q_20260805_rpt20260630_acc0001193125_26_335324.htm",
+              "locator": "Cover page share count",
+              "as_of": "2026-08-03",
+              "source_id": "afa697cd3944dc3c676fc20bebb1ba88f1d9c2cae3e3e76d64320e912568ed7f"
+            }
+          ],
+          "checks": {
+            "passed": true,
+            "errors": []
+          },
+          "proof_hash": "67f640e6c907f36361803f425bb3d72d97b724d89397d220f768f35d7c5b6944"
+        },
+        "evidence_tier": "filing",
+        "evidence_level": "primary_verified",
+        "evidence": "CAPP reserves longwall development disclosed in 10-K Item 1; company optimizing first longwall before second; federal coal lease renewals filed January 2026 (8-K 2026-01-16)",
+        "scenario_assumptions": "Risk-weighted incremental capacity value net of remaining development spend; zero in Lawrence consolidated FCF path.",
+        "probability_and_timing": {
+          "success_probability": null,
+          "remaining_capital_m": null,
+          "timing_basis": "Second longwall steady-state production estimated 2028-2030 based on development disclosures in 10-K Item 1 and January 2026 lease renewals.",
+          "probability_basis": "Base 35% reflects partial completion risk; company optimizing first longwall before second (10-K Item 1).",
+          "remaining_capital_basis": "Base $100M remaining owner-funded mining capex and pre-production spend before second longwall reaches steady state."
+        },
+        "tax_and_realization_adjustments": "Low/base/high vary success probability, gross success value, and remaining development cost.",
+        "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+        "overlap_key": "blue_creek_capacity",
+        "assumption_type": "judgment"
+      }
+    ],
+    "rule": "Every option requires a beneficiary, probability, timing, remaining capital, failure case, and non-overlap control; absence of option value must be explicit rather than unvalued."
   },
   "committee": {
     "status": "not_started",
+    "as_of": null,
+    "packet_hash": null,
+    "stage": null,
+    "parked": null,
+    "selected_raters": [],
     "analysis_progress": {
       "completed": 0,
-      "required": 0
+      "required": 7
     },
+    "completed_outputs": [],
+    "missing_outputs": [
+      "proposer.json",
+      "pre_mortem.json",
+      "evidence_tribunal.json",
+      "research_response.json",
+      "valuation_reconciliation.json",
+      "adversarial_review.json",
+      "chair_synthesis.json"
+    ],
     "owner_status": "pending",
     "owner_decision": null,
-    "next_action": "Complete the component model before freezing an IC evidence packet."
+    "strongest_dissent": null,
+    "unresolved_items": [],
+    "next_action": "Freeze the evidence packet and select three method-independent raters.",
+    "record_ref": null,
+    "previous_record_ref": null,
+    "manifest_ref": null
   },
   "evidence": {
-    "status": "critical_gaps_open",
-    "open_count": 1,
-    "critical_count": 1,
-    "gaps": [
-      {
-        "id": "complete_component_model_required",
-        "priority": "critical",
-        "component_ids": [],
-        "question": "A complete primary-sourced component valuation has not been built.",
-        "evidence_required": "industry capacity and additions; utilization; normalized unit margins; maintenance versus growth capital; low-case liquidity",
-        "acceptance_test": "Every material economic claim is valued exactly once with causal low/base/high assumptions and primary evidence.",
-        "valuation_effect": "Blocks decision-grade value and committee voting.",
-        "status": "open",
-        "source": "cohort_scaffold"
-      }
-    ]
+    "status": "clear",
+    "open_count": 0,
+    "critical_count": 0,
+    "gaps": []
   },
   "method_fit": {
     "profile_id": "capital_cycle",
     "label": "Capital cycle and normalized industry economics",
+    "current_archetype": "commodity_cyclical",
     "primary_methods": [
       "midcycle_capacity_value"
     ],
@@ -112,10 +3109,15 @@
       "hk",
       "hohn",
       "klarman_asset_value",
+      "lawrence",
+      "moi",
       "munger",
       "stahl"
     ],
     "routing_reasons": [
+      "archetype=commodity_cyclical",
+      "component categories=operating_business",
+      "existing methods=capacity, cycle, midcycle",
       "explicit reviewed profile"
     ],
     "required_evidence": [
@@ -125,32 +3127,105 @@
       "maintenance versus growth capital",
       "low-case liquidity"
     ],
-    "applicability_tests": [],
+    "applicability_tests": [
+      "Industry capacity, additions, closures, and replacement costs can be measured.",
+      "Current margins can be located relative to a cycle rather than extrapolated.",
+      "Maintenance and growth capital are separated.",
+      "Leverage and liquidity survive the low case."
+    ],
     "failure_modes": [
       "peak margins capitalized",
       "supply response ignored",
       "replacement cost used for assets that cannot earn their cost of capital"
     ],
-    "validation_cohort": [],
-    "rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision."
+    "validation_cohort": [
+      {
+        "ticker": "MSB",
+        "archetype": "royalty_asset",
+        "primary_profile": "scarce_asset_optionality",
+        "purpose": "Test depletion, commodity exposure, finite reserves, and royalty-unit reconciliation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "C",
+        "archetype": "financial_balance_sheet",
+        "primary_profile": "credit_and_normalized_returns",
+        "purpose": "Test tangible capital, credit losses, funding, regulation, and excess-capital realization.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NVR",
+        "archetype": "quality_reinvestment",
+        "primary_profile": "quality_reinvestment",
+        "purpose": "Test owner earnings, capital-light reinvestment, cyclicality, and buyback value creation.",
+        "status": "queued"
+      },
+      {
+        "ticker": "NUE",
+        "archetype": "capital_cycle",
+        "primary_profile": "capital_cycle",
+        "purpose": "Test normalized margins, industry supply response, replacement cost, and reinvestment timing.",
+        "status": "queued"
+      },
+      {
+        "ticker": "BIIB",
+        "archetype": "binary_special_situation",
+        "primary_profile": "probability_weighted_special_situation",
+        "purpose": "Test product concentration, pipeline probabilities, patent cliffs, and catalyst timing.",
+        "status": "queued"
+      }
+    ],
+    "rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent."
   },
   "outcomes": {
     "status": "waiting_for_owner_decision",
-    "schedule": [],
+    "decision_date": null,
+    "schedule": [
+      {
+        "horizon_months": 6,
+        "target_date": null,
+        "status": "waiting_for_owner_decision",
+        "measurement_date": null,
+        "total_return_pct": null,
+        "return_status": null
+      },
+      {
+        "horizon_months": 12,
+        "target_date": null,
+        "status": "waiting_for_owner_decision",
+        "measurement_date": null,
+        "total_return_pct": null,
+        "return_status": null
+      },
+      {
+        "horizon_months": 24,
+        "target_date": null,
+        "status": "waiting_for_owner_decision",
+        "measurement_date": null,
+        "total_return_pct": null,
+        "return_status": null
+      }
+    ],
     "recorded_outcome_count": 0,
     "minimum_persona_outcomes_before_reweighting": 20,
     "personas_eligible_for_weight_review": [],
-    "weighting_rule": "No calibration before a completed IC decision and measured dividend-aware outcome."
+    "persona_power_zones_eligible_for_weight_review": [],
+    "weighting_rule": "Do not change a persona's relevance within a power zone until at least 20 attributable, dividend-aware outcomes exist there; never reweight automatically."
   },
   "attribution": {
-    "status": "waiting_for_baseline",
+    "status": "baseline_established",
     "current": {
-      "as_of": "2026-08-11",
-      "low": null,
-      "base": null,
-      "high": null
+      "as_of": "2026-08-19",
+      "low": 0.4504,
+      "base": 9.5529,
+      "high": 19.7586
     },
+    "prior": null,
+    "base_change_per_share": null,
+    "base_change_pct": null,
     "drivers": [],
-    "explanation": "Attribution begins after the first decision-grade baseline."
+    "category_totals_per_share": {},
+    "unexplained_per_share": null,
+    "explanation": "The current component schedule is the first decision-grade baseline; attribution begins with the next dated valuation snapshot."
   }
 }
