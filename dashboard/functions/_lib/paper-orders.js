@@ -121,3 +121,28 @@ export function requirePaperOrderRequest(request) {
     throw new TypeError("Cross-site paper order requests are not allowed.");
   }
 }
+
+export function ownerUniverseViolation(ticket, owner, strategyPayloads = []) {
+  if (owner !== "michael") return null;
+  const symbol = String(ticket?.symbol || "").toUpperCase();
+  const conid = Number(ticket?.conid);
+  if (ticket?.sec_type === "OPT" && /^SPX(?:W)?(?:\b| )/.test(symbol)) {
+    return "SPX options belong to the SPX 0DTE strategy, not Michael's portfolio.";
+  }
+  for (const payload of strategyPayloads) {
+    const producer = String(payload?.producer || "");
+    for (const row of payload?.rows || []) {
+      const rowSymbols = [row.symbol, row.underlying, ...(String(row.metrics?.symbols || "").split(/[, ]+/))]
+        .map((value) => String(value || "").toUpperCase()).filter(Boolean);
+      const sameContract = conid > 0 && Number(row.conid) === conid;
+      const sameSymbol = rowSymbols.includes(symbol);
+      if (producer === "spx_0dte" && ticket?.sec_type === "OPT" && (sameContract || sameSymbol)) {
+        return "This contract belongs to the SPX 0DTE strategy, not Michael's portfolio.";
+      }
+      if (producer === "ls_risk" && (sameContract || sameSymbol)) {
+        return "This instrument is in the LS-algo ETF/underlying universe and cannot be queued for Michael.";
+      }
+    }
+  }
+  return null;
+}

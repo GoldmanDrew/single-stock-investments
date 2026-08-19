@@ -29,8 +29,10 @@ def normalize_spx_status(source: dict[str, Any], *, source_run_id: str | None = 
             "exposure_basis": "broker_quantity" if position.get("conid") else "attribution",
             "metrics": {
                 key: position.get(key) for key in (
-                    "quantity", "marked_pnl", "max_loss_no_stop", "planned_stop_loss",
-                    "native_stop_loss", "defined_risk_margin", "delta", "gamma", "vega",
+                    "contracts", "quantity", "put_short", "put_long", "call_short", "call_long",
+                    "credit", "stopped", "marked_pnl", "max_loss_no_stop", "planned_stop_loss",
+                    "native_stop_loss", "defined_risk_margin", "return_on_margin_pct",
+                    "delta", "gamma", "vega", "theta",
                 ) if key in position
             },
             "lineage": {"producer_schema": source.get("schema"), "mark_quality": position.get("mark_quality")},
@@ -40,14 +42,24 @@ def normalize_spx_status(source: dict[str, Any], *, source_run_id: str | None = 
         "producer": "spx_0dte",
         "source_run_id": source_run_id or f"spx-{uuid.uuid4()}",
         "as_of": source.get("generated_at") or source.get("as_of") or _now(),
-        "complete": bool(source.get("schema") == 2 and source.get("process")),
+        "complete": bool(
+            source.get("schema") == 2
+            and ("pid_alive" in source or "process" in source)
+            and isinstance(source.get("risk") or {}, dict)
+        ),
         "supported_scopes": ["account", "strategy"],
         "rows": rows,
         "summary": {
-            "process": source.get("process"), "halted": source.get("halted"), "flattened": source.get("flattened"),
+            "process": source.get("pid_alive", source.get("process")),
+            "halted": source.get("entries_halted", source.get("halted")),
+            "flattened": source.get("flattened"),
             "open_count": source.get("open_count"), "marked_pnl": source.get("marked_pnl"),
             "closed_pnl": source.get("closed_pnl"), "total_pnl": source.get("total_pnl"),
+            "contracts_traded": source.get("contracts_traded"),
+            "open_contracts": source.get("open_contracts"),
             "execution_quality": source.get("execution_quality"),
+            "risk_history": source.get("risk_history") or [],
+            "heartbeat_ts": source.get("heartbeat_ts"),
         },
     }
 
@@ -57,7 +69,7 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
     rows = []
     bucket_payload = source.get("buckets") or {}
     for bucket_name, bucket in bucket_payload.items():
-        bucket_id = str(bucket_name).lower()
+        bucket_id = str(bucket_name).lower().replace("bucket_", "b")
         if bucket_id not in {"b1", "b2", "b3", "b4", "b5", "unbucketed"}:
             continue
         for index, row in enumerate(bucket.get("exposure_rows") or []):
@@ -68,11 +80,15 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
             rows.append({
                 "row_id": f"ls:{bucket_id}:{row.get('position_id') or row.get('symbol') or index}",
                 "account_alias": row.get("account_alias"), "conid": row.get("conid"), "model_code": row.get("model_code"),
-                "symbol": row.get("symbol"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
+                "symbol": row.get("symbol") or row.get("underlying"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
                 "bucket": bucket_id.upper(), "product_class": row.get("product_class"),
                 "reconciliation_role": role, "exposure_basis": basis,
                 "metrics": {
-                    **{key: row.get(key) for key in ("quantity", "market_value", "gross_exposure", "net_exposure", "beta_exposure", "delta_exposure", "borrow_rate") if key in row},
+                    **{key: row.get(key) for key in (
+                        "quantity", "market_value", "gross_exposure", "net_exposure", "beta_exposure",
+                        "delta_exposure", "borrow_rate", "net_notional_usd", "gross_notional_usd", "n_legs",
+                    ) if key in row},
+                    **({"symbols": row.get("symbols")} if row.get("symbols") else {}),
                     **({"margin_value": row.get("margin_requirement"), "margin_value_kind": "model_estimate"} if row.get("margin_requirement") is not None else {}),
                 },
                 "lineage": {"model_version": row.get("model_version"), "quality": row.get("quality")},
@@ -81,18 +97,43 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
             rows.append({
                 "row_id": f"ls:pnl:{bucket_id}:{row.get('position_id') or row.get('symbol') or index}",
                 "account_alias": row.get("account_alias"), "conid": row.get("conid"), "model_code": row.get("model_code"),
-                "symbol": row.get("symbol"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
+                "symbol": row.get("symbol") or row.get("underlying"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
                 "bucket": bucket_id.upper(), "product_class": row.get("product_class"),
                 "reconciliation_role": "additive", "exposure_basis": "attribution",
-                "metrics": {"session_pnl": row.get("session_total_pnl"), "cumulative_pnl": row.get("cumulative_pnl"), "restatement": row.get("restatement_total")},
+                "metrics": {
+                    "session_pnl": row.get("total_pnl", row.get("session_total_pnl")),
+                    "total_pnl": row.get("total_pnl"),
+                    "realized_pnl": row.get("realized_pnl"),
+                    "unrealized_pnl": row.get("unrealized_pnl"),
+                    "borrow_fees": row.get("borrow_fees"),
+                    "short_credit_interest": row.get("short_credit_interest"),
+                    "cumulative_pnl": row.get("cumulative_pnl"),
+                    "restatement": row.get("restatement_total"),
+                },
                 "lineage": {"session_date": row.get("session_date"), "denominator_kind": row.get("denominator_kind"), "denominator_value": row.get("denominator_value"), "currency": row.get("currency")},
             })
     return {
         "schema_version": "strategy_snapshot.v1", "producer": "ls_risk",
         "source_run_id": source_run_id or f"ls-{uuid.uuid4()}",
-        "as_of": source.get("generated_at") or source.get("as_of") or _now(),
+        "as_of": source.get("generated_at_utc") or source.get("generated_at") or source.get("as_of") or _now(),
         "complete": bool(source.get("book") and source.get("buckets")),
         "supported_scopes": ["account", "strategy", "bucket"], "rows": rows,
+        "summary": {
+            "book": source.get("book") or {},
+            "pnl": source.get("pnl_panel") or {},
+            "hedged_pnl": source.get("hedged_pnl_panel") or {},
+            "movers": source.get("movers_panel") or {},
+            "bucket_movers": source.get("bucket_movers_panel") or {},
+            "component_attribution": source.get("component_attribution_panel") or {},
+            "dividends": source.get("dividend_panel") or {},
+            "factors": source.get("factor_panel") or {},
+            "concentration": source.get("concentration_panel") or {},
+            "slide_risk": source.get("slide_risk_panel") or {},
+            "borrow_shocks": source.get("borrow_shock_panel") or {},
+            "sleeves": source.get("bucket_sleeve_panel") or {},
+            "drawdown": source.get("drawdown_panel") or {},
+            "data_quality": source.get("data_quality") or {},
+        },
     }
 
 

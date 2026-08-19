@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   portfolioOrderOwner,
+  ownerUniverseViolation,
   requirePaperOrderRequest,
   validatePaperOrder,
 } from "../functions/_lib/paper-orders.js";
@@ -35,6 +36,9 @@ class FakeStatement {
   }
 
   async all() {
+    if (this.sql.includes("FROM portfolio_strategy_snapshots")) {
+      return { results: this.database.strategyPayloads.map((payload) => ({ payload_json: JSON.stringify(payload) })) };
+    }
     if (this.sql.includes("FROM portfolio_paper_orders") && this.sql.includes("WHERE owner=?")) {
       const rows = [...this.database.orders.values()].filter((row) => row.owner === this.args[0]);
       return { results: rows.sort((a, b) => b.created_at.localeCompare(a.created_at)) };
@@ -84,6 +88,7 @@ class FakeDatabase {
   constructor() {
     this.orders = new Map();
     this.events = new Map();
+    this.strategyPayloads = [];
   }
 
   prepare(sql) {
@@ -195,6 +200,17 @@ test("requires a same-origin JSON request with an explicit paper header", () => 
     },
     body: "{}",
   })), /must come from this dashboard/);
+});
+
+test("Michael cannot queue SPX options or LS-algo universe instruments", () => {
+  const payloads = [
+    { producer: "spx_0dte", rows: [{ conid: 500, symbol: "SPXW" }] },
+    { producer: "ls_risk", rows: [{ conid: 600, symbol: "TQQQ", underlying: "QQQ", metrics: { symbols: "QQQ, TQQQ" } }] },
+  ];
+  assert.match(ownerUniverseViolation({ symbol: "SPXW", sec_type: "OPT", conid: 500 }, "michael", payloads), /SPX/);
+  assert.match(ownerUniverseViolation({ symbol: "QQQ", sec_type: "ETF", conid: 600 }, "michael", payloads), /LS-algo/);
+  assert.equal(ownerUniverseViolation({ symbol: "JPM", sec_type: "STK", conid: 8719 }, "michael", payloads), null);
+  assert.equal(ownerUniverseViolation({ symbol: "QQQ", sec_type: "ETF", conid: 600 }, "drew", payloads), null);
 });
 
 test("endpoint derives Drew and Michael owners and lists only the logged-in owner's tickets", async () => {

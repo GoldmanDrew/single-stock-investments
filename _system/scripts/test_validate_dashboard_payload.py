@@ -31,7 +31,7 @@ class DashboardPayloadTests(unittest.TestCase):
         self.assertNotIn("insights", payload)
         self.assertEqual(
             (payload.get("insights_ref") or {}).get("path"),
-            "dashboard/data/insights.json",
+            "dashboard/data/insights/manifest.json",
         )
 
 

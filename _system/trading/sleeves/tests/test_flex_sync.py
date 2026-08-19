@@ -38,9 +38,9 @@ def test_sync_from_flex_fills_michael_and_leaves_drew_empty(tmp_path):
     assert result["source"].startswith("flex:")
     michael_tickers = {p["ticker"] for p in result["michael"]["positions"]}
     assert "CSU" in michael_tickers
-    assert "APLD" in michael_tickers
+    assert "APLD" not in michael_tickers
     assert "TQQQ" not in michael_tickers
     assert result["drew"]["positions"] == []
     assert result["drew"]["header"]["open_names"] == 0
     assert result["buckets"].get("spx_0dte", 0) >= 1
-    assert result["buckets"].get("etf_ls", 0) >= 1
+    assert result["buckets"].get("etf_ls", 0) >= 2

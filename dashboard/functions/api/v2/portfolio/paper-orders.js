@@ -2,6 +2,7 @@ import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js
 import { requirePortfolioViewer } from "../../../_lib/auth.js";
 import {
   portfolioOrderOwner,
+  ownerUniverseViolation,
   requirePaperOrderRequest,
   validatePaperOrder,
 } from "../../../_lib/paper-orders.js";
@@ -91,6 +92,19 @@ export async function onRequestPost(context) {
     }
 
     const db = requireDatabase(context.env);
+    if (owner === "michael") {
+      const strategyRows = await db.prepare(`SELECT s.payload_json FROM portfolio_strategy_snapshots s
+        JOIN portfolio_source_runs r USING(source_run_id)
+        WHERE r.complete=1 AND s.producer IN ('spx_0dte','ls_risk')
+        AND r.as_of=(SELECT MAX(r2.as_of) FROM portfolio_source_runs r2
+          JOIN portfolio_strategy_snapshots s2 USING(source_run_id)
+          WHERE r2.complete=1 AND s2.producer=s.producer)`).all();
+      const payloads = (strategyRows.results || []).map((row) => {
+        try { return JSON.parse(row.payload_json); } catch (_) { return null; }
+      }).filter(Boolean);
+      const violation = ownerUniverseViolation(ticket, owner, payloads);
+      if (violation) return json({ error: violation, request_id: id }, 422, privateHeaders());
+    }
     const now = new Date().toISOString();
     const eventId = `paper-queued:${ticket.client_request_id}`;
     const eventPayload = JSON.stringify({

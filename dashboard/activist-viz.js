@@ -209,7 +209,7 @@
       ? ' <span class="badge badge-warn" title="Filer unresolved or low confidence">review</span>'
       : '';
     return `
-      <tr class="clickable-row${extra?.muted ? ' campaign-child' : ''}" data-select-ticker="${state.escapeHtml(r.ticker || '')}"${extra?.muted ? ' style="opacity:.65"' : ''}>
+      <tr class="clickable-row${extra?.muted ? ' campaign-child' : ''}" data-select-ticker="${state.escapeHtml(r.ticker || '')}" tabindex="0" role="link" aria-label="Open ${state.escapeHtml(r.ticker || 'activist')} research"${extra?.muted ? ' style="opacity:.65"' : ''}>
         <td class="mono" title="${state.escapeHtml(dateTitle(r))}">${state.escapeHtml(formatReportDate(r))}${r.date_precision && r.date_precision !== 'day' ? ' <span class="tier-sub">~</span>' : ''}</td>
         <td class="mono">${state.escapeHtml(r.ticker || '—')}</td>
         ${materialityCell(r, state.escapeHtml)}

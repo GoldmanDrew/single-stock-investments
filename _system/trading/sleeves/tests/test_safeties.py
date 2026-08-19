@@ -42,12 +42,14 @@ def test_drew_cannot_trade_letf_or_blacklist_family():
     assert not tqqq.ok
     apld = check_safeties(owner="drew", ticker="APLD", side="BUY", qty=10, limit_price=10, quote=_quote(10), proposal={"snapshot_last": 10})
     assert not apld.ok
-    assert any("blacklist" in f.lower() for f in apld.failures)
+    assert any("systematic" in f.lower() for f in apld.failures)
 
 
-def test_michael_can_trade_blacklist_family_not_universe():
+def test_michael_can_trade_residual_but_not_ls_universe():
+    csu = check_safeties(owner="michael", ticker="CSU", side="BUY", qty=10, limit_price=20, quote=_quote(20), proposal={"snapshot_last": 20})
+    assert csu.ok, csu.failures
     aplz = check_safeties(owner="michael", ticker="APLZ", side="BUY", qty=10, limit_price=20, quote=_quote(20), proposal={"snapshot_last": 20})
-    assert aplz.ok, aplz.failures
+    assert not aplz.ok
     tqqq = check_safeties(owner="michael", ticker="TQQQ", side="BUY", qty=10, limit_price=40, quote=_quote(40), proposal={"snapshot_last": 40})
     assert not tqqq.ok
     nvda = check_safeties(owner="michael", ticker="NVDA", side="BUY", qty=10, limit_price=100, quote=_quote(100), proposal={"snapshot_last": 100})
