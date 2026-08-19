@@ -41,6 +41,43 @@ def http_get(url: str, timeout: int = 60) -> bytes:
         return resp.read()
 
 
+# A real episode page is HTML. Many RSS feeds point <link> straight at the audio
+# enclosure, and a 24MB MP3 run through .decode("utf-8", errors="ignore") yields
+# a very long "string" that sails past any length test. That is how 211 episodes
+# ended up with audio saved as .txt transcripts, 2.4GB of the corpus.
+TEXTUAL_CONTENT_TYPES = ("text/", "application/xhtml", "application/xml", "application/json")
+# Roughly four hours of speech. Anything beyond this is not a transcript.
+MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024
+
+
+def http_get_text(url: str, timeout: int = 60) -> str | None:
+    """Fetch a URL only if it is actually text. Returns None for anything else."""
+    req = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        content_type = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if content_type and not content_type.startswith(TEXTUAL_CONTENT_TYPES):
+            return None
+        raw = resp.read(MAX_TRANSCRIPT_BYTES + 1)
+    if len(raw) > MAX_TRANSCRIPT_BYTES:
+        return None
+    # Servers lie about Content-Type, so sniff too. NUL bytes never appear in
+    # HTML and are the clearest signal that this is a media container.
+    if b"\x00" in raw[:8192]:
+        return None
+    return raw.decode("utf-8", errors="ignore")
+
+
+def looks_like_transcript(text: str | None) -> bool:
+    """Reject decoded binary that survived the header and NUL checks."""
+    if not text:
+        return False
+    sample = text[:8192]
+    if not sample:
+        return False
+    printable = sum(1 for ch in sample if ch.isprintable() or ch in "\n\r\t")
+    return printable / len(sample) >= 0.90
+
+
 def year_from_published(published: str | None) -> str:
     if published and re.match(r"^\d{4}", published):
         return published[:4]
@@ -74,8 +111,11 @@ def try_published_transcript(episode: dict, show: dict | None) -> str | None:
         return None
     prefer = [p.lower() for p in ((show or {}).get("prefer_transcript_urls") or ["transcript"])]
     try:
-        html = http_get(link, timeout=45).decode("utf-8", errors="ignore")
+        html = http_get_text(link, timeout=45)
     except Exception:
+        return None
+    # Not text, too large, or binary that lied about its Content-Type.
+    if not looks_like_transcript(html):
         return None
     lower = html.lower()
     if not any(p in lower for p in prefer):
