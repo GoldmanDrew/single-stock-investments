@@ -11,13 +11,22 @@ name: Podcast Refresh
 # cron just reports the same violation forever.
 
 on:
-  # Weekly, Monday 07:00 UTC. The upstream shows publish on their own
+  # Weekly, Monday 21:00 UTC. The upstream shows publish on their own
   # schedules through the week and the fetch is rate-limited against iTunes and
   # the Podcast Index, so a daily run would spend most of its budget
-  # re-discovering episodes it already has. Offset from the top of the hour is
-  # unnecessary here: nothing else in this repo runs at 07:00.
+  # re-discovering episodes it already has.
+  #
+  # Moved off 07:00 after the only scheduled run this workflow ever had --
+  # 32007940562 on 2026-08-17 -- was cancelled while queued with
+  # "Canceling since a higher priority waiting request for data-commit-main
+  # exists". Monday 07:00 lands in the middle of the morning writer pile-up
+  # (power-zone 05:30 Mon, data-pipeline activist 06:00 daily, portfolio news
+  # 06:30), so the job spent 55 minutes pending and was then evicted from the
+  # single pending slot that group allows. 21:00 UTC is empty in every other
+  # workflow's schedule. The concurrency change below is the real fix; this is
+  # belt-and-braces so the fetch also is not competing for runners.
   schedule:
-    - cron: "0 7 * * 1"
+    - cron: "0 21 * * 1"
   workflow_dispatch:
     inputs:
       backfill:
@@ -48,10 +57,28 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    concurrency:
-      group: data-commit-main
-      cancel-in-progress: false
+    # The weekly run finishes well inside an hour. A dispatched --backfill does
+    # not: run 32280009523 was still in the fetch at 1h52m and was killed by the
+    # old 120-minute cap before the commit step, landing nothing after two hours
+    # of work. GitHub's hosted-runner ceiling is 6 hours, so give the backfill
+    # room to reach its commit rather than discovering the cap the hard way.
+    # This is a ceiling, not a target -- a weekly run that approaches it is a
+    # signal that discovery is looping, not that the cap is too low.
+    timeout-minutes: 350
+    # Deliberately NOT in data-commit-main. A concurrency group holds one
+    # running slot and one pending slot; a third request evicts whatever is
+    # pending. Nine workflows share data-commit-main, so a weekly job that
+    # queues behind the daily writers gets cancelled before it runs a single
+    # step -- which is exactly what happened to run 32007940562, and why the
+    # catalog has been frozen at 2026-08-11 with nothing reporting a failure.
+    #
+    # Serialization at the push layer is what actually protects main, and it
+    # already exists: _system/scripts/ci_push_main.sh rebases onto origin/main
+    # with five attempts and regenerates conflicting derived artifacts
+    # (dashboard/data/*.json is on its regenerable list). A concurrent writer
+    # produces a rebase, not a lost commit. The workflow-level podcast-refresh
+    # group below still prevents two podcast runs from overlapping each other,
+    # which is the only overlap this job actually needs to prevent.
     env:
       # Discovery falls back to iTunes search when these are absent, so a
       # missing secret degrades coverage rather than failing the lane. Both
