@@ -643,6 +643,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Validate dashboard artifacts and letter corpus
+        env:
+          # dashboard_data.json is gitignored. Sparse dashboard checkout
+          # validates the committed core.json payload the Pages app loads.
+          CI_PAGES_DEPLOY_ONLY: "true"
         run: |
           python _system/scripts/validate_dashboard_data.py
           python _system/scripts/check_warrant_universe.py --strict

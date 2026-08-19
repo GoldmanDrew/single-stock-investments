@@ -32,7 +32,7 @@ def operational_failures(root: Path, now: datetime | None = None) -> list[str]:
                 hard.append(f"P3|{name}: successful workflow receipt is stale")
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
             hard.append(f"P3|{name}: successful workflow receipt is missing or invalid")
-    p6 = graph_invariants.inv_p6(None, root, now.date())
+    p6 = graph_invariants.inv_p6(None, root, now)
     hard.extend(f"P6|{item}" for item in p6.violations)
     return hard
 
