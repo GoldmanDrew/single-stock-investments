@@ -21,7 +21,7 @@ export async function onRequestGet(context) {
         sec_type: row.sec_type,
         quantity: scopeQty,
         quantity_unit: ["OPT", "FOP"].includes(String(row.sec_type || "").toUpperCase()) ? "contracts" : "shares",
-        market_value: (number(row.market_value_decimal) || 0) * factor,
+        market_value: (number(row.market_value_base_decimal ?? row.market_value_decimal) || 0) * factor,
         factor,
       };
     });

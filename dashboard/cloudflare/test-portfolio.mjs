@@ -6,8 +6,8 @@ import { validateAccountSnapshot, validateFlexEod, validateStrategySnapshot, ver
 function accountSnapshot() {
   return {
     schema_version: "account_snapshot.v1", source_run_id: "run-1", account_alias: "paper-primary",
-    as_of: "2026-08-17T14:00:00Z", complete: true, account_values: [],
-    positions: [{ conid: 101, symbol: "TEST", sec_type: "STK", currency: "USD", quantity: "10" }],
+    as_of: "2026-08-17T14:00:00Z", complete: true, base_currency: "USD", account_values: [],
+    positions: [{ conid: 101, symbol: "TEST", sec_type: "STK", currency: "USD", native_currency: "USD", base_currency: "USD", quantity: "10", quantity_unit: "shares" }],
   };
 }
 
@@ -16,6 +16,18 @@ test("canonical position identity requires conId and decimal quantity", () => {
   const bad = accountSnapshot();
   bad.positions[0].quantity = "ten";
   assert.throws(() => validateAccountSnapshot(bad), /canonical position/);
+});
+
+test("non-base positions require explicit native/base conversion lineage", () => {
+  const payload = accountSnapshot();
+  payload.positions[0] = {
+    ...payload.positions[0], symbol: "3905", currency: "JPY", native_currency: "JPY", mark: "1859",
+    market_value: "34982.2902", market_value_native: "5577000", market_value_base: "34982.2902",
+    fx_rate_to_base: "0.00627206118", fx_as_of: payload.as_of, fx_source: "ibkr_portfolio_translation",
+  };
+  assert.equal(validateAccountSnapshot(payload).positions[0].market_value_native, "5577000");
+  delete payload.positions[0].fx_source;
+  assert.throws(() => validateAccountSnapshot(payload), /native\/base FX/);
 });
 
 test("strategy envelope retains producer reconciliation metadata", () => {

@@ -13,6 +13,7 @@
 <link href="short-alpha.css" rel="stylesheet">
 <link href="warrants.css" rel="stylesheet">
 <link href="portfolio.css?v=20260819-dashboard-rebuild" rel="stylesheet">
+<link href="ideas.css?v=20260819-decision-workspace" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #0a0e17;
@@ -1682,11 +1683,10 @@
     <a class="view-tab" data-view="valuation" href="#/research/valuation">Decision Queue</a>
   </nav>
   <nav class="view-tabs workspace-subnav" id="ideas-subnav" aria-label="Ideas" hidden>
-    <a class="view-tab" data-view="watchlist" data-watchlist-route="queue" href="#/ideas/queue">Queue</a>
-    <a class="view-tab" data-view="watchlist" data-watchlist-route="nol" href="#/ideas/nol">NOL</a>
-    <a class="view-tab" data-view="watchlist" data-watchlist-route="banks" href="#/ideas/banks">Banks</a>
-    <a class="view-tab" data-view="short-alpha" href="#/ideas/short-alpha">Short Alpha</a>
-    <a class="view-tab" data-view="warrants" href="#/ideas/warrants">Warrants</a>
+    <a class="view-tab" data-view="watchlist" data-ideas-group="inbox" data-watchlist-route="all" href="#/ideas/all">Inbox</a>
+    <a class="view-tab" data-view="watchlist" data-ideas-group="screens" data-watchlist-route="nol" href="#/ideas/nol">Screens</a>
+    <a class="view-tab" data-view="short-alpha" href="#/ideas/short-alpha">Shorts</a>
+    <a class="view-tab" data-view="warrants" href="#/ideas/warrants">Contracts</a>
   </nav>
   <nav class="view-tabs workspace-subnav" id="insights-subnav" aria-label="Insights" hidden>
     <a class="view-tab" data-view="insights" href="#/insights/overview">Signals &amp; Synthesis</a>
@@ -1846,6 +1846,7 @@
 <script src="short-alpha-viz.js"></script>
 <script src="warrant-viz.js"></script>
 <script src="sleeve-viz.js"></script>
+<script src="ui-format.js?v=20260819-currency"></script>
 <script src="portfolio-viz.js?v=20260819-dashboard-rebuild"></script>
 <script src="oauth.js"></script>
 <script>
@@ -2142,6 +2143,10 @@ function defaultWatchlistView() {
 }
 
 let watchlistViewMode = 'all';
+let ideaFilter = new URL(window.location.href).searchParams.get('ideaFilter') || 'all';
+let selectedIdeaId = new URL(window.location.href).searchParams.get('idea') || null;
+let nolShowAllBlocked = new URL(window.location.href).searchParams.get('nolBlocked') === 'all';
+let nolBlockerFilter = new URL(window.location.href).searchParams.get('nolBlocker') || 'all';
 
 let memoryViewMode = (() => {
   try { return localStorage.getItem(MEMORY_VIEW_KEY) || 'ledger'; } catch (_) { return 'ledger'; }
@@ -2289,7 +2294,7 @@ function applyRouteFromHash() {
   const route = parseRouteFromHash();
   if (!route) return false;
   if (route.view === 'watchlist' && route.watchlistSub && WATCHLIST_VIEWS.has(route.watchlistSub)) {
-    watchlistViewMode = route.watchlistSub;
+    watchlistViewMode = route.watchlistSub === 'queue' ? 'all' : route.watchlistSub;
     try { localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistViewMode); } catch (_) { /* ignore */ }
   }
   if (route.view === 'portfolio' && window.PortfolioViz) PortfolioViz.setRoute(route.scope || 'all', route.section || 'positions');
@@ -3365,7 +3370,8 @@ function setView(view, opts = {}) {
   });
   document.querySelectorAll('.workspace-subnav').forEach((nav) => { nav.hidden = nav.id !== `${parentView}-subnav`; });
   document.querySelectorAll('.workspace-subnav .view-tab').forEach((link) => {
-    const active = link.dataset.view === view && (!link.dataset.watchlistRoute || link.dataset.watchlistRoute === watchlistViewMode);
+    const ideasGroupMatch = link.dataset.ideasGroup === 'screens' && view === 'watchlist' && ['nol', 'banks'].includes(watchlistViewMode);
+    const active = ideasGroupMatch || (link.dataset.view === view && (!link.dataset.watchlistRoute || link.dataset.watchlistRoute === watchlistViewMode));
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
@@ -4374,7 +4380,7 @@ function applyDarwinView(content) {
 }
 
 function setWatchlistView(sub, opts = {}) {
-  const next = WATCHLIST_VIEWS.has(sub) ? sub : defaultWatchlistView();
+  const next = sub === 'queue' ? 'all' : (WATCHLIST_VIEWS.has(sub) ? sub : defaultWatchlistView());
   watchlistViewMode = next;
   try { localStorage.setItem(WATCHLIST_VIEW_KEY, watchlistViewMode); } catch (_) { /* ignore */ }
   renderWatchlistTab();
@@ -4382,44 +4388,70 @@ function setWatchlistView(sub, opts = {}) {
 }
 
 function renderWatchlistSubNav(active) {
-  const registry = data.watchlist || [];
-  const nol = data.nol_screener || {};
-  const banks = data.advantaged_banks_screener || {};
-  const nolCount = nol.row_count != null ? nol.row_count : (nol.rows || []).length;
-  const actionable = nol.actionable_count != null
-    ? nol.actionable_count
-    : (nol.rows || []).filter(r => r.is_actionable).length;
-  const bankCount = banks.row_count != null ? banks.row_count : (banks.rows || []).length;
-  const lowCost = banks.low_cost_count != null
-    ? banks.low_cost_count
-    : (banks.rows || []).filter(r => r.is_low_cost).length;
-  const tabs = [
-    { id: 'all', label: 'All ideas' },
-    { id: 'queue', label: `Queue (${registry.length})` },
-    { id: 'nol', label: `NOL (${nolCount}${actionable != null ? ` · ${actionable} actionable` : ''})` },
-    { id: 'banks', label: `Banks (${bankCount}${lowCost != null ? ` · ${lowCost} low-cost` : ''})` },
-  ];
-  return `<nav class="view-tabs watchlist-sub-nav" id="watchlist-sub-nav" aria-label="Watchlist views">
-    ${tabs.map(t => `<button type="button" class="view-tab${active === t.id ? ' active' : ''}" data-watchlist-view="${t.id}">${escapeHtml(t.label)}</button>`).join('')}
-  </nav>`;
+  if (active === 'all' || active === 'queue') return '';
+  const nolCount = (data.nol_screener?.rows || []).length;
+  const bankCount = (data.advantaged_banks_screener?.rows || []).length;
+  return `<div class="screen-switcher" aria-label="Idea screens">
+    <button type="button" class="${active === 'nol' ? 'active' : ''}" data-watchlist-view="nol">NOL carryforwards · ${nolCount}</button>
+    <button type="button" class="${active === 'banks' ? 'active' : ''}" data-watchlist-view="banks">Advantaged banks · ${bankCount}</button>
+  </div>`;
+}
+
+function setIdeaUrlState(updates) {
+  const url = new URL(window.location.href);
+  Object.entries(updates).forEach(([key, value]) => value == null || value === '' || value === 'all'
+    ? url.searchParams.delete(key) : url.searchParams.set(key, value));
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function buildIdeaRows() {
+  const generated = data.generated_at || data.generatedAt || null;
+  const rows = [];
+  const add = (row) => rows.push({ ...row, id: `${row.type}:${row.name}` });
+  for (const idea of data.watchlist || []) add({ type: 'Queue', name: idea.ticker, thesis: idea.notes || 'Research trigger not set', stage: 'intake', catalyst: idea.notes || 'Research trigger not set', owner: idea.owner || 'Research', updated: idea.added || generated, next: 'Promote to full coverage', source: 'Ideas registry' });
+  for (const idea of shortAlphaData?.ideas || []) add({ type: 'Short', name: idea.ticker, thesis: idea.thesis || idea.research?.summary || 'Short hypothesis', stage: idea.research?.status || 'hypothesis', catalyst: (idea.catalysts || [])[0] || 'Catalyst not published', owner: 'Drew', updated: idea.outcome?.latest_date || shortAlphaData.as_of, next: idea.research?.next_step || 'Refresh falsifiers', source: 'Short Alpha' });
+  for (const warrant of warrantData?.rows || []) add({ type: 'Contract', name: warrant.warrant_ticker || warrant.market?.warrant?.symbol || warrant.common_ticker, thesis: warrant.summary || warrant.thesis || 'Warrant contract review', stage: warrant.gates?.status || warrant.lifecycle || 'review', catalyst: warrant.contract_clock?.expiry ? `Expiry ${window.DashboardFormat.date(warrant.contract_clock.expiry)}` : 'Contract clock unavailable', owner: 'Research', updated: warrant.market?.warrant?.quote_date || warrantData.generated_at, next: warrant.next_action || 'Verify contract and market', source: 'Warrant contract ledger' });
+  for (const idea of (data.nol_screener?.rows || []).filter((row) => row.is_actionable)) add({ type: 'NOL', name: idea.ticker, thesis: `${idea.company || idea.ticker} tax-attribute screen`, stage: idea.usability || 'screen', catalyst: `§382 shield / price ${idea.tax_shield_pv_to_mcap_pct == null ? 'unavailable' : window.DashboardFormat.number(idea.tax_shield_pv_to_mcap_pct, { maximumFractionDigits: 2 }) + '%'}`, owner: 'Research', updated: idea.filing_as_of || generated, next: 'Verify tax-attribute ownership and deal path', source: 'SEC company facts' });
+  for (const bank of (data.advantaged_banks_screener?.rows || []).filter((row) => row.is_low_cost)) add({ type: 'Bank', name: bank.ticker, thesis: bank.company || 'Deposit franchise screen', stage: 'screen', catalyst: bank.edge_label || bank.edge_type || 'Deposit franchise', owner: 'Research', updated: bank.filing_as_of || generated, next: 'Underwrite deposit durability and valuation', source: 'SEC advantaged-bank screen' });
+  return rows.sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
+}
+
+function renderIdeaDrawer(row) {
+  if (!row) return '';
+  return `<aside class="idea-drawer" role="dialog" aria-modal="true" aria-label="Idea detail">
+    <div class="idea-drawer-head"><div><span class="idea-type">${escapeHtml(row.type)}</span><h3>${escapeHtml(row.name)}</h3></div><button type="button" data-close-idea>Close</button></div>
+    <dl>
+      <div><dt>Thesis / evidence</dt><dd>${escapeHtml(row.thesis)}</dd></div>
+      <div><dt>Stage</dt><dd>${escapeHtml(String(row.stage).replace(/_/g, ' '))}</dd></div>
+      <div><dt>Catalyst / deadline</dt><dd>${escapeHtml(row.catalyst)}</dd></div>
+      <div><dt>Next action</dt><dd>${escapeHtml(row.next)}</dd></div>
+      <div><dt>Owner</dt><dd>${escapeHtml(row.owner)}</dd></div>
+      <div><dt>Last verified</dt><dd>${escapeHtml(window.DashboardFormat.date(row.updated))}</dd></div>
+      <div><dt>Source</dt><dd>${escapeHtml(row.source)}</dd></div>
+    </dl>
+  </aside>`;
 }
 
 function renderIdeasIndexBody() {
-  const generated = data.generated_at || data.generatedAt || 'latest build';
-  const displayDate = (value) => {
-    if (!value) return 'Unavailable';
-    const text = String(value);
-    const parsed = new Date(text);
-    return Number.isNaN(parsed.getTime()) ? text : parsed.toISOString().slice(0, 10);
+  const allRows = buildIdeaRows();
+  const now = Date.now();
+  const stale = (row) => { const time = new Date(row.updated).getTime(); return Number.isFinite(time) && now - time > 90 * 86400000; };
+  const buckets = {
+    all: allRows,
+    decision: allRows.filter((row) => ['intake', 'review', 'screen', 'hypothesis'].includes(String(row.stage).toLowerCase())),
+    catalyst: allRows.filter((row) => ['Short', 'Contract'].includes(row.type)),
+    stale: allRows.filter(stale),
   };
-  const rows = [];
-  for (const idea of data.watchlist || []) rows.push({ type: 'Queue', name: idea.ticker, stage: 'intake', catalyst: idea.notes || 'Research trigger not set', owner: idea.owner || 'Research', updated: idea.added || generated, next: 'Promote to full coverage' });
-  for (const idea of shortAlphaData?.ideas || []) rows.push({ type: 'Short Alpha', name: idea.ticker, stage: idea.research?.status || 'hypothesis', catalyst: (idea.catalysts || [])[0] || 'Catalyst not published', owner: 'Drew', updated: idea.outcome?.latest_date || shortAlphaData.as_of, next: idea.research?.next_step || 'Refresh falsifiers' });
-  for (const warrant of warrantData?.rows || []) rows.push({ type: 'Warrant', name: warrant.warrant_ticker || warrant.market?.warrant?.symbol || warrant.common_ticker, stage: warrant.gates?.status || warrant.lifecycle || 'review', catalyst: warrant.contract_clock?.expiry ? `Expiry ${warrant.contract_clock.expiry}` : 'Contract clock unavailable', owner: 'Research', updated: warrant.market?.warrant?.quote_date || warrantData.generated_at, next: warrant.next_action || 'Verify contract and market' });
-  for (const idea of (data.nol_screener?.rows || []).filter((row) => row.is_actionable)) rows.push({ type: 'NOL', name: idea.ticker, stage: idea.usability || 'screen', catalyst: `§382 shield / price ${idea.tax_shield_pv_to_mcap_pct == null ? 'unavailable' : idea.tax_shield_pv_to_mcap_pct.toFixed(2) + '%'}`, owner: 'Research', updated: idea.filing_as_of || generated, next: 'Verify tax-attribute ownership and deal path' });
-  for (const bank of (data.advantaged_banks_screener?.rows || []).filter((row) => row.is_low_cost)) rows.push({ type: 'Bank', name: bank.ticker, stage: 'screen', catalyst: bank.edge_label || bank.edge_type || 'Deposit franchise', owner: 'Research', updated: bank.filing_as_of || generated, next: 'Underwrite deposit durability and valuation' });
-  rows.sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
-  return `<div class="watchlist-section"><h2>Ideas</h2><p class="subhead" style="margin-bottom:14px">One decision index across intake, special situations, short hypotheses, and contract clocks.</p><div class="ph-table-wrap"><table class="darwin-table ideas-index-table"><thead><tr><th>Type</th><th>Idea</th><th>Stage</th><th>Catalyst / expiry</th><th>Owner</th><th>Last updated</th><th>Next action</th></tr></thead><tbody>${rows.map((row) => `<tr><td><span class="badge badge-sleeve">${escapeHtml(row.type)}</span></td><td class="mono">${escapeHtml(row.name || 'Unavailable')}</td><td>${escapeHtml(String(row.stage || 'Unavailable').replace(/_/g, ' '))}</td><td>${escapeHtml(row.catalyst)}</td><td>${escapeHtml(row.owner)}</td><td class="mono">${escapeHtml(displayDate(row.updated))}</td><td>${escapeHtml(row.next)}</td></tr>`).join('')}</tbody></table>${rows.length ? '' : '<div class="operator-empty"><strong>No ideas published</strong><span>Required: type, stage, owner, timestamp, and next action · source owner: Research Data Health.</span></div>'}</div></div>`;
+  if (!Object.hasOwn(buckets, ideaFilter)) ideaFilter = 'all';
+  const rows = buckets[ideaFilter];
+  const selected = allRows.find((row) => row.id === selectedIdeaId);
+  const tape = [
+    ['all', 'Total inbox', allRows.length], ['decision', 'Needs decision', buckets.decision.length],
+    ['catalyst', 'Catalyst / expiry', buckets.catalyst.length], ['stale', 'Stale > 90d', buckets.stale.length],
+  ];
+  return `<div class="ideas-shell"><header class="ideas-header"><div><h2>Decision Inbox</h2><p>Every candidate has one stage, one owner, one clock, and one next action. Open a row for its evidence and source.</p></div><span class="ideas-asof">As of ${escapeHtml(window.DashboardFormat.date(data.generated_at || data.generatedAt))}</span></header>
+    <div class="decision-tape" aria-label="Idea decision filters">${tape.map(([key, label, count]) => `<button type="button" data-idea-filter="${key}" class="${ideaFilter === key ? 'active' : ''}"><small>${escapeHtml(label)}</small><strong>${count}</strong></button>`).join('')}</div>
+    <section class="ideas-surface"><div class="ideas-surface-head"><strong>${rows.length} ideas in view</strong><span>Sorted by last verified · click an instrument for detail</span></div><div class="ideas-table-wrap"><table class="ideas-table"><thead><tr><th>Type</th><th>Instrument</th><th>Stage</th><th>Catalyst / expiry</th><th>Owner</th><th>Last verified</th><th>Next action</th></tr></thead><tbody>${rows.map((row) => `<tr><td><span class="idea-type">${escapeHtml(row.type)}</span></td><td><button type="button" class="idea-open" data-idea-id="${escapeHtml(row.id)}">${escapeHtml(row.name || 'Unavailable')}</button></td><td>${escapeHtml(String(row.stage || 'Unavailable').replace(/_/g, ' '))}</td><td>${escapeHtml(row.catalyst)}</td><td>${escapeHtml(row.owner)}</td><td class="numeric">${escapeHtml(window.DashboardFormat.date(row.updated))}</td><td>${escapeHtml(row.next)}</td></tr>`).join('')}</tbody></table>${rows.length ? '' : '<div class="operator-empty"><strong>No ideas match this decision state</strong><span>Choose another decision-tape segment. Source owner: Research Data Health.</span></div>'}</div></section>${renderIdeaDrawer(selected)}</div>`;
 }
 
 function renderWatchlistQueueBody() {
@@ -4464,7 +4496,7 @@ function renderWatchlistNolBody() {
       : null;
     const tally = n.blocker_tally || {};
     const blocked = Object.entries(tally).sort((x, y) => y[1] - x[1]);
-    return `<details class="nol-tax-reality" open>
+    return `<details class="nol-tax-reality">
       <summary>What tax law actually allows here</summary>
       <p><b>Whose losses are they?</b> ${escapeHtml(t.who_can_use_it || '')}</p>
       <p><b>Section 382.</b> ${escapeHtml(t.section_382 || '')}</p>
@@ -4512,14 +4544,14 @@ function renderWatchlistNolBody() {
             <td>${escapeHtml(r.company)}</td>
             <td>${usabilityBadge(r)}</td>
             <td class="mono">${escapeHtml(r.market_cap_display || '—')}</td>
-            <td class="mono" title="Gross NOL carryforward (${escapeHtml(r.gross_nol_basis || 'unknown basis')})">${r.gross_nol_usd != null ? '$' + (r.gross_nol_usd / 1e6).toFixed(0) + 'M' : '—'}</td>
-            <td class="mono" title="Most the acquirer may use per year after an ownership change">${r.section_382_annual_limit_usd != null ? '$' + (r.section_382_annual_limit_usd / 1e6).toFixed(1) + 'M' : '—'}</td>
+            <td class="mono" title="Gross NOL carryforward (${escapeHtml(r.gross_nol_basis || 'unknown basis')})">${window.DashboardFormat.currency(r.gross_nol_usd, 'USD', { notation: 'compact', maximumFractionDigits: 1 })}</td>
+            <td class="mono" title="Most the acquirer may use per year after an ownership change">${window.DashboardFormat.currency(r.section_382_annual_limit_usd, 'USD', { notation: 'compact', maximumFractionDigits: 1 })}</td>
             <td class="mono">${r.section_382_years_to_absorb != null ? escapeHtml(String(r.section_382_years_to_absorb)) + 'y' : '—'}</td>
-            <td class="mono" title="Present value of the federal tax actually shielded">${r.acquirer_tax_shield_pv_usd != null ? '$' + (r.acquirer_tax_shield_pv_usd / 1e6).toFixed(1) + 'M' : '—'}</td>
-            <td class="mono"><b>${r.tax_shield_pv_to_mcap_pct != null ? escapeHtml(r.tax_shield_pv_to_mcap_pct.toFixed(2)) + '%' : '—'}</b>${r.pct_of_382_ceiling != null ? `<small style="display:block;color:var(--text-muted)">${escapeHtml(String(r.pct_of_382_ceiling))}% of ceiling</small>` : ''}</td>
+            <td class="mono" title="Present value of the federal tax actually shielded">${window.DashboardFormat.currency(r.acquirer_tax_shield_pv_usd, 'USD', { notation: 'compact', maximumFractionDigits: 1 })}</td>
+            <td class="mono"><b>${r.tax_shield_pv_to_mcap_pct != null ? escapeHtml(window.DashboardFormat.number(r.tax_shield_pv_to_mcap_pct, { maximumFractionDigits: 2 })) + '%' : '—'}</b>${r.pct_of_382_ceiling != null ? `<small style="display:block;color:var(--text-muted)">${escapeHtml(window.DashboardFormat.number(r.pct_of_382_ceiling, { maximumFractionDigits: 1 }))}% of ceiling</small>` : ''}</td>
             <td class="mono">${escapeHtml(r.allowance_pct_display || '—')}</td>
             <td style="font-size:11px;color:var(--warning);max-width:230px">${blockers.length ? escapeHtml(blockers.join(' · ')) : '<span style="color:var(--text-muted)">—</span>'}</td>
-            <td class="mono" style="font-size:11px">${escapeHtml(r.filing_as_of || '—')}</td>
+            <td class="mono" style="font-size:11px">${escapeHtml(window.DashboardFormat.date(r.filing_as_of))}</td>
             <td>${r.in_holdings ? '<span class="form-hint">holding</span>' : `<button type="button" class="btn-secondary btn-sm" data-nol-watch="${escapeHtml(r.ticker)}"
               data-company="${escapeHtml(r.company)}" data-market="${escapeHtml(r.market)}">+ Watchlist</button>`}</td>
           </tr>`;
@@ -4533,19 +4565,23 @@ function renderWatchlistNolBody() {
         <th title="Shield PV as a share of the price paid. This is the number that matters.">Shield / price</th>
         <th>Allowance</th><th>Why not</th><th>Filing</th><th></th>
       </tr></thead>`;
-  const visibleRows = filterNolRows(nolRows);
-  const smallRows = visibleRows.filter(r => r.is_small_cap);
-  const largeRows = visibleRows.filter(r => !r.is_small_cap);
+  const blockerCodes = Object.entries(nol.blocker_tally || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const visibleRows = filterNolRows(nolRows).filter((row) => nolBlockerFilter === 'all' || (row.blockers || []).includes(nolBlockerFilter));
+  const actionableRows = visibleRows.filter((row) => row.usability !== 'blocked');
+  const allBlockedRows = visibleRows.filter((row) => row.usability === 'blocked');
+  const blockedRows = nolShowAllBlocked ? allBlockedRows : allBlockedRows.slice(0, 25);
   const actionableCount = nol.actionable_count != null ? nol.actionable_count : nolRows.filter(r => r.is_actionable).length;
   const nolTable = nolRows.length ? `
-    <label class="form-hint" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px">
-      <input type="checkbox" id="nol-hide-zero" ${hideZeroRealizable ? 'checked' : ''}>
-      Hide fully reserved / zero realizable DTA
-    </label>
-    ${smallRows.length ? `<h4 style="font-size:12px;color:var(--text-muted);margin:12px 0 8px">Small / micro cap (${smallRows.length}) — takeover tax-attribute sleeve</h4>
-    <table class="darwin-table">${nolHead}<tbody>${smallRows.map(nolRowHtml).join('')}</tbody></table>` : ''}
-    ${largeRows.length ? `<h4 style="font-size:12px;color:var(--text-muted);margin:16px 0 8px">Mid / large cap (${largeRows.length})</h4>
-    <table class="darwin-table">${nolHead}<tbody>${largeRows.map(nolRowHtml).join('')}</tbody></table>` : ''}
+    <div class="decision-tape nol-decision-tape" aria-label="NOL decision states">
+      <div><small>Needs decision</small><strong>${actionableRows.length}</strong></div>
+      <div><small>Monitor</small><strong>${nolRows.filter((row) => row.usability === 'immaterial_after_382').length}</strong></div>
+      <div><small>Blocked</small><strong>${nolRows.filter((row) => row.usability === 'blocked').length}</strong></div>
+      <div><small>Feed rows</small><strong>${nolRows.length}</strong></div>
+    </div>
+    <div class="screen-switcher" aria-label="NOL blocker filters"><button type="button" data-nol-blocker="all" class="${nolBlockerFilter === 'all' ? 'active' : ''}">All blockers</button>${blockerCodes.map(([code, count]) => `<button type="button" data-nol-blocker="${escapeHtml(code)}" class="${nolBlockerFilter === code ? 'active' : ''}">${escapeHtml(code.replace(/_/g, ' '))} · ${count}</button>`).join('')}</div>
+    <label class="form-hint" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px"><input type="checkbox" id="nol-hide-zero" ${hideZeroRealizable ? 'checked' : ''}>Hide fully reserved / zero realizable DTA</label>
+    ${actionableRows.length ? `<h4 style="font-size:12px;color:var(--text-muted);margin:12px 0 8px">Actionable first · ${actionableRows.length}</h4><table class="darwin-table nol-table-limited">${nolHead}<tbody>${actionableRows.map(nolRowHtml).join('')}</tbody></table>` : ''}
+    ${blockedRows.length ? `<h4 style="font-size:12px;color:var(--text-muted);margin:16px 0 8px">Blocked / monitor · ${allBlockedRows.length}</h4><table class="darwin-table nol-table-limited">${nolHead}<tbody>${blockedRows.map(nolRowHtml).join('')}</tbody></table>${allBlockedRows.length > 25 ? `<button type="button" class="btn-secondary" data-nol-show-blocked>${nolShowAllBlocked ? 'Show first 25 blocked rows' : `Show all ${allBlockedRows.length} blocked rows`}</button>` : ''}` : ''}
     ${!visibleRows.length ? '<div class="operator-empty"><strong>No NOL names match this filter</strong><span>Clear “Hide fully reserved” to restore structurally blocked rows.</span></div>' : ''}`
     : '<div class="operator-empty"><strong>NOL feed unavailable</strong><span>The SEC facts screen has not published rows. Data Health owns the next refresh.</span></div>';
   return `
@@ -4607,6 +4643,7 @@ function renderWatchlistTab() {
   const content = document.getElementById('watchlist-content');
   if (!loading || !content || !data) return;
 
+  if (watchlistViewMode === 'queue') watchlistViewMode = 'all';
   if (!WATCHLIST_VIEWS.has(watchlistViewMode)) {
     watchlistViewMode = defaultWatchlistView();
   }
@@ -4624,14 +4661,39 @@ function renderWatchlistTab() {
 
   let body = '';
   if (watchlistViewMode === 'all') body = renderIdeasIndexBody();
-  else if (watchlistViewMode === 'queue') body = renderWatchlistQueueBody();
   else if (watchlistViewMode === 'banks') body = renderWatchlistBanksBody();
   else body = renderWatchlistNolBody();
 
-  content.innerHTML = `${renderWatchlistSubNav(watchlistViewMode)}${body}`;
+  content.innerHTML = watchlistViewMode === 'all' ? body : `<div class="ideas-shell"><header class="ideas-header"><div><h2>Research Screens</h2><p>Specialized screens share one decision grammar: actionable rows first, blockers explicit, methodology collapsed.</p></div><span class="ideas-asof">As of ${escapeHtml(window.DashboardFormat.date(data.generated_at || data.generatedAt))}</span></header>${renderWatchlistSubNav(watchlistViewMode)}${body}</div>`;
 
   content.querySelectorAll('[data-watchlist-view]').forEach(btn => {
     btn.addEventListener('click', () => setWatchlistView(btn.dataset.watchlistView));
+  });
+  content.querySelectorAll('[data-idea-filter]').forEach((button) => button.addEventListener('click', () => {
+    ideaFilter = button.dataset.ideaFilter;
+    setIdeaUrlState({ ideaFilter });
+    renderWatchlistTab();
+  }));
+  content.querySelectorAll('[data-idea-id]').forEach((button) => button.addEventListener('click', () => {
+    selectedIdeaId = button.dataset.ideaId;
+    setIdeaUrlState({ idea: selectedIdeaId });
+    renderWatchlistTab();
+    content.querySelector('[data-close-idea]')?.focus();
+  }));
+  content.querySelector('[data-close-idea]')?.addEventListener('click', () => {
+    selectedIdeaId = null;
+    setIdeaUrlState({ idea: null });
+    renderWatchlistTab();
+  });
+  content.querySelectorAll('[data-nol-blocker]').forEach((button) => button.addEventListener('click', () => {
+    nolBlockerFilter = button.dataset.nolBlocker;
+    setIdeaUrlState({ nolBlocker: nolBlockerFilter });
+    renderWatchlistTab();
+  }));
+  content.querySelector('[data-nol-show-blocked]')?.addEventListener('click', () => {
+    nolShowAllBlocked = !nolShowAllBlocked;
+    setIdeaUrlState({ nolBlocked: nolShowAllBlocked ? 'all' : null });
+    renderWatchlistTab();
   });
 
   const hideZeroCb = content.querySelector('#nol-hide-zero');
@@ -5663,6 +5725,11 @@ document.getElementById('holdings-thead').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && selected && activeView === 'holdings') {
     clearTickerSelection();
+  }
+  if (e.key === 'Escape' && selectedIdeaId && activeView === 'watchlist') {
+    selectedIdeaId = null;
+    setIdeaUrlState({ idea: null });
+    renderWatchlistTab();
   }
 });
 

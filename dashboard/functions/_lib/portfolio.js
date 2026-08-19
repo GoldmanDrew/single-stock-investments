@@ -38,14 +38,23 @@ export function requirePrivateArchive(env) {
 export function validateAccountSnapshot(payload) {
   if (payload?.schema_version !== "account_snapshot.v1" || !payload.source_run_id
       || !payload.account_alias || !payload.as_of || typeof payload.complete !== "boolean"
+      || !/^[A-Z]{3}$/.test(payload.base_currency || "")
       || !Array.isArray(payload.account_values) || !Array.isArray(payload.positions)) {
     throw new TypeError("Invalid account_snapshot.v1 envelope");
   }
   for (const row of payload.positions) {
     if (!Number.isInteger(row.conid) || row.conid <= 0 || !row.symbol || !row.sec_type
-        || !row.currency || !DECIMAL.test(String(row.quantity))
+        || !row.currency || row.base_currency !== payload.base_currency
+        || !["shares", "contracts", "units", "cash"].includes(row.quantity_unit)
+        || !DECIMAL.test(String(row.quantity))
         || (row.account_alias && row.account_alias !== payload.account_alias)) {
       throw new TypeError("Invalid canonical position row");
+    }
+    const nativeCurrency = row.native_currency || row.currency;
+    if (nativeCurrency !== payload.base_currency && row.market_value != null
+        && (!DECIMAL.test(String(row.market_value_native)) || !DECIMAL.test(String(row.market_value_base))
+          || !DECIMAL.test(String(row.fx_rate_to_base)) || !row.fx_as_of || !row.fx_source)) {
+      throw new TypeError("Non-base position is missing explicit native/base FX fields");
     }
   }
   for (const row of payload.open_orders || []) {
@@ -131,13 +140,22 @@ export async function storeAccountSnapshot(env, payload, bytes) {
   }
   for (const row of payload.positions) {
     statements.push(db.prepare(`INSERT INTO portfolio_positions
-      (source_run_id,account_alias,conid,model_code,symbol,local_symbol,description,sec_type,currency,exchange_name,expiry,strike_decimal,right_code,multiplier_decimal,quantity_decimal,average_cost_decimal,mark_decimal,market_value_decimal,unrealized_pnl_decimal,realized_pnl_decimal,daily_pnl_decimal,source,quality,as_of)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+      (source_run_id,account_alias,conid,model_code,symbol,local_symbol,description,sec_type,currency,exchange_name,expiry,
+       strike_decimal,right_code,multiplier_decimal,quantity_decimal,average_cost_decimal,mark_decimal,market_value_decimal,
+       unrealized_pnl_decimal,realized_pnl_decimal,daily_pnl_decimal,source,quality,as_of,quantity_unit,base_currency,
+       native_currency,fx_rate_to_base_decimal,fx_as_of,fx_source,average_cost_native_decimal,mark_native_decimal,
+       market_value_native_decimal,market_value_base_decimal,unrealized_pnl_base_decimal,realized_pnl_base_decimal,daily_pnl_base_decimal)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
       payload.source_run_id, payload.account_alias, row.conid, row.model_code || "", row.symbol, row.local_symbol || null,
       row.description || null, row.sec_type, row.currency, row.exchange || null, row.expiry || null, row.strike || null,
       row.right || null, row.multiplier || null, String(row.quantity), row.average_cost ?? null, row.mark ?? null,
       row.market_value ?? null, row.unrealized_pnl ?? null, row.realized_pnl ?? null, row.daily_pnl ?? null,
       row.source, row.quality || "unknown", row.as_of,
+      row.quantity_unit, payload.base_currency, row.native_currency || row.currency, row.fx_rate_to_base ?? null,
+      row.fx_as_of ?? null, row.fx_source ?? null, row.average_cost_native ?? row.average_cost ?? null,
+      row.mark_native ?? row.mark ?? null, row.market_value_native ?? null, row.market_value_base ?? row.market_value ?? null,
+      row.unrealized_pnl_base ?? row.unrealized_pnl ?? null, row.realized_pnl_base ?? row.realized_pnl ?? null,
+      row.daily_pnl_base ?? row.daily_pnl ?? null,
     ));
   }
   for (const row of payload.open_orders || []) {
@@ -187,6 +205,10 @@ export async function storeAllocationProjection(env, payload, bytes) {
   }
   const source = await db.prepare("SELECT account_alias FROM portfolio_source_runs WHERE source_run_id=? AND source='ibkr' AND complete=1").bind(payload.source_run_id).first();
   if (!source || source.account_alias !== payload.account_alias) throw new TypeError("projection does not reference a matching complete broker snapshot");
+  const brokerCount = await db.prepare("SELECT COUNT(*) AS count FROM portfolio_positions WHERE source_run_id=?").bind(payload.source_run_id).first();
+  if (Number(brokerCount?.count || 0) > 0 && payload.allocations.length === 0) {
+    throw new TypeError("non-empty broker snapshot cannot publish an empty allocation projection");
+  }
   await archive.put(objectKey, bytes, { httpMetadata: { contentType: "application/json" }, customMetadata: { schema: payload.schema_version, sha256: digest } });
   const statements = [
     db.prepare("DELETE FROM portfolio_allocations WHERE account_alias=?").bind(payload.account_alias),
@@ -239,16 +261,23 @@ export async function loadPortfolio(env, owner = "all") {
   const run = await db.prepare(`SELECT * FROM portfolio_source_runs
     WHERE source='ibkr' AND complete=1 ORDER BY as_of DESC LIMIT 1`).first();
   if (!run) return { schema_version: "portfolio_read_model.v1", status: "unknown", reason: "no complete broker snapshot", scope: owner, account_values: [], positions: [], reconciliation_breaks: [] };
-  const [values, rows, breaks, cash, openOrders] = await db.batch([
+  const [values, rows, breaks, cash, openOrders, brokerPositions, allocationStatus] = await db.batch([
     db.prepare("SELECT * FROM portfolio_account_values WHERE source_run_id=? ORDER BY tag,currency").bind(run.source_run_id),
     db.prepare(`SELECT p.*, a.allocation_id, a.owner, a.strategy, a.bucket, a.quantity_decimal AS allocated_quantity_decimal, a.confidence
       FROM portfolio_positions p LEFT JOIN portfolio_allocations a
         ON a.account_alias=p.account_alias AND a.conid=p.conid AND a.model_code=p.model_code
         AND a.effective_at<=p.as_of AND (a.ended_at IS NULL OR a.ended_at>p.as_of)
+        AND EXISTS (SELECT 1 FROM portfolio_allocation_projections ap
+          WHERE ap.source_run_id=p.source_run_id AND ap.account_alias=p.account_alias)
       WHERE p.source_run_id=? AND (?='all' OR a.owner=?) ORDER BY p.symbol,p.conid,a.owner,a.strategy`).bind(run.source_run_id, owner, owner),
     db.prepare("SELECT * FROM portfolio_reconciliation_breaks WHERE source_run_id=? AND status='open' ORDER BY severity,created_at DESC").bind(run.source_run_id),
     db.prepare("SELECT * FROM portfolio_cash_events WHERE account_alias=? AND effective_at<=? AND (?='all' OR owner=?) ORDER BY effective_at,event_id").bind(run.account_alias, run.as_of, owner, owner),
     db.prepare("SELECT COUNT(*) AS count FROM portfolio_broker_orders WHERE source_run_id=?").bind(run.source_run_id),
+    db.prepare("SELECT COUNT(*) AS count FROM portfolio_positions WHERE source_run_id=?").bind(run.source_run_id),
+    db.prepare(`SELECT p.projection_id,p.as_of,COUNT(a.allocation_id) AS allocation_count
+      FROM portfolio_allocation_projections p LEFT JOIN portfolio_allocations a ON a.account_alias=p.account_alias
+      WHERE p.account_alias=? AND p.source_run_id=?
+      GROUP BY p.projection_id,p.as_of ORDER BY p.as_of DESC LIMIT 1`).bind(run.account_alias, run.source_run_id),
   ]);
   const positions = [];
   const keyed = new Map();
@@ -263,5 +292,17 @@ export async function loadPortfolio(env, owner = "all") {
     }
     if (row.allocation_id) position.allocations.push({ allocation_id: row.allocation_id, owner: row.owner, strategy: row.strategy, bucket: row.bucket, quantity_decimal: row.allocated_quantity_decimal, confidence: row.confidence });
   }
-  return { schema_version: "portfolio_read_model.v1", status: "complete", scope: owner, snapshot: run, account_values: values.results || [], positions, cash_events: cash.results || [], broker_open_order_count: Number(openOrders.results?.[0]?.count || 0), reconciliation_breaks: breaks.results || [] };
+  const brokerPositionCount = Number(brokerPositions.results?.[0]?.count || 0);
+  const allocationRow = allocationStatus.results?.[0] || null;
+  const allocationCount = Number(allocationRow?.allocation_count || 0);
+  const allocationState = brokerPositionCount === 0 ? "not_applicable" : allocationCount > 0 ? "complete" : "upstream_absent";
+  return {
+    schema_version: "portfolio_read_model.v1", status: "complete", scope: owner, snapshot: run,
+    account_values: values.results || [], positions, cash_events: cash.results || [],
+    broker_position_count: brokerPositionCount, owner_position_count: positions.length,
+    allocation_status: allocationState,
+    allocation_reason: allocationState === "upstream_absent" ? "Broker positions exist, but no allocation projection has been published." : null,
+    allocation_projection_as_of: allocationRow?.as_of || null,
+    broker_open_order_count: Number(openOrders.results?.[0]?.count || 0), reconciliation_breaks: breaks.results || [],
+  };
 }

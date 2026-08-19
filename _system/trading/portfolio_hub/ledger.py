@@ -10,6 +10,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterator
 
+from .allocation_policy import POLICY_SOURCE_PREFIX, classify_policy_position, load_ls_universe, residual_quantity
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -100,15 +102,30 @@ class PortfolioLedger:
                     (snapshot_id, row["tag"], row.get("currency", ""), row.get("segment") or "", row.get("model_code") or "", decimal_text(row["value"]), row["source"], row["as_of"]),
                 )
             for row in payload["positions"]:
+                quantity_unit = row.get("quantity_unit") or ("contracts" if str(row.get("sec_type") or "").upper() in {"OPT", "FOP"} else "shares")
+                native_currency = row.get("native_currency") or row["currency"]
+                market_value_base = row.get("market_value_base", row.get("market_value"))
                 db.execute(
-                    """INSERT OR REPLACE INTO position_snapshot_rows VALUES
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT OR REPLACE INTO position_snapshot_rows
+                    (snapshot_id,account_alias,conid,model_code,symbol,local_symbol,description,sec_type,currency,exchange_name,
+                     expiry,strike_decimal,right_code,multiplier_decimal,quantity_decimal,average_cost_decimal,mark_decimal,
+                     market_value_decimal,unrealized_pnl_decimal,realized_pnl_decimal,daily_pnl_decimal,source,quality,as_of,
+                     quantity_unit,native_currency,fx_rate_to_base_decimal,fx_as_of,fx_source,average_cost_native_decimal,
+                     mark_native_decimal,market_value_native_decimal,market_value_base_decimal,unrealized_pnl_base_decimal,
+                     realized_pnl_base_decimal,daily_pnl_base_decimal)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         snapshot_id, payload["account_alias"], int(row["conid"]), row.get("model_code") or "", row["symbol"],
                         row.get("local_symbol"), row.get("description"), row["sec_type"], row["currency"], row.get("exchange"),
                         row.get("expiry"), row.get("strike"), row.get("right"), row.get("multiplier"), decimal_text(row["quantity"]),
                         row.get("average_cost"), row.get("mark"), row.get("market_value"), row.get("unrealized_pnl"),
                         row.get("realized_pnl"), row.get("daily_pnl"), row["source"], row.get("quality", "unknown"), row["as_of"],
+                        quantity_unit, native_currency, row.get("fx_rate_to_base"), row.get("fx_as_of"), row.get("fx_source"),
+                        row.get("average_cost_native", row.get("average_cost")), row.get("mark_native", row.get("mark")),
+                        row.get("market_value_native"), market_value_base,
+                        row.get("unrealized_pnl_base", row.get("unrealized_pnl")),
+                        row.get("realized_pnl_base", row.get("realized_pnl")),
+                        row.get("daily_pnl_base", row.get("daily_pnl")),
                     ),
                 )
             for row in payload.get("open_orders", []):
@@ -117,8 +134,58 @@ class PortfolioLedger:
                     (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (snapshot_id, payload["account_alias"], row.get("client_id"), row["order_id"], row.get("perm_id"), row.get("conid"), row.get("symbol"), row.get("action"), row.get("order_type"), row.get("total_quantity"), row.get("limit_price"), row.get("tif"), row.get("status"), row.get("order_ref"), row.get("ownership", "foreign"), row.get("parent_id"), row.get("oca_group"), row.get("as_of", payload["as_of"])),
                 )
+            if payload["complete"]:
+                self._sync_policy_allocations(db, snapshot_id, payload, now)
             self._put_outbox(db, "account_snapshot.v1", snapshot_id, payload, now)
         return snapshot_id
+
+    def _sync_policy_allocations(self, db: sqlite3.Connection, snapshot_id: str, payload: dict[str, Any], now: str) -> None:
+        account_alias = payload["account_alias"]
+        as_of = payload["as_of"]
+        db.execute(
+            "DELETE FROM allocation_lots WHERE account_alias=? AND source_event_id LIKE ?",
+            (account_alias, f"{POLICY_SOURCE_PREFIX}%"),
+        )
+        ls_symbols = load_ls_universe()
+        positions = db.execute(
+            "SELECT * FROM position_snapshot_rows WHERE snapshot_id=? ORDER BY conid,model_code",
+            (snapshot_id,),
+        ).fetchall()
+        for position in positions:
+            policy = classify_policy_position(dict(position), ls_symbols=ls_symbols)
+            if policy.strategy in {"letf", "spx_0dte"}:
+                db.execute(
+                    """UPDATE allocation_lots SET ended_at=?
+                    WHERE account_alias=? AND conid=? AND model_code=? AND owner IN ('drew','michael')
+                      AND effective_at<=? AND (ended_at IS NULL OR ended_at>?)""",
+                    (as_of, account_alias, position["conid"], position["model_code"], as_of, as_of),
+                )
+                explicit = []
+            else:
+                explicit = db.execute(
+                    """SELECT quantity_decimal FROM allocation_lots
+                    WHERE account_alias=? AND conid=? AND model_code=? AND confidence IN ('explicit_override','legacy_inferred')
+                      AND effective_at<=? AND (ended_at IS NULL OR ended_at>?)""",
+                    (account_alias, position["conid"], position["model_code"], as_of, as_of),
+                ).fetchall()
+            remainder = residual_quantity(position["quantity_decimal"], [row["quantity_decimal"] for row in explicit])
+            if remainder == 0:
+                continue
+            source_event_id = f"{POLICY_SOURCE_PREFIX}:{account_alias}:{position['conid']}:{position['model_code']}"
+            allocation_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_event_id))
+            db.execute(
+                """INSERT INTO allocation_lots
+                (allocation_id,account_alias,conid,model_code,owner,strategy,bucket,quantity_decimal,effective_at,ended_at,
+                 confidence,source_event_id,note,created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,NULL,'authoritative',?,?,?)""",
+                (
+                    allocation_id, account_alias, position["conid"], position["model_code"], policy.owner,
+                    policy.strategy, None, decimal_text(remainder), as_of, source_event_id, policy.reason, now,
+                ),
+            )
+            self._put_outbox(db, "allocation.changed.v1", f"{allocation_id}:{snapshot_id}", {
+                "allocation_id": allocation_id, "rule": policy.reason, "snapshot_id": snapshot_id,
+            }, now)
 
     def add_allocation(self, *, account_alias: str, conid: int, model_code: str = "", owner: str,
                        strategy: str, quantity: Any, bucket: str | None = None,
@@ -133,6 +200,14 @@ class PortfolioLedger:
                 VALUES (?,?,?,?,?,?,?,?,?,NULL,?,?,?,?)""",
                 (allocation_id, account_alias, conid, model_code, owner, strategy, bucket, decimal_text(quantity), effective_at or now, confidence, source_event_id, note, now),
             )
+            latest = db.execute(
+                "SELECT snapshot_id,as_of,complete FROM account_snapshots WHERE account_alias=? ORDER BY as_of DESC LIMIT 1",
+                (account_alias,),
+            ).fetchone()
+            if latest and latest["complete"]:
+                self._sync_policy_allocations(db, latest["snapshot_id"], {
+                    "account_alias": account_alias, "as_of": latest["as_of"],
+                }, now)
             self._put_outbox(db, "allocation.changed.v1", allocation_id, {"allocation_id": allocation_id}, now)
         return allocation_id
 
@@ -292,6 +367,11 @@ class PortfolioLedger:
             "average_cost_decimal": "average_cost", "mark_decimal": "mark", "market_value_decimal": "market_value",
             "unrealized_pnl_decimal": "unrealized_pnl", "realized_pnl_decimal": "realized_pnl", "daily_pnl_decimal": "daily_pnl",
             "exchange_name": "exchange", "right_code": "right",
+            "fx_rate_to_base_decimal": "fx_rate_to_base",
+            "average_cost_native_decimal": "average_cost_native", "mark_native_decimal": "mark_native",
+            "market_value_native_decimal": "market_value_native", "market_value_base_decimal": "market_value_base",
+            "unrealized_pnl_base_decimal": "unrealized_pnl_base", "realized_pnl_base_decimal": "realized_pnl_base",
+            "daily_pnl_base_decimal": "daily_pnl_base",
         }
         omit = {"snapshot_id", "as_of"}
         for row in self.connection.execute("SELECT * FROM position_snapshot_rows WHERE snapshot_id=? ORDER BY symbol,conid", (snap["snapshot_id"],)):
@@ -301,6 +381,7 @@ class PortfolioLedger:
                     continue
                 item[mapping.get(key, key)] = value
             item["as_of"] = row["as_of"]
+            item["base_currency"] = snap["base_currency"]
             positions.append(item)
         open_orders = []
         order_mapping = {"total_quantity_decimal": "total_quantity", "limit_price_decimal": "limit_price"}
