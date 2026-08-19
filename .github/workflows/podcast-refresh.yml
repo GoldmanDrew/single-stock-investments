@@ -87,6 +87,18 @@ jobs:
       PODCASTINDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
       PODCAST_INDEX_API_KEY: ${{ secrets.PODCASTINDEX_API_KEY }}
       PODCAST_INDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
+      # The transcript corpus lives in the private research vault, not in this
+      # repo. Without these, vault_paths.podcasts_root() finds no vault and
+      # falls back to the in-repo legacy path, which does not exist -- so the
+      # run starts from an EMPTY corpus and re-harvests all ~3,600 episodes
+      # from the internet on every execution. That is what made run
+      # 32280009523 take two hours and still only reach 3,430 episodes and
+      # 1,746 transcripts against the 3,601 / 2,075 the vault actually holds.
+      # A single pass cannot reproduce an accumulated corpus, so the catalog
+      # comes out smaller and the "catalog shrank" guard correctly rejects it.
+      RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
+      RESEARCH_VAULT_CLONE_TOKEN: ${{ secrets.RESEARCH_VAULT_CLONE_TOKEN }}
+      RESEARCH_VAULT_ROOT: _external/research-vault
 
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +112,13 @@ jobs:
 
       - name: Checkout workspace (full)
         run: bash _system/scripts/ci_checkout_workspace.sh full
+
+      # Must come before any pipeline step. Every episode, transcript and
+      # .meta.json the builders read lives here; without it the corpus is
+      # empty and the run silently rebuilds a worse catalog than the one it
+      # replaces. ci_checkout_workspace.sh does not clone the vault.
+      - name: Checkout research vault
+        uses: ./.github/actions/checkout-vault
 
       - uses: actions/setup-python@v5
         with:
@@ -132,6 +151,43 @@ jobs:
           print(f"Podcast Index auth headers built: {sorted(h)}")
           PY
           fi
+
+      - name: Check the transcript corpus is actually present
+        # The failure this catches is silent by construction: with no vault,
+        # podcasts_root() returns a legacy in-repo path, the builders find zero
+        # .meta.json files, and the pipeline happily rebuilds a smaller catalog.
+        # The downstream "catalog shrank" guard would stop the commit, but only
+        # after burning hours re-harvesting. Fail here instead, in seconds.
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import glob, json, os, sys
+          sys.path.insert(0, "_system/scripts")
+          from vault_paths import podcasts_root
+
+          root = podcasts_root(create=False)
+          episodes = len(glob.glob(str(root / "episodes" / "**" / "*.meta.json"), recursive=True)) if root else 0
+          committed = json.load(open("dashboard/data/insights/podcasts.json", encoding="utf-8"))
+          expected = len(committed.get("podcast_index") or [])
+          print(f"corpus root      : {root}")
+          print(f"corpus episodes  : {episodes}")
+          print(f"committed catalog: {expected}")
+
+          if episodes == 0:
+              sys.exit(
+                  "::error::The transcript corpus is empty. RESEARCH_VAULT_CLONE_TOKEN is probably "
+                  "missing, so the vault was not cloned and this run would re-harvest from scratch "
+                  "and publish a smaller catalog than the one it replaces."
+              )
+          # Discovery legitimately adds episodes between runs, and a few may be
+          # pruned upstream, so allow a small shortfall but not a cliff.
+          if episodes < expected * 0.95:
+              sys.exit(
+                  f"::error::Corpus holds {episodes} episodes against a committed catalog of "
+                  f"{expected}. The vault looks partial; refusing to rebuild from it."
+              )
+          PY
 
       - name: Record the pre-run catalog state
         id: before
