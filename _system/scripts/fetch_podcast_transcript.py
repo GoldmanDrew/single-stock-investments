@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -33,6 +34,51 @@ def load_json(path: Path):
 def user_agent() -> str:
     doc = load_json(SHOW_REG) or {}
     return doc.get("user_agent") or "SSI-PodcastAgent/1.0 (+research)"
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write a file so that a crash can never leave it half-written.
+
+    This corpus is built by runs measured in days, on a machine that may lose
+    power at any point. Path.write_text() truncates first and buffers, so an
+    interruption can leave an empty or partial file -- and for
+    whisper_backlog.json, which is the single index of what has already been
+    transcribed, a truncated write loses the resume state for the entire
+    backlog rather than one episode.
+
+    Write to a sibling temp file, flush it all the way to the platter, then
+    rename. os.replace is atomic on POSIX and on Windows, so a reader either
+    sees the previous complete file or the new complete file, never a mix.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Include the pid so two processes writing the same path cannot corrupt each
+    # other's temp file, and clean up on any failure -- an orphaned .tmp would
+    # otherwise accumulate across a multi-day run and be swept into the vault by
+    # the daemon's `git add -A podcasts`.
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    # Persist the rename itself; without this the directory entry can still be
+    # lost on power failure even though the file contents are safe.
+    if hasattr(os, "O_DIRECTORY"):
+        try:
+            fd = os.open(path.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        except OSError:
+            pass
 
 
 def http_get(url: str, timeout: int = 60) -> bytes:
@@ -204,7 +250,7 @@ def load_whisper_backlog() -> dict:
 def save_whisper_backlog(doc: dict) -> None:
     doc["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
-    whisper_backlog_path().write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(whisper_backlog_path(), json.dumps(doc, indent=2) + "\n")
 
 
 def whisper_pending_count() -> int:
@@ -317,9 +363,15 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
         if episode.get("audio_url")
         else None,
     }
-    meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    # Order matters: write the transcript first. meta.json is what declares a
+    # transcript exists, so if the machine dies between the two writes the
+    # surviving state must be "transcript present, not yet recorded" (harmless
+    # and re-derivable) rather than "recorded but missing" -- the inconsistency
+    # that left 215 episodes claiming transcripts they never had.
     if text:
-        txt_path.write_text(text + "\n", encoding="utf-8")
+        atomic_write_text(txt_path, text + "\n")
+    atomic_write_text(meta_path, json.dumps(meta, indent=2) + "\n")
+    if text:
         # Mark backlog done if present
         doc = load_whisper_backlog()
         changed = False
