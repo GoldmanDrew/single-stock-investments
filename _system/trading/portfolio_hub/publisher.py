@@ -13,7 +13,13 @@ def signed_headers(token: str, body: bytes, now: int | None = None) -> dict[str,
     timestamp = str(now or int(time.time()))
     nonce = secrets.token_hex(16)
     signature = hmac.new(token.encode(), f"{timestamp}\n{nonce}\n".encode() + body, hashlib.sha256).hexdigest()
-    return {"content-type": "application/json", "x-portfolio-timestamp": timestamp, "x-portfolio-nonce": nonce, "x-portfolio-signature": signature}
+    return {
+        "content-type": "application/json",
+        "user-agent": "MagisPortfolioHub/1.0",
+        "x-portfolio-timestamp": timestamp,
+        "x-portfolio-nonce": nonce,
+        "x-portfolio-signature": signature,
+    }
 
 
 def publish_payload(url: str, token: str, payload: dict[str, Any], timeout: int = 30) -> dict[str, Any]:

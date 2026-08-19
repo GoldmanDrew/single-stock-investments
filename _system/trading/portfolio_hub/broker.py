@@ -65,7 +65,7 @@ class IBAsyncCollector:
             summaries = await ib.accountSummaryAsync(self.profile.account_id)
             positions = await ib.reqPositionsAsync()
             trades = await ib.reqAllOpenOrdersAsync()
-            model_by_conid = {row.contract.conId: row.modelCode or "" for row in positions if row.account == self.profile.account_id}
+            model_by_conid = {row.contract.conId: getattr(row, "modelCode", None) or getattr(row, "model", "") or "" for row in positions if row.account == self.profile.account_id}
             portfolio_rows = [row for row in ib.portfolio(self.profile.account_id) if row.account == self.profile.account_id]
             now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
             tags = [row for row in summaries if row.tag in REQUIRED_ACCOUNT_TAGS]
@@ -107,7 +107,7 @@ class IBAsyncCollector:
         if not getattr(c, "conId", 0):
             raise RuntimeError("IBKR returned an unqualified position")
         return {
-            "account_alias": self.profile.account_alias, "conid": c.conId, "model_code": row.modelCode or "",
+            "account_alias": self.profile.account_alias, "conid": c.conId, "model_code": getattr(row, "modelCode", None) or getattr(row, "model", "") or "",
             "symbol": c.symbol, "local_symbol": c.localSymbol or None, "description": None,
             "sec_type": c.secType, "currency": c.currency, "exchange": c.exchange or c.primaryExchange or None,
             "expiry": getattr(c, "lastTradeDateOrContractMonth", None) or None,
