@@ -649,6 +649,9 @@ jobs:
           CI_PAGES_DEPLOY_ONLY: "true"
         run: |
           python _system/scripts/validate_dashboard_data.py
-          python _system/scripts/check_warrant_universe.py --strict
+          # Research PRs must still catch structural warrant errors. Stale
+          # delayed marks (heal-warrants) stay warnings so a ticker deep dive
+          # is not blocked by an unrelated Yahoo quote gap.
+          python _system/scripts/check_warrant_universe.py
           (cd _system/scripts && python -m unittest -v test_warrant_pipeline)
           node --check dashboard/warrant-viz.js
