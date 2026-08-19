@@ -1,0 +1,12 @@
+ALTER TABLE position_snapshot_rows ADD COLUMN quantity_unit TEXT NOT NULL DEFAULT 'shares';
+ALTER TABLE position_snapshot_rows ADD COLUMN native_currency TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN fx_rate_to_base_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN fx_as_of TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN fx_source TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN average_cost_native_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN mark_native_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN market_value_native_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN market_value_base_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN unrealized_pnl_base_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN realized_pnl_base_decimal TEXT;
+ALTER TABLE position_snapshot_rows ADD COLUMN daily_pnl_base_decimal TEXT;

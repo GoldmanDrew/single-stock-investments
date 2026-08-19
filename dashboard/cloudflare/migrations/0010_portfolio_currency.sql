@@ -1,0 +1,13 @@
+ALTER TABLE portfolio_positions ADD COLUMN quantity_unit TEXT NOT NULL DEFAULT 'shares';
+ALTER TABLE portfolio_positions ADD COLUMN base_currency TEXT NOT NULL DEFAULT 'USD';
+ALTER TABLE portfolio_positions ADD COLUMN native_currency TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN fx_rate_to_base_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN fx_as_of TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN fx_source TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN average_cost_native_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN mark_native_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN market_value_native_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN market_value_base_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN unrealized_pnl_base_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN realized_pnl_base_decimal TEXT;
+ALTER TABLE portfolio_positions ADD COLUMN daily_pnl_base_decimal TEXT;

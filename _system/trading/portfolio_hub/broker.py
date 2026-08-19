@@ -5,6 +5,7 @@ import asyncio
 import math
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Protocol
 
 
@@ -95,33 +96,48 @@ class IBAsyncCollector:
                     {"tag": row.tag, "value": row.value, "currency": row.currency or "", "segment": None, "model_code": None, "source": "ibkr_account_summary", "as_of": now}
                     for row in tags
                 ] + pnl_values,
-                "positions": [self._portfolio_position(row, model_by_conid.get(row.contract.conId, ""), now) for row in portfolio_rows]
-                if portfolio_rows else [self._position(row, now) for row in positions if row.account == self.profile.account_id],
+                "positions": [self._portfolio_position(row, model_by_conid.get(row.contract.conId, ""), now, base_currency) for row in portfolio_rows]
+                if portfolio_rows else [self._position(row, now, base_currency) for row in positions if row.account == self.profile.account_id],
                 "open_orders": [self._open_order(trade, now) for trade in trades if getattr(trade.order, "account", "") == self.profile.account_id],
             }
         finally:
             ib.disconnect()
 
-    def _position(self, row: Any, as_of: str) -> dict[str, Any]:
+    def _position(self, row: Any, as_of: str, base_currency: str | None = None) -> dict[str, Any]:
         c = row.contract
         if not getattr(c, "conId", 0):
             raise RuntimeError("IBKR returned an unqualified position")
+        quantity_unit = "contracts" if str(c.secType).upper() in {"OPT", "FOP"} else "shares"
         return {
             "account_alias": self.profile.account_alias, "conid": c.conId, "model_code": getattr(row, "modelCode", None) or getattr(row, "model", "") or "",
             "symbol": c.symbol, "local_symbol": c.localSymbol or None, "description": None,
-            "sec_type": c.secType, "currency": c.currency, "exchange": c.exchange or c.primaryExchange or None,
+            "sec_type": c.secType, "currency": c.currency, "native_currency": c.currency,
+            "base_currency": base_currency or c.currency, "quantity_unit": quantity_unit,
+            "exchange": c.exchange or c.primaryExchange or None,
             "expiry": getattr(c, "lastTradeDateOrContractMonth", None) or None,
             "strike": str(c.strike) if getattr(c, "strike", 0) else None, "right": getattr(c, "right", None) or None,
             "multiplier": getattr(c, "multiplier", None) or None, "quantity": str(row.position),
-            "average_cost": str(row.avgCost), "mark": None, "market_value": None, "unrealized_pnl": None,
+            "average_cost": str(row.avgCost), "average_cost_native": str(row.avgCost),
+            "mark": None, "mark_native": None, "market_value": None, "market_value_native": None,
+            "market_value_base": None, "fx_rate_to_base": None, "fx_as_of": None, "fx_source": None,
+            "unrealized_pnl": None, "unrealized_pnl_base": None,
             "realized_pnl": None, "daily_pnl": None, "source": "ibkr_live", "as_of": as_of, "quality": "unknown",
         }
 
-    def _portfolio_position(self, row: Any, model_code: str, as_of: str) -> dict[str, Any]:
-        result = self._position(type("PositionRow", (), {"contract": row.contract, "account": row.account, "modelCode": model_code, "position": row.position, "avgCost": row.averageCost})(), as_of)
+    def _portfolio_position(self, row: Any, model_code: str, as_of: str, base_currency: str) -> dict[str, Any]:
+        result = self._position(type("PositionRow", (), {"contract": row.contract, "account": row.account, "modelCode": model_code, "position": row.position, "avgCost": row.averageCost})(), as_of, base_currency)
+        multiplier = Decimal(str(getattr(row.contract, "multiplier", None) or 1))
+        native_value = Decimal(str(row.position)) * Decimal(str(row.marketPrice)) * multiplier
+        base_value = Decimal(str(row.marketValue))
+        fx_rate = base_value / native_value if native_value else None
         result.update({
-            "mark": str(row.marketPrice), "market_value": str(row.marketValue),
-            "unrealized_pnl": str(row.unrealizedPNL), "realized_pnl": str(row.realizedPNL),
+            "base_currency": base_currency,
+            "mark": str(row.marketPrice), "mark_native": str(row.marketPrice),
+            "market_value": str(row.marketValue), "market_value_native": str(native_value),
+            "market_value_base": str(row.marketValue), "fx_rate_to_base": str(fx_rate) if fx_rate is not None else None,
+            "fx_as_of": as_of, "fx_source": "ibkr_portfolio_translation" if fx_rate is not None else None,
+            "unrealized_pnl": str(row.unrealizedPNL), "unrealized_pnl_base": str(row.unrealizedPNL),
+            "realized_pnl": str(row.realizedPNL), "realized_pnl_base": str(row.realizedPNL),
             "quality": "live",
         })
         return result
