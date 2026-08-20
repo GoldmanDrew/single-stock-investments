@@ -35,6 +35,16 @@ is_prefer_upstream_on_rebase() {
   case "$1" in
     */research/*|*/third-party-analyses/*) return 0 ;;
     _system/memory/daily/*|_system/research/milly_log.md) return 0 ;;
+    # Triage queues are rebuilt by whichever lane runs next, and two lanes on the
+    # same day both create _system/reviews/pending/<name>_<date>.md, which lands
+    # as an add/add conflict. They were classified as neither regenerable nor
+    # prefer-upstream, so a single triage collision aborted the entire push --
+    # podcast run 32332841926 lost its catalog commit that way after a
+    # successful 72-minute refresh. This matches the intent already stated
+    # below, where regenerate_conflicted_artifacts() restores this directory to
+    # keep it out of intake commits; that cleanup just never ran, because these
+    # files were what made the conflict unresolvable in the first place.
+    _system/reviews/pending/*) return 0 ;;
     _system/data/transcript_sync_summary.json) return 0 ;;
     _system/lenses/universe_percentiles.json) return 0 ;;
     _system/reference/investment-wisdom/*/extract_refresh_status.json) return 0 ;;
