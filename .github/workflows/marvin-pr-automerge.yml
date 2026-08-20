@@ -34,6 +34,7 @@ jobs:
     outputs:
       number: ${{ steps.pr.outputs.number }}
       eligible: ${{ steps.pr.outputs.eligible }}
+      lane: ${{ steps.pr.outputs.lane }}
       head_ref: ${{ steps.pr.outputs.head_ref }}
       head_sha: ${{ steps.pr.outputs.head_sha }}
       is_draft: ${{ steps.pr.outputs.is_draft }}
@@ -77,15 +78,24 @@ jobs:
             echo "is_draft=$IS_DRAFT" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ ! "$HEAD_REF" =~ ^cursor/ ]]; then
-            echo "PR #$PR head ref '$HEAD_REF' is not a cursor/* branch — skipping automerge."
+          # Two automerge lanes. cursor/* carries research/committee artifacts
+          # and goes through the provenance gate; codex/* and claude/* are
+          # code-agent PRs and gate purely on every CI check being green.
+          if [[ "$HEAD_REF" =~ ^cursor/ ]]; then
+            LANE="research"
+          elif [[ "$HEAD_REF" =~ ^(codex|claude)/ ]]; then
+            LANE="code"
+          else
+            echo "PR #$PR head ref '$HEAD_REF' is not an agent branch (cursor/, codex/, claude/) — skipping automerge."
             echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "lane=none" >> "$GITHUB_OUTPUT"
             echo "number=$PR" >> "$GITHUB_OUTPUT"
             echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
             echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
             echo "is_draft=$IS_DRAFT" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "lane=$LANE" >> "$GITHUB_OUTPUT"
           echo "eligible=true" >> "$GITHUB_OUTPUT"
           echo "number=$PR" >> "$GITHUB_OUTPUT"
           echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
@@ -94,7 +104,7 @@ jobs:
 
   gate:
     needs: resolve-pr
-    if: needs.resolve-pr.outputs.eligible == 'true'
+    if: needs.resolve-pr.outputs.eligible == 'true' && needs.resolve-pr.outputs.lane == 'research'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     concurrency:
@@ -182,8 +192,72 @@ jobs:
             --timeout-seconds 2700 \
             --poll-seconds 15
 
+  code-gate:
+    # codex/* and claude/* PRs carry code, not research artifacts, so their
+    # bar is simpler and stricter in a different direction: EVERY check on the
+    # head SHA must complete green. Nothing here bypasses a red check — a
+    # failing CI keeps the PR open and the notify job says so on the PR.
+    needs: resolve-pr
+    if: needs.resolve-pr.outputs.eligible == 'true' && needs.resolve-pr.outputs.lane == 'code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    concurrency:
+      group: agent-automerge-gate-${{ needs.resolve-pr.outputs.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Mark draft PR ready
+        if: needs.resolve-pr.outputs.is_draft == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr ready "${{ needs.resolve-pr.outputs.number }}"             --repo "${{ github.repository }}" || true
+
+      - name: Wait for every check on the head SHA to pass
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.resolve-pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          # Jobs belonging to this workflow must not gate themselves.
+          OWN='^(resolve-pr|gate|code-gate|merge|notify|Resolve PR number and eligibility)$'
+          DEADLINE=$(( $(date +%s) + 2700 ))
+          while :; do
+            SHA=$(gh pr view "$PR" --repo "$REPO" --json headRefOid -q .headRefOid)
+            RUNS=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs" --jq '.check_runs[] | [.name, .status, (.conclusion // "pending")] | @tsv')
+            TOTAL=0; PENDING=0; FAILED=""
+            while IFS=$'	' read -r NAME STATUS CONCLUSION; do
+              [ -z "$NAME" ] && continue
+              if echo "$NAME" | grep -qE "$OWN"; then continue; fi
+              TOTAL=$((TOTAL+1))
+              if [ "$STATUS" != "completed" ]; then PENDING=$((PENDING+1)); continue; fi
+              case "$CONCLUSION" in
+                success|neutral|skipped) ;;
+                *) FAILED="$FAILED $NAME($CONCLUSION)" ;;
+              esac
+            done <<< "$RUNS"
+            if [ -n "$FAILED" ]; then
+              echo "::error::PR #$PR blocked: failing checks:$FAILED"
+              exit 1
+            fi
+            if [ "$TOTAL" -gt 0 ] && [ "$PENDING" -eq 0 ]; then
+              echo "All $TOTAL checks green for $SHA."
+              exit 0
+            fi
+            if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+              echo "::error::PR #$PR blocked: checks still pending after 45m (total=$TOTAL pending=$PENDING)."
+              exit 1
+            fi
+            echo "checks total=$TOTAL pending=$PENDING — waiting..."
+            sleep 20
+          done
+
   merge:
-    needs: gate
+    needs: [resolve-pr, gate, code-gate]
+    # Exactly one lane gate runs per PR; merge when that one succeeded.
+    if: >-
+      !cancelled() &&
+      (needs.gate.result == 'success' || needs.code-gate.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Serialize squash merges across all agent PRs to avoid main-tip races.
@@ -204,7 +278,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR="${{ needs.gate.outputs.number }}"
+          PR="${{ needs.resolve-pr.outputs.number }}"
           STATE=$(gh pr view "$PR" --repo "${{ github.repository }}" --json state --jq '.state')
           if [ "$STATE" != "OPEN" ]; then
             echo "PR #$PR already $STATE; nothing to merge."
@@ -218,10 +292,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR="${{ needs.gate.outputs.number }}"
+          PR="${{ needs.resolve-pr.outputs.number }}"
           MERGEABLE=$(gh pr view "$PR" --repo "${{ github.repository }}" --json mergeable -q .mergeable)
           if [ "$MERGEABLE" = "CONFLICTING" ]; then
-            python _system/scripts/resolve_marvin_pr_conflicts.py "$PR"
+            if [ "${{ needs.resolve-pr.outputs.lane }}" = "research" ]; then
+              python _system/scripts/resolve_marvin_pr_conflicts.py "$PR"
+            else
+              echo "::error::Code-lane PR #$PR conflicts with main; automerge never auto-resolves code conflicts. Rebase the branch."
+              exit 1
+            fi
           fi
 
       - name: Ensure mergeable before squash
@@ -229,7 +308,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR="${{ needs.gate.outputs.number }}"
+          PR="${{ needs.resolve-pr.outputs.number }}"
           REPO="${{ github.repository }}"
           for attempt in 1 2 3 4 5; do
             MERGEABLE=$(gh pr view "$PR" --repo "$REPO" --json mergeable -q .mergeable)
@@ -237,6 +316,10 @@ jobs:
               exit 0
             fi
             if [ "$MERGEABLE" = "CONFLICTING" ]; then
+              if [ "${{ needs.resolve-pr.outputs.lane }}" != "research" ]; then
+                echo "::error::Code-lane PR #$PR conflicts with main; rebase required."
+                exit 1
+              fi
               python _system/scripts/resolve_marvin_pr_conflicts.py "$PR"
               sleep 10
             else
@@ -254,9 +337,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR="${{ needs.gate.outputs.number }}"
+          PR="${{ needs.resolve-pr.outputs.number }}"
           REPO="${{ github.repository }}"
-          HEAD_REF="${{ needs.gate.outputs.head_ref }}"
+          HEAD_REF="${{ needs.resolve-pr.outputs.head_ref }}"
 
           gh api --method PUT "repos/${REPO}/pulls/${PR}/merge" \
             -f merge_method=squash
@@ -267,7 +350,7 @@ jobs:
       - name: Summary
         if: steps.state.outputs.merge == 'true'
         run: |
-          echo "Merged PR #${{ needs.gate.outputs.number }} (${{ needs.gate.outputs.head_ref }}) into main."
+          echo "Merged PR #${{ needs.resolve-pr.outputs.number }} (${{ needs.resolve-pr.outputs.head_ref }}) into main."
 
       - name: Advance any committee task merged by this PR
         if: steps.state.outputs.merge == 'true'
@@ -276,3 +359,50 @@ jobs:
         run: |
           gh api --method POST "repos/${{ github.repository }}/dispatches" \
             -f event_type=advance-investment-committee
+
+  notify:
+    # A blocked automerge used to be silent — six green-looking PRs sat open
+    # for days because their Research quality CI was red and nothing said so.
+    # Post (or update) one marker comment on the PR whenever a lane gate or
+    # the merge fails, so the blocking reason is visible on the PR itself.
+    needs: [resolve-pr, gate, code-gate, merge]
+    if: >-
+      !cancelled() &&
+      needs.resolve-pr.outputs.eligible == 'true' &&
+      (needs.gate.result == 'failure' || needs.code-gate.result == 'failure' || needs.merge.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Comment the blocking reason on the PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.resolve-pr.outputs.number }}
+          LANE: ${{ needs.resolve-pr.outputs.lane }}
+          MERGE: ${{ needs.merge.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          MARKER="<!-- automerge-blocked -->"
+          if [ "$MERGE" = "failure" ]; then
+            REASON="the merge step failed (conflict with main, or the squash was rejected)"
+          elif [ "$LANE" = "research" ]; then
+            REASON="the research gate failed: provenance validation or the Research quality workflow is red"
+          else
+            REASON="one or more CI checks on the head commit failed or never completed"
+          fi
+          {
+            echo "$MARKER"
+            echo "**Automerge is blocked**: ${REASON}."
+            echo ""
+            echo "Nothing merges while this stands. Fix the cause and push; automerge re-runs on every sync. [Gate run](${RUN_URL})."
+          } > body.md
+          EXISTING=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"$MARKER\"))][0].id // empty")
+          if [ -n "$EXISTING" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$EXISTING" -F body=@body.md > /dev/null
+          else
+            gh api --method POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+          fi
+          echo "Blocked comment posted on PR #$PR."
+
