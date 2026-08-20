@@ -6,8 +6,8 @@ VIC does **not** go in the vault. Vault is letters, books, and manager meetings.
 
 ## Drop
 
-1. Resolve the **repo ticker** folder (`TPL`, `FRMO`, `0388.HK`). If two tickers fit, stop.
-2. **PDF:** upload and leave it on Drive.
+1. Resolve the **existing repo ticker** folder (`TPL`, `FRMO`, `0388.HK`). If two tickers fit, or `drive_intake_drop.py` returns `unknown_ticker`, skip that PDF and list it. Propose a canonical SSI name if you can (`086790.KS`, not `086790`) but do **not** create the folder.
+2. **PDF:** upload and leave it on Drive. Only for tickers that already exist.
 
 ```bash
 python _system/scripts/drive_intake_drop.py --kind VIC --ticker TICKER path/to/writeup.pdf
@@ -25,6 +25,7 @@ Local: `_secrets/google-service-account.json` is enough.
 
 ## Never
 
+- Create ticker folders, README stubs, or a “minimal onboard” so drop.py will accept a name
 - research-vault, `Letters/`, `Admin/Intake/Research` (unless it is not VIC)
 - VIC login cookies or passwords in secrets, chat, or git
 - New Drive roots
