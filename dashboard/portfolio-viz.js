@@ -40,14 +40,97 @@
   const valueMap = (book) => Object.fromEntries((book?.account_values || []).map((row) => [row.tag, row.value_decimal]));
   const positionKey = (row) => `${row.account_alias || ''}:${row.conid}:${row.model_code || ''}`;
   const columnVisible = (key) => state.visibleColumns.includes(key);
-  const scopedValue = (row, field) => {
-    const baseField = ({ market_value_decimal: 'market_value_base_decimal', daily_pnl_decimal: 'daily_pnl_base_decimal', unrealized_pnl_decimal: 'unrealized_pnl_base_decimal', realized_pnl_decimal: 'realized_pnl_base_decimal' })[field];
-    const value = num(row?.[baseField] ?? row?.[field]);
+  const BASE_FIELD = {
+    market_value_decimal: 'market_value_base_decimal',
+    daily_pnl_decimal: 'daily_pnl_base_decimal',
+    unrealized_pnl_decimal: 'unrealized_pnl_base_decimal',
+    realized_pnl_decimal: 'realized_pnl_base_decimal',
+  };
+  const NATIVE_FIELD = {
+    market_value_decimal: 'market_value_native_decimal',
+    average_cost_decimal: 'average_cost_native_decimal',
+    mark_decimal: 'mark_native_decimal',
+  };
+  const baseCurrencyOf = (row) => row?.base_currency || state.book?.snapshot?.base_currency || 'USD';
+  const nativeCurrencyOf = (row) => row?.native_currency || row?.currency || baseCurrencyOf(row);
+  const isNativeBase = (row) => nativeCurrencyOf(row) === baseCurrencyOf(row);
+
+  /**
+   * True when this row's base-currency figures are trustworthy.
+   *
+   * A same-currency row needs no translation. A foreign row needs an explicit
+   * base figure AND a real FX rate behind it. Without both, the only number the
+   * payload carries is the native one -- and 3,000 shares at JPY 1,688 is
+   * 5,064,000 yen, which is about USD 34k, not USD 5,064,000. Presenting that
+   * native figure as base is what made a small Tokyo position sort as the
+   * largest holding in the book.
+   */
+  const hasBaseValue = (row) => isNativeBase(row)
+    || (row?.market_value_base_decimal != null && row?.fx_source && row.fx_source !== 'fx_unavailable');
+
+  const scopeToOwner = (row, value) => {
     if (value == null || state.scope === 'all') return value;
     const brokerQty = num(row.quantity_decimal);
     const allocatedQty = (row.allocations || []).reduce((sum, allocation) => sum + (num(allocation.quantity_decimal) || 0), 0);
     return brokerQty ? value * allocatedQty / brokerQty : null;
   };
+
+  /** A figure in account base currency, or null when it cannot be stated in base. */
+  const scopedValue = (row, field) => {
+    const baseField = BASE_FIELD[field];
+    // Never fall back across currencies: a missing base figure on a foreign row
+    // means "unknown in base", not "same as native".
+    const raw = isNativeBase(row) ? (row?.[baseField] ?? row?.[field]) : (hasBaseValue(row) ? row?.[baseField] : null);
+    return scopeToOwner(row, num(raw));
+  };
+
+  /** The same figure in the currency it was quoted in, which always exists. */
+  const scopedNative = (row, field) => scopeToOwner(row, num(row?.[NATIVE_FIELD[field]] ?? row?.[field]));
+
+  /**
+   * P&L as a percentage of cost. Numerator and denominator are taken from the
+   * same currency, so the ratio is unit-free and correct even when the row has
+   * no usable FX rate.
+   */
+  const pnlPercent = (row, field) => {
+    const useBase = hasBaseValue(row) && num(row[BASE_FIELD[field]]) != null;
+    const pnl = num(useBase ? row[BASE_FIELD[field]] : row[field]);
+    const value = num(useBase ? (row.market_value_base_decimal ?? row.market_value_decimal) : (row.market_value_native_decimal ?? row.market_value_decimal));
+    if (pnl == null || value == null) return null;
+    const cost = value - pnl;
+    return cost ? pnl / Math.abs(cost) : null;
+  };
+
+  /**
+   * Market value in account base, with the native quote underneath.
+   *
+   * When the row cannot be stated in base the base slot says so rather than
+   * showing the native number with a base currency symbol.
+   */
+  function marketValueCell(row) {
+    const base = scopedValue(row, 'market_value_decimal');
+    const nativeCurrency = nativeCurrencyOf(row);
+    const nativeText = isNativeBase(row) ? '' : `<br><span class="ph-dim">${money(scopedNative(row, 'market_value_decimal'), false, nativeCurrency)}</span>`;
+    if (base == null) {
+      return `<span class="ph-unconverted" title="No usable ${nativeCurrency}/${baseCurrencyOf(row)} rate in this snapshot, so this position has no base-currency value.">not converted</span>${nativeText}`;
+    }
+    return `${money(base, false, baseCurrencyOf(row))}${nativeText}`;
+  }
+
+  /** Signed P&L in base, with the percentage of cost it represents. */
+  function pnlCell(row, field, precomputed) {
+    const value = precomputed === undefined ? scopedValue(row, field) : precomputed;
+    const percent = pnlPercent(row, field);
+    const percentText = percent == null ? '' : `<span class="ph-pnl-pct">${percent > 0 ? '+' : ''}${(percent * 100).toFixed(1)}%</span>`;
+    if (value == null) {
+      // The percentage is a ratio within one currency, so it survives a missing
+      // FX rate even when the base amount does not.
+      const native = scopedNative(row, field === 'daily_pnl_decimal' ? 'market_value_decimal' : field);
+      const nativeAmount = num(row[field]);
+      return `${nativeAmount == null ? '—' : signed(nativeAmount, nativeCurrencyOf(row))}${percentText}`;
+    }
+    return `${signed(value, baseCurrencyOf(row))}${percentText}`;
+  }
 
   function loadColumns() {
     try {
@@ -166,9 +249,23 @@
       if (state.positionFilter === 'unallocated' && (row.allocations || []).length) return false;
       return !query || `${row.symbol} ${row.local_symbol} ${row.description} ${row.sec_type} ${row.currency} ${row.conid}`.toLowerCase().includes(query);
     };
-    const sortable = (row) => state.sortKey === 'symbol' ? String(row.local_symbol || row.symbol || '') : (scopedValue(row, state.sortKey) ?? num(row[state.sortKey]) ?? 0);
+    // Sorting is a cross-currency comparison, so it must use base values only.
+    // Falling back to the raw field would rank a foreign row by its native
+    // magnitude -- JPY 5,064,000 outranking every USD position in the book.
+    // Rows with no usable rate sort to the end in either direction instead of
+    // being silently mixed in at a fabricated size.
+    const sortable = (row) => {
+      if (state.sortKey === 'symbol') return String(row.local_symbol || row.symbol || '');
+      if (BASE_FIELD[state.sortKey]) return scopedValue(row, state.sortKey);
+      return num(row[state.sortKey]);
+    };
     const rows = (book.positions || []).filter(filterRow).sort((left, right) => {
-      const a = sortable(left); const b = sortable(right); const result = typeof a === 'string' ? a.localeCompare(b) : a - b;
+      const a = sortable(left);
+      const b = sortable(right);
+      // Unconvertible rows park at the end in both directions; they have no
+      // comparable size, so any position among the sorted values would be a lie.
+      if (a == null || b == null) return a == null && b == null ? 0 : a == null ? 1 : -1;
+      const result = typeof a === 'string' ? a.localeCompare(b) : a - b;
       return state.sortDirection === 'asc' ? result : -result;
     });
     const filterLabels = { all: 'All', equity: 'Stocks & ETFs', option: 'Options', long: 'Long', short: 'Short', unallocated: 'Unallocated' };
@@ -185,9 +282,9 @@
         quantity_decimal: `<td>${quantity(state.scope === 'all' ? row.quantity_decimal : row.allocations?.reduce((s, a) => s + (num(a.quantity_decimal) || 0), 0))}</td>`,
         average_cost_decimal: `<td>${money(row.average_cost_native_decimal ?? row.average_cost_decimal, false, row.native_currency || row.currency)}</td>`,
         mark_decimal: `<td>${money(row.mark_native_decimal ?? row.mark_decimal, false, row.native_currency || row.currency)}</td>`,
-        market_value_decimal: `<td>${money(scopedValue(row, 'market_value_decimal'), false, row.base_currency || book.snapshot?.base_currency || 'USD')}${row.native_currency && row.native_currency !== (row.base_currency || book.snapshot?.base_currency) && row.market_value_native_decimal != null ? `<br><span class="ph-dim">${money(row.market_value_native_decimal, false, row.native_currency)}</span>` : ''}</td>`,
-        daily_pnl_decimal: `<td class="${scopeDaily < 0 ? 'ph-negative' : 'ph-positive'}">${signed(scopeDaily)}</td>`,
-        unrealized_pnl_decimal: `<td>${signed(scopedValue(row, 'unrealized_pnl_decimal'))}</td>`,
+        market_value_decimal: `<td>${marketValueCell(row)}</td>`,
+        daily_pnl_decimal: `<td class="${scopeDaily == null ? '' : scopeDaily < 0 ? 'ph-negative' : 'ph-positive'}">${pnlCell(row, 'daily_pnl_decimal', scopeDaily)}</td>`,
+        unrealized_pnl_decimal: `<td class="${(scopedValue(row, 'unrealized_pnl_decimal') ?? 0) < 0 ? 'ph-negative' : 'ph-positive'}">${pnlCell(row, 'unrealized_pnl_decimal')}</td>`,
         currency: `<td>${esc(row.currency)}</td>`,
         quality: `<td><span class="ph-pill ${row.quality === 'live' ? 'live' : ''}">${esc(row.quality)}</span></td>`,
       };

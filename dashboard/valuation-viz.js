@@ -39,14 +39,14 @@
     return `<div class="valuation-status-cell"><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>${sub ? `<div class="tier-sub">${escapeHtml(sub)}</div>` : ''}</div>`;
   }
 
-  function renderValueRangeCell(t, fmtNum) {
+  function renderValueRangeCell(t, fmtNum, units) {
     const d = decisionOf(t);
     const r = d.value_per_share || t.component_valuation?.total_equity_value_per_share;
     if (!r || r.low == null || r.base == null || r.high == null) {
       return '<span class="mono" style="color:var(--text-muted)">incomplete</span>';
     }
     const prov = d.provisional || d.status === 'evidence_blocked' || d.status === 'provisional';
-    return `<span class="mono">$${fmtNum(r.low, 0)}–$${fmtNum(r.high, 0)}<span class="irr-sub">base $${fmtNum(r.base, 0)}${prov ? ' · provisional' : ''}</span></span>`;
+    return `<span class="mono">${fmtQuote(r.low, 0)}–${fmtQuote(r.high, 0)}<span class="irr-sub">base ${fmtQuote(r.base, 0)}${prov ? ' · provisional' : ''}</span></span>`;
   }
 
   function renderPriceToBaseCell(t, fmtPct) {
@@ -181,6 +181,8 @@
 
   function renderDecisionStrip(t, helpers) {
     const { escapeHtml, fmtNum, fmtPct, stanceBadgeClass, personaMeta } = helpers;
+    const units = helpers.quoteUnitsOf ? helpers.quoteUnitsOf(t) : null;
+    const fmtQuote = (v, d) => helpers.fmtQuote(v, units, d);
     const d = decisionOf(t);
     const wb = t.valuation_workbench || {};
     const decision = wb.decision || d;
@@ -228,7 +230,7 @@
       const pricePct = price != null
         ? Math.max(0, Math.min(100, ((Number(price) - Number(rangeLow)) / span) * 100))
         : null;
-      trackHtml = `<div class="decision-range-track" title="Low $${fmtNum(rangeLow)} · base $${fmtNum(rangeBase)} · high $${fmtNum(rangeHigh)}">
+      trackHtml = `<div class="decision-range-track" title="Low ${fmtQuote(rangeLow)} · base ${fmtQuote(rangeBase)} · high ${fmtQuote(rangeHigh)}">
         <div class="decision-range-fill"></div>
         <div class="decision-range-mark base" style="left:${basePct}%"></div>
         ${pricePct != null ? `<div class="decision-range-mark price" style="left:${pricePct}%"></div>` : ''}
@@ -248,9 +250,9 @@
         <div class="metric"><div class="k">As of</div><div class="v mono">${escapeHtml(asOf)}</div></div>
       </div>
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
-        <div class="metric"><div class="k">Price / base</div><div class="v mono">$${fmtNum(price)} / $${fmtNum(rangeBase)}</div></div>
+        <div class="metric"><div class="k">Price / base</div><div class="v mono">${fmtQuote(price)} / ${fmtQuote(rangeBase)}</div></div>
         <div class="metric"><div class="k">vs price</div><div class="v mono ${upsideCls}">${upside == null ? '—' : `${Number(upside) > 0 ? '+' : ''}${fmtPct(upside)}`}</div></div>
-        <div class="metric"><div class="k">Low / high</div><div class="v mono">$${fmtNum(rangeLow)} / $${fmtNum(rangeHigh)}</div></div>
+        <div class="metric"><div class="k">Low / high</div><div class="v mono">${fmtQuote(rangeLow)} / ${fmtQuote(rangeHigh)}</div></div>
       </div>
       ${trackHtml}
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
@@ -265,6 +267,10 @@
 
   function renderValuationWorkbench(t, helpers) {
     const { escapeHtml, fmtNum, fmtPct, fmtSignedDollar, linkHtml } = helpers;
+    // Per-share figures below are quoted in this listing's currency, not USD.
+    const units = helpers.quoteUnitsOf ? helpers.quoteUnitsOf(t) : null;
+    const fmtQuote = (v, d) => helpers.fmtQuote(v, units, d);
+    const fmtSignedQuote = (v) => helpers.fmtSignedQuote(v, units);
     const wb = t.valuation_workbench;
     if (!wb) return '';
     const decision = wb.decision || {};
@@ -282,7 +288,7 @@
     const proofSummary = valuation.calculation_proof_summary || {};
     const valueText = (row) => row.range_per_share?.base == null
       ? 'unpriced'
-      : `$${fmtNum(row.range_per_share.low)} / $${fmtNum(row.range_per_share.base)} / $${fmtNum(row.range_per_share.high)}`;
+      : `${fmtQuote(row.range_per_share.low)} / ${fmtQuote(row.range_per_share.base)} / ${fmtQuote(row.range_per_share.high)}`;
     const sourceLink = (source) => {
       const ref = source?.ref || '';
       if (!ref) return '';
@@ -296,7 +302,7 @@
       const scenarios = ['low', 'base', 'high'].map((scenario) => {
         const steps = traces[scenario] || [];
         if (!steps.length) return '';
-        return `<details style="margin-top:6px" ${scenario === 'base' ? 'open' : ''}><summary class="tier-sub">${escapeHtml(scenario)} case · $${fmtNum(proof.outputs?.[scenario])}</summary>
+        return `<details style="margin-top:6px" ${scenario === 'base' ? 'open' : ''}><summary class="tier-sub">${escapeHtml(scenario)} case · ${fmtQuote(proof.outputs?.[scenario])}</summary>
           <table class="workbench-table"><thead><tr><th>Step</th><th>Value</th><th>Derivation</th></tr></thead><tbody>${steps.map((step) => `<tr>
             <td><strong>${escapeHtml(step.label || step.id)}</strong><div class="tier-sub">${escapeHtml(step.kind || '')} · ${escapeHtml(step.unit || '')}</div></td>
             <td class="mono">${fmtNum(step.value)}</td>
@@ -307,7 +313,7 @@
       return `<div class="workbench-item" style="margin-top:9px">
         <div class="workbench-item-head"><div class="workbench-item-title">${escapeHtml(row.label || row.component_id)}</div>${workbenchStatusBadge(row.valuation_status || 'unpriced', escapeHtml)}</div>
         <p><strong>Production value:</strong> <span class="mono">${valueText(row)}</span></p>
-        ${legacy ? `<p class="tier-sub"><strong>Legacy sensitivity, excluded:</strong> <span class="mono">$${fmtNum(legacy.low)} / $${fmtNum(legacy.base)} / $${fmtNum(legacy.high)}</span></p>` : ''}
+        ${legacy ? `<p class="tier-sub"><strong>Legacy sensitivity, excluded:</strong> <span class="mono">${fmtQuote(legacy.low)} / ${fmtQuote(legacy.base)} / ${fmtQuote(legacy.high)}</span></p>` : ''}
         ${proof ? `<div class="tier-sub">Method ${escapeHtml(proof.method_id || row.method || '')}@${escapeHtml(proof.method_version || '—')} · proof ${escapeHtml(String(proof.proof_hash || '').slice(0, 12))}</div>${scenarios}` : '<p class="tier-sub">No valid calculation graph. This component remains outside the security value until its material inputs are evidenced.</p>'}
       </div>`;
     }).join('');
@@ -318,22 +324,22 @@
         ${row.falsifier ? `<div class="tier-sub">Falsifier: ${escapeHtml(row.falsifier)}</div>` : ''}
       </td>
       <td>${escapeHtml(row.ownership_claim || '')}${row.evidence ? `<div class="tier-sub">${escapeHtml(String(row.evidence).slice(0, 220))}</div>` : ''}</td>
-      <td class="mono">${valueText(row)}${row.legacy_range_per_share ? `<div class="tier-sub">legacy $${fmtNum(row.legacy_range_per_share.low)} / $${fmtNum(row.legacy_range_per_share.base)} / $${fmtNum(row.legacy_range_per_share.high)}</div>` : ''}</td>
+      <td class="mono">${valueText(row)}${row.legacy_range_per_share ? `<div class="tier-sub">legacy ${fmtQuote(row.legacy_range_per_share.low)} / ${fmtQuote(row.legacy_range_per_share.base)} / ${fmtQuote(row.legacy_range_per_share.high)}</div>` : ''}</td>
       <td>${workbenchStatusBadge(row.valuation_status || 'unpriced', escapeHtml)}<div class="tier-sub">${escapeHtml(row.assumption_type || row.evidence_level || '')}</div></td>
     </tr>`).join('');
 
     const scheduleRows = (valuation.components || business.components || []).map((row) => `<tr>
       <td><strong>${escapeHtml(row.label || row.component_id)}</strong><div class="tier-sub">${escapeHtml(row.method || '')}</div></td>
-      <td class="mono">${row.range_per_share?.low == null ? '—' : '$' + fmtNum(row.range_per_share.low)}</td>
-      <td class="mono">${row.range_per_share?.base == null ? '—' : '$' + fmtNum(row.range_per_share.base)}</td>
-      <td class="mono">${row.range_per_share?.high == null ? '—' : '$' + fmtNum(row.range_per_share.high)}</td>
+      <td class="mono">${row.range_per_share?.low == null ? '—' : fmtQuote(row.range_per_share.low)}</td>
+      <td class="mono">${row.range_per_share?.base == null ? '—' : fmtQuote(row.range_per_share.base)}</td>
+      <td class="mono">${row.range_per_share?.high == null ? '—' : fmtQuote(row.range_per_share.high)}</td>
       <td>${workbenchStatusBadge(row.valuation_status || 'unpriced', escapeHtml)}</td>
     </tr>`).join('');
 
     const valueDrivers = (valuation.scenario_contract?.top_value_drivers || []).map((row) => `<tr>
       <td><strong>${escapeHtml(row.label || row.component_id)}</strong>${row.scenario_assumptions ? `<div class="tier-sub">${escapeHtml(typeof row.scenario_assumptions === 'string' ? row.scenario_assumptions : JSON.stringify(row.scenario_assumptions).slice(0, 180))}</div>` : ''}</td>
-      <td class="mono">$${fmtNum(row.base_per_share)}</td>
-      <td class="mono">$${fmtNum(row.range_width_per_share)}</td>
+      <td class="mono">${fmtQuote(row.base_per_share)}</td>
+      <td class="mono">${fmtQuote(row.range_width_per_share)}</td>
     </tr>`).join('');
 
     const reverse = valuation.scenario_contract?.reverse_expectations;
@@ -344,7 +350,7 @@
     const optionRows = (optionality.options || []).map((row) => `<tr>
       <td><strong>${escapeHtml(row.label || row.component_id)}</strong></td>
       <td>${escapeHtml(row.method || '')}</td>
-      <td class="mono">$${fmtNum(row.range_per_share?.low)} / $${fmtNum(row.range_per_share?.base)} / $${fmtNum(row.range_per_share?.high)}</td>
+      <td class="mono">${fmtQuote(row.range_per_share?.low)} / ${fmtQuote(row.range_per_share?.base)} / ${fmtQuote(row.range_per_share?.high)}</td>
       <td>${escapeHtml(row.falsifier || '')}${row.probability_and_timing ? `<div class="tier-sub">${escapeHtml(JSON.stringify(row.probability_and_timing).slice(0, 160))}</div>` : ''}</td>
     </tr>`).join('');
 
@@ -359,7 +365,7 @@
         <p><strong>Close when:</strong> ${escapeHtml(gap.acceptance_test || 'Evidence is reconciled to the valuation.')}</p>
         ${gap.valuation_effect ? `<p><strong>Effect:</strong> ${escapeHtml(gap.valuation_effect)}</p>` : ''}
         <div class="workbench-item-meta">
-          Value exposed: ${gap.base_value_exposure_per_share == null ? 'not isolated' : '$' + fmtNum(gap.base_value_exposure_per_share) + ' / share'}
+          Value exposed: ${gap.base_value_exposure_per_share == null ? 'not isolated' : fmtQuote(gap.base_value_exposure_per_share) + ' / share'}
           ${(gap.component_ids || []).length ? ` · ${(gap.component_ids || []).map(escapeHtml).join(' · ')}` : ''}
           ${gap.evidence_path ? ` · ${helpers.linkHtml
             ? helpers.linkHtml(
@@ -373,11 +379,11 @@
     const decisionPage = `
       <div class="metric-grid metric-grid-3">
         <div class="metric"><div class="k">Decision readiness</div><div class="v">${workbenchStatusBadge(decision.status, escapeHtml)}</div></div>
-        <div class="metric"><div class="k">Price / base value</div><div class="v mono">$${fmtNum(decision.price_per_share)} / $${fmtNum(decision.value_per_share?.base)}</div></div>
+        <div class="metric"><div class="k">Price / base value</div><div class="v mono">${fmtQuote(decision.price_per_share)} / ${fmtQuote(decision.value_per_share?.base)}</div></div>
         <div class="metric"><div class="k">Base annual return</div><div class="v mono">${fmtPct(decision.annualized_return_at_price_pct?.base)}</div></div>
       </div>
       <div class="metric-grid metric-grid-3" style="margin-top:9px">
-        <div class="metric"><div class="k">Low / high value</div><div class="v mono">$${fmtNum(decision.value_per_share?.low)} / $${fmtNum(decision.value_per_share?.high)}</div></div>
+        <div class="metric"><div class="k">Low / high value</div><div class="v mono">${fmtQuote(decision.value_per_share?.low)} / ${fmtQuote(decision.value_per_share?.high)}</div></div>
         <div class="metric"><div class="k">Unvalued components</div><div class="v mono">${Number(decision.unvalued_component_count || 0)}</div></div>
         <div class="metric"><div class="k">Evidence blockers</div><div class="v mono">${Number(decision.unresolved_evidence_count || 0)}</div></div>
       </div>
@@ -401,8 +407,8 @@
 
     const valuationPage = `
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Market cap</div><div class="v mono">${valuation.market?.market_cap_m == null ? '—' : '$' + fmtNum(valuation.market.market_cap_m) + 'm'}</div></div>
-        <div class="metric"><div class="k">Base value</div><div class="v mono">$${fmtNum(valuation.valuation?.value_per_share?.base)}</div></div>
+        <div class="metric"><div class="k">Market cap</div><div class="v mono">${valuation.market?.market_cap_m == null ? '—' : fmtQuote(valuation.market.market_cap_m) + 'm'}</div></div>
+        <div class="metric"><div class="k">Base value</div><div class="v mono">${fmtQuote(valuation.valuation?.value_per_share?.base)}</div></div>
         <div class="metric"><div class="k">Low-case downside</div><div class="v mono">${fmtPct(valuation.valuation?.downside_to_low_pct)}</div></div>
       </div>
       <div class="workbench-callout">${escapeHtml(valuation.scenario_contract?.rule || '')}</div>
@@ -480,26 +486,26 @@
 
     const attributionDrivers = (attribution.drivers || []).slice(0, 10).map((row) => `<tr>
       <td><strong>${escapeHtml(row.label || row.component_id)}</strong></td>
-      <td class="mono">${fmtSignedDollar(row.change_per_share)}</td>
+      <td class="mono">${fmtSignedQuote(row.change_per_share)}</td>
       <td>${(row.causes || []).map((x) => escapeHtml(String(x).replace(/_/g, ' '))).join(' · ')}</td>
     </tr>`).join('');
     const categoryRows = Object.entries(attribution.category_totals_per_share || {}).map(([key, value]) =>
-      `<div class="metric"><div class="k">${escapeHtml(key.replace(/_/g, ' '))}</div><div class="v mono">${fmtSignedDollar(value)}</div></div>`).join('');
+      `<div class="metric"><div class="k">${escapeHtml(key.replace(/_/g, ' '))}</div><div class="v mono">${fmtSignedQuote(value)}</div></div>`).join('');
     const attributionPage = attribution.status === 'baseline_established' ? `
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Current baseline</div><div class="v mono">$${fmtNum(attribution.current?.base)}</div></div>
+        <div class="metric"><div class="k">Current baseline</div><div class="v mono">${fmtQuote(attribution.current?.base)}</div></div>
         <div class="metric"><div class="k">As of</div><div class="v mono">${escapeHtml(attribution.current?.as_of || '—')}</div></div>
         <div class="metric"><div class="k">Attribution</div><div class="v">${workbenchStatusBadge(attribution.status, escapeHtml)}</div></div>
       </div>
       <div class="workbench-callout">${escapeHtml(attribution.explanation || '')}</div>` : `
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Prior base</div><div class="v mono">$${fmtNum(attribution.prior?.base)}</div><div class="tier-sub">${escapeHtml(attribution.prior?.as_of || '—')}</div></div>
-        <div class="metric"><div class="k">Current base</div><div class="v mono">$${fmtNum(attribution.current?.base)}</div><div class="tier-sub">${escapeHtml(attribution.current?.as_of || '—')}</div></div>
-        <div class="metric"><div class="k">Base change</div><div class="v mono">${fmtSignedDollar(attribution.base_change_per_share)}</div><div class="tier-sub">${fmtPct(attribution.base_change_pct)}</div></div>
+        <div class="metric"><div class="k">Prior base</div><div class="v mono">${fmtQuote(attribution.prior?.base)}</div><div class="tier-sub">${escapeHtml(attribution.prior?.as_of || '—')}</div></div>
+        <div class="metric"><div class="k">Current base</div><div class="v mono">${fmtQuote(attribution.current?.base)}</div><div class="tier-sub">${escapeHtml(attribution.current?.as_of || '—')}</div></div>
+        <div class="metric"><div class="k">Base change</div><div class="v mono">${fmtSignedQuote(attribution.base_change_per_share)}</div><div class="tier-sub">${fmtPct(attribution.base_change_pct)}</div></div>
       </div>
       ${categoryRows ? `<div class="metric-grid" style="margin-top:9px">${categoryRows}</div>` : ''}
       ${attributionDrivers ? `<table class="workbench-table"><thead><tr><th>Component</th><th>Change / share</th><th>Observed cause</th></tr></thead><tbody>${attributionDrivers}</tbody></table>` : ''}
-      <div class="tier-sub" style="margin-top:8px">Unexplained reconciliation: ${fmtSignedDollar(attribution.unexplained_per_share)} · ${escapeHtml(attribution.explanation || '')}</div>`;
+      <div class="tier-sub" style="margin-top:8px">Unexplained reconciliation: ${fmtSignedQuote(attribution.unexplained_per_share)} · ${escapeHtml(attribution.explanation || '')}</div>`;
 
     const tabs = [
       ['decision', 'Decision'],
@@ -534,13 +540,11 @@
     </div>`;
   }
 
-  function fmtUsdCompact(n, fmtNum) {
+  function fmtQuoteCompact(n, units) {
+    // Market caps and aggregates are in the listing currency too. window
+    // access keeps this usable from the module's non-helper call sites.
     if (n == null || Number.isNaN(Number(n))) return '—';
-    const v = Number(n);
-    if (Math.abs(v) >= 1e9) return '$' + fmtNum(v / 1e9, 2) + 'B';
-    if (Math.abs(v) >= 1e6) return '$' + fmtNum(v / 1e6, 1) + 'M';
-    if (Math.abs(v) >= 1e3) return '$' + fmtNum(v / 1e3, 0) + 'K';
-    return '$' + fmtNum(v, 0);
+    return window.DashboardFormat.compactQuote(Number(n), units || null);
   }
 
   function propertyUnitsLabel(units) {
@@ -555,6 +559,8 @@
 
   function renderPropertiesPanel(t, helpers) {
     const { escapeHtml, fmtNum, tickerLookup } = helpers;
+    const units = helpers.quoteUnitsOf ? helpers.quoteUnitsOf(t) : null;
+    const fmtQuote = (v, d) => helpers.fmtQuote(v, units, d);
     const reg = t.properties;
     if (!reg || !(reg.properties || []).length) return '';
     const reconOk = reg.reconciliation_ok;
@@ -576,15 +582,15 @@
         </td>
         <td>${escapeHtml(p.status || '—')}</td>
         <td class="mono">${escapeHtml(p.nav_overlay_line || '—')}</td>
-        <td class="mono">${fmtUsdCompact(p.carrying_value_usd, fmtNum)}</td>
-        <td class="mono">${fmtUsdCompact(fv.low, fmtNum)} / ${fmtUsdCompact(fv.base, fmtNum)} / ${fmtUsdCompact(fv.high, fmtNum)}</td>
+        <td class="mono">${fmtQuoteCompact(p.carrying_value_usd, units)}</td>
+        <td class="mono">${fmtQuoteCompact(fv.low, units)} / ${fmtQuoteCompact(fv.base, units)} / ${fmtQuoteCompact(fv.high, units)}</td>
       </tr>`;
     }).join('');
     return `<div class="detail-section property-register">
       <div class="workbench-head">
         <div>
           <h3>Properties ${reconBadge}</h3>
-          <div class="tier-sub">${Number(reg.property_count || 0)} assets · total fair value ${fmtUsdCompact(reg.total_fair_value_usd, fmtNum)} · as of ${escapeHtml(reg.as_of || '—')}${reg.in_base_irr ? '' : ' · context / NAV inventory only'}</div>
+          <div class="tier-sub">${Number(reg.property_count || 0)} assets · total fair value ${fmtQuoteCompact(reg.total_fair_value_usd, units)} · as of ${escapeHtml(reg.as_of || '—')}${reg.in_base_irr ? '' : ' · context / NAV inventory only'}</div>
         </div>
         ${reg.github_url ? `<a class="research-link" href="${reg.github_url}" target="_blank" rel="noopener">properties.json →</a>` : ''}
       </div>
@@ -601,6 +607,8 @@
 
   function renderQueuePanel(queue, helpers) {
     const { escapeHtml, fmtNum } = helpers;
+    // The queue mixes listings, so each row resolves its own units.
+    const fmtQuote = (v, row, d) => helpers.fmtQuote(v, helpers.quoteUnitsOf(row), d);
     if (!queue || !(queue.items || []).length) {
       return '<div class="loading">Valuation queue empty. Run refresh_valuation_dashboard_rows.py after followups exist.</div>';
     }
@@ -630,7 +638,7 @@
         <td><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>${row.in_validation_cohort ? '<div class="tier-sub">cohort</div>' : ''}</td>
         <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}</td>
         <td>${escapeHtml(row.next_gap_id || '—')}${row.next_gap_question ? `<div class="tier-sub">${escapeHtml(String(row.next_gap_question).slice(0, 120))}</div>` : ''}${progress}</td>
-        <td class="mono">${values.base == null ? '—' : '$' + fmtNum(values.base, 0)}</td>
+        <td class="mono">${values.base == null ? '—' : fmtQuote(values.base, 0)}</td>
         <td>${technical}</td>
       </tr>`;
     }).join('');

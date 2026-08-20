@@ -2,6 +2,11 @@ import { requireDatabase } from "./http.js";
 
 const DECIMAL = /^-?[0-9]+(?:\.[0-9]+)?$/;
 const OWNERS = new Set(["all", "drew", "michael", "unallocated"]);
+// Every non-base position names how it was translated. "identity" is a same-currency
+// row, "fx_unavailable" is an honest failure that carries a null rate and a degraded
+// quality; anything unrecognised is rejected so a new source cannot arrive unreviewed.
+const FX_SOURCES = new Set(["identity", "ibkr_portfolio_translation", "fx_unavailable"]);
+const DEGRADED_QUALITY = new Set(["estimated", "unknown"]);
 
 function hex(bytes) {
   return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -51,10 +56,29 @@ export function validateAccountSnapshot(payload) {
       throw new TypeError("Invalid canonical position row");
     }
     const nativeCurrency = row.native_currency || row.currency;
-    if (nativeCurrency !== payload.base_currency && row.market_value != null
-        && (!DECIMAL.test(String(row.market_value_native)) || !DECIMAL.test(String(row.market_value_base))
-          || !DECIMAL.test(String(row.fx_rate_to_base)) || !row.fx_as_of || !row.fx_source)) {
-      throw new TypeError("Non-base position is missing explicit native/base FX fields");
+    if (nativeCurrency !== payload.base_currency && row.market_value != null) {
+      // A non-base row must still state both sides of the translation and name its
+      // source, so nothing can be silently mixed into base totals.
+      if (!DECIMAL.test(String(row.market_value_native)) || !DECIMAL.test(String(row.market_value_base))
+          || !FX_SOURCES.has(row.fx_source)) {
+        throw new TypeError("Non-base position is missing explicit native/base FX fields");
+      }
+      // The rate itself may be genuinely underivable: IBKR implies it from
+      // marketValue/marketPrice, and a zero mark (no market-data permission on the
+      // listing venue, a halted name) or a flat row makes that ratio indeterminate.
+      // That is a property of one position, so it degrades that row's quality
+      // instead of failing the envelope -- OPERATIONS.md requires an incomplete
+      // account to stay visible, "never an empty account".
+      if (row.fx_source !== "fx_unavailable"
+          && (!DECIMAL.test(String(row.fx_rate_to_base)) || !row.fx_as_of)) {
+        throw new TypeError("Non-base position declares an FX source without a usable rate");
+      }
+      // A flat row is zero on both sides, so there is no exposure to misstate and no
+      // rate to miss; only a position carrying value has to admit it is estimated.
+      const carriesValue = Number(row.market_value_native) !== 0 || Number(row.market_value_base) !== 0;
+      if (row.fx_source === "fx_unavailable" && carriesValue && !DEGRADED_QUALITY.has(row.quality)) {
+        throw new TypeError("Untranslated non-base position must be marked estimated or unknown");
+      }
     }
   }
   for (const row of payload.open_orders || []) {
