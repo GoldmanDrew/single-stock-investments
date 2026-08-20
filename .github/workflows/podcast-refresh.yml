@@ -219,6 +219,49 @@ jobs:
           fi
           python _system/scripts/podcast_cloud_refresh.py "${args[@]}"
 
+      # Runs BEFORE verify, deliberately. The corpus is the input; the catalog
+      # is derived from it. Transcripts we actually fetched are always worth
+      # keeping, whereas the verify step only decides whether the derived
+      # artifact is fit to publish.
+      #
+      # Gating this on verify deadlocks: verify fails when the catalog shrinks,
+      # a catalog shrinks when the vault is behind, and the vault is exactly
+      # what this step fixes. Run 32304048660 proved it -- "catalog shrank:
+      # 3711 -> 3622", push skipped, vault left behind, nothing improved.
+      #
+      # Pushing also stops every run re-fetching the same episodes against
+      # rate-limited upstreams, which is most of what makes the job slow.
+      - name: Push new transcripts back to the research vault
+        shell: bash
+        working-directory: _external/research-vault
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Corpus only. Other vault trees belong to other lanes.
+          git add podcasts
+          if git diff --cached --quiet; then
+            echo "No new corpus files this run."
+            exit 0
+          fi
+          echo "Corpus changes:"
+          git diff --cached --stat | tail -5
+          git commit -q -m "chore(podcasts): corpus refresh $(date -u +%Y-%m-%d)"
+          # The vault takes writes from several lanes, so rebase rather than
+          # assume a fast-forward.
+          for attempt in 1 2 3; do
+            git fetch origin main -q
+            if git rebase origin/main -q && git push origin HEAD:main -q; then
+              echo "Pushed corpus to research-vault (attempt $attempt)."
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 5))
+          done
+          # The catalog step still runs: a failed corpus push is worth a warning,
+          # not a lost refresh. The next run re-fetches what did not land.
+          echo "::warning title=Vault push failed::New transcripts were not pushed to research-vault; the next run will re-fetch them."
+
       - name: Verify the catalog actually moved
         shell: bash
         env:
@@ -267,47 +310,6 @@ jobs:
           if len(rows) == before_n:
               print("::warning::No new episodes discovered this run.")
           PY
-
-      # Must run before the catalog is committed. The corpus is the input the
-      # catalog is derived from, so publishing a catalog that references
-      # episodes the vault does not have arms a failure for the next run:
-      # that run clones the smaller vault, rebuilds a smaller catalog, and
-      # trips the "catalog shrank" guard. Run 32296236096 fetched 110 new
-      # episodes into the runner's clone and threw them away, leaving the
-      # catalog at 3,711 against a vault of 3,601.
-      #
-      # Pushing also stops every run re-fetching the same episodes against
-      # rate-limited upstreams, which is most of what makes the job slow.
-      - name: Push new transcripts back to the research vault
-        shell: bash
-        working-directory: _external/research-vault
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Corpus only. Other vault trees belong to other lanes.
-          git add podcasts
-          if git diff --cached --quiet; then
-            echo "No new corpus files this run."
-            exit 0
-          fi
-          echo "Corpus changes:"
-          git diff --cached --stat | tail -5
-          git commit -q -m "chore(podcasts): corpus refresh $(date -u +%Y-%m-%d)"
-          # The vault takes writes from several lanes, so rebase rather than
-          # assume a fast-forward.
-          for attempt in 1 2 3; do
-            git fetch origin main -q
-            if git rebase origin/main -q && git push origin HEAD:main -q; then
-              echo "Pushed corpus to research-vault (attempt $attempt)."
-              exit 0
-            fi
-            git rebase --abort 2>/dev/null || true
-            sleep $((attempt * 5))
-          done
-          # The catalog step still runs: a failed corpus push is worth a warning,
-          # not a lost refresh. The next run re-fetches what did not land.
-          echo "::warning title=Vault push failed::New transcripts were not pushed to research-vault; the next run will re-fetch them."
 
       - name: Commit podcast catalog
         uses: ./.github/actions/commit-main
