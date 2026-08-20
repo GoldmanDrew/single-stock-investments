@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-20
-**Rows:** 2648
+**Rows:** 1592
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -40,6 +40,7 @@
 | 2026-08-18 | FRMI | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Fermi Inc. (NASDAQ: FRMI) reports insider share activity - S |
 | 2026-08-18 | HAS | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Hasbro insider John Hight sells 11,229 shares | HAS Insider  |
 | 2026-08-18 | HAS | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Hasbro (NASDAQ: HAS) insider gets 1,187 shares from dividend |
+| 2026-08-09 | DIS | podcast_episode | context | 19 | rule_conflict, activist_cross_link, neutral_low_impact | Disney: The Renaissance and the Empire |
 | 2026-08-06 | XTIA | filing | context | 40 | rule_conflict, filing_balance_material, small_base_pct | Cash up 320% |
 | 2026-08-06 | AMCR | filing | context | 39 | rule_conflict, filing_balance_material, small_base_pct | Equity up 202% |
 | 2026-08-06 | DELL | filing | context | 37 | rule_conflict, filing_balance_material, small_base_pct | Cash up 217% |
@@ -185,23 +186,22 @@
 | 2026-07-23 | UEC | kpi_trend | context | 55 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-07-21 | CSGP | earnings | context | 34 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
 | 2026-07-16 | MRSH | earnings | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
-| 2026-06-30 | CHTR | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
-| 2026-06-30 | NVDA | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: NVDA |
-| 2026-06-30 | CTSH | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CTSH |
-| 2026-06-30 | ABBV | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: ABBV |
-| 2026-06-30 | SPGI | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: SPGI |
-| 2026-06-30 | CRM | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CRM |
-| 2026-06-30 | CVS | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CVS |
-| 2026-06-30 | CHRW | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CHRW |
-| 2026-06-30 | CRCL | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CRCL |
-| 2026-06-30 | TTD | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: TTD |
-| 2026-06-30 | FLEX | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: FLEX |
-| 2026-06-30 | SNPS | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: SNPS |
-| 2026-06-30 | APH | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: APH |
-| 2026-06-30 | JKHY | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: JKHY |
-| 2026-06-30 | CSGP | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CSGP |
-| 2026-06-30 | STX | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: STX |
-| 2026-06-30 | BKR | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: BKR |
-| 2026-06-30 | MNST | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: MNST |
-| 2026-06-30 | BMY | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: BMY |
-| 2026-06-30 | MTD | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: MTD |
+| 2026-06-17 | CHTR | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, activist_cross_link, neutral_low_impact | Letter: CHTR |
+| 2026-06-17 | GS | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: GS |
+| 2026-06-17 | MDB | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: MDB |
+| 2026-06-17 | NVDA | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: NVDA |
+| 2026-06-14 | FRMI | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, activist_cross_link, neutral_low_impact | Letter: FRMI |
+| 2026-06-14 | CHTR | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
+| 2026-05-25 | BKR | podcast_episode | context | 14 | rule_conflict, activist_cross_link, neutral_low_impact | Pershing Square Challenge 2026 runner-ups on Baker Hughes $B |
+| 2026-05-14 | FRMI | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-05-08 | BUR | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-05-07 | TRC | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-05-06 | GS | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: GS |
+| 2026-05-05 | QDEL | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-05-03 | TBBK | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: TBBK |
+| 2026-05-03 | CHTR | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
+| 2026-05-03 | CSGP | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CSGP |
+| 2026-04-29 | AXON | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: AXON |
+| 2026-04-28 | CSGP | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-04-16 | MRSH | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
+| 2026-04-10 | MSFT | podcast_episode | context | 9 | rule_conflict, activist_cross_link, neutral_low_impact | The WTK Report: Episode 26 - Civil War History Nerd, Murray  |
