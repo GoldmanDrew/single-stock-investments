@@ -1,0 +1,43 @@
+[Unit]
+# The only process permitted to transmit orders. Client ID 91 per
+# CLIENT_ID_REGISTRY.md; the collector (81) connects read-only and is blocked
+# from transmitting in code, because Gateway's global read-only flag also
+# suppresses the order information the bridge needs to prove ownership.
+Description=Magis portfolio hub order bridge (IBKR client 91, sole transmitter)
+After=network-online.target ibgateway.service
+Requires=ibgateway.service
+
+[Service]
+Type=simple
+User=portfolio-hub
+WorkingDirectory=/opt/single-stock-investments
+EnvironmentFile=/etc/portfolio-hub/portfolio-hub.env
+ExecStart=/opt/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub --db /var/lib/portfolio-hub/portfolio.db order-bridge --account ${IBKR_ACCOUNT_ALIAS}
+
+# Reconnect across IB Gateway's daily restart rather than dying with it. The
+# bridge re-runs its ownership recovery on every start before accepting work,
+# so a restart is safe; a crash loop is a real fault and should stop.
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=8
+
+# This process holds the approval secret and the broker socket. Nothing else on
+# the host needs either.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/portfolio-hub
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=portfolio-hub-bridge
+
+[Install]
+WantedBy=multi-user.target
