@@ -175,13 +175,27 @@ class IbOrderBridge:
         if not details:
             raise BridgeUnavailable(f"conId {conid} has no contract details")
         detail = details[0]
-        ticker = self._ib.reqMktData(contract, "", False, False)
-        self._ib.sleep(1.0)
-        bid, ask = _finite(ticker.bid), _finite(ticker.ask)
+        # snapshot=True, and never a streaming subscription.
+        #
+        # Market-data lines come from one account-wide pool that this Gateway
+        # shares with the SPX 0DTE and LS producers. A streaming request holds a
+        # line until it is cancelled, so any path that skipped the cancel would
+        # leak one per preview and eventually starve those strategies of option
+        # quotes -- a failure that would surface over there, not here. A snapshot
+        # fills once and releases itself, which is all a 10-second-fresh preview
+        # needs anyway.
+        #
+        # The cancel is still issued from a finally, because a snapshot that
+        # never fills can otherwise sit open until it times out.
+        ticker = self._ib.reqMktData(contract, "", True, False)
         try:
-            self._ib.cancelMktData(contract)
-        except Exception:  # pragma: no cover - best effort
-            pass
+            self._ib.sleep(1.0)
+            bid, ask = _finite(ticker.bid), _finite(ticker.ask)
+        finally:
+            try:
+                self._ib.cancelMktData(contract)
+            except Exception:  # pragma: no cover - best effort
+                pass
         if bid is None or ask is None:
             # Fail closed. An absent NBBO must not silently become a stale or
             # one-sided price that the band check would then "pass".

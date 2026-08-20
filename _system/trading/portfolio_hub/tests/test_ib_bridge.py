@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 
 from _system.trading.portfolio_hub.ib_bridge import (
+    DEFAULT_BRIDGE_CLIENT_ID,
     BridgeProfile,
     BridgeUnavailable,
     IbOrderBridge,
@@ -251,3 +252,71 @@ def test_limit_order_quantity_is_always_positive():
     assert ib.placed[0].totalQuantity == 10.0
     assert ib.placed[0].action == "SELL"
     assert Decimal(str(ib.placed[0].lmtPrice)) == Decimal("25.4")
+
+
+class LeakTrackingIB(FakeIB):
+    """Counts market-data lines so a leak is visible instead of theoretical."""
+
+    def __init__(self, *, explode_on_sleep=False, **kw):
+        super().__init__(**kw)
+        self.open_lines = 0
+        self.peak_lines = 0
+        self.snapshot_flags = []
+        self.explode_on_sleep = explode_on_sleep
+
+    def reqMktData(self, contract, generic="", snapshot=False, regulatory=False):
+        self.snapshot_flags.append(snapshot)
+        self.open_lines += 1
+        self.peak_lines = max(self.peak_lines, self.open_lines)
+        return self._ticker
+
+    def cancelMktData(self, contract):
+        self.open_lines -= 1
+
+    def sleep(self, seconds):
+        if self.explode_on_sleep:
+            raise TimeoutError("gateway stalled mid-quote")
+
+
+def test_quote_requests_a_snapshot_not_a_streaming_line():
+    # A streaming line is held until cancelled and is drawn from the account-wide
+    # pool shared with the SPX 0DTE and LS producers on the same Gateway.
+    ib = LeakTrackingIB(positions=[FakePosition(101, 25)])
+    bridge(ib).quote(101)
+    assert ib.snapshot_flags == [True]
+
+
+def test_quote_releases_its_market_data_line_even_when_it_fails():
+    ib = LeakTrackingIB(explode_on_sleep=True)
+    with pytest.raises(TimeoutError):
+        bridge(ib).quote(101)
+    assert ib.open_lines == 0, "a failed quote leaked a market-data line"
+
+
+def test_repeated_quotes_never_accumulate_market_data_lines():
+    ib = LeakTrackingIB(positions=[FakePosition(101, 25)])
+    b = bridge(ib)
+    for _ in range(50):
+        b.quote(101)
+    assert ib.open_lines == 0
+    assert ib.peak_lines == 1, f"held {ib.peak_lines} lines at once; the pool is shared with SPX"
+
+
+def test_bridge_client_id_avoids_every_reserved_producer_id():
+    # _system/trading/sleeves/config.yaml reserves 0, 17 (SPX), 41 (ls-algo),
+    # 87 and 90, and the sleeves themselves take 71-73. A collision would
+    # disconnect whichever process connected first.
+    reserved = {0, 17, 41, 87, 90, 71, 72, 73}
+    assert DEFAULT_BRIDGE_CLIENT_ID not in reserved
+    assert BridgeProfile().client_id not in reserved
+
+
+def test_bridge_never_binds_orders_created_by_other_clients():
+    # reqAutoOpenOrders(True) would bind TWS-created orders to this client,
+    # which is how a hub session could end up owning an SPX order.
+    import inspect
+    import re
+
+    from _system.trading.portfolio_hub import ib_bridge
+
+    assert not re.search(r"\.reqAutoOpenOrders\s*\(", inspect.getsource(ib_bridge))
