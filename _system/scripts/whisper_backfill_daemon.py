@@ -72,9 +72,31 @@ def backlog_path() -> Path:
     return podcasts_root(create=True) / "whisper_backlog.json"
 
 
+class BacklogUnreadable(RuntimeError):
+    """The queue file exists but cannot be parsed."""
+
+
 def read_backlog() -> dict:
+    """Read the queue, failing loudly rather than with a JSON traceback.
+
+    A days-long run can find this file broken by something other than its own
+    writes -- an abandoned git rebase leaves conflict markers in it, which is
+    exactly how the 2026-08-20 run died. The message needs to say that, because
+    a JSONDecodeError at line 17810 does not.
+    """
     path = backlog_path()
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"items": []}
+    if not path.exists():
+        return {"items": []}
+    text = path.read_text(encoding="utf-8")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        if "<<<<<<<" in text or ">>>>>>>" in text:
+            raise BacklogUnreadable(
+                f"{path} contains git conflict markers, so a rebase was left unfinished. "
+                "Run `git rebase --abort` in the vault, confirm the file parses, then restart."
+            ) from exc
+        raise BacklogUnreadable(f"{path} is not valid JSON: {exc}") from exc
 
 
 def counts(doc: dict) -> dict[str, int]:
@@ -105,6 +127,72 @@ def park_exhausted(doc: dict) -> int:
     return parked
 
 
+def _git(repo: Path, *args, check: bool = True, timeout: int = 300):
+    return subprocess.run(["git", *args], cwd=repo, check=check,
+                          capture_output=True, text=True, timeout=timeout)
+
+
+def _merge_backlog(base_text: str, other_text: str) -> str:
+    """Union two backlog states. Progress wins on both sides.
+
+    The daemon and CI both mark items in this file, so a textual merge collides
+    every time they both do work. The semantics are simple though: an episode
+    transcribed anywhere is transcribed, and attempts only ever go up.
+    """
+    base = json.loads(base_text)
+    other = json.loads(other_text)
+    rank = {"done": 3, "parked": 2, "pending": 1}
+    merged: dict[str, dict] = {}
+    for item in (base.get("items") or []) + (other.get("items") or []):
+        key = item.get("episode_id")
+        if not key:
+            continue
+        seen = merged.get(key)
+        if seen is None:
+            merged[key] = dict(item)
+            continue
+        if rank.get(item.get("status"), 0) > rank.get(seen.get("status"), 0):
+            seen["status"] = item["status"]
+        seen["attempts"] = max(int(seen.get("attempts") or 0), int(item.get("attempts") or 0))
+    items = list(merged.values())
+    return json.dumps({
+        "items": items,
+        "pending_count": sum(1 for i in items if i.get("status") == "pending"),
+        "updated_at": _stamp(),
+    }, indent=2) + "\n"
+
+
+def _resolve_corpus_conflicts(repo: Path) -> bool:
+    """Resolve a rebase conflict inside podcasts/ by keeping progress.
+
+    During a rebase, stage 2 (--ours) is the upstream being rebased onto and
+    stage 3 (--theirs) is the commit being replayed -- this run's work. Anything
+    outside podcasts/ is not ours to decide, and returns False so the caller
+    aborts rather than guessing.
+    """
+    conflicted = [line for line in _git(repo, "diff", "--name-only", "--diff-filter=U")
+                  .stdout.splitlines() if line.strip()]
+    if not conflicted:
+        return False
+    for path in conflicted:
+        if not path.startswith("podcasts/"):
+            print(f"  conflict outside the corpus ({path}); not resolving", flush=True)
+            return False
+        if path.endswith("whisper_backlog.json"):
+            upstream = _git(repo, "show", f":2:{path}", check=False).stdout
+            local = _git(repo, "show", f":3:{path}", check=False).stdout
+            try:
+                (repo / path).write_text(_merge_backlog(upstream, local), encoding="utf-8")
+            except (json.JSONDecodeError, ValueError):
+                return False
+        else:
+            # Transcripts, episode metadata and run summaries: this run just
+            # wrote them, so the replayed side is the newer truth.
+            _git(repo, "checkout", "--theirs", "--", path, check=False)
+        _git(repo, "add", "--", path)
+    return True
+
+
 def vault_push(message: str) -> bool:
     """Commit and push the vault. A transcript only on this disk is not safe."""
     vault = podcasts_root(create=False)
@@ -122,19 +210,34 @@ def vault_push(message: str) -> bool:
             return False  # nothing new
         subprocess.run(["git", "commit", "-m", message], cwd=repo, check=True,
                        capture_output=True, timeout=300)
-        # autoStash because the vault is a shared tree: other lanes routinely
-        # leave unstaged edits in it, and a plain `pull --rebase` refuses to run
-        # with a dirty worktree. Without this every push in a days-long run
-        # fails and nothing reaches the remote -- the one thing this function
-        # exists to prevent.
-        subprocess.run(["git", "-c", "rebase.autoStash=true", "pull", "--rebase", "origin", "main"],
-                       cwd=repo, check=True, capture_output=True, timeout=600)
-        subprocess.run(["git", "push", "origin", "HEAD:main"], cwd=repo, check=True,
-                       capture_output=True, timeout=600)
-        return True
+        for attempt in range(1, 4):
+            _git(repo, "fetch", "origin", "main", timeout=600)
+            # autoStash because the vault is a shared tree: other lanes routinely
+            # leave unstaged edits in it, and a plain rebase refuses to run with a
+            # dirty worktree.
+            rebase = _git(repo, "-c", "rebase.autoStash=true", "rebase", "origin/main",
+                          check=False, timeout=600)
+            while rebase.returncode != 0:
+                # A conflict here is expected, not exceptional: CI writes the same
+                # backlog and metadata this run does. Resolve by keeping progress
+                # from both sides, and never leave the worktree mid-rebase -- an
+                # abandoned rebase writes conflict markers into whisper_backlog.json,
+                # and the next read of it fails to parse, taking the run down.
+                if not _resolve_corpus_conflicts(repo):
+                    _git(repo, "rebase", "--abort", check=False)
+                    print("  vault rebase hit a conflict it should not resolve; aborted cleanly",
+                          flush=True)
+                    return False
+                rebase = _git(repo, "-c", "core.editor=true", "rebase", "--continue",
+                              check=False, timeout=600)
+            if _git(repo, "push", "origin", "HEAD:main", check=False, timeout=600).returncode == 0:
+                return True
+            print(f"  vault push rejected (attempt {attempt}/3); refetching", flush=True)
+        return False
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        # A failed push must not stop transcription; the next interval retries and
-        # the work is still on disk.
+        # Transcription must survive a push failure -- the work is on disk and the
+        # next interval retries -- but only from a clean tree.
+        _git(repo, "rebase", "--abort", check=False)
         print(f"  vault push failed ({exc.__class__.__name__}); continuing", flush=True)
         return False
 
