@@ -222,6 +222,13 @@ jobs:
           # Jobs belonging to this workflow must not gate themselves.
           OWN='^(resolve-pr|gate|code-gate|merge|notify|Resolve PR number and eligibility)$'
           DEADLINE=$(( $(date +%s) + 2700 ))
+          # Checks take a minute or two to register. Until this grace period is
+          # up, "zero checks" means "not reported yet"; after it, it means the
+          # repo's path filters genuinely select nothing for this change (a
+          # docs-only PR is the normal case). Blocking those forever is worse
+          # than merging them -- the path filters ARE the policy, and PR #876
+          # sat unmergeable for 45 minutes proving the point.
+          NO_CHECK_GRACE=$(( $(date +%s) + 300 ))
           while :; do
             SHA=$(gh pr view "$PR" --repo "$REPO" --json headRefOid -q .headRefOid)
             RUNS=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs" --jq '.check_runs[] | [.name, .status, (.conclusion // "pending")] | @tsv')
@@ -242,6 +249,10 @@ jobs:
             fi
             if [ "$TOTAL" -gt 0 ] && [ "$PENDING" -eq 0 ]; then
               echo "All $TOTAL checks green for $SHA."
+              exit 0
+            fi
+            if [ "$TOTAL" -eq 0 ] && [ "$(date +%s)" -ge "$NO_CHECK_GRACE" ]; then
+              echo "No CI check applies to $SHA after the grace period; the repo's path filters select nothing for this change. Nothing to verify, so merging."
               exit 0
             fi
             if [ "$(date +%s)" -ge "$DEADLINE" ]; then
