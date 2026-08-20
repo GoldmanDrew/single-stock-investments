@@ -122,5 +122,71 @@ class ExitCodeLogicTests(unittest.TestCase):
         self.assertEqual(code, 2)
 
 
+class IntakeRootSafetyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.mod = _load_importer()
+
+    def test_intake_roots_do_not_fall_back_to_full_pdf_store(self):
+        config = {
+            "drive_roots": {
+                "general_pdfs": {"folder_id": "entire-shared-drive"},
+            }
+        }
+        self.assertEqual(self.mod.configured_intake_root_ids(config), [])
+
+    def test_explicit_intake_roots_are_deduplicated(self):
+        config = {
+            "drive_intake": {"folder_id": "intake"},
+            "drive_intake_roots": {
+                "primary": {"folder_id": "intake"},
+                "secondary": {"folder_id": "secondary"},
+            },
+        }
+        self.assertEqual(self.mod.configured_intake_root_ids(config), ["intake", "secondary"])
+
+
+class ReportPersistenceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.mod = _load_importer()
+
+    def test_report_is_not_rewritten_when_only_timestamp_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.json"
+            first = {
+                "generated_at": "2026-08-20T14:00:00Z",
+                "summary": {"imported_count": 0, "warning_count": 1, "error_count": 0},
+                "warnings": [{"drive_file_id": "abc", "error": "ambiguous_tickers"}],
+            }
+            second = {
+                **first,
+                "generated_at": "2026-08-21T14:00:00Z",
+            }
+            self.assertTrue(self.mod.write_report_if_changed(path, first))
+            self.assertFalse(self.mod.write_report_if_changed(path, second))
+            persisted = path.read_text(encoding="utf-8")
+            self.assertIn("2026-08-20T14:00:00Z", persisted)
+            self.assertNotIn("2026-08-21T14:00:00Z", persisted)
+
+    def test_report_is_rewritten_when_warning_state_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.json"
+            first = {
+                "generated_at": "2026-08-20T14:00:00Z",
+                "summary": {"imported_count": 0, "warning_count": 1, "error_count": 0},
+                "warnings": [{"drive_file_id": "abc", "error": "ambiguous_tickers"}],
+            }
+            cleared = {
+                "generated_at": "2026-08-21T14:00:00Z",
+                "summary": {"imported_count": 0, "warning_count": 0, "error_count": 0},
+                "warnings": [],
+            }
+            self.assertTrue(self.mod.write_report_if_changed(path, first))
+            self.assertTrue(self.mod.write_report_if_changed(path, cleared))
+            persisted = path.read_text(encoding="utf-8")
+            self.assertIn("2026-08-21T14:00:00Z", persisted)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,7 @@ Unset credentials are not an error: Marvin cloud runs do not need Drive.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shlex
@@ -98,10 +99,27 @@ def resolve_credentials_file() -> str | None:
     return result["path"]
 
 
-def main() -> int:
+def required_credentials_exit_code(result: dict, *, required: bool) -> int:
+    return 2 if required and not result.get("path") else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Materialize Google Drive service-account credentials.")
+    parser.add_argument(
+        "--require",
+        action="store_true",
+        help="Exit non-zero when no Drive credentials are available.",
+    )
+    args = parser.parse_args(argv)
     result = materialize_drive_credentials()
     print(f"drive_credentials={result['status']} path={result['path'] or 'unset'}")
-    return 0
+    if args.require and not result.get("path"):
+        print(
+            "Drive credentials are required. Configure GOOGLE_APPLICATION_CREDENTIALS_JSON "
+            "or GOOGLE_APPLICATION_CREDENTIALS.",
+            file=sys.stderr,
+        )
+    return required_credentials_exit_code(result, required=args.require)
 
 
 if __name__ == "__main__":

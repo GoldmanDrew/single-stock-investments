@@ -8,7 +8,7 @@ Use this Shared Drive folder as the repo drop zone:
 - Path on Shared Drive: `Admin/Intake`
 - Label: Single Stock Research PDF Store
 - Service account: `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com`
-- Workflow: `Drive Intake Sync` runs hourly at minute 20 UTC and can also be run manually.
+- Workflow: the `Data Pipeline` Drive job is scheduled daily at 14:00 UTC. GitHub Actions may start scheduled work later than the nominal cron time.
 
 The live Drive layout is under `Admin/Intake` by intake type:
 
@@ -29,10 +29,11 @@ Admin/
 Cloud Grok and local agents can upload without clicking Drive:
 
 ```powershell
+python _system/scripts/materialize_drive_credentials.py --require
 python _system/scripts/drive_intake_drop.py --kind VIC --ticker TPL path\to\writeup.pdf
 ```
 
-Requires `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_APPLICATION_CREDENTIALS_JSON` (Cloud Agent secret), or `_secrets/google-service-account.json`. VIC still does not go in research-vault. Prompt: `_system/agents/GROK.md`.
+Requires `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_APPLICATION_CREDENTIALS_JSON` (Cloud Agent secret), or `_secrets/google-service-account.json`. Repeating the same file is safe: the uploader checks its content hash and returns `already_present` instead of creating another Drive object. VIC still does not go in research-vault. Prompt: `_system/agents/GROK.md`.
 
 ## Where To Drop PDFs
 
@@ -86,16 +87,19 @@ After local import, the normal registry/upload step links the PDFs back into the
 ## Automation Flow
 
 1. Drop PDFs into the appropriate Drive intake folder.
-2. `Drive Intake Sync` scans the configured intake folder/root, creates missing intake folders, and imports new PDFs.
+2. The daily Data Pipeline Drive job scans the configured intake root, creates missing intake folders, and imports new PDFs.
 3. Each imported PDF gets a `.source.json` sidecar with Drive source metadata.
 4. `_system/data/drive_intake_manifest.json` records Drive file IDs so the same file is not imported again.
-5. The workflow rebuilds the third-party source inventory, document registry, Drive PDF links, insights, research memory, and dashboard data.
-6. Letter source links use `_system/reference/document-store/drive_filename_index.json` (full Shared Drive PDF scan) and `_system/reference/document-store/letter_drive_links.json` (maps `letters_index.json` paths to Drive file URLs). These refresh during Drive Intake Sync when credentials are present.
+5. For touched tickers, the importer rebuilds the third-party source inventory. When at least one file imports, the workflow runs the `insights` profile, which refreshes insights, research memory, and dashboard data.
+6. The 03:00 UTC `intake-full` lane performs the full document-registry, Drive filename/link, PDF-store audit, and PDF-store synchronization work. The Drive intake job does not duplicate that full rebuild.
 7. The workflow commits the imported documents and rebuilt dashboard artifacts back to `main`.
+8. Warning/error counts and unresolved paths are written to the GitHub job summary. A changed warning state is committed to `_system/reference/document-store/drive_intake_latest.json` even when no PDF imports; identical daily state does not create another commit.
 
 ## Required GitHub Secret
 
 Drive folder access alone is not enough for GitHub Actions. The repo also needs an Actions secret named `GOOGLE_APPLICATION_CREDENTIALS_JSON` containing the full JSON key for `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com`.
+
+The Drive job fails if this required secret is missing. It does not report a successful no-op.
 
 ## Rules
 

@@ -85,6 +85,15 @@ class MaterializeDriveCredentialsTests(unittest.TestCase):
             self.assertEqual(result["status"], "unset")
             self.assertIsNone(result["path"])
 
+    def test_required_credentials_exit_nonzero_when_unset(self) -> None:
+        from materialize_drive_credentials import required_credentials_exit_code
+
+        self.assertEqual(required_credentials_exit_code({"status": "unset", "path": None}, required=True), 2)
+        self.assertEqual(
+            required_credentials_exit_code({"status": "materialized", "path": "/tmp/key.json"}, required=True),
+            0,
+        )
+
     def test_local_secrets_file_is_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             secrets = Path(tmp) / "google-service-account.json"
@@ -148,6 +157,83 @@ class PlanIntakeDropTests(unittest.TestCase):
             html.write_text("<html></html>", encoding="utf-8")
             planned = self.plan(kind="VIC", ticker=self.ticker, pdf_path=html, root=ROOT)
             self.assertEqual(planned["error"], "not_pdf")
+
+    def test_duplicate_upload_matches_content_hash_in_target_folder(self) -> None:
+        from drive_intake_drop import find_duplicate_intake_pdf
+
+        items = [
+            {
+                "id": "same",
+                "name": "idea.pdf",
+                "mimeType": "application/pdf",
+                "parents": ["target-folder"],
+                "appProperties": {"ssi_sha256": "sha-123"},
+                "webViewLink": "https://drive.google.com/file/d/same/view",
+            },
+            {
+                "id": "wrong-folder",
+                "name": "idea.pdf",
+                "mimeType": "application/pdf",
+                "parents": ["other-folder"],
+                "appProperties": {"ssi_sha256": "sha-123"},
+            },
+        ]
+        duplicate = find_duplicate_intake_pdf(
+            items,
+            folder_id="target-folder",
+            filename="idea.pdf",
+            size_bytes=100,
+            sha256="sha-123",
+            md5="md5-123",
+        )
+        self.assertEqual(duplicate["id"], "same")
+
+    def test_duplicate_upload_falls_back_to_md5_name_and_size(self) -> None:
+        from drive_intake_drop import find_duplicate_intake_pdf
+
+        items = [
+            {
+                "id": "legacy",
+                "name": "idea.pdf",
+                "size": "100",
+                "md5Checksum": "md5-123",
+                "mimeType": "application/pdf",
+                "parents": ["target-folder"],
+            }
+        ]
+        duplicate = find_duplicate_intake_pdf(
+            items,
+            folder_id="target-folder",
+            filename="idea.pdf",
+            size_bytes=100,
+            sha256="sha-123",
+            md5="md5-123",
+        )
+        self.assertEqual(duplicate["id"], "legacy")
+
+    def test_duplicate_upload_rejects_different_content(self) -> None:
+        from drive_intake_drop import find_duplicate_intake_pdf
+
+        items = [
+            {
+                "id": "different",
+                "name": "idea.pdf",
+                "size": "100",
+                "md5Checksum": "other-md5",
+                "mimeType": "application/pdf",
+                "parents": ["target-folder"],
+                "appProperties": {"ssi_sha256": "other-sha"},
+            }
+        ]
+        duplicate = find_duplicate_intake_pdf(
+            items,
+            folder_id="target-folder",
+            filename="idea.pdf",
+            size_bytes=100,
+            sha256="sha-123",
+            md5="md5-123",
+        )
+        self.assertIsNone(duplicate)
 
 
 def sys_path_insert() -> None:

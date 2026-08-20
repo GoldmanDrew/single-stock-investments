@@ -91,7 +91,7 @@ def drive_ids_for_roots(service, root_ids: list[str]) -> dict[str, str]:
 
 DRIVE_ITEM_FIELDS = (
     "nextPageToken,files("
-    "id,name,size,mimeType,webViewLink,webContentLink,appProperties,parents,createdTime,modifiedTime"
+    "id,name,size,md5Checksum,mimeType,webViewLink,webContentLink,appProperties,parents,createdTime,modifiedTime"
     ")"
 )
 DRIVE_PDF_OR_FOLDER_QUERY = f"(mimeType = 'application/pdf' or mimeType = '{FOLDER_MIME}') and trashed = false"
