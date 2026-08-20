@@ -10,7 +10,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterator
 
-from .allocation_policy import POLICY_SOURCE_PREFIX, classify_policy_position, load_ls_universe, residual_quantity
+from .allocation_policy import POLICY_SOURCE_PREFIX, classify_policy_position, load_drew_symbols, load_ls_universe, residual_quantity
 
 
 def utc_now() -> str:
@@ -147,12 +147,13 @@ class PortfolioLedger:
             (account_alias, f"{POLICY_SOURCE_PREFIX}%"),
         )
         ls_symbols = load_ls_universe()
+        drew_symbols = load_drew_symbols()
         positions = db.execute(
             "SELECT * FROM position_snapshot_rows WHERE snapshot_id=? ORDER BY conid,model_code",
             (snapshot_id,),
         ).fetchall()
         for position in positions:
-            policy = classify_policy_position(dict(position), ls_symbols=ls_symbols)
+            policy = classify_policy_position(dict(position), ls_symbols=ls_symbols, drew_symbols=drew_symbols)
             if policy.strategy in {"letf", "spx_0dte"}:
                 db.execute(
                     """UPDATE allocation_lots SET ended_at=?

@@ -131,3 +131,54 @@ def test_policy_excludes_spx_and_ls_but_populates_michael(ledger: PortfolioLedge
     assert by_conid[2]["strategy"] == "letf"
     assert by_conid[3]["strategy"] == "spx_0dte"
     assert ledger.reconcile_allocations(snapshot_id) == []
+
+
+def test_policy_routes_drew_sleeve_holdings_to_drew(ledger: PortfolioLedger, monkeypatch) -> None:
+    # Michael's book is everything EXCEPT SPX, the ls-algo universe, and Drew's
+    # sleeve. Drew's holdings come from the desk's owner-tagged buys.
+    from _system.trading.portfolio_hub import ledger as ledger_module
+
+    monkeypatch.setattr(ledger_module, "load_drew_symbols", lambda: {"IBKR"})
+    payload = snapshot()
+    base = payload["positions"][0]
+    payload["positions"] = [
+        {**base, "conid": 1, "symbol": "CSU", "local_symbol": "CSU", "quantity": "12", "market_value": "1200", "market_value_native": "1200", "market_value_base": "1200"},
+        {**base, "conid": 4, "symbol": "IBKR", "local_symbol": "IBKR", "quantity": "9", "market_value": "900", "market_value_native": "900", "market_value_base": "900"},
+    ]
+    ledger.ingest_account_snapshot(payload)
+    projection = ledger.allocation_projection("paper-primary")
+    by_conid = {row["conid"]: row for row in projection["allocations"]}
+    assert by_conid[4]["owner"] == "drew"
+    assert by_conid[4]["strategy"] == "single_stock"
+    assert by_conid[1]["owner"] == "michael"
+    # Drew's holding must not appear in Michael's scoped book.
+    michael = [row["symbol"] for row in ledger.latest_portfolio("paper-primary", "michael")["positions"]]
+    assert "IBKR" not in michael and "CSU" in michael
+    drew = [row["symbol"] for row in ledger.latest_portfolio("paper-primary", "drew")["positions"]]
+    assert drew == ["IBKR"]
+
+
+def test_ls_universe_membership_beats_a_drew_tag() -> None:
+    # Strategy custody precedes owner custody: if a ticker is in ls-algo's
+    # universe it belongs to the systematic book even if Drew also tagged it.
+    from _system.trading.portfolio_hub.allocation_policy import classify_policy_position
+
+    row = {"symbol": "AAPL", "local_symbol": "AAPL", "sec_type": "STK"}
+    policy = classify_policy_position(row, ls_symbols={"AAPL"}, drew_symbols={"AAPL"})
+    assert (policy.owner, policy.strategy) == ("unallocated", "letf")
+
+
+def test_load_drew_symbols_reads_owner_tagged_tickers(tmp_path) -> None:
+    import json as json_module
+
+    from _system.trading.portfolio_hub.allocation_policy import load_drew_symbols
+
+    tags = tmp_path / "sleeve_tags.json"
+    tags.write_text(json_module.dumps([
+        {"ticker": "IBKR", "owner": "drew"},
+        {"ticker": "brk.b", "owner": "Drew"},
+        {"ticker": "CSU", "owner": "michael"},
+        {"ticker": "", "owner": "drew"},
+    ]), encoding="utf-8")
+    assert load_drew_symbols(tags) == {"IBKR", "BRK-B"}
+    assert load_drew_symbols(tmp_path / "missing.json") == set()
