@@ -36,9 +36,15 @@ def write_json(path: Path, payload: dict) -> None:
 
 
 def drive_service(readonly: bool = False):
-    creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    from materialize_drive_credentials import resolve_credentials_file
+
+    creds_path = resolve_credentials_file()
     if not creds_path:
-        raise SystemExit("Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file.")
+        raise SystemExit(
+            "Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file, "
+            "or GOOGLE_APPLICATION_CREDENTIALS_JSON (Cloud Agent secret), "
+            "or place the key at _secrets/google-service-account.json."
+        )
     scopes = DRIVE_READONLY_SCOPE if readonly else DRIVE_SCOPE
     creds = service_account.Credentials.from_service_account_file(creds_path, scopes=scopes)
     return build("drive", "v3", credentials=creds, cache_discovery=False)

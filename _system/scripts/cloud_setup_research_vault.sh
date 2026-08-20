@@ -41,3 +41,10 @@ fi
 
 echo "RESEARCH_VAULT_ROOT=${RESEARCH_VAULT_ROOT:-$DEFAULT}"
 echo "HK_PDFS_ROOT=${HK_PDFS_ROOT:-unset}"
+
+# Drive key: Cloud Agents inject JSON; Python clients need a file path.
+bash "$ROOT/_system/scripts/cloud_setup_drive_credentials.sh"
+if [ -f "${SSI_CLOUD_ENV_SNIPPET:-/tmp/ssi-cloud-env.sh}" ]; then
+  # shellcheck disable=SC1090
+  . "${SSI_CLOUD_ENV_SNIPPET:-/tmp/ssi-cloud-env.sh}"
+fi

@@ -251,7 +251,7 @@ Push to `main` after downloads or research triggers a Pages deploy automatically
 
 | Secret | Required for | How to get |
 |--------|--------------|------------|
-| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Drive intake + PDF store sync | Full service-account JSON for `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com`; folder access is already on the Shared Drive |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Drive intake + PDF store sync; Cloud Grok VIC drop | Full service-account JSON for `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com`. GitHub Actions **and** [Cursor Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents) (JSON contents; `.cursor/environment.json` writes the file). Folder access is already on the Shared Drive |
 | `RESEARCH_VAULT_REPO_URL` | Letter backfill + insight rebuilds | `https://github.com/magis-capital-partners/research-vault.git` |
 | `RESEARCH_VAULT_CLONE_TOKEN` | Clone/push private vault from CI | Fine-grained PAT with **Contents read+write** on `research-vault` |
 | `CURSOR_API_KEY` | Gated research, committee judgment, IR adapter repair, and narrow CI autofix | [Cursor Dashboard → Integrations](https://cursor.com/dashboard/integrations) |
