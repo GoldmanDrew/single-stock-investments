@@ -9,11 +9,13 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 | Role | Default client ID | May transmit | Owns/cancels |
 |---|---:|---|---|
 | Hub collector | 81 | No | Nothing |
-| Hub master observer | 90 | No | Nothing; observes all clients |
+| Hub master observer | 82 | No | Nothing; observes all clients. (Was documented as 90, which collides with ls-algo's daily screener — `daily_screener.py` client_id=90. Never implemented at 90; reassigned before first use.) |
 | Hub order bridge | 91 | Paper initially | Only positive `MAGIS|…` orderRefs submitted by client 91 |
 | SPX producer | Existing registered value | Its strategy only | Positive SPX namespace after migration |
 | LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
+
+Cross-system map: SPX 0DTE runs as client 17; ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 The production registry records account alias, host, port, client ID, process owner, orderRef namespace, and kill switch. Client IDs are unique. The master observer's next valid order ID must exceed every order ID it observes, but it never transmits. The bridge persists `gateway_session_id`, `clientId`, `orderId`, `permId`, `orderRef`, `parentId`, `ocaGroup`, account alias, and producer.
 

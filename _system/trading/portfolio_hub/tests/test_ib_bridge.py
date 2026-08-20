@@ -306,9 +306,21 @@ def test_bridge_client_id_avoids_every_reserved_producer_id():
     # _system/trading/sleeves/config.yaml reserves 0, 17 (SPX), 41 (ls-algo),
     # 87 and 90, and the sleeves themselves take 71-73. A collision would
     # disconnect whichever process connected first.
-    reserved = {0, 17, 41, 87, 90, 71, 72, 73}
-    assert DEFAULT_BRIDGE_CLIENT_ID not in reserved
-    assert BridgeProfile().client_id not in reserved
+    # Fixed IDs: 0 + 41 + 77 + 90 + 197/207 (ls-algo), 17 (SPX live executor),
+    # 71-73 (sleeves), 82 (hub observer), 87 (historical). Ranges are ls-algo
+    # worker pools: 241-273 (41+200+i), 341-373 (41+300+i), 551 (41+510),
+    # 1041+ (41+1000+16i+leg). See CLAUDE.md (IB Gateway coexistence).
+    reserved = {0, 17, 41, 77, 87, 90, 197, 207, 71, 72, 73, 82}
+    reserved_ranges = [(241, 273), (341, 373), (551, 551), (1041, 2100)]
+
+    def clear(client_id):
+        return client_id not in reserved and not any(
+            low <= client_id <= high for low, high in reserved_ranges
+        )
+
+    assert clear(DEFAULT_BRIDGE_CLIENT_ID)
+    assert clear(BridgeProfile().client_id)
+    assert clear(81)  # collector default (broker.py)
 
 
 def test_bridge_never_binds_orders_created_by_other_clients():
