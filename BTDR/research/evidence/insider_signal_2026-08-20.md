@@ -2,17 +2,22 @@
 
 > Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
 
-**ICS:** 2.2 (weak) · **Bull case support:** none
+**ICS:** 6.31 (strong) · **Bull case support:** moderate
 
 | Scenario | Prior weight | Tilted weight |
 |----------|--------------|---------------|
 | Bear | 20% | 20% |
-| Base | 55% | 55% |
-| Bull | 25% | 25% |
+| Base | 55% | 49% |
+| Bull | 25% | 31% |
 
 | Insider | Date | Shares | Price | Value | Contrib |
 |---------|------|--------|-------|-------|---------|
+| Basit Haris Fozan | 2026-08-14 | 25000 | $8.84 | $221000.0 | 3.175 |
 | Potter Michael G | 2026-08-12 | 25000 | $9.04 | $226000.0 | 1.913 |
+
+**Narrative hooks:**
+
+- Multiple insiders bought within cluster window
 
 Source: `_system/reference/market-data/insider/BTDR_transactions.csv`.
 Lawrence base IRR unchanged (`in_base_irr: False`).

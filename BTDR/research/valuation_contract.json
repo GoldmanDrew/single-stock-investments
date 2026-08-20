@@ -2,19 +2,68 @@
   "schema_version": "2.0",
   "status": "evidence_blocked",
   "ticker": "BTDR",
-  "as_of": "2026-07-20",
-  "economic_ownership_map": [],
+  "as_of": "2026-08-20",
+  "economic_ownership_map": [
+    {
+      "component_id": "operating_business_fallback",
+      "label": "Operating business (fallback)",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Operating business (fallback)",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_cash_dcf",
+      "method_version": null,
+      "method_provenance": null,
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": null,
+        "base": null,
+        "high": null
+      },
+      "legacy_range_per_share": {
+        "low": 0.33,
+        "base": 0.36,
+        "high": 0.39
+      },
+      "valuation_status": "legacy_sensitivity",
+      "calculation_proof": null,
+      "evidence_tier": "model_input",
+      "evidence_level": "analyst_estimated",
+      "evidence": "inputs.fcf_per_share and scenarios.base",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Risk and timing are reflected in the low/base/high range.",
+      "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+      "overlap_key": "operating_business_fallback",
+      "assumption_type": "estimate"
+    }
+  ],
   "component_coverage": {
     "all_material_components_identified": false,
-    "material_component_count": 0,
-    "additive_component_count": 0,
+    "material_component_count": 1,
+    "additive_component_count": 1,
     "embedded_component_count": 0,
     "unvalued_component_count": 1,
     "double_counting_flags": []
   },
   "input_classification": {
     "facts": [],
-    "estimates": [],
+    "estimates": [
+      {
+        "component_id": "operating_business_fallback",
+        "label": "Operating business (fallback)",
+        "kind": "estimate",
+        "evidence_tier": "model_input",
+        "evidence": "inputs.fcf_per_share and scenarios.base",
+        "method": "owner_cash_dcf",
+        "valuation_status": "legacy_sensitivity"
+      }
+    ],
     "judgments": []
   },
   "method_route": {
@@ -22,9 +71,11 @@
     "status": "routed",
     "profile_id": "quality_reinvestment",
     "label": "High-return compounder",
-    "score": 16.0,
+    "score": 19.0,
     "reasons": [
       "archetype=compounder",
+      "component categories=operating_business",
+      "existing methods=dcf, owner_cash",
       "explicit reviewed profile"
     ],
     "primary_methods": [
@@ -46,7 +97,9 @@
       "greenblatt",
       "hk",
       "klarman_asset_value",
+      "lawrence",
       "marks_credit_cycle",
+      "moi",
       "pabrai",
       "stahl"
     ],
@@ -62,22 +115,42 @@
       "stock compensation or acquisitions omitted",
       "terminal value unsupported by a durable mechanism"
     ],
-    "secondary_profiles": [],
+    "secondary_profiles": [
+      {
+        "profile_id": "predictable_cash_flow",
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      {
+        "profile_id": "capital_cycle",
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      }
+    ],
     "scorecard": {
       "scarce_asset_optionality": {
         "score": 0.0,
         "reasons": []
       },
       "quality_reinvestment": {
-        "score": 16.0,
+        "score": 19.0,
         "reasons": [
           "archetype=compounder",
+          "component categories=operating_business",
+          "existing methods=dcf, owner_cash",
           "explicit reviewed profile"
         ]
       },
       "capital_cycle": {
-        "score": 0.0,
-        "reasons": []
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
       },
       "credit_and_normalized_returns": {
         "score": 0.0,
@@ -88,8 +161,11 @@
         "reasons": []
       },
       "predictable_cash_flow": {
-        "score": 0.0,
-        "reasons": []
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
       },
       "binary_milestone": {
         "score": 0.0,
@@ -98,21 +174,39 @@
     },
     "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
     "ticker": "BTDR",
-    "as_of": "2026-07-29",
+    "as_of": "2026-08-20",
     "route_source": "canonical_power_zone_router",
     "config_path": "_system/frameworks/power_zones.json",
     "config_updated": "2026-07-14",
     "classification": {
       "archetype": "compounder",
       "moat": "unproven",
-      "dhando": "pending",
+      "dhando": "partial",
       "stance": "watch",
-      "cycle": "-",
+      "cycle": "mid",
       "moi_bucket": "pending",
-      "payoff_lens": "pending",
-      "investment_sleeve": "ls_algo_underlying"
+      "payoff_lens": "operating",
+      "investment_sleeve": "ls_algo_underlying",
+      "predictive_attribute": "complexity_discount"
     },
-    "specialist_power_zones": [],
+    "specialist_power_zones": [
+      {
+        "persona": "lawrence",
+        "label": "Bryan Lawrence",
+        "independence_group": "quality_reinvestment",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "dhando"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      }
+    ],
     "committee": {
       "candidate_count": 4,
       "independence_group_count": 3,
@@ -136,14 +230,14 @@
         }
       ]
     },
-    "input_hash": "88a05226351beb245140b2afbeeaa049e938d829b9c1c57aeb9c16ac140c0341",
-    "generated_at": "2026-07-29T20:33:50.040832+00:00"
+    "input_hash": "80ec4c254b8f82a5df8922ea5855d75a9fbb34f8d28198059f38920797e83066",
+    "generated_at": "2026-08-20T14:18:24.619286+00:00"
   },
   "market": {
-    "price_per_share": 11.37,
-    "fully_diluted_shares": null,
-    "market_cap_m": null,
-    "enterprise_value_m": null
+    "price_per_share": 10.67,
+    "fully_diluted_shares": 235552000.0,
+    "market_cap_m": 2513.34,
+    "enterprise_value_m": 2363.94
   },
   "valuation": {
     "value_per_share": {
@@ -156,7 +250,11 @@
       "base": 0,
       "high": 0
     },
-    "legacy_value_per_share": null,
+    "legacy_value_per_share": {
+      "low": 0.33,
+      "base": 0.36,
+      "high": 0.39
+    },
     "probability_weighted_value_per_share": null,
     "expected_distributions_per_share": 0.0,
     "annualized_return_at_price_pct": {
@@ -171,17 +269,27 @@
   },
   "scenario_contract": {
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
-    "top_value_drivers": [],
+    "top_value_drivers": [
+      {
+        "component_id": "operating_business_fallback",
+        "label": "Operating business (fallback)",
+        "valuation_status": "legacy_sensitivity",
+        "base_per_share": null,
+        "legacy_base_per_share": 0.36,
+        "range_width_per_share": null,
+        "scenario_assumptions": null
+      }
+    ],
     "reverse_expectations": null
   },
   "calculation_proof_summary": {
-    "component_count": 0,
+    "component_count": 1,
     "priced_component_count": 0,
     "proof_complete_pct": 0.0,
     "status_counts": {
       "bounded_estimate": 0,
       "calculated": 0,
-      "legacy_sensitivity": 0,
+      "legacy_sensitivity": 1,
       "unpriced": 0
     },
     "all_material_components_priced": false,
@@ -202,12 +310,14 @@
   "evidence": {
     "unresolved_count": 1,
     "blockers": [
-      "A complete economic ownership map has not been supplied."
+      "operating_business_fallback: material component is legacy_sensitivity; a valid calculation proof is required"
     ],
     "validation_errors": []
   },
   "monitoring": {
-    "falsifiers": [],
+    "falsifiers": [
+      "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods."
+    ],
     "required_refresh_triggers": [
       "new filing or material operating update",
       "capital-structure change",
@@ -216,22 +326,24 @@
     ]
   },
   "change_control": {
-    "model_hash": "a6e9aab59bbeedbd247bbed8f5149934ace20b093a793d93154218c502c85192",
+    "model_hash": "772273e2800817d7b7e9ee99ad675a544f571a37c06e36237cb30f1d25f1c9fb",
     "method_versions": [],
     "change_log": [],
     "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
   },
   "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved.",
   "authority": "universal_valuation_contract",
-  "legacy_reference_present": false,
+  "legacy_reference_present": true,
   "falsifier_coverage": {
     "typed": 0,
-    "prose_only": 0,
+    "prose_only": 1,
     "untestable": 0,
     "invalid": 0,
     "unanchored": 0,
     "resolvable": 0,
     "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
     "spec_ref": null,
     "enforcement_enabled": false
   }
