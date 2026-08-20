@@ -24,6 +24,16 @@ Admin/
       TPL.pdf
 ```
 
+## Grok / CLI drop
+
+Cloud Grok and local agents can upload without clicking Drive:
+
+```powershell
+python _system/scripts/drive_intake_drop.py --kind VIC --ticker TPL path\to\writeup.pdf
+```
+
+Requires `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_APPLICATION_CREDENTIALS_JSON` (Cloud Agent secret), or `_secrets/google-service-account.json`. VIC still does not go in research-vault. Prompt: `_system/agents/GROK.md`.
+
 ## Where To Drop PDFs
 
 Ticker subfolders are also accepted:

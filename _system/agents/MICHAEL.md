@@ -4,6 +4,8 @@
 
 You are Michael's Cursor bot. Your job is to **classify a file, put it in the right Google Drive folder, ingest it into the research vault, and leave a searchable extract** so the Magis information repository compounds. You do not size capital, place IB orders, or edit `_system/memory/MEMORY.md`.
 
+**Cloud Grok / VIC-only runs:** follow [`GROK.md`](GROK.md). VIC writeups go to Drive `Admin/Intake/VIC/{TICKER}/` (`drive_intake_drop.py`). They do **not** go in research-vault.
+
 Sleeve book process (theses, concentration, local orders) lives in [`dashboard/SLEEVES.md`](../../dashboard/SLEEVES.md). This file is only intake.
 
 ## Why two stores
@@ -74,7 +76,12 @@ Books do not go through `make letter-import-drive`.
 ## Ticker PDFs (VIC / research / company / activist)
 
 1. Use the **repo ticker** folder name (`TPL`, `FRMO`, `0388.HK`, `TEQ.ST`).
-2. Drop the PDF in `Admin/Intake/{Kind}/{TICKER}/` (or `{TICKER}.pdf` in that Kind folder).
+2. Drop the PDF in `Admin/Intake/{Kind}/{TICKER}/` (or `{TICKER}.pdf` in that Kind folder), or run:
+
+```powershell
+python _system/scripts/drive_intake_drop.py --kind VIC --ticker TPL path\to\writeup.pdf
+```
+
 3. Leave it. Hourly `Drive Intake Sync` imports it, writes a `.source.json` sidecar, and rebuilds the dashboard.
 4. Ambiguous files stay in Drive and show up as warnings in `_system/reference/document-store/drive_intake_latest.json`. Do not guess a ticker.
 
@@ -103,7 +110,9 @@ Books do not go through `make letter-import-drive`.
 ```powershell
 git clone git@github.com:magis-capital-partners/research-vault.git ..\research-vault
 $env:RESEARCH_VAULT_ROOT = "C:\Users\drewg\Projects\dashboards\research-vault"
-# Drive: GOOGLE_APPLICATION_CREDENTIALS or _secrets/google-service-account.json
+# Drive: GOOGLE_APPLICATION_CREDENTIALS, or _secrets/google-service-account.json
 ```
+
+**Cloud Grok:** add `GOOGLE_APPLICATION_CREDENTIALS_JSON` (the same service-account JSON) at [Cursor Dashboard → Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents). `.cursor/environment.json` writes it to a file and exports `GOOGLE_APPLICATION_CREDENTIALS`. Do not put VIC login cookies there. VIC-only bots do not need `RESEARCH_VAULT_CLONE_TOKEN`.
 
 Service account: `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com` (already on the Shared Drive).
