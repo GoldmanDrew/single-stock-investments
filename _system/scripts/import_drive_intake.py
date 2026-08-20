@@ -198,6 +198,18 @@ def load_manifest() -> dict:
     return manifest
 
 
+def report_state(report: dict) -> dict:
+    return {key: value for key, value in report.items() if key not in {"generated_at", "report_changed"}}
+
+
+def write_report_if_changed(path: Path, report: dict) -> bool:
+    previous = load_json(path)
+    if previous and report_state(previous) == report_state(report):
+        return False
+    write_json(path, report)
+    return True
+
+
 def is_dry_run_folder_id(folder_id: str) -> bool:
     return str(folder_id).startswith("dry-run:")
 
@@ -292,12 +304,6 @@ def configured_intake_root_ids(config: dict) -> list[str]:
     for root in (config.get("drive_intake_roots") or {}).values():
         if root.get("folder_id"):
             root_ids.append(root["folder_id"])
-    if not root_ids:
-        root_ids = [
-            root.get("folder_id")
-            for root in (config.get("drive_roots") or {}).values()
-            if root.get("folder_id")
-        ]
     return sorted(set(root_ids))
 
 
@@ -357,6 +363,7 @@ def import_intake(
             existing_folders = folder_id_by_parent_name(items)
     paths, _children = item_paths(items, root_ids)
     manifest = load_manifest()
+    manifest_changed = False
     imported: list[dict] = []
     skipped: list[dict] = []
     errors: list[dict] = []
@@ -519,6 +526,7 @@ def import_intake(
             "ticker_candidates": parsed.get("ticker_candidates"),
             "drive_moved_to": parsed.get("drive_moved_to"),
         }
+        manifest_changed = True
         imported.append({**manifest["files"][file_id], "target": rel(dest), **move_info})
         touched_tickers.add(parsed["ticker"])
         if parsed["intake_kind"] in ("activist_long", "activist_short") and upsert_report:
@@ -543,9 +551,10 @@ def import_intake(
             )
             save_ticker_index(parsed["ticker"], index)
 
-    if not dry_run:
+    if not dry_run and manifest_changed:
         manifest["generated_at"] = now_iso()
         write_json(MANIFEST_PATH, manifest)
+    if not dry_run:
         for ticker in sorted(touched_tickers):
             write_inventory(ticker)
             if extract_ticker_activist_text:
@@ -571,8 +580,10 @@ def import_intake(
         "warnings": warnings[:200],
         "errors": errors[:200],
     }
+    report_changed = False
     if not dry_run:
-        write_json(REPORT_PATH, report)
+        report_changed = write_report_if_changed(REPORT_PATH, report)
+    report["report_changed"] = report_changed
     return report
 
 
@@ -603,6 +614,7 @@ def main() -> int:
     print("Drive intake import")
     for key, value in report["summary"].items():
         print(f"  {key}: {value}")
+    print(f"  report_changed: {str(report['report_changed']).lower()}")
     if report["warnings"]:
         print(
             "  warnings: unresolved/ambiguous PDF tickers or Drive move issues; "

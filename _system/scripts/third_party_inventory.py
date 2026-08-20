@@ -1,6 +1,7 @@
 """Collect all third-party sources for a ticker (HK, Substacks, PDFs, shorts, pending)."""
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -338,3 +339,21 @@ def load_latest_inventory(ticker: str) -> dict | None:
     if not inv:
         return None
     return json.loads(inv[-1].read_text(encoding="utf-8"))
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Rebuild a ticker's third-party source inventory.")
+    parser.add_argument("ticker", help="Existing repo ticker folder")
+    parser.add_argument("--date", dest="out_date", help="Inventory date (YYYY-MM-DD)")
+    args = parser.parse_args(argv)
+    ticker = str(args.ticker).strip()
+    if not ticker or not (ROOT / ticker).is_dir():
+        parser.error(f"unknown ticker folder: {ticker or '(empty)'}")
+    json_path, md_path = write_inventory(ticker, args.out_date)
+    print(json_path.relative_to(ROOT))
+    print(md_path.relative_to(ROOT))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

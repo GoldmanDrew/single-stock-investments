@@ -324,11 +324,29 @@ jobs:
     concurrency:
       group: data-commit-main
       cancel-in-progress: false
+    outputs:
+      imported: ${{ steps.import.outputs.imported }}
+      warnings: ${{ steps.import.outputs.warnings }}
+      errors: ${{ steps.import.outputs.errors }}
+      report_changed: ${{ steps.import.outputs.report_changed }}
     env:
       RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
       RESEARCH_VAULT_CLONE_TOKEN: ${{ secrets.RESEARCH_VAULT_CLONE_TOKEN }}
       RESEARCH_VAULT_ROOT: _external/research-vault
     steps:
+      - name: Check Google credentials secret
+        id: google_creds
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
+        run: |
+          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            MSG="GOOGLE_APPLICATION_CREDENTIALS_JSON is not configured."
+            echo "::error::Drive Intake cannot run — ${MSG}"
+            exit 1
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           tool-cache: false
@@ -347,18 +365,6 @@ jobs:
           fetch-depth: 1
       - name: Checkout workspace (full)
         run: bash _system/scripts/ci_checkout_workspace.sh full
-      - name: Check Google credentials secret
-        id: google_creds
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
-        run: |
-          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            MSG="GOOGLE_APPLICATION_CREDENTIALS_JSON is not configured."
-            echo "::warning::Skipping Drive Intake — ${MSG}"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/setup-python@v5
         if: steps.google_creds.outputs.configured == 'true'
         with:
@@ -376,19 +382,70 @@ jobs:
       - name: Import Drive intake PDFs
         if: steps.google_creds.outputs.configured == 'true'
         id: import
-        env:
-          KIND: ${{ github.event.inputs.kind || '' }}
-          LIMIT: ${{ github.event.inputs.limit || '0' }}
         run: |
-          ARGS="--ensure-folders"
-          if [ -n "${KIND:-}" ]; then ARGS="$ARGS --kind $KIND"; fi
-          if [ -n "${LIMIT:-}" ] && [ "$LIMIT" != "0" ]; then ARGS="$ARGS --limit $LIMIT"; fi
-          python _system/scripts/import_drive_intake.py $ARGS
-          COUNT=$(python -c "import json; from pathlib import Path; p=Path('_system/reference/document-store/drive_intake_latest.json'); print(json.loads(p.read_text())['summary'].get('imported_count',0) if p.exists() else 0)")
-          echo "imported=$COUNT" >> "$GITHUB_OUTPUT"
-          echo "Drive imported_count=$COUNT"
+          set -u
+          set +e
+          python _system/scripts/import_drive_intake.py --ensure-folders
+          STATUS=$?
+          set -e
+          REPORT="_system/reference/document-store/drive_intake_latest.json"
+          if git diff --quiet -- "$REPORT"; then
+            export REPORT_CHANGED=false
+          else
+            export REPORT_CHANGED=true
+          fi
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path("_system/reference/document-store/drive_intake_latest.json")
+          report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else {}
+          summary = report.get("summary") or {}
+          values = {
+              "imported": int(summary.get("imported_count", 0)),
+              "warnings": int(summary.get("warning_count", 0)),
+              "errors": int(summary.get("error_count", 0)),
+              "report_changed": os.environ.get("REPORT_CHANGED", "false"),
+          }
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              for key, value in values.items():
+                  handle.write(f"{key}={value}\n")
+
+          lines = [
+              "### Drive intake",
+              "",
+              "| Imported | Skipped | Warnings | Errors | Report changed |",
+              "|---:|---:|---:|---:|:---:|",
+              (
+                  f"| {values['imported']} | {int(summary.get('skipped_count', 0))} | "
+                  f"{values['warnings']} | {values['errors']} | {values['report_changed']} |"
+              ),
+          ]
+          warnings = report.get("warnings") or []
+          if warnings:
+              lines.extend(["", "#### Unresolved intake"])
+              for warning in warnings[:25]:
+                  path = warning.get("path") or warning.get("filename") or warning.get("drive_file_id")
+                  error = warning.get("error") or "warning"
+                  candidates = ", ".join(warning.get("ticker_candidates") or [])
+                  suffix = f" (candidates: {candidates})" if candidates else ""
+                  lines.append(f"- `{path}`: {error}{suffix}")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as handle:
+              handle.write("\n".join(lines) + "\n")
+          print(
+              "Drive intake "
+              f"imported={values['imported']} warnings={values['warnings']} "
+              f"errors={values['errors']} report_changed={values['report_changed']}"
+          )
+          PY
+          exit "$STATUS"
       - name: Rebuild insights (only when files imported)
-        if: steps.google_creds.outputs.configured == 'true' && steps.import.outputs.imported != '0'
+        id: rebuild
+        if: >
+          always() &&
+          steps.google_creds.outputs.configured == 'true' &&
+          steps.import.outputs.imported != '0'
         uses: ./.github/actions/rebuild-data
         env:
           OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
@@ -397,13 +454,30 @@ jobs:
           profile: insights
           validate: "true"
       - name: Commit imported documents
-        if: steps.google_creds.outputs.configured == 'true' && steps.import.outputs.imported != '0'
+        if: >
+          always() &&
+          steps.google_creds.outputs.configured == 'true' &&
+          steps.import.outputs.imported != '0' &&
+          steps.rebuild.conclusion == 'success'
         uses: ./.github/actions/commit-main
         with:
           message: "chore: sync Drive intake documents $(date -u +%Y-%m-%d)"
+      - name: Commit updated intake report
+        if: >
+          always() &&
+          steps.google_creds.outputs.configured == 'true' &&
+          steps.import.outputs.imported == '0' &&
+          steps.import.outputs.report_changed == 'true'
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore: update Drive intake triage $(date -u +%Y-%m-%d)"
+          git_add: "_system/reference/document-store/drive_intake_latest.json"
       - name: Skip note
-        if: steps.google_creds.outputs.configured == 'true' && steps.import.outputs.imported == '0'
-        run: echo "No Drive files imported; skipping rebuild and commit."
+        if: >
+          steps.google_creds.outputs.configured == 'true' &&
+          steps.import.outputs.imported == '0' &&
+          steps.import.outputs.report_changed != 'true'
+        run: echo "No Drive files imported and intake state is unchanged; skipping rebuild and commit."
 
   news:
     needs: decide
@@ -632,7 +706,7 @@ jobs:
           echo "technicals=${{ needs.decide.outputs.technicals }} result=${{ needs.technicals.result }}"
           echo "activist=${{ needs.decide.outputs.activist }} result=${{ needs.activist.result }}"
           echo "downloads=${{ needs.decide.outputs.downloads }} result=${{ needs.downloads.result }}"
-          echo "drive=${{ needs.decide.outputs.drive }} result=${{ needs.drive.result }}"
+          echo "drive=${{ needs.decide.outputs.drive }} result=${{ needs.drive.result }} imported=${{ needs.drive.outputs.imported }} warnings=${{ needs.drive.outputs.warnings }} errors=${{ needs.drive.outputs.errors }} report_changed=${{ needs.drive.outputs.report_changed }}"
           echo "news=${{ needs.decide.outputs.news }} result=${{ needs.news.result }}"
           echo "cvr_discover=${{ needs.decide.outputs.cvr_discover }} result=${{ needs.cvr-discover.result }}"
           echo "warrant_discover=${{ needs.decide.outputs.warrant_discover }} result=${{ needs.warrant-discover.result }}"

@@ -6,16 +6,32 @@ VIC does **not** go in the vault. Vault is letters, books, and manager meetings.
 
 ## Drop
 
-1. Resolve the **existing repo ticker** folder (`TPL`, `FRMO`, `0388.HK`). If two tickers fit, or `drive_intake_drop.py` returns `unknown_ticker`, skip that PDF and list it. Propose a canonical SSI name if you can (`086790.KS`, not `086790`) but do **not** create the folder.
-2. **PDF:** upload and leave it on Drive. Only for tickers that already exist.
+1. Preflight Drive credentials. Stop on a non-zero exit:
+
+```bash
+python _system/scripts/materialize_drive_credentials.py --require
+```
+
+2. Resolve the **existing repo ticker** folder (`TPL`, `FRMO`, `0388.HK`). If two tickers fit, or `drive_intake_drop.py` returns `unknown_ticker`, skip that PDF and list it. Propose a canonical SSI name if you can (`086790.KS`, not `086790`) but do **not** create the folder.
+3. **PDF:** upload and leave it on Drive. Only for tickers that already exist.
 
 ```bash
 python _system/scripts/drive_intake_drop.py --kind VIC --ticker TICKER path/to/writeup.pdf
 ```
 
-That writes `Admin/Intake/VIC/{TICKER}/` on Shared Drive [Admin/Intake](https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C). Hourly Drive Intake Sync imports to `{TICKER}/third-party-analyses/vic/`.
+The command is idempotent. Treat JSON status `uploaded` and `already_present` as success. Any JSON `error` is a failed drop and must be listed in the final response.
 
-3. **Text only:** write `{TICKER}/third-party-analyses/vic/vic_{date}_{slug}_{hash}.md` and leave it **pending**. Do not put it in base IRR.
+That writes `Admin/Intake/VIC/{TICKER}/` on Shared Drive [Admin/Intake](https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C). The Data Pipeline scans Drive daily at 14:00 UTC and imports to `{TICKER}/third-party-analyses/vic/`. GitHub Actions can start later than the nominal cron time.
+
+4. **Text only:** write `{TICKER}/third-party-analyses/vic/vic_{date}_{slug}_{hash}.md`, then refresh the pending inventory:
+
+```bash
+python _system/scripts/third_party_inventory.py TICKER
+```
+
+Text-only intake is a repo branch/PR change, not a Drive drop. Leave it **pending** and do not put it in base IRR.
+
+5. Report each file as `uploaded`, `already_present`, or `skipped`. Do not claim that GitHub imported a PDF; Grok hands it to the daily intake lane.
 
 ## Credentials
 

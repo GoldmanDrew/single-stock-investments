@@ -8,6 +8,7 @@ research-vault.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -88,6 +89,42 @@ def _intake_root_id() -> str:
     return folder_id
 
 
+def file_hashes(path: Path) -> tuple[str, str]:
+    sha256 = hashlib.sha256()
+    md5 = hashlib.md5(usedforsecurity=False)
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            sha256.update(chunk)
+            md5.update(chunk)
+    return sha256.hexdigest(), md5.hexdigest()
+
+
+def find_duplicate_intake_pdf(
+    items: list[dict],
+    *,
+    folder_id: str,
+    filename: str,
+    size_bytes: int,
+    sha256: str,
+    md5: str,
+) -> dict | None:
+    for item in items:
+        if item.get("mimeType") != "application/pdf":
+            continue
+        if folder_id not in (item.get("parents") or []):
+            continue
+        properties = item.get("appProperties") or {}
+        if properties.get("ssi_sha256") == sha256:
+            return item
+        if (
+            item.get("name") == filename
+            and str(item.get("size") or "") == str(size_bytes)
+            and item.get("md5Checksum") == md5
+        ):
+            return item
+    return None
+
+
 def upload_intake_pdf(planned: dict, *, dry_run: bool = False) -> dict:
     from googleapiclient.http import MediaFileUpload
 
@@ -102,11 +139,14 @@ def upload_intake_pdf(planned: dict, *, dry_run: bool = False) -> dict:
 
     root_id = _intake_root_id()
     folder_rel = str(Path(planned["drive_rel"]).parent).replace("\\", "/")
+    pdf_path = Path(planned["pdf_path"])
+    sha256, md5 = file_hashes(pdf_path)
     if dry_run:
         return {
             **planned,
             "dry_run": True,
             "drive_folder": folder_rel,
+            "sha256": sha256,
             "uploaded_at": now_iso(),
         }
 
@@ -114,13 +154,36 @@ def upload_intake_pdf(planned: dict, *, dry_run: bool = False) -> dict:
     items = list_drive_items(service, [root_id])
     existing = folder_id_by_parent_name(items)
     folder_id = ensure_folder_path(service, root_id, folder_rel, False, existing)
-    media = MediaFileUpload(planned["pdf_path"], mimetype="application/pdf", resumable=True)
+    duplicate = find_duplicate_intake_pdf(
+        items,
+        folder_id=folder_id,
+        filename=pdf_path.name,
+        size_bytes=pdf_path.stat().st_size,
+        sha256=sha256,
+        md5=md5,
+    )
+    if duplicate:
+        return {
+            **planned,
+            "status": "already_present",
+            "drive_file_id": duplicate.get("id"),
+            "drive_web_view_link": duplicate.get("webViewLink"),
+            "drive_folder": folder_rel,
+            "sha256": sha256,
+            "uploaded_at": now_iso(),
+        }
+    media = MediaFileUpload(str(pdf_path), mimetype="application/pdf", resumable=True)
     created = execute_with_retry(
         service.files().create(
             body={
-                "name": Path(planned["pdf_path"]).name,
+                "name": pdf_path.name,
                 "parents": [folder_id],
                 "mimeType": "application/pdf",
+                "appProperties": {
+                    "ssi_sha256": sha256,
+                    "ssi_intake_kind": planned["intake_kind"],
+                    "ssi_ticker": planned["ticker"],
+                },
             },
             media_body=media,
             fields="id,name,webViewLink,parents",
@@ -129,9 +192,11 @@ def upload_intake_pdf(planned: dict, *, dry_run: bool = False) -> dict:
     )
     return {
         **planned,
+        "status": "uploaded",
         "drive_file_id": created.get("id"),
         "drive_web_view_link": created.get("webViewLink"),
         "drive_folder": folder_rel,
+        "sha256": sha256,
         "uploaded_at": now_iso(),
     }
 

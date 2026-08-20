@@ -18,7 +18,7 @@
 
 **Horizon Kinetics** quarterly commentaries and Stahl shelf essays default to **context** until human adds an approved row. Workflow: `hk_cross_reference.md`.
 
-**Value Investors Club** local intakes default to **pending**. Use `_system/scripts/vic_local_intake.py` and `_system/frameworks/vic_local_intake.md`; do not automate VIC login, scheduled crawls, or bulk retrieval.
+**Value Investors Club** intakes default to **pending**. Use `_system/agents/GROK.md` and `_system/scripts/drive_intake_drop.py`; `_system/frameworks/vic_local_intake.md` records the retired local-bookmarklet route. Do not automate VIC login, scheduled crawls, or bulk retrieval.
 
 ---
 

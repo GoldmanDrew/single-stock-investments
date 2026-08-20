@@ -82,8 +82,8 @@ Books do not go through `make letter-import-drive`.
 python _system/scripts/drive_intake_drop.py --kind VIC --ticker TPL path\to\writeup.pdf
 ```
 
-3. Leave it. Hourly `Drive Intake Sync` imports it, writes a `.source.json` sidecar, and rebuilds the dashboard.
-4. Ambiguous files stay in Drive and show up as warnings in `_system/reference/document-store/drive_intake_latest.json`. Do not guess a ticker.
+3. Leave it. The Data Pipeline scans Drive daily at 14:00 UTC, writes a `.source.json` sidecar, and rebuilds insights/dashboard data when files import.
+4. Ambiguous files stay in Drive and show up in the Drive job summary and `_system/reference/document-store/drive_intake_latest.json`. Do not guess a ticker.
 
 ## After every add
 
@@ -113,6 +113,6 @@ $env:RESEARCH_VAULT_ROOT = "C:\Users\drewg\Projects\dashboards\research-vault"
 # Drive: GOOGLE_APPLICATION_CREDENTIALS, or _secrets/google-service-account.json
 ```
 
-**Cloud Grok:** add `GOOGLE_APPLICATION_CREDENTIALS_JSON` (the same service-account JSON) at [Cursor Dashboard → Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents). `.cursor/environment.json` writes it to a file and exports `GOOGLE_APPLICATION_CREDENTIALS`. Do not put VIC login cookies there. VIC-only bots do not need `RESEARCH_VAULT_CLONE_TOKEN`.
+**Cloud Grok:** add `GOOGLE_APPLICATION_CREDENTIALS_JSON` (the same service-account JSON) at [Cursor Dashboard → Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents). `.cursor/environment.json` writes it to a file and exports `GOOGLE_APPLICATION_CREDENTIALS`. Grok must run `python _system/scripts/materialize_drive_credentials.py --require` before a drop. Do not put VIC login cookies there. VIC-only bots do not need `RESEARCH_VAULT_CLONE_TOKEN`.
 
 Service account: `pdf-store-uploader@single-stock-pdf-store.iam.gserviceaccount.com` (already on the Shared Drive).

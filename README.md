@@ -11,7 +11,7 @@ Drop the PDF in the right Google Drive folder. The vault and dashboard then inge
 | Fund / LP letter | [Letters/{YYYY Qn}](https://drive.google.com/drive/folders/1z8P-tKj3lvWmx72bXUxJQ9BcUmKrhTg4) | `research-vault/superinvestor-letters/{YYYY}Q{n}/` | `make letter-import-drive` |
 | Book or wisdom PDF (authorized copy only) | [Research Sources/Investment Wisdom/{author}](https://drive.google.com/drive/folders/1zjhPYsBH9eoV36wm8G_9X5vGt1YY_9Ql) | `research-vault/investment-wisdom/{author}/` | extract `.txt` + short README |
 | Magis manager meeting | `Manager Meetings/{YYYY-MM-DD}/` | `research-vault/manager-meetings/{YYYY-MM-DD}/` | `python _system/scripts/sync_manager_meetings_drive.py` |
-| VIC / outside writeup / company deck / activist (has a ticker) | [Admin/Intake/{Kind}/{TICKER}](https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C) | stays in this repo under `{TICKER}/` | hourly Drive Intake Sync |
+| VIC / outside writeup / company deck / activist (has a ticker) | [Admin/Intake/{Kind}/{TICKER}](https://drive.google.com/drive/folders/1OBaWt7SF-OME8hmXkl7tzdFLAfjBrp_C) | stays in this repo under `{TICKER}/` | Data Pipeline Drive intake, daily at 14:00 UTC |
 
 **Do not** put letters or books in `Admin/Intake`. **Do not** put books in `Letters/`. **Do not** commit licensed PDFs here.
 

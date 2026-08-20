@@ -36,6 +36,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: dashboard-deploy
@@ -56,6 +57,34 @@ jobs:
       - run: |
           echo "Upstream '${{ github.event.workflow_run.name }}' concluded 'failure'; dashboard build was skipped and the site keeps serving the previous artifacts." >&2
           exit 1
+
+  upstream-change-gate:
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.gate.outputs.should_deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/workflow_run_deploy_gate.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Detect upstream dashboard work
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_NAME: ${{ github.event.workflow_run.name }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/jobs?per_page=100" > "$RUNNER_TEMP/upstream-jobs.json"
+          python _system/scripts/workflow_run_deploy_gate.py \
+            --workflow-name "$UPSTREAM_NAME" \
+            --jobs-json "$RUNNER_TEMP/upstream-jobs.json" \
+            --github-output "$GITHUB_OUTPUT"
 
   oauth-secrets:
     runs-on: ubuntu-latest
@@ -147,11 +176,15 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   build:
-    needs: [oauth-secrets, oauth-proxy]
+    needs: [oauth-secrets, oauth-proxy, upstream-change-gate]
     if: |
       always() &&
       needs.oauth-secrets.result == 'success' &&
       (needs.oauth-proxy.result == 'success' || needs.oauth-proxy.result == 'skipped') &&
+      (
+        github.event_name != 'workflow_run' ||
+        needs.upstream-change-gate.outputs.should_deploy == 'true'
+      ) &&
       (
         github.event_name != 'workflow_run' ||
         github.event.workflow_run.conclusion == 'success'
