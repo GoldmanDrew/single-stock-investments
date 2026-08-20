@@ -478,6 +478,11 @@ def letter_corpus_floor(document: dict | None) -> int:
 # richer field over to the poorer rebuild. Count is a proxy for the corpus;
 # it is not a proxy for what the corpus yields.
 DISCUSSANT_REGRESSION_RATIO = 0.75
+# Podcast discovery adds episodes every week and upstream occasionally prunes a
+# few, so a small dip is normal. A drop past this is not drift, it is a lane
+# rebuilding from a vault it never cloned -- the 3,711 -> 3,601 regression on
+# 2026-08-20 was 97%, which is why the threshold sits close to 1.
+PODCAST_REGRESSION_RATIO = 0.98
 
 
 def prior_discussant_count(prior: dict | None) -> int:
@@ -3687,6 +3692,37 @@ def main() -> int:
                 "A larger corpus that attributes less is a regression, not an update.",
                 file=sys.stderr,
             )
+
+    # Same shape of guard, for the podcast catalog.
+    #
+    # The catalog is derived from research-vault/podcasts, but it is not owned by
+    # the podcast workflow: every lane that runs this script regenerates it from
+    # whatever the vault holds at that moment. podcast-refresh.yml checks for a
+    # shrinking catalog before it commits; nothing else did. On 2026-08-20 the
+    # nightly intake-full rebuilt while the vault was momentarily behind and
+    # silently replaced a 3,711-episode catalog with 3,601, walking `newest` back
+    # from 2026-08-19 to 2026-08-03. Nothing reported it, because from that
+    # lane's point of view the rebuild succeeded.
+    #
+    # Putting the check here means every writer hits it rather than only the one
+    # lane that remembered. A vault that is legitimately smaller still wins after
+    # the ratio, so a real pruning is not blocked forever.
+    prior_podcasts = list((prior or {}).get("podcast_index") or [])
+    new_podcasts = list(payload.get("podcast_index") or [])
+    if prior_podcasts and len(new_podcasts) < int(len(prior_podcasts) * PODCAST_REGRESSION_RATIO):
+        payload["podcast_index"] = prior_podcasts
+        payload["podcast_by_show"] = (prior or {}).get("podcast_by_show") or {}
+        payload["podcast_index_preserved"] = {
+            "reason": "rebuild produced a smaller catalog than the committed one",
+            "rebuilt_count": len(new_podcasts),
+            "preserved_count": len(prior_podcasts),
+        }
+        print(
+            f"PRESERVE podcast_index: rebuild yielded {len(new_podcasts)} episodes vs prior "
+            f"{len(prior_podcasts)}; keeping the committed catalog. The corpus this lane saw is "
+            "behind the published one -- check that research-vault/podcasts was cloned and is current.",
+            file=sys.stderr,
+        )
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     serialized_payload = json.dumps(payload, separators=(",", ":")) + "\n"
