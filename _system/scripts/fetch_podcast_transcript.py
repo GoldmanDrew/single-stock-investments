@@ -36,6 +36,37 @@ def user_agent() -> str:
     return doc.get("user_agent") or "SSI-PodcastAgent/1.0 (+research)"
 
 
+# Failures that say nothing about the episode, only about the moment. DNS is the
+# one that matters most: getaddrinfo fails in milliseconds, so a brief outage
+# burns an item's whole retry budget in under a second and buries a perfectly
+# good episode as permanently "failed". On 2026-08-20 that killed 696 of them.
+TRANSIENT_ERROR_MARKERS = (
+    "getaddrinfo",            # DNS (WSAHOST_NOT_FOUND / EAI_NONAME)
+    "temporary failure in name resolution",
+    "name or service not known",
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "timed out",
+    "timeout",
+    "network is unreachable",
+    "no route to host",
+    "ssl",                    # handshake flake, not a bad file
+    "remote end closed",
+    "http error 429",         # rate limited
+    "http error 500",
+    "http error 502",
+    "http error 503",
+    "http error 504",
+)
+
+
+def is_transient_failure(status: str) -> bool:
+    """True when a failure is about the network, not about this episode."""
+    text = str(status or "").lower()
+    return any(marker in text for marker in TRANSIENT_ERROR_MARKERS)
+
+
 def atomic_write_text(path: Path, text: str) -> None:
     """Write a file so that a crash can never leave it half-written.
 
@@ -498,10 +529,20 @@ def drain_whisper_backlog(*, batch: int = 20) -> dict:
         # refresh doc after fetch_one may have marked done
         doc = load_whisper_backlog()
         if result.get("status") not in ("transcribed", "fetched_published", "exists"):
+            transient = is_transient_failure(result.get("status"))
             for row in doc.get("items") or []:
                 if row.get("episode_id") == it.get("episode_id"):
-                    if int(row.get("attempts") or 0) >= 3:
+                    if transient:
+                        # Give the attempt back. The retry budget exists to
+                        # retire episodes that are genuinely unfetchable, and a
+                        # DNS outage answers in milliseconds -- left as-is it
+                        # spends all three attempts inside one bad second and
+                        # permanently buries a good episode.
+                        row["attempts"] = max(0, int(row.get("attempts") or 0) - 1)
+                        row["last_transient_error"] = str(result.get("status"))[:200]
+                    elif int(row.get("attempts") or 0) >= 3:
                         row["status"] = "failed"
+                        row["failed_reason"] = str(result.get("status"))[:200]
                     break
             doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
             save_whisper_backlog(doc)

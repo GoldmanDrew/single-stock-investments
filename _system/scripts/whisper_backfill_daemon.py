@@ -54,6 +54,12 @@ DEFAULT_PUSH_MINUTES = 15
 # Also push once this many episodes have landed, so a fast stretch does not sit
 # unbacked-up waiting for the clock.
 PUSH_EVERY_ITEMS = 10
+# Consecutive rounds that transcribe nothing before the loop gives up. Each
+# barren round doubles the wait, so this rides out a short blip but refuses to
+# grind through the backlog while the network is down.
+BARREN_ROUNDS_BEFORE_STOP = 6
+BARREN_BACKOFF_BASE = 30
+BARREN_BACKOFF_CAP = 900
 
 # Set by the signal handler so a stop request finishes the episode in flight and
 # pushes, instead of losing it.
@@ -272,6 +278,7 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
     last_push = started
     done_this_run = 0
     since_push = 0
+    barren_rounds = 0
     push_seconds = max(60, push_minutes * 60)
 
     parked = park_exhausted(read_backlog())
@@ -283,9 +290,12 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
         tally = counts(doc)
         pending = tally.get("pending", 0)
         elapsed = _now() - started
+        # Print EVERY status. The first real run buried 696 episodes as
+        # "failed" while this line showed only pending/done/parked, so the
+        # damage was invisible for five hours.
+        breakdown = " ".join(f"{name}={count}" for name, count in sorted(tally.items()))
         print(
-            f"[{_stamp()}] pending={pending} done={tally.get('done', 0)} "
-            f"parked={tally.get('parked', 0)} transcribed_this_run={done_this_run} "
+            f"[{_stamp()}] {breakdown} transcribed_this_run={done_this_run} "
             f"elapsed={str(elapsed).split('.')[0]}",
             flush=True,
         )
@@ -303,6 +313,7 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
             break
 
         before = counts(read_backlog()).get("done", 0)
+        before_failed = counts(read_backlog()).get("failed", 0)
         try:
             drain_whisper_backlog(batch=chunk)
         except KeyboardInterrupt:
@@ -313,9 +324,34 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
             print(f"  chunk failed: {exc.__class__.__name__}: {exc}", flush=True)
             time.sleep(30)
             continue
-        landed = max(0, counts(read_backlog()).get("done", 0) - before)
+        after = counts(read_backlog())
+        landed = max(0, after.get("done", 0) - before)
         done_this_run += landed
         since_push += landed
+
+        # A whole chunk that transcribed nothing is the signature of an
+        # environment problem, not of bad episodes. Back off hard rather than
+        # spinning: instant DNS failures let this loop chew through hundreds of
+        # items a minute, which is exactly how one outage cost 696 of them.
+        if landed == 0:
+            barren_rounds += 1
+            new_failures = after.get("failed", 0) - before_failed
+            backoff = min(BARREN_BACKOFF_CAP, BARREN_BACKOFF_BASE * (2 ** (barren_rounds - 1)))
+            print(
+                f"  no episode landed this round (barren={barren_rounds}, "
+                f"new permanent failures={new_failures}); sleeping {backoff}s",
+                flush=True,
+            )
+            if barren_rounds >= BARREN_ROUNDS_BEFORE_STOP:
+                print(
+                    f"  {barren_rounds} barren rounds in a row -- stopping rather than "
+                    "burning the queue. Check connectivity, then restart; nothing is lost.",
+                    flush=True,
+                )
+                break
+            time.sleep(backoff)
+        else:
+            barren_rounds = 0
 
         park_exhausted(read_backlog())
 
