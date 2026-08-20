@@ -40,3 +40,18 @@ Rules that keep SPX safe (test-enforced where noted):
    API toggle. SPX rides through IBKR's daily restart window by design.
 7. **Background jobs deployed to NY4** (Whisper backfill, collectors) run
    `Nice≥15` + `CPUQuota` so the SPX executor never waits on CPU.
+
+## Agent PR lanes (automerge)
+
+Agent PRs merge themselves; nothing merges red. Two lanes in
+`.github/workflows/marvin-pr-automerge.yml`:
+
+- `cursor/*` (research): provenance validation + the Research quality
+  workflow, research-artifact conflict resolution, serialized squash.
+- `codex/*` and `claude/*` (code): every check on the head SHA must complete
+  green; conflicts are never auto-resolved — rebase and push.
+
+A blocked PR gets one `<!-- automerge-blocked -->` comment naming the reason.
+If a daily log in your PR adds a `[PROPOSED COMPANY]` line, record its triage
+routing in the same PR (`build_memory_triage.py --mark routed`) or E7 turns
+the branch hard-red.
