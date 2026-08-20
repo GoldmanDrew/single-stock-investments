@@ -1,6 +1,6 @@
 # ALB — Pending third-party sources
 
-**Updated:** 2026-08-17
+**Updated:** 2026-08-20
 
 Approve in `_system/frameworks/third_party_sources.md` before using in base IRR.
 
