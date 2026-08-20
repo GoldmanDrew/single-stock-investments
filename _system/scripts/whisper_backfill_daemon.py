@@ -122,8 +122,13 @@ def vault_push(message: str) -> bool:
             return False  # nothing new
         subprocess.run(["git", "commit", "-m", message], cwd=repo, check=True,
                        capture_output=True, timeout=300)
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], cwd=repo,
-                       check=True, capture_output=True, timeout=600)
+        # autoStash because the vault is a shared tree: other lanes routinely
+        # leave unstaged edits in it, and a plain `pull --rebase` refuses to run
+        # with a dirty worktree. Without this every push in a days-long run
+        # fails and nothing reaches the remote -- the one thing this function
+        # exists to prevent.
+        subprocess.run(["git", "-c", "rebase.autoStash=true", "pull", "--rebase", "origin", "main"],
+                       cwd=repo, check=True, capture_output=True, timeout=600)
         subprocess.run(["git", "push", "origin", "HEAD:main"], cwd=repo, check=True,
                        capture_output=True, timeout=600)
         return True
