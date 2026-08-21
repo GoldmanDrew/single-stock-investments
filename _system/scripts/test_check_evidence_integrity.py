@@ -104,8 +104,8 @@ class ScanTickerTests(unittest.TestCase):
         healthy(self.research)
         self.addCleanup(self.tmp.cleanup)
 
-    def scan(self, wave=frozenset()):
-        return cei.scan_ticker("T", self.research, set(wave), TODAY)
+    def scan(self, wave=frozenset(), today=TODAY):
+        return cei.scan_ticker("T", self.research, set(wave), today)
 
     def test_healthy_ticker_has_no_findings(self):
         self.assertEqual(self.scan(), {})
@@ -138,11 +138,37 @@ class ScanTickerTests(unittest.TestCase):
             "tasks": [{"status": "pending_collection", "attempts": 0}]})
         self.assertIn("V3", self.scan())
 
-    def test_v3_fresh_queue_is_not_a_finding(self):
+    def test_v3_fresh_queue_still_counts_the_backlog(self):
+        """A queue written today still has a task nobody has ever attempted.
+
+        V3 deliberately does not grant a grace period: gating the count on
+        queue age made it a function of the collector's write schedule rather
+        than of the backlog, so a bulk write could hide 637 untouched queues
+        for exactly STALE_QUEUE_DAYS.
+        """
         write(self.research / "evidence_task_queue.json", {
             "updated_at": "2026-08-11T00:00:00Z",
             "tasks": [{"status": "pending_collection", "attempts": 0}]})
-        self.assertNotIn("V3", self.scan())
+        found = self.scan()
+        self.assertIn("V3", found)
+        self.assertIn("within", found["V3"])
+        self.assertNotIn("[STALE]", found["V3"])
+
+    def test_v3_count_does_not_move_with_the_calendar(self):
+        """The ratchet guard: identical data must score identically on any day."""
+        write(self.research / "evidence_task_queue.json", {
+            "updated_at": "2026-08-11T00:00:00Z",
+            "tasks": [{"status": "pending_collection", "attempts": 0}]})
+        for day in (date(2026, 8, 11), date(2026, 8, 14), date(2027, 1, 1)):
+            self.assertIn("V3", self.scan(today=day),
+                          f"V3 vanished on {day} -- the count is calendar-bound")
+
+    def test_v3_trapped_requires_a_stale_queue(self):
+        """A queue written today may still be collected; that is not trapped."""
+        write(self.research / "evidence_task_queue.json", {
+            "updated_at": "2026-08-11T00:00:00Z",
+            "tasks": [{"status": "pending_collection", "attempts": 0}]})
+        self.assertNotIn("TRAPPED", self.scan()["V3"])
 
     def test_v3_attempted_task_is_not_a_finding(self):
         write(self.research / "evidence_task_queue.json", {

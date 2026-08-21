@@ -86,6 +86,33 @@ def _compact_insight_item(item) -> dict | None:
     return {k: item.get(k) for k in _INSIGHT_ITEM_FIELDS if item.get(k) is not None}
 
 
+# component_valuation subfields the detail pane alone renders. Every one of
+# these is already written in full to the per-ticker shard, and
+# loadTickerDetail() does `Object.assign({}, row, full)` -- a shallow merge, so
+# the shard's complete object replaces this slim one the moment a ticker is
+# opened. Keeping them in core.json was pure duplication: 863 KB of the 6.01 MB
+# boot payload, against a 6.0 MB budget core.json crossed on 2026-08-20.
+#
+# What stays is exactly what the holdings table needs before any ticker is
+# opened: `status`, `total_equity_value_per_share` and `upside_downside_pct` are
+# table sort keys (index.html sortKey 'component_valuation.*'), and
+# `market_price_per_share` feeds the value-gap cell. Both other call sites
+# (renderValuationStatusCell, renderLegacyComponentNote) only test the object
+# for existence.
+_COMPONENT_VALUATION_DETAIL_ONLY = (
+    "economic_value",      # 561 KB -- renderComponentValuation only
+    "components",          # 283 KB -- renderComponentValuation only
+    "decision_rule",       #  16 KB -- renderComponentValuation only
+    "review_status",       #   3 KB -- renderComponentValuation only
+    "review_open_count",   #         -- rendered beside review_status
+)
+
+
+def _slim_component_valuation(cv: dict) -> dict:
+    """Drop the detail-pane schedule, keep the table's sort and display keys."""
+    return {k: v for k, v in cv.items() if k not in _COMPONENT_VALUATION_DETAIL_ONLY}
+
+
 def _slim_essential_insights(essential: dict) -> dict:
     slim = {
         k: v
@@ -109,6 +136,9 @@ def slim_ticker_row(row: dict) -> dict:
     essential = row.get("essential_insights")
     if isinstance(essential, dict):
         slim["essential_insights"] = _slim_essential_insights(essential)
+    component_valuation = row.get("component_valuation")
+    if isinstance(component_valuation, dict):
+        slim["component_valuation"] = _slim_component_valuation(component_valuation)
     # KPI badge summary keeps the table's trend hints without the series.
     kpi = row.get("kpi_trends")
     if isinstance(kpi, dict):
