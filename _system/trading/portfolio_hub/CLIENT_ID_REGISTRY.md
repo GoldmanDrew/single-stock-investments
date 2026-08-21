@@ -9,19 +9,13 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 | Role | Default client ID | May transmit | Owns/cancels |
 |---|---:|---|---|
 | Hub collector | 81 | No | Nothing |
-| Hub master observer | 82 | No | Nothing; observes all clients |
+| Hub master observer | 82 | No | Nothing; observes all clients. (Was documented as 90, which collides with ls-algo's daily screener — `daily_screener.py` client_id=90. Never implemented at 90; reassigned before first use.) |
 | Hub order bridge | 91 | Paper initially | Only positive `MAGIS|…` orderRefs submitted by client 91 |
-| SPX producer | 17 (`spx-0dte` live executor) | Its strategy only | Positive SPX namespace after migration |
-| SPX gateway probe | 18 (`spx-0dte` ibc_guard) | Never | Nothing; read-only connect/disconnect handshake probe |
-| LS producer | 41 base + registered worker ranges (`ls-algo`) | Its strategy only | Positive LS namespace after migration |
+| SPX producer | Existing registered value | Its strategy only | Positive SPX namespace after migration |
+| LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
 
-2026-08-20 corrections: the master observer is **82**, not 90 — client 90 is
-`ls-algo`'s daily screener (see the shared coexistence table in this repo's
-`CLAUDE.md`, `ls-algo/CLAUDE.md`, and `spx-0dte/AGENTS.md`; two clients on one
-ID lock each other out during reconnect). The observer is not yet implemented
-in code; 82 is reserved for it. Client 18 was registered the same day for
-spx-0dte's Gateway handshake probe.
+Cross-system map: SPX 0DTE runs as client **17** (live executor) and **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
 remedial Gateway restart per session day when the API handshake is provably
