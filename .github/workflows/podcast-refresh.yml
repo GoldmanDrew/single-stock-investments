@@ -60,11 +60,13 @@ jobs:
     # The weekly run finishes well inside an hour. A dispatched --backfill does
     # not: run 32280009523 was still in the fetch at 1h52m and was killed by the
     # old 120-minute cap before the commit step, landing nothing after two hours
-    # of work. GitHub's hosted-runner ceiling is 6 hours, so give the backfill
-    # room to reach its commit rather than discovering the cap the hard way.
-    # This is a ceiling, not a target -- a weekly run that approaches it is a
-    # signal that discovery is looping, not that the cap is too low.
-    timeout-minutes: 350
+    # of work. 300 is the governance ceiling for any runner job
+    # (test_llm_workflow_governance.test_every_runner_job_has_a_hard_timeout);
+    # 350 broke that test on every open PR until it was caught. 300 is ample
+    # anyway: with the vault cloned the run finishes in ~35 minutes, because it
+    # no longer re-harvests the whole corpus from scratch. A run approaching
+    # this cap means discovery is looping, not that the cap is too low.
+    timeout-minutes: 300
     # Deliberately NOT in data-commit-main. A concurrency group holds one
     # running slot and one pending slot; a third request evicts whatever is
     # pending. Nine workflows share data-commit-main, so a weekly job that

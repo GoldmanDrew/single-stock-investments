@@ -310,7 +310,9 @@ def test_bridge_client_id_avoids_every_reserved_producer_id():
     # 71-73 (sleeves), 82 (hub observer), 87 (historical). Ranges are ls-algo
     # worker pools: 241-273 (41+200+i), 341-373 (41+300+i), 551 (41+510),
     # 1041+ (41+1000+16i+leg). See CLAUDE.md (IB Gateway coexistence).
-    reserved = {0, 17, 41, 77, 87, 90, 197, 207, 71, 72, 73, 82}
+    # 18 is spx-0dte's ibc_guard handshake probe (read-only connect/disconnect,
+    # never subscribes or transmits) -- added to the contract 2026-08-20.
+    reserved = {0, 17, 18, 41, 77, 87, 90, 197, 207, 71, 72, 73, 82}
     reserved_ranges = [(241, 273), (341, 373), (551, 551), (1041, 2100)]
 
     def clear(client_id):
