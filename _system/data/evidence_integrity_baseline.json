@@ -3,7 +3,7 @@
   "counts": {
     "V1": 21,
     "V2": 1,
-    "V3": 124,
+    "V3": 764,
     "V4": 57,
     "V5": 143,
     "V6": 181,
@@ -11,5 +11,15 @@
     "V8": 531
   },
   "trapped": 124,
-  "note": "Ratchet baseline. Counts may only fall; a rise fails CI."
+  "note": "Ratchet baseline. Counts may only fall; a rise fails CI.",
+  "revisions": [
+    {
+      "as_of": "2026-08-21",
+      "ids": ["V3"],
+      "from": 124,
+      "to": 764,
+      "reason": "Definition change, NOT a bar-lowering. V3 used to fire only when queue_age >= STALE_QUEUE_DAYS, so its count tracked the collector's write schedule instead of the backlog. It was baselined 2026-08-11 -- the same day a bulk run stamped 637 evidence queues -- and returned 764 on 08-14 when those queues aged past the 3-day gate, with zero new defects. Re-recording 124 would have re-armed the same trap: the next bulk write resets every stamp and the cliff repeats. V3 now counts never-attempted tasks regardless of queue age and is invariant across --date (verified 2026-08-11 through 2027-01-01); staleness moved to totals.stale_queues as a cadence signal. 764 tickers / 2030 tasks is the true standing backlog and may only fall from here.",
+      "not_rebaselined": "V6 (181->187: C, COHR, COP, CSX, DD, DVA) and V7 (81->82: C) are genuine regressions -- flat across every test date -- and are deliberately left failing."
+    }
+  ]
 }

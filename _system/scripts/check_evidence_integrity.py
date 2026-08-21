@@ -91,7 +91,7 @@ STALE_QUEUE_DAYS = 3        # a queue untouched this long is not "in progress"
 CHECKS = {
     "V1": "contract decision_grade while the compiler stage is evidence_blocked",
     "V2": "decision_grade with no sourced fact node anywhere in its proofs",
-    "V3": "evidence tasks never attempted on a stale queue",
+    "V3": "evidence tasks never attempted (queue age reported, not gated)",
     "V4": "routed method not satisfied by the proofs (authored proofs discarded)",
     "V5": "component results present but no totals (dashboard renders null)",
     "V6": "decision_grade with no typed falsifier (monitoring cannot fire)",
@@ -282,11 +282,21 @@ def scan_ticker(ticker: str, research: Path, wave: set[str], today: date) -> dic
     untouched = [t for t in tasks if t.get("status") == "pending_collection"
                  and not t.get("attempts")]
     queue_age = age_days(queue.get("updated_at"), today)
-    if untouched and (queue_age is None or queue_age >= STALE_QUEUE_DAYS):
+    # V3 counts the backlog, never the calendar. Gating the count on queue_age
+    # made it a function of when the collector last bulk-wrote the queues:
+    # baselined on a write day it recorded 124, and the same 637 untouched
+    # queues resurfaced as a 764 "regression" three days later without one new
+    # defect. Staleness stays in the detail as a cadence signal and still
+    # decides `trapped` -- a queue written yesterday may yet be collected --
+    # but the ratcheted number no longer moves on its own.
+    if untouched:
+        stale = queue_age is None or queue_age >= STALE_QUEUE_DAYS
         age_text = "unparseable stamp" if queue_age is None else f"{queue_age}d old"
-        trap = grade and ticker not in wave
+        trap = grade and ticker not in wave and stale
         found["V3"] = (f"{len(untouched)}/{len(tasks)} tasks never attempted,"
                        f" queue {age_text}, contract={status}"
+                       + (" [STALE]" if stale
+                          else f" [within {STALE_QUEUE_DAYS}d collector window]")
                        + (" [TRAPPED: decision_grade and not in backfill wave]" if trap else ""))
 
     identity = read_json(research / "security_identity.json")
@@ -338,7 +348,8 @@ def sweep(root: Path, today: date, only: str | None = None) -> dict:
     findings: dict[str, list[dict]] = {cid: [] for cid in CHECKS}
     per_ticker: dict[str, dict] = {}
     totals = {"tickers_scanned": 0, "contracts": 0,
-              "decision_grade": 0, "evidence_blocked": 0, "trapped": 0}
+              "decision_grade": 0, "evidence_blocked": 0, "trapped": 0,
+              "stale_queues": 0}
 
     for folder in sorted(root.iterdir()):
         if only and folder.name != only:
@@ -365,6 +376,8 @@ def sweep(root: Path, today: date, only: str | None = None) -> dict:
         for check_id, detail in found.items():
             findings[check_id].append({
                 "ticker": ticker, "detail": detail, "held": ticker in held})
+        if "[STALE]" in found.get("V3", ""):
+            totals["stale_queues"] += 1
         if "TRAPPED" in found.get("V3", ""):
             totals["trapped"] += 1
 
@@ -411,6 +424,11 @@ def render(report: dict, work: list[dict]) -> str:
     ]
     for cid, title in CHECKS.items():
         lines.append(f"| {cid} | {report['counts'][cid]} | {title} |")
+    lines += ["", f"**Stale queues: {t['stale_queues']}/{report['counts']['V3']}**"
+                  f" -- of the tickers carrying never-attempted evidence tasks,"
+                  f" this many have a queue untouched for {STALE_QUEUE_DAYS}d or"
+                  " more. This is collector cadence, not research quality; V3"
+                  " itself counts the backlog regardless of age.", ""]
     lines += ["", f"**Trapped: {t['trapped']}** -- decision_grade, evidence queue never"
                   " attempted, and absent from the backfill wave. These cannot heal"
                   " themselves and nothing else reports them.", ""]
