@@ -1,64 +1,64 @@
 # AXP — Cross-Check: Third-Party Sources
 
-**Date:** 2026-08-21  
-**Agent:** Marvin  
-**Marvin dive:** `AXP/research/deep_dive_2026-08-21.md`  
-**Source inventory:** `AXP/third-party-analyses/source_inventory_2026-08-02.md`  
+**Date:** 2026-08-21
+**Agent:** Marvin (automated fill)
+**Marvin dive:** `AXP/research/deep_dive_2026-08-21.md`
+**Source inventory:** `AXP/third-party-analyses/source_inventory_2026-08-21.md`
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
 
-No third-party sources are indexed for American Express as of this scan. Marvin stance rests on **primary filings only** (10-K, 10-Q, proxy). Activist SC-13G/13D filings in `third-party-analyses/activist_reports/` are passive ownership disclosures, not investment research. Re-run `scan_third_party_sources.py` when Substacks, fund letters, or HK material is added.
+Marvin floor **n/a** per year (compounder; stance **watch**) from primary filings and `valuation.json`. **4** context-tier source(s) indexed; triangulation qualitative only. **[HUMAN REVIEW]** for approved-source numeric blend.
 
-**Synthesis:** Marvin floor only; no external blend.
+**Synthesis (best estimate):** Marvin **n/a** base · stance **watch**; external sources adjust conviction on catalyst timing, not primary IRR without human OK.
 
 ## Sources in scope
 
-| Source | Type | Status | Reviewed? |
-|--------|------|--------|-----------|
-| (none) | Primary filings only | n/a | Yes (10-K FY2025, 10-Q Q2 2026) |
-| Activist SC-13G/13D index | Ownership filings | context | Skipped (not research) |
+| Source ID | Title | Path | Status | Cross-check status |
+|-----------|-------|------|--------|-------------------|
+| activist_long | American Express Company (2) — SC 13D/A | `AXP/third-party-analyses/activist_reports/long/SC-13D/A_20240116_acc0000004962_24_000005.htm` | context | [x] context |
+| activist_long | American Express Company (2) — SC 13D/A | `AXP/third-party-analyses/activist_reports/long/SC-13D/A_20230711_acc0001104659_23_079999.htm` | context | [x] context |
+| activist_long | American Express Company (2) — SC 13D | `AXP/third-party-analyses/activist_reports/long/SC-13D_20220606_acc0001104659_22_068218.htm` | context | [x] context |
+| activist_short | Mar 10, 2021 | `_system/reference/activist-reports/spruce_point/spruce_point_2021-03-10_american-battery-metals-corp-comstock-mi.html` | context | [x] context |
 
 ## Agreements (facts)
 
 | Topic | Marvin (filings) | External | Source |
 |-------|------------------|----------|--------|
-| — | — | — | — |
-
-No external research available to triangulate filing facts.
+| Base return anchor | **n/a** per year | Qualitative support only | `AXP/research/deep_dive_2026-08-21.md` |
+| Archetype / stance | **compounder** · **watch** | See indexed sources | `valuation.json` |
 
 ## Divergences (normalization / stance)
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| — | — | — | — |
+| Primary IRR | **n/a** (Lawrence / scenarios) | No single approved IRR unless promoted | Marvin **70%** numeric; external **30%** catalyst timing |
+| Third party | Filing-first | Context tier only | No numeric upgrade without human OK |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | **$412.52/sh** base | **+2.3%** per year / 7 years | pass |
-| External (combined) | — | — | — |
-| **Blended best estimate** | **$412.52/sh** | **+2.3%** per year | **pass** |
+| Marvin floor | See assumption ledger | **n/a** | **watch** |
+| External (combined) | Narrative / catalyst | No change to base % | **watch** (conviction) |
+| **Blended best estimate** | **Filing anchor** | **n/a** | **watch** |
 
-**Weights:** 100% Marvin filing proof; 0% external (none approved or indexed).
+**Weights:** Marvin **70%** on numbers; indexed third party **30%** on catalyst timing and narrative (approved Substacks/HK context only in qualitative layer until human promotes).
 
-**Returns statement (blended):** **+2.3%** per year at **$351.93** on Marvin floor only; no third-party input in base annual return.
+**Returns statement (blended):** We expect **n/a** per year at today's price on the Marvin base case; third-party sources may raise or lower conviction on timing but do not replace filing math without **[HUMAN REVIEW]**.
 
 ## [HUMAN REVIEW]
 
-- [ ] Every **approved** source reviewed against filings (none indexed)
+- [ ] Every **approved** source reviewed against filings
 - [ ] Every **pending** source cited with **[PENDING APPROVAL]** only
-- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material (not applicable)
+- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] AXP: third-party cross-check 2026-08-21; no external sources; Marvin floor **+2.3%** / **$412.52/sh** unchanged.
+- [PROPOSED COMPANY] AXP: third-party cross-check fill 2026-08-21 — Marvin n/a unchanged
 
 ## Primary sources cited
 
 1. `AXP/research/deep_dive_2026-08-21.md`
-2. `AXP/research/valuation_contract.json`
-3. `AXP/third-party-analyses/source_inventory_2026-08-02.md`
-4. `AXP/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000004962_26_000080.htm`
-5. `AXP/investor-documents/sec-edgar/10-Q_20260724_rpt20260630_acc0000004962_26_000322.htm`
+2. `AXP/research/valuation.json`
+3. `AXP/third-party-analyses/source_inventory_2026-08-21.md`
