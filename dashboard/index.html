@@ -2392,6 +2392,13 @@ function valuationHelpers() {
     fmtNum,
     fmtPct,
     fmtSignedDollar,
+    // Units-aware money rendering. valuation-viz.js renders per-share figures for
+    // whichever listing it was handed, so it resolves units from that row rather
+    // than assuming the dollar.
+    fmtQuote,
+    fmtSignedQuote,
+    fmtUsd,
+    quoteUnitsOf,
     linkHtml,
     stanceBadgeClass: STANCE_BADGE,
     personaMeta: (data && data.power_zones && data.power_zones.personas) || {},
@@ -2504,10 +2511,11 @@ function renderHoldingsThead() {
 }
 
 function renderValueRangeCell(t) {
-  if (window.ValuationViz) return ValuationViz.renderValueRangeCell(t, fmtNum);
+  if (window.ValuationViz) return ValuationViz.renderValueRangeCell(t, fmtNum, quoteUnitsOf(t));
+  const u = quoteUnitsOf(t);
   const r = t.component_valuation?.total_equity_value_per_share;
   if (!r || r.low == null || r.base == null || r.high == null) return '<span class="mono" style="color:var(--text-muted)">incomplete</span>';
-  return `<span class="mono">$${fmtNum(r.low,0)}–$${fmtNum(r.high,0)}<span class="irr-sub">base $${fmtNum(r.base,0)}</span></span>`;
+  return `<span class="mono">${fmtQuote(r.low, u, 0)}–${fmtQuote(r.high, u, 0)}<span class="irr-sub">base ${fmtQuote(r.base, u, 0)}</span></span>`;
 }
 
 function renderPriceToBaseCell(t) {
@@ -2565,14 +2573,15 @@ function decisionForRow(t) {
 }
 
 function renderPriceValueCell(t) {
+  const u = quoteUnitsOf(t);
   const d = decisionForRow(t);
   const values = d.value_per_share || t.component_valuation?.total_equity_value_per_share || {};
   const price = d.price_per_share ?? t.component_valuation?.market_price_per_share;
-  const priceText = price == null ? '—' : `$${fmtNum(price, 0)}`;
-  const baseText = values.base == null ? '—' : `$${fmtNum(values.base, 0)}`;
+  const priceText = price == null ? '—' : fmtQuote(price, u, 0);
+  const baseText = values.base == null ? '—' : fmtQuote(values.base, u, 0);
   const range = values.low == null || values.high == null
     ? 'range incomplete'
-    : `L $${fmtNum(values.low, 0)} · H $${fmtNum(values.high, 0)}`;
+    : `L ${fmtQuote(values.low, u, 0)} · H ${fmtQuote(values.high, u, 0)}`;
   return `<div class="price-value-line mono"><span>${priceText}</span><span class="price-value-arrow">→</span><strong>${baseText}</strong></div>
     <div class="irr-sub">${range}</div>`;
 }
@@ -2611,7 +2620,7 @@ function renderSpecialSituationCell(t) {
   if (t.cvr) {
     const stage = t.cvr.stage === 'pre_close' ? 'Pre-close'
       : (t.cvr.stage === 'post_close' ? 'Post-close' : (t.cvr.stage_label || t.cvr.stage || 'CVR'));
-    const max = t.cvr.max_payout_usd == null ? '' : ` · max $${Number(t.cvr.max_payout_usd).toFixed(2)}`;
+    const max = t.cvr.max_payout_usd == null ? '' : ` · max ${fmtUsd(t.cvr.max_payout_usd)}`;
     lines.push(`<div class="special-situation-line"><span class="badge badge-cvr">CVR</span><span class="mono" style="font-size:10px">${escapeHtml(stage)}${escapeHtml(max)}</span></div>`);
   }
   if (t.fund_nav) {
@@ -2716,10 +2725,43 @@ function fmtPct(v) {
   return `${Number(v).toFixed(1)}%`;
 }
 
-function fmtSignedDollar(v) {
-  if (v == null || Number.isNaN(Number(v))) return '—';
-  const n = Number(v);
-  return `${n > 0 ? '+' : n < 0 ? '−' : ''}$${fmtNum(Math.abs(n))}`;
+// ---------------------------------------------------------------------------
+// Quote units
+//
+// Every per-share figure below -- price, component value, entry hurdles, NAV,
+// distributions -- is denominated in the currency of the listing venue, not in
+// USD. build_dashboard_data.py attaches that as `t.units` (see
+// _system/scripts/listing_units.py). These helpers are the only sanctioned way
+// to render one; a bare '$' prefix is what made ¥2,591 read as $2,591.
+//
+// The detail view renders one ticker at a time and its panels nest several
+// closures deep, so the active ticker's units are also published as ambient
+// state. Table cells, which render many tickers in one pass, must always pass
+// units explicitly -- the ambient value belongs to whatever detail view is open.
+let ACTIVE_QUOTE_UNITS = null;
+function setActiveQuoteUnits(t) {
+  ACTIVE_QUOTE_UNITS = (t && t.units) || null;
+}
+function quoteUnitsOf(t) {
+  if (t && t.units) return t.units;
+  if (t && t.currency) return { currency: t.currency, minor_unit_factor: 1 };
+  return ACTIVE_QUOTE_UNITS;
+}
+function fmtQuote(v, units, digits) {
+  const options = digits == null ? {} : { maximumFractionDigits: digits, minimumFractionDigits: 0 };
+  return window.DashboardFormat.quote(v, units === undefined ? ACTIVE_QUOTE_UNITS : units, options);
+}
+function fmtSignedQuote(v, units) {
+  return window.DashboardFormat.signedQuote(v, units === undefined ? ACTIVE_QUOTE_UNITS : units);
+}
+// Figures whose payload field is explicitly *_usd (CVR payouts, paper-book NAV)
+// really are USD regardless of where the security lists.
+function fmtUsd(v, digits = 2) {
+  return window.DashboardFormat.currency(v, 'USD', { maximumFractionDigits: digits });
+}
+
+function fmtSignedDollar(v, units) {
+  return window.DashboardFormat.signedQuote(v, units === undefined ? ACTIVE_QUOTE_UNITS : units);
 }
 
 function workbenchStatusBadge(status) {
@@ -2774,18 +2816,18 @@ function renderPricingAnalysis(t) {
   const economicGroups = (economic.component_groups || []).map(group => {
     const comparable = group.comparable_value_per_share?.base;
     const risked = group.risked_present_value_per_share?.base;
-    return `<tr><td><strong>${escapeHtml(group.label || group.id || 'Component')}</strong></td><td>${escapeHtml(group.valuation_basis || '—')}</td><td>${comparable == null ? '—' : '$' + fmtNum(comparable)}</td><td>${risked == null ? '—' : '$' + fmtNum(risked)}</td></tr>`;
+    return `<tr><td><strong>${escapeHtml(group.label || group.id || 'Component')}</strong></td><td>${escapeHtml(group.valuation_basis || '—')}</td><td>${comparable == null ? '—' : fmtQuote(comparable)}</td><td>${risked == null ? '—' : fmtQuote(risked)}</td></tr>`;
   }).join('');
   const economicHtml = economic.method ? `
       <div class="economic-value-bridge" style="margin-top:14px">
         <h4 style="margin:0 0 8px">Economic value bridge</h4>
         <div class="tier-sub"><strong>GAAP role:</strong> ${escapeHtml(economic.gaap_role || 'Reference only')}</div>
         ${grossNav.base == null ? '' : `<div class="metric-grid metric-grid-3" style="margin-top:10px">
-          <div class="metric"><div class="k">Comparable NAV low</div><div class="v mono">$${fmtNum(grossNav.low)}</div></div>
-          <div class="metric"><div class="k">Comparable NAV base</div><div class="v mono">$${fmtNum(grossNav.base)}</div><div class="tier-sub">${fmtPct(economic.gross_comparable_upside_downside_pct?.base)} vs price</div></div>
-          <div class="metric"><div class="k">Comparable NAV high</div><div class="v mono">$${fmtNum(grossNav.high)}</div></div>
+          <div class="metric"><div class="k">Comparable NAV low</div><div class="v mono">${fmtQuote(grossNav.low)}</div></div>
+          <div class="metric"><div class="k">Comparable NAV base</div><div class="v mono">${fmtQuote(grossNav.base)}</div><div class="tier-sub">${fmtPct(economic.gross_comparable_upside_downside_pct?.base)} vs price</div></div>
+          <div class="metric"><div class="k">Comparable NAV high</div><div class="v mono">${fmtQuote(grossNav.high)}</div></div>
         </div>`}
-        ${convergence['15pct'] == null ? '' : `<div class="tier-sub" style="margin-top:8px"><strong>15% base NAV-convergence entry:</strong> $${fmtNum(convergence['15pct'])} · separate from owner-cash entry</div>`}
+        ${convergence['15pct'] == null ? '' : `<div class="tier-sub" style="margin-top:8px"><strong>15% base NAV-convergence entry:</strong> ${fmtQuote(convergence['15pct'])} · separate from owner-cash entry</div>`}
         ${economicGroups ? `<table class="component-table" style="margin-top:10px"><thead><tr><th>Economic component</th><th class="component-method-col">Comparable basis</th><th>Comparable base</th><th>Risked base</th></tr></thead><tbody>${economicGroups}</tbody></table>` : ''}
       </div>` : '';
   const decision = String(p.decision || 'pending').replace(/_/g, ' ');
@@ -2794,19 +2836,19 @@ function renderPricingAnalysis(t) {
     <div class="detail-section component-value-card">
       <h3>Pricing cross-check <span class="badge badge-us">not the economic schedule</span> <span class="badge ${badgeClass}">${escapeHtml(decision)}</span></h3>
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Current price</div><div class="v mono">$${fmtNum(p.price)}</div></div>
-        <div class="metric"><div class="k">Base component value</div><div class="v mono">$${fmtNum(values.base)}</div><div class="tier-sub">${fmtPct(p.upside_downside_pct?.base)} vs price</div></div>
-        <div class="metric"><div class="k">15% owner-cash entry</div><div class="v mono">$${fmtNum(p.entry_price_15pct_base)}</div></div>
+        <div class="metric"><div class="k">Current price</div><div class="v mono">${fmtQuote(p.price)}</div></div>
+        <div class="metric"><div class="k">Base component value</div><div class="v mono">${fmtQuote(values.base)}</div><div class="tier-sub">${fmtPct(p.upside_downside_pct?.base)} vs price</div></div>
+        <div class="metric"><div class="k">15% owner-cash entry</div><div class="v mono">${fmtQuote(p.entry_price_15pct_base)}</div></div>
       </div>
       <div class="metric-grid" style="margin-top:10px">
-        <div class="metric"><div class="k">10% hurdle</div><div class="v mono">$${fmtNum(entry['10pct'])}</div></div>
-        <div class="metric"><div class="k">12% hurdle</div><div class="v mono">$${fmtNum(entry['12pct'])}</div></div>
-        <div class="metric"><div class="k">15% hurdle</div><div class="v mono">$${fmtNum(entry['15pct'])}</div></div>
-        <div class="metric"><div class="k">20% hurdle</div><div class="v mono">$${fmtNum(entry['20pct'])}</div></div>
+        <div class="metric"><div class="k">10% hurdle</div><div class="v mono">${fmtQuote(entry['10pct'])}</div></div>
+        <div class="metric"><div class="k">12% hurdle</div><div class="v mono">${fmtQuote(entry['12pct'])}</div></div>
+        <div class="metric"><div class="k">15% hurdle</div><div class="v mono">${fmtQuote(entry['15pct'])}</div></div>
+        <div class="metric"><div class="k">20% hurdle</div><div class="v mono">${fmtQuote(entry['20pct'])}</div></div>
       </div>
       <div class="summary" style="margin-top:12px">${escapeHtml(p.conclusion || '')}</div>
       ${economicHtml}
-      <div class="tier-sub" style="margin-top:8px"><strong>Price-implied owner-cash growth:</strong> ${fmtPct(p.implied_growth_pct)} · <strong>Current/contracted support:</strong> $${fmtNum(p.current_supported_value)} · <strong>Price paid for growth/options:</strong> $${fmtNum(p.market_price_above_supported_value)}</div>
+      <div class="tier-sub" style="margin-top:8px"><strong>Price-implied owner-cash growth:</strong> ${fmtPct(p.implied_growth_pct)} · <strong>Current/contracted support:</strong> ${fmtQuote(p.current_supported_value)} · <strong>Price paid for growth/options:</strong> ${fmtQuote(p.market_price_above_supported_value)}</div>
       <div class="tier-sub" style="margin-top:8px"><strong>Strongest counter-case:</strong> ${escapeHtml(p.strongest_counter_explanation || '—')}</div>
       <div class="tier-sub" style="margin-top:8px"><strong>Economic claim:</strong> ${escapeHtml(p.economic_claim_note || '—')}</div>
       ${p.committee_routing ? `<div class="tier-sub" style="margin-top:8px"><strong>Committee:</strong> ${escapeHtml(String(p.committee_routing.stage || 'pending').replace(/_/g, ' '))} · ${(p.committee_routing.selected_raters || []).map(x => escapeHtml(String(x).replace(/_/g, ' '))).join(' · ')}</div>` : ''}
@@ -2839,7 +2881,7 @@ function renderComponentValuation(t) {
   }));
   const maxBucket = Math.max(...bucketValues.map(x => Math.abs(x.value)), 1);
   const bucketHtml = bucketValues.map(x => `<div class="component-bucket">
-    <div class="k">${escapeHtml(x.label)}</div><div class="v">${x.value < 0 ? '−' : ''}$${fmtNum(Math.abs(x.value))}</div>
+    <div class="k">${escapeHtml(x.label)}</div><div class="v">${fmtSignedQuote(x.value)}</div>
     <div class="component-bucket-bar" style="width:${Math.max(3, Math.abs(x.value) / maxBucket * 100)}%;background:${x.color}"></div>
   </div>`).join('');
   const badge = cv.status === 'complete' && cv.all_material_components_identified
@@ -2853,8 +2895,8 @@ function renderComponentValuation(t) {
   const proofRows = proof.map(row => `<tr>
     <td><strong>${escapeHtml(row.economic_claim || row.component_id || 'Claim')}</strong><div class="component-method">${escapeHtml(row.quantity?.value == null ? '—' : `${row.quantity.value} ${row.quantity.unit || ''}`)}</div></td>
     <td class="component-method-col"><div>${escapeHtml(row.method || '—')}</div><div class="component-method">${escapeHtml((row.comparable_ids || []).join(' · ') || row.comparable_role || '—')}</div><div class="component-assumption">${escapeHtml(row.adjustment || '')}</div></td>
-    <td class="mono">$${fmtNum(row.range_per_share?.low)}</td><td class="mono">$${fmtNum(row.range_per_share?.base)}</td><td class="mono">$${fmtNum(row.range_per_share?.high)}</td>
-    <td><div class="component-method">${escapeHtml(row.overlap_control || row.overlap_key || '—')}</div>${row.risk_and_timing ? `<div class="component-assumption"><strong>Risk/timing:</strong> ${row.risk_and_timing.success_probability == null ? 'risked range' : fmtPct(Number(row.risk_and_timing.success_probability) * 100)} · ${escapeHtml(row.risk_and_timing.timing_basis || 'timing in range')} · ${row.risk_and_timing.remaining_capital_m == null ? escapeHtml(row.risk_and_timing.remaining_capital_basis || 'capital in range') : '$' + fmtNum(row.risk_and_timing.remaining_capital_m) + 'M remaining capital'}</div>` : ''}<div class="component-assumption"><strong>Falsifier:</strong> ${escapeHtml(row.falsifier || '—')}</div></td>
+    <td class="mono">${fmtQuote(row.range_per_share?.low)}</td><td class="mono">${fmtQuote(row.range_per_share?.base)}</td><td class="mono">${fmtQuote(row.range_per_share?.high)}</td>
+    <td><div class="component-method">${escapeHtml(row.overlap_control || row.overlap_key || '—')}</div>${row.risk_and_timing ? `<div class="component-assumption"><strong>Risk/timing:</strong> ${row.risk_and_timing.success_probability == null ? 'risked range' : fmtPct(Number(row.risk_and_timing.success_probability) * 100)} · ${escapeHtml(row.risk_and_timing.timing_basis || 'timing in range')} · ${row.risk_and_timing.remaining_capital_m == null ? escapeHtml(row.risk_and_timing.remaining_capital_basis || 'capital in range') : fmtQuote(row.risk_and_timing.remaining_capital_m) + 'M remaining capital'}</div>` : ''}<div class="component-assumption"><strong>Falsifier:</strong> ${escapeHtml(row.falsifier || '—')}</div></td>
   </tr>`).join('');
   const economicHtml = economic.status ? `<div class="economic-value-bridge" style="margin-top:14px">
     <h4 style="margin:0 0 8px">Economic valuation proof ${economicBadge}</h4>
@@ -2867,13 +2909,13 @@ function renderComponentValuation(t) {
     <div class="detail-section component-value-card">
       <h3>Valuation ${badge}</h3>
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Low value / share</div><div class="v mono">$${fmtNum(low)}</div><div class="tier-sub">${fmtPct(upside.low)} vs price</div></div>
-        <div class="metric"><div class="k">Base value / share</div><div class="v mono">$${fmtNum(base)}</div><div class="tier-sub">${fmtPct(upside.base)} vs price</div></div>
-        <div class="metric"><div class="k">High value / share</div><div class="v mono">$${fmtNum(high)}</div><div class="tier-sub">${fmtPct(upside.high)} vs price</div></div>
+        <div class="metric"><div class="k">Low value / share</div><div class="v mono">${fmtQuote(low)}</div><div class="tier-sub">${fmtPct(upside.low)} vs price</div></div>
+        <div class="metric"><div class="k">Base value / share</div><div class="v mono">${fmtQuote(base)}</div><div class="tier-sub">${fmtPct(upside.base)} vs price</div></div>
+        <div class="metric"><div class="k">High value / share</div><div class="v mono">${fmtQuote(high)}</div><div class="tier-sub">${fmtPct(upside.high)} vs price</div></div>
       </div>
       <div class="component-range-track" aria-label="Component valuation range">
         <div class="component-range-band" style="left:${left}%;width:${right-left}%"></div>
-        ${priceLeft == null ? '' : `<div class="component-price-marker" style="left:${priceLeft}%"><span class="component-price-label">price $${fmtNum(price)}</span></div>`}
+        ${priceLeft == null ? '' : `<div class="component-price-marker" style="left:${priceLeft}%"><span class="component-price-label">price ${fmtQuote(price)}</span></div>`}
       </div>
       <div class="component-buckets">${bucketHtml}</div>
       ${economicHtml}
@@ -2884,7 +2926,7 @@ function renderComponentValuation(t) {
         <tbody>${components.map(c => `<tr>
           <td><strong>${escapeHtml(c.label || c.id || 'Component')}</strong>${c.treatment === 'embedded' ? '<div class="component-embedded">embedded — not added twice</div>' : ''}</td>
           <td class="component-method-col"><div>${escapeHtml(c.method || '—')}</div><div class="component-method">${escapeHtml(c.evidence_tier || '')}</div>${c.driver_model_type ? `<div class="component-driver">${escapeHtml(c.driver_model_type.replace(/_/g, ' '))}</div>` : ''}${c.assumption_summary ? `<div class="component-assumption">${escapeHtml(c.assumption_summary)}</div>` : ''}</td>
-          <td class="mono">$${fmtNum(c.low_per_share)}</td><td class="mono">$${fmtNum(c.base_per_share)}</td><td class="mono">$${fmtNum(c.high_per_share)}</td>
+          <td class="mono">${fmtQuote(c.low_per_share)}</td><td class="mono">${fmtQuote(c.base_per_share)}</td><td class="mono">${fmtQuote(c.high_per_share)}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`;
@@ -2923,9 +2965,9 @@ function renderTotalReturnSection(t) {
         <div class="metric"><div class="k">History begins</div><div class="v mono">${escapeHtml(tr.history_start || '—')}</div><div class="tier-sub">earliest available trading history</div></div>
       </div>
       <div class="component-buckets">
-        <div class="component-bucket"><div class="k">Regular distributions</div><div class="v mono">$${fmtNum(regular)}</div></div>
-        <div class="component-bucket"><div class="k">Special distributions</div><div class="v mono">$${fmtNum(special)}</div></div>
-        <div class="component-bucket"><div class="k">Other distributions</div><div class="v mono">$${fmtNum(other)}</div></div>
+        <div class="component-bucket"><div class="k">Regular distributions</div><div class="v mono">${fmtQuote(regular)}</div></div>
+        <div class="component-bucket"><div class="k">Special distributions</div><div class="v mono">${fmtQuote(special)}</div></div>
+        <div class="component-bucket"><div class="k">Other distributions</div><div class="v mono">${fmtQuote(other)}</div></div>
         <div class="component-bucket"><div class="k">Events reconciled</div><div class="v mono">${Number(tr.event_count || 0)}</div></div>
       </div>
       ${chartImg}
@@ -4204,7 +4246,7 @@ function renderDarwin() {
         <thead><tr><th>Track</th><th>Cumulative</th><th>Sharpe</th><th>Note</th></tr></thead>
         <tbody>
           <tr><td class="mono">In-sample backtest</td><td>${champ.cumulative_return != null ? (champ.cumulative_return*100).toFixed(1)+'%' : '—'}</td><td>${champ.sharpe_annualized ?? '—'}</td><td>Walk-forward sim on monthly returns</td></tr>
-          <tr style="background:var(--bg-card)"><td class="mono">Paper book</td><td>${paperMark.cumulative_return_pct != null ? paperMark.cumulative_return_pct+'%' : '0%'}</td><td>—</td><td>Since ${escapeHtml(paper.inception_date || paperMark.date || 'inception')} · NAV $${paperMark.nav_usd != null ? Number(paperMark.nav_usd).toLocaleString() : '—'}</td></tr>
+          <tr style="background:var(--bg-card)"><td class="mono">Paper book</td><td>${paperMark.cumulative_return_pct != null ? paperMark.cumulative_return_pct+'%' : '0%'}</td><td>—</td><td>Since ${escapeHtml(paper.inception_date || paperMark.date || 'inception')} · NAV ${paperMark.nav_usd == null ? '—' : fmtUsd(paperMark.nav_usd, 0)}</td></tr>
           <tr><td class="mono">Backtest at paper start</td><td>${btInception.cumulative_return_pct != null ? btInception.cumulative_return_pct+'%' : '—'}</td><td>${btInception.sharpe_annualized ?? '—'}</td><td>Reference when paper opened</td></tr>
         </tbody>
       </table>
@@ -5106,7 +5148,7 @@ function renderHoldingsCell(colId, t) {
     case 'cvr_stage': {
       const c = t.cvr;
       if (!c) return '<td><span style="color:var(--text-muted)">—</span></td>';
-      const max = c.max_payout_usd != null ? `$${Number(c.max_payout_usd).toFixed(2)}` : '—';
+      const max = c.max_payout_usd != null ? fmtUsd(c.max_payout_usd) : '—';
       const title = [
         c.stage_label || c.stage,
         c.next_milestone?.deadline ? `next ${c.next_milestone.deadline}` : '',
@@ -5183,8 +5225,8 @@ function renderHoldingsCell(colId, t) {
 function renderCvrPanel(t) {
   const c = t.cvr;
   if (!c) return '';
-  const max = c.max_payout_usd != null ? `$${Number(c.max_payout_usd).toFixed(2)}` : '—';
-  const upfront = c.upfront_cash_usd != null ? `$${Number(c.upfront_cash_usd).toFixed(2)}` : '—';
+  const max = c.max_payout_usd != null ? fmtUsd(c.max_payout_usd) : '—';
+  const upfront = c.upfront_cash_usd != null ? fmtUsd(c.upfront_cash_usd) : '—';
   const nm = c.next_milestone || {};
   const sec = c.primary_sec?.url
     ? linkHtml(c.primary_sec.url, c.primary_sec.label || 'SEC')
@@ -5383,6 +5425,9 @@ function selectTicker(ticker, opts = {}) {
   renderTable();
   const t = data.tickers.find(x => x.ticker === ticker);
   if (!t) return;
+  // Every per-share figure in the panels below is quoted in this listing's
+  // currency. Publish it before any of them render.
+  setActiveQuoteUnits(t);
   if (!t.__detail) {
     // Slim core row: render a placeholder, fetch the detail shard, re-render.
     const grid0 = document.getElementById('main-grid');

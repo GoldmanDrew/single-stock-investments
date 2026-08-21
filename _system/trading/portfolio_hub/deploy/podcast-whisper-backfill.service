@@ -1,0 +1,48 @@
+[Unit]
+# Multi-day background transcription of the podcast audio backlog.
+# Deliberately not a timer-driven batch: the backlog is ~1,515 episodes and any
+# fixed window either wastes a warm model or gets killed mid-episode.
+Description=Podcast Whisper backlog backfill (resumable, low priority)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=portfolio-hub
+WorkingDirectory=/opt/single-stock-investments
+EnvironmentFile=/etc/portfolio-hub/portfolio-hub.env
+Environment=RESEARCH_VAULT_ROOT=/opt/research-vault
+ExecStart=/opt/portfolio-hub-venv/bin/python _system/scripts/whisper_backfill_daemon.py --until-empty
+
+# This host also runs the order bridge. An order preview has a 10-second quote
+# budget, so transcription must always lose the CPU contest.
+Nice=15
+CPUWeight=20
+IOWeight=20
+# Cap total usage so the hub always has headroom, whatever the core count.
+CPUQuota=75%
+
+# Resumable by design: state is checkpointed per item in whisper_backlog.json,
+# so a restart re-reads the queue and loses at most the episode in flight.
+Restart=on-failure
+RestartSec=120
+
+# SIGTERM asks the daemon to finish the chunk in flight and push before it
+# exits. A chunk is up to --chunk episodes, so allow real time for that;
+# systemd's 90s default would SIGKILL mid-transcription. A kill is survivable
+# (state is fsynced per episode) but it wastes whatever was in progress.
+KillSignal=SIGTERM
+TimeoutStopSec=1800
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/research-vault /var/lib/portfolio-hub
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=podcast-whisper-backfill
+
+[Install]
+WantedBy=multi-user.target

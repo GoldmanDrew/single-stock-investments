@@ -78,6 +78,11 @@
 .ph-symbol { color: var(--text-primary); font-weight: 700; }
 .ph-dim { color: var(--text-muted); }
 .ph-positive { color: var(--positive); }.ph-negative { color: var(--negative); }
+/* Percent of cost, shown under the amount so the column still scans as money. */
+.ph-pnl-pct { display: block; font-size: 11px; opacity: .75; font-variant-numeric: tabular-nums; }
+/* A foreign row with no usable FX rate has no base-currency size. Say that,
+   rather than showing the native figure under a base-currency symbol. */
+.ph-unconverted { color: var(--text-muted); font-style: italic; cursor: help; border-bottom: 1px dotted currentColor; }
 .ph-pill { display: inline-block; padding: 3px 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-secondary); font: 9px 'JetBrains Mono', monospace; }
 .ph-pill.live { color: var(--positive); border-color: rgba(16,185,129,.4); }
 .ph-alert { padding: 14px 16px; border: 1px solid rgba(245,158,11,.4); background: rgba(245,158,11,.06); color: #d8bd86; font-size: 12px; }
@@ -174,3 +179,37 @@
 @media (max-width: 1360px) { .ph-cockpit { grid-template-columns: 1fr 1.6fr; }.ph-cockpit-safety { display: grid; grid-template-columns: 130px 1fr 1fr minmax(220px,1.25fr); align-items: center; gap: 8px 24px; grid-column: 1 / -1; border-top: 1px solid var(--border); border-left: 0 !important; }.ph-cockpit-safety .ph-kicker { grid-row: 1 / 3; }.ph-cockpit-safety .ph-safety-line { padding: 0; }.ph-cockpit-safety .ph-meter { grid-column: 3; margin: -2px 0 0; }.ph-cockpit-safety .ph-safety-line:nth-child(5) { grid-column: 2; }.ph-cockpit-safety .ph-readonly { grid-column: 4; grid-row: 1 / 3; margin: 0; padding: 0 0 0 20px; border-top: 0; border-left: 1px solid var(--border); } }
 @media (max-width: 1100px) { .ph-facts { grid-template-columns: repeat(3, 1fr); }.ph-fact:nth-child(3) { border-right: 0; }.ph-scope-strip { grid-template-columns: repeat(2, 1fr); }.ph-grid { grid-template-columns: 1fr; } }
 @media (max-width: 680px) { .portfolio-panel { padding: 14px 12px 28px; }.ph-title-row { display: block; }.ph-scope-nav { margin-top: 12px; }.ph-cockpit { grid-template-columns: 1fr; }.ph-cockpit > div + div { border-top: 1px solid var(--border); border-left: 0; }.ph-cockpit-chart { min-height: 180px; }.ph-cockpit-safety { display: block; grid-column: auto; }.ph-cockpit-safety .ph-safety-line { padding-top: 12px; }.ph-cockpit-safety .ph-meter { margin: 8px 0 1px; }.ph-cockpit-safety .ph-readonly { margin-top: 17px; padding: 12px 0 0; border-top: 1px solid var(--border); border-left: 0; }.ph-facts { grid-template-columns: repeat(2, 1fr); }.ph-fact:nth-child(2n) { border-right: 0; }.ph-scope-strip { grid-template-columns: 1fr; }.ph-toolbar { align-items: stretch; flex-direction: column; }.ph-view-actions { align-items: stretch; flex-direction: column; }.ph-search-wrap { min-width: 0; width: 100%; }.ph-order-custody { grid-template-columns: 1fr; gap: 5px; }.ph-order-custody strong { justify-self: start; }.ph-order-intro { display: block; }.ph-order-intro p { margin-top: 8px; text-align: left; }.ph-order-form { grid-template-columns: 1fr; }.ph-order-shortcut,.ph-order-rationale,.ph-order-review { grid-column: 1; }.ph-order-review dl { display: block; }.ph-order-lock { grid-template-columns: 1fr; }.ph-order-lock button { width: 100%; } }
+
+/* ---------------------------------------------------------------------------
+   Guarded order ticket
+   Draft -> Preview -> Approve -> Submit. The stepper encodes real hub state, so
+   a step only lights when the hub has actually reported it.
+--------------------------------------------------------------------------- */
+.ph-ticket { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); padding: 18px 20px; margin-bottom: 14px; }
+.ph-ticket-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.ph-ticket-head h3 { margin: 6px 0 0; font-size: 17px; font-weight: 600; }
+.ph-ticket-clock { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
+.ph-ticket-clock.urgent { color: var(--negative); border-color: var(--negative); }
+
+.ph-ticket-steps { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 16px 0; padding: 0; }
+.ph-ticket-steps li { display: flex; align-items: center; gap: 7px; font-size: 12px; text-transform: capitalize; color: var(--text-muted); flex: 1 1 auto; }
+.ph-ticket-steps li span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; border: 1px solid var(--border); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
+.ph-ticket-steps li.done { color: var(--positive); }
+.ph-ticket-steps li.done span { border-color: var(--positive); color: var(--positive); }
+.ph-ticket-steps li.current { color: var(--text-primary); font-weight: 600; }
+.ph-ticket-steps li.current span { border-color: currentColor; }
+.ph-ticket-steps li.failed, .ph-ticket-steps li.failed span { color: var(--negative); border-color: var(--negative); }
+
+.ph-ticket-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; margin: 14px 0; }
+.ph-ticket-facts dt { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.ph-ticket-facts dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.ph-ticket-approve { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 10px; }
+.ph-ticket-fingerprint { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 12px; }
+.ph-ticket-fingerprint span { color: var(--text-muted); }
+.ph-ticket-fingerprint code { font-size: 12px; word-break: break-all; }
+
+.ph-ticket-wait, .ph-ticket-ok, .ph-ticket-bad { margin: 12px 0 0; font-size: 14px; }
+.ph-ticket-ok { color: var(--positive); }
+.ph-ticket-bad { color: var(--negative); }
+.ph-ticket-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; font-size: 12px; }

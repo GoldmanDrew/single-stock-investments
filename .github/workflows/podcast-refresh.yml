@@ -11,13 +11,22 @@ name: Podcast Refresh
 # cron just reports the same violation forever.
 
 on:
-  # Weekly, Monday 07:00 UTC. The upstream shows publish on their own
+  # Weekly, Monday 21:00 UTC. The upstream shows publish on their own
   # schedules through the week and the fetch is rate-limited against iTunes and
   # the Podcast Index, so a daily run would spend most of its budget
-  # re-discovering episodes it already has. Offset from the top of the hour is
-  # unnecessary here: nothing else in this repo runs at 07:00.
+  # re-discovering episodes it already has.
+  #
+  # Moved off 07:00 after the only scheduled run this workflow ever had --
+  # 32007940562 on 2026-08-17 -- was cancelled while queued with
+  # "Canceling since a higher priority waiting request for data-commit-main
+  # exists". Monday 07:00 lands in the middle of the morning writer pile-up
+  # (power-zone 05:30 Mon, data-pipeline activist 06:00 daily, portfolio news
+  # 06:30), so the job spent 55 minutes pending and was then evicted from the
+  # single pending slot that group allows. 21:00 UTC is empty in every other
+  # workflow's schedule. The concurrency change below is the real fix; this is
+  # belt-and-braces so the fetch also is not competing for runners.
   schedule:
-    - cron: "0 7 * * 1"
+    - cron: "0 21 * * 1"
   workflow_dispatch:
     inputs:
       backfill:
@@ -48,10 +57,30 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    concurrency:
-      group: data-commit-main
-      cancel-in-progress: false
+    # The weekly run finishes well inside an hour. A dispatched --backfill does
+    # not: run 32280009523 was still in the fetch at 1h52m and was killed by the
+    # old 120-minute cap before the commit step, landing nothing after two hours
+    # of work. 300 is the governance ceiling for any runner job
+    # (test_llm_workflow_governance.test_every_runner_job_has_a_hard_timeout);
+    # 350 broke that test on every open PR until it was caught. 300 is ample
+    # anyway: with the vault cloned the run finishes in ~35 minutes, because it
+    # no longer re-harvests the whole corpus from scratch. A run approaching
+    # this cap means discovery is looping, not that the cap is too low.
+    timeout-minutes: 300
+    # Deliberately NOT in data-commit-main. A concurrency group holds one
+    # running slot and one pending slot; a third request evicts whatever is
+    # pending. Nine workflows share data-commit-main, so a weekly job that
+    # queues behind the daily writers gets cancelled before it runs a single
+    # step -- which is exactly what happened to run 32007940562, and why the
+    # catalog has been frozen at 2026-08-11 with nothing reporting a failure.
+    #
+    # Serialization at the push layer is what actually protects main, and it
+    # already exists: _system/scripts/ci_push_main.sh rebases onto origin/main
+    # with five attempts and regenerates conflicting derived artifacts
+    # (dashboard/data/*.json is on its regenerable list). A concurrent writer
+    # produces a rebase, not a lost commit. The workflow-level podcast-refresh
+    # group below still prevents two podcast runs from overlapping each other,
+    # which is the only overlap this job actually needs to prevent.
     env:
       # Discovery falls back to iTunes search when these are absent, so a
       # missing secret degrades coverage rather than failing the lane. Both
@@ -60,6 +89,18 @@ jobs:
       PODCASTINDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
       PODCAST_INDEX_API_KEY: ${{ secrets.PODCASTINDEX_API_KEY }}
       PODCAST_INDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
+      # The transcript corpus lives in the private research vault, not in this
+      # repo. Without these, vault_paths.podcasts_root() finds no vault and
+      # falls back to the in-repo legacy path, which does not exist -- so the
+      # run starts from an EMPTY corpus and re-harvests all ~3,600 episodes
+      # from the internet on every execution. That is what made run
+      # 32280009523 take two hours and still only reach 3,430 episodes and
+      # 1,746 transcripts against the 3,601 / 2,075 the vault actually holds.
+      # A single pass cannot reproduce an accumulated corpus, so the catalog
+      # comes out smaller and the "catalog shrank" guard correctly rejects it.
+      RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
+      RESEARCH_VAULT_CLONE_TOKEN: ${{ secrets.RESEARCH_VAULT_CLONE_TOKEN }}
+      RESEARCH_VAULT_ROOT: _external/research-vault
 
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +114,13 @@ jobs:
 
       - name: Checkout workspace (full)
         run: bash _system/scripts/ci_checkout_workspace.sh full
+
+      # Must come before any pipeline step. Every episode, transcript and
+      # .meta.json the builders read lives here; without it the corpus is
+      # empty and the run silently rebuilds a worse catalog than the one it
+      # replaces. ci_checkout_workspace.sh does not clone the vault.
+      - name: Checkout research vault
+        uses: ./.github/actions/checkout-vault
 
       - uses: actions/setup-python@v5
         with:
@@ -106,6 +154,43 @@ jobs:
           PY
           fi
 
+      - name: Check the transcript corpus is actually present
+        # The failure this catches is silent by construction: with no vault,
+        # podcasts_root() returns a legacy in-repo path, the builders find zero
+        # .meta.json files, and the pipeline happily rebuilds a smaller catalog.
+        # The downstream "catalog shrank" guard would stop the commit, but only
+        # after burning hours re-harvesting. Fail here instead, in seconds.
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import glob, json, os, sys
+          sys.path.insert(0, "_system/scripts")
+          from vault_paths import podcasts_root
+
+          root = podcasts_root(create=False)
+          episodes = len(glob.glob(str(root / "episodes" / "**" / "*.meta.json"), recursive=True)) if root else 0
+          committed = json.load(open("dashboard/data/insights/podcasts.json", encoding="utf-8"))
+          expected = len(committed.get("podcast_index") or [])
+          print(f"corpus root      : {root}")
+          print(f"corpus episodes  : {episodes}")
+          print(f"committed catalog: {expected}")
+
+          if episodes == 0:
+              sys.exit(
+                  "::error::The transcript corpus is empty. RESEARCH_VAULT_CLONE_TOKEN is probably "
+                  "missing, so the vault was not cloned and this run would re-harvest from scratch "
+                  "and publish a smaller catalog than the one it replaces."
+              )
+          # Discovery legitimately adds episodes between runs, and a few may be
+          # pruned upstream, so allow a small shortfall but not a cliff.
+          if episodes < expected * 0.95:
+              sys.exit(
+                  f"::error::Corpus holds {episodes} episodes against a committed catalog of "
+                  f"{expected}. The vault looks partial; refusing to rebuild from it."
+              )
+          PY
+
       - name: Record the pre-run catalog state
         id: before
         shell: bash
@@ -135,6 +220,49 @@ jobs:
             args+=(--backfill)
           fi
           python _system/scripts/podcast_cloud_refresh.py "${args[@]}"
+
+      # Runs BEFORE verify, deliberately. The corpus is the input; the catalog
+      # is derived from it. Transcripts we actually fetched are always worth
+      # keeping, whereas the verify step only decides whether the derived
+      # artifact is fit to publish.
+      #
+      # Gating this on verify deadlocks: verify fails when the catalog shrinks,
+      # a catalog shrinks when the vault is behind, and the vault is exactly
+      # what this step fixes. Run 32304048660 proved it -- "catalog shrank:
+      # 3711 -> 3622", push skipped, vault left behind, nothing improved.
+      #
+      # Pushing also stops every run re-fetching the same episodes against
+      # rate-limited upstreams, which is most of what makes the job slow.
+      - name: Push new transcripts back to the research vault
+        shell: bash
+        working-directory: _external/research-vault
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Corpus only. Other vault trees belong to other lanes.
+          git add podcasts
+          if git diff --cached --quiet; then
+            echo "No new corpus files this run."
+            exit 0
+          fi
+          echo "Corpus changes:"
+          git diff --cached --stat | tail -5
+          git commit -q -m "chore(podcasts): corpus refresh $(date -u +%Y-%m-%d)"
+          # The vault takes writes from several lanes, so rebase rather than
+          # assume a fast-forward.
+          for attempt in 1 2 3; do
+            git fetch origin main -q
+            if git rebase origin/main -q && git push origin HEAD:main -q; then
+              echo "Pushed corpus to research-vault (attempt $attempt)."
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 5))
+          done
+          # The catalog step still runs: a failed corpus push is worth a warning,
+          # not a lost refresh. The next run re-fetches what did not land.
+          echo "::warning title=Vault push failed::New transcripts were not pushed to research-vault; the next run will re-fetch them."
 
       - name: Verify the catalog actually moved
         shell: bash

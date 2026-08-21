@@ -25,6 +25,9 @@
     strategy: null, query: '', positionFilter: 'all', sortKey: 'market_value_decimal',
     sortDirection: 'desc', density: localStorage.getItem('portfolio-density') || 'comfortable', onRoute: null,
     selectedPositionKey: null, lineage: null, showColumns: false, savedViewName: '', orderNotice: null,
+    // Guarded order desk. `orderRequests` is the owner's recent tickets from the
+    // command channel; `activeRequest` is the one being worked right now.
+    orderRequests: null, activeRequestId: null, orderPollTimer: null,
     visibleColumns: loadColumns(), savedViews: loadViews(),
   };
   const sections = ['positions', 'risk', 'margin', 'performance', 'orders', 'reconciliation'];
@@ -40,14 +43,97 @@
   const valueMap = (book) => Object.fromEntries((book?.account_values || []).map((row) => [row.tag, row.value_decimal]));
   const positionKey = (row) => `${row.account_alias || ''}:${row.conid}:${row.model_code || ''}`;
   const columnVisible = (key) => state.visibleColumns.includes(key);
-  const scopedValue = (row, field) => {
-    const baseField = ({ market_value_decimal: 'market_value_base_decimal', daily_pnl_decimal: 'daily_pnl_base_decimal', unrealized_pnl_decimal: 'unrealized_pnl_base_decimal', realized_pnl_decimal: 'realized_pnl_base_decimal' })[field];
-    const value = num(row?.[baseField] ?? row?.[field]);
+  const BASE_FIELD = {
+    market_value_decimal: 'market_value_base_decimal',
+    daily_pnl_decimal: 'daily_pnl_base_decimal',
+    unrealized_pnl_decimal: 'unrealized_pnl_base_decimal',
+    realized_pnl_decimal: 'realized_pnl_base_decimal',
+  };
+  const NATIVE_FIELD = {
+    market_value_decimal: 'market_value_native_decimal',
+    average_cost_decimal: 'average_cost_native_decimal',
+    mark_decimal: 'mark_native_decimal',
+  };
+  const baseCurrencyOf = (row) => row?.base_currency || state.book?.snapshot?.base_currency || 'USD';
+  const nativeCurrencyOf = (row) => row?.native_currency || row?.currency || baseCurrencyOf(row);
+  const isNativeBase = (row) => nativeCurrencyOf(row) === baseCurrencyOf(row);
+
+  /**
+   * True when this row's base-currency figures are trustworthy.
+   *
+   * A same-currency row needs no translation. A foreign row needs an explicit
+   * base figure AND a real FX rate behind it. Without both, the only number the
+   * payload carries is the native one -- and 3,000 shares at JPY 1,688 is
+   * 5,064,000 yen, which is about USD 34k, not USD 5,064,000. Presenting that
+   * native figure as base is what made a small Tokyo position sort as the
+   * largest holding in the book.
+   */
+  const hasBaseValue = (row) => isNativeBase(row)
+    || (row?.market_value_base_decimal != null && row?.fx_source && row.fx_source !== 'fx_unavailable');
+
+  const scopeToOwner = (row, value) => {
     if (value == null || state.scope === 'all') return value;
     const brokerQty = num(row.quantity_decimal);
     const allocatedQty = (row.allocations || []).reduce((sum, allocation) => sum + (num(allocation.quantity_decimal) || 0), 0);
     return brokerQty ? value * allocatedQty / brokerQty : null;
   };
+
+  /** A figure in account base currency, or null when it cannot be stated in base. */
+  const scopedValue = (row, field) => {
+    const baseField = BASE_FIELD[field];
+    // Never fall back across currencies: a missing base figure on a foreign row
+    // means "unknown in base", not "same as native".
+    const raw = isNativeBase(row) ? (row?.[baseField] ?? row?.[field]) : (hasBaseValue(row) ? row?.[baseField] : null);
+    return scopeToOwner(row, num(raw));
+  };
+
+  /** The same figure in the currency it was quoted in, which always exists. */
+  const scopedNative = (row, field) => scopeToOwner(row, num(row?.[NATIVE_FIELD[field]] ?? row?.[field]));
+
+  /**
+   * P&L as a percentage of cost. Numerator and denominator are taken from the
+   * same currency, so the ratio is unit-free and correct even when the row has
+   * no usable FX rate.
+   */
+  const pnlPercent = (row, field) => {
+    const useBase = hasBaseValue(row) && num(row[BASE_FIELD[field]]) != null;
+    const pnl = num(useBase ? row[BASE_FIELD[field]] : row[field]);
+    const value = num(useBase ? (row.market_value_base_decimal ?? row.market_value_decimal) : (row.market_value_native_decimal ?? row.market_value_decimal));
+    if (pnl == null || value == null) return null;
+    const cost = value - pnl;
+    return cost ? pnl / Math.abs(cost) : null;
+  };
+
+  /**
+   * Market value in account base, with the native quote underneath.
+   *
+   * When the row cannot be stated in base the base slot says so rather than
+   * showing the native number with a base currency symbol.
+   */
+  function marketValueCell(row) {
+    const base = scopedValue(row, 'market_value_decimal');
+    const nativeCurrency = nativeCurrencyOf(row);
+    const nativeText = isNativeBase(row) ? '' : `<br><span class="ph-dim">${money(scopedNative(row, 'market_value_decimal'), false, nativeCurrency)}</span>`;
+    if (base == null) {
+      return `<span class="ph-unconverted" title="No usable ${nativeCurrency}/${baseCurrencyOf(row)} rate in this snapshot, so this position has no base-currency value.">not converted</span>${nativeText}`;
+    }
+    return `${money(base, false, baseCurrencyOf(row))}${nativeText}`;
+  }
+
+  /** Signed P&L in base, with the percentage of cost it represents. */
+  function pnlCell(row, field, precomputed) {
+    const value = precomputed === undefined ? scopedValue(row, field) : precomputed;
+    const percent = pnlPercent(row, field);
+    const percentText = percent == null ? '' : `<span class="ph-pnl-pct">${percent > 0 ? '+' : ''}${(percent * 100).toFixed(1)}%</span>`;
+    if (value == null) {
+      // The percentage is a ratio within one currency, so it survives a missing
+      // FX rate even when the base amount does not.
+      const native = scopedNative(row, field === 'daily_pnl_decimal' ? 'market_value_decimal' : field);
+      const nativeAmount = num(row[field]);
+      return `${nativeAmount == null ? '—' : signed(nativeAmount, nativeCurrencyOf(row))}${percentText}`;
+    }
+    return `${signed(value, baseCurrencyOf(row))}${percentText}`;
+  }
 
   function loadColumns() {
     try {
@@ -166,9 +252,23 @@
       if (state.positionFilter === 'unallocated' && (row.allocations || []).length) return false;
       return !query || `${row.symbol} ${row.local_symbol} ${row.description} ${row.sec_type} ${row.currency} ${row.conid}`.toLowerCase().includes(query);
     };
-    const sortable = (row) => state.sortKey === 'symbol' ? String(row.local_symbol || row.symbol || '') : (scopedValue(row, state.sortKey) ?? num(row[state.sortKey]) ?? 0);
+    // Sorting is a cross-currency comparison, so it must use base values only.
+    // Falling back to the raw field would rank a foreign row by its native
+    // magnitude -- JPY 5,064,000 outranking every USD position in the book.
+    // Rows with no usable rate sort to the end in either direction instead of
+    // being silently mixed in at a fabricated size.
+    const sortable = (row) => {
+      if (state.sortKey === 'symbol') return String(row.local_symbol || row.symbol || '');
+      if (BASE_FIELD[state.sortKey]) return scopedValue(row, state.sortKey);
+      return num(row[state.sortKey]);
+    };
     const rows = (book.positions || []).filter(filterRow).sort((left, right) => {
-      const a = sortable(left); const b = sortable(right); const result = typeof a === 'string' ? a.localeCompare(b) : a - b;
+      const a = sortable(left);
+      const b = sortable(right);
+      // Unconvertible rows park at the end in both directions; they have no
+      // comparable size, so any position among the sorted values would be a lie.
+      if (a == null || b == null) return a == null && b == null ? 0 : a == null ? 1 : -1;
+      const result = typeof a === 'string' ? a.localeCompare(b) : a - b;
       return state.sortDirection === 'asc' ? result : -result;
     });
     const filterLabels = { all: 'All', equity: 'Stocks & ETFs', option: 'Options', long: 'Long', short: 'Short', unallocated: 'Unallocated' };
@@ -185,9 +285,9 @@
         quantity_decimal: `<td>${quantity(state.scope === 'all' ? row.quantity_decimal : row.allocations?.reduce((s, a) => s + (num(a.quantity_decimal) || 0), 0))}</td>`,
         average_cost_decimal: `<td>${money(row.average_cost_native_decimal ?? row.average_cost_decimal, false, row.native_currency || row.currency)}</td>`,
         mark_decimal: `<td>${money(row.mark_native_decimal ?? row.mark_decimal, false, row.native_currency || row.currency)}</td>`,
-        market_value_decimal: `<td>${money(scopedValue(row, 'market_value_decimal'), false, row.base_currency || book.snapshot?.base_currency || 'USD')}${row.native_currency && row.native_currency !== (row.base_currency || book.snapshot?.base_currency) && row.market_value_native_decimal != null ? `<br><span class="ph-dim">${money(row.market_value_native_decimal, false, row.native_currency)}</span>` : ''}</td>`,
-        daily_pnl_decimal: `<td class="${scopeDaily < 0 ? 'ph-negative' : 'ph-positive'}">${signed(scopeDaily)}</td>`,
-        unrealized_pnl_decimal: `<td>${signed(scopedValue(row, 'unrealized_pnl_decimal'))}</td>`,
+        market_value_decimal: `<td>${marketValueCell(row)}</td>`,
+        daily_pnl_decimal: `<td class="${scopeDaily == null ? '' : scopeDaily < 0 ? 'ph-negative' : 'ph-positive'}">${pnlCell(row, 'daily_pnl_decimal', scopeDaily)}</td>`,
+        unrealized_pnl_decimal: `<td class="${(scopedValue(row, 'unrealized_pnl_decimal') ?? 0) < 0 ? 'ph-negative' : 'ph-positive'}">${pnlCell(row, 'unrealized_pnl_decimal')}</td>`,
         currency: `<td>${esc(row.currency)}</td>`,
         quality: `<td><span class="ph-pill ${row.quality === 'live' ? 'live' : ''}">${esc(row.quality)}</span></td>`,
       };
@@ -261,6 +361,194 @@
     return `<div class="ph-grid">${panelLines('Live P&L', [['Daily', 'IBKR reset-series'], ['Unrealized', 'Broker-reported'], ['Realized', 'Execution/Flex reconcile']])}${panelLines('Completed sessions', [['Flex versions', String(state.performance?.completed_sessions?.length || 0)], ['Session P&L', 'Immutable Flex lineage'], ['Restatements', 'Separate series'], ['Legacy pnl_today', 'Never used as daily']])}${panelLines('Returns', [['NAV observations', String(state.performance?.nav_series?.length || 0)], ['TWR', state.performance?.twr == null ? 'Suppressed' : String(state.performance.twr)], ['Max drawdown', state.performance?.max_drawdown == null ? '—' : `${(state.performance.max_drawdown * 100).toFixed(2)}%`], ['Reason', state.performance?.null_reason || '—']])}</div><section class="ph-panel ph-chart-panel"><div class="ph-chart-head"><span>NAV vs ${esc(state.performance?.benchmark?.symbol || 'SPY')}</span><button type="button" class="ph-density" data-ph-lineage="NAV vs benchmark" data-ph-source="IBKR NetLiquidation" data-ph-detail="${esc(reason)}">Lineage</button></div>${portfolioSparkline(state.performance?.nav_series, state.performance?.benchmark)}<p class="ph-dim">${esc(reason)}</p></section>${lineageDrawer()}`;
   }
 
+  // ---------------------------------------------------------------------------
+  // Guarded order ticket
+  //
+  // Draft -> Preview -> Approve -> Submit, mirroring GuardedOrderService. The
+  // browser only ever *requests* and *approves*: the private hub prices the
+  // order against the live book, holds the approval secret, and is the only
+  // thing that can transmit. Every state below is one the hub published, so the
+  // desk never claims progress the hub has not actually made.
+  const TICKET_STEPS = ['requested', 'previewed', 'approved', 'acknowledged'];
+  const OPEN_TICKET_STATES = new Set(['requested', 'drafting', 'previewed', 'approved', 'submitting']);
+  const TERMINAL_TICKET_STATES = new Set(['filled', 'cancelled', 'rejected', 'expired']);
+
+  const activeRequest = () => (state.orderRequests?.requests || [])
+    .find((row) => row.request_id === state.activeRequestId)
+    || (state.orderRequests?.requests || []).find((row) => OPEN_TICKET_STATES.has(row.state));
+
+  function ticketStepIndex(ticketState) {
+    if (ticketState === 'drafting') return 0;
+    if (ticketState === 'submitting') return 2;
+    if (ticketState === 'filled') return 3;
+    const index = TICKET_STEPS.indexOf(ticketState);
+    return index < 0 ? 0 : index;
+  }
+
+  function ticketStepper(ticketState) {
+    const current = ticketStepIndex(ticketState);
+    const failed = TERMINAL_TICKET_STATES.has(ticketState) && ticketState !== 'filled';
+    return `<ol class="ph-ticket-steps" aria-label="Order progress">${TICKET_STEPS.map((label, index) => {
+      let cls = index < current ? 'done' : index === current ? 'current' : '';
+      if (failed && index === current) cls = 'failed';
+      return `<li class="${cls}"><span>${index + 1}</span>${esc(label === 'acknowledged' ? 'submitted' : label)}</li>`;
+    }).join('')}</ol>`;
+  }
+
+  function approvalCountdown(row) {
+    if (!row.approval_expires_at) return '';
+    const remaining = Math.max(0, Math.round((new Date(row.approval_expires_at) - Date.now()) / 1000));
+    const urgent = remaining <= 30;
+    return `<span class="ph-ticket-clock ${urgent ? 'urgent' : ''}" data-ph-countdown="${esc(row.approval_expires_at)}">${
+      remaining === 0 ? 'expired' : `${remaining}s to approve`}</span>`;
+  }
+
+  function previewFacts(row) {
+    let preview = {};
+    try { preview = row.preview_json ? JSON.parse(row.preview_json) : {}; } catch (_) { preview = {}; }
+    const quote = preview.quote || {};
+    const whatIf = preview.what_if || {};
+    const currency = row.currency || 'USD';
+    const rows = [
+      ['Bid / ask', quote.bid == null ? '—' : `${money(quote.bid, false, currency)} / ${money(quote.ask, false, currency)}`],
+      ['Your limit', money(row.limit_price_decimal, false, currency)],
+      ['Notional', preview.notional == null ? '—' : money(preview.notional, false, currency)],
+      ['Initial margin', whatIf.initial_margin_change ? money(whatIf.initial_margin_change) : '—'],
+      ['Maintenance margin', whatIf.maintenance_margin_change ? money(whatIf.maintenance_margin_change) : '—'],
+      ['Commission', whatIf.commission ? money(whatIf.commission) : '—'],
+    ];
+    return `<dl class="ph-ticket-facts">${rows.map(([k, v]) =>
+      `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+  }
+
+  // The hub names its own refusals; translate them rather than showing a code.
+  const REJECT_REASONS = {
+    stale_quote: 'The quote went stale before the hub could price it. Request again.',
+    invalid_nbbo: 'The book had no two-sided market for this contract.',
+    price_band: 'Your limit sits too far from the midpoint.',
+    invalid_market_tick: 'That price is not a whole multiple of the contract tick.',
+    reduce_only_violation: 'This would open or extend a position rather than reduce it.',
+    notional_limit: 'The order exceeds the notional cap for a single ticket.',
+    kill_switch_engaged: 'The hub kill switch is engaged. No new orders are being accepted.',
+    live_interlock_disabled: 'Live transmission is disabled on the hub.',
+  };
+  const rejectText = (row) => REJECT_REASONS[row.reject_reason] || row.reject_reason || 'The hub refused this ticket.';
+
+  function ticketBody(row) {
+    switch (row.state) {
+      case 'requested':
+      case 'drafting':
+        return `<p class="ph-ticket-wait">Waiting for the private hub to pick this up and price it against the live
+          book. Nothing has been sent to a broker.</p>
+          <p class="ph-dim">If this sits here, the hub is not running: it polls this queue, the queue cannot call it.</p>`;
+      case 'previewed':
+        return `${previewFacts(row)}
+          <div class="ph-ticket-approve">
+            <div class="ph-ticket-fingerprint"><span>Contract</span><code>${esc(row.contract_fingerprint || '—')}</code></div>
+            <label class="ph-order-confirm"><input type="checkbox" data-ph-approve-confirm>
+              <span>I have checked this contract and price.</span></label>
+            <button type="button" class="ph-order-submit" data-ph-approve="${esc(row.request_id)}" disabled>
+              Approve paper order</button>
+          </div>`;
+      case 'approved':
+      case 'submitting':
+        return `<p class="ph-ticket-wait">Approved. The hub is re-verifying its own token and submitting.</p>`;
+      case 'acknowledged':
+        return `<p class="ph-ticket-ok">The broker has the order.${row.order_ref
+          ? ` <span class="ph-dim">${esc(row.order_ref)}</span>` : ''}</p>${previewFacts(row)}`;
+      case 'filled':
+        return `<p class="ph-ticket-ok">Filled.</p>${previewFacts(row)}`;
+      case 'rejected':
+        return `<p class="ph-ticket-bad">${esc(rejectText(row))}</p>`;
+      case 'expired':
+        return `<p class="ph-ticket-bad">The approval window closed. Request it again for a fresh quote.</p>`;
+      case 'cancelled':
+        return `<p class="ph-ticket-bad">Cancelled.</p>`;
+      default:
+        return `<p class="ph-dim">State: ${esc(row.state)}</p>`;
+    }
+  }
+
+  function guardedTicket(row) {
+    if (!row) return '';
+    const currency = row.currency || 'USD';
+    return `<section class="ph-ticket" aria-label="Order ticket">
+      <header class="ph-ticket-head">
+        <div>
+          <span class="ph-paper-stamp">PAPER · NEVER TRANSMITTED</span>
+          <h3>${esc(row.action)} ${quantity(row.quantity_decimal)} ${esc(row.symbol)}
+            <span class="ph-dim">@ ${money(row.limit_price_decimal, false, currency)} ${esc(row.tif || 'DAY')}</span></h3>
+        </div>
+        ${row.state === 'previewed' ? approvalCountdown(row) : ''}
+      </header>
+      ${ticketStepper(row.state)}
+      ${ticketBody(row)}
+      <footer class="ph-ticket-foot">
+        <button type="button" class="ph-order-cancel" data-ph-dismiss-ticket>${
+          OPEN_TICKET_STATES.has(row.state) ? 'Work a different ticket' : 'Close'}</button>
+        <span class="ph-dim">Requested ${esc(row.created_at || '')}</span>
+      </footer>
+    </section>`;
+  }
+
+  function requestHistory() {
+    const rows = (state.orderRequests?.requests || []).slice(0, 12);
+    if (!rows.length) return '';
+    return `<details class="ph-order-audit"><summary>Ticket history · ${rows.length}</summary>
+      <div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Created</th><th>Instrument</th>
+      <th>Side</th><th>Qty</th><th>Limit</th><th>Mode</th><th>State</th></tr></thead><tbody>${rows.map((row) => `<tr>
+        <td>${esc(row.created_at)}</td>
+        <td><button type="button" class="ph-symbol-link" data-ph-open-ticket="${esc(row.request_id)}">${esc(row.symbol)}</button>
+          <br><span class="ph-dim">${esc(row.sec_type)} · ${esc(row.conid)}</span></td>
+        <td>${esc(row.action)}</td><td>${quantity(row.quantity_decimal)}</td>
+        <td>${money(row.limit_price_decimal, false, row.currency || 'USD')}</td>
+        <td>${esc(row.mode)}</td>
+        <td><span class="ph-pill ${row.state === 'filled' ? 'live' : row.state === 'rejected' ? '' : 'paper'}">${esc(row.state)}</span></td>
+      </tr>`).join('')}</tbody></table></div></details>`;
+  }
+
+  async function refreshOrderRequests() {
+    try {
+      state.orderRequests = await getJson('/api/v2/portfolio/order-intents');
+    } catch (error) {
+      state.orderRequests = { error: error.message, requests: [], viewer: {} };
+    }
+  }
+
+  function stopTicketPolling() {
+    if (state.orderPollTimer) { clearInterval(state.orderPollTimer); state.orderPollTimer = null; }
+  }
+
+  /**
+   * Poll while a ticket is open.
+   *
+   * The hub enforces a 10s quote-freshness rule and a 120s approval window, so a
+   * preview cannot be waited on lazily -- by the time a slow poll noticed it,
+   * the window would be gone. One second while a ticket is live, nothing at all
+   * when the desk is idle.
+   */
+  function startTicketPolling() {
+    stopTicketPolling();
+    state.orderPollTimer = setInterval(async () => {
+      const before = activeRequest()?.state;
+      await refreshOrderRequests();
+      const row = activeRequest();
+      if (!row || !OPEN_TICKET_STATES.has(row.state)) stopTicketPolling();
+      if (state.section === 'orders' && (row?.state !== before || !row)) renderPortfolio();
+      else if (row?.state === 'previewed') tickCountdown();
+    }, 1000);
+  }
+
+  // Repaint only the clock between renders, so the countdown stays honest
+  // without re-rendering the ticket underneath the user's cursor.
+  function tickCountdown() {
+    document.querySelectorAll('[data-ph-countdown]').forEach((node) => {
+      const remaining = Math.max(0, Math.round((new Date(node.dataset.phCountdown) - Date.now()) / 1000));
+      node.textContent = remaining === 0 ? 'expired' : `${remaining}s to approve`;
+      node.classList.toggle('urgent', remaining <= 30);
+    });
+  }
+
   function ordersView() {
     const events = state.orders?.events || [];
     const broker = state.orders?.broker_open_orders || [];
@@ -313,7 +601,11 @@
         ${orderOwner && state.scope !== orderOwner ? `<button type="button" data-ph-open-order-owner="${esc(orderOwner)}">Open ${esc(ownerLabel)} order entry</button>` : ''}
       </section>`;
     const notice = state.orderNotice ? `<div class="ph-order-notice ${state.orderNotice.type === 'error' ? 'error' : ''}" role="status">${esc(state.orderNotice.message)}</div>` : '';
-    return `${ticket}${notice}
+    // A ticket in flight replaces the form. Two open tickets at once is how a
+    // person approves the one they were not looking at.
+    const working = activeRequest();
+    const entry = working ? guardedTicket(working) : ticket;
+    return `${entry}${notice}${requestHistory()}
       <div class="ph-toolbar"><strong>${esc(ownerLabel)} paper queue · ${paper.filter((row) => row.status === 'paper_queued').length}</strong><span class="ph-dim">Owner-filtered · audit stored in D1 · never published to the broker bridge</span></div>
       <div class="ph-table-wrap"><table class="ph-table ph-paper-table"><thead><tr><th>Created</th><th>Symbol / contract</th><th>Side</th><th>Qty</th><th>DAY limit</th><th>Notional</th><th>Status</th><th>Action</th></tr></thead><tbody>${paper.map((row) => {
         const notional = (num(row.quantity_decimal) || 0) * (num(row.limit_price_decimal) || 0);
@@ -371,25 +663,31 @@
         const values = new FormData(form);
         button.disabled = true;
         status.className = 'ph-order-status';
-        status.textContent = 'Queuing paper ticket…';
+        status.textContent = 'Requesting a price from the hub…';
         try {
-          const payload = await sendJson('/api/v2/portfolio/paper-orders', {
+          // Opens a guarded ticket rather than queueing a finished order: the
+          // hub still has to price it, and a human still has to approve the
+          // exact contract. mode is pinned to paper here -- live is not
+          // something this form can ask for.
+          const payload = await sendJson('/api/v2/portfolio/order-intents', {
             method: 'POST',
             body: JSON.stringify({
-              client_request_id: crypto.randomUUID(),
               symbol: values.get('symbol'),
               sec_type: values.get('sec_type'),
-              conid: values.get('conid'),
-              side: values.get('side'),
+              conid: Number(values.get('conid')),
+              action: values.get('side'),
               quantity: values.get('quantity'),
               limit_price: values.get('limit_price'),
-              order_type: 'LMT', tif: 'DAY', mode: 'paper', transmitted: false,
+              tif: 'DAY', mode: 'paper',
+              strategy: 'single_stock',
               rationale: values.get('rationale'),
             }),
           });
-          state.orderNotice = { type: 'success', message: `${payload.order.side} ${payload.order.quantity_decimal} ${payload.order.symbol} queued in the ${payload.order.owner} paper book.` };
-          state.paperOrders = await getJson('/api/v2/portfolio/paper-orders');
+          state.activeRequestId = payload.request_id_created;
+          state.orderNotice = null;
+          await refreshOrderRequests();
           renderPortfolio();
+          startTicketPolling();
         } catch (error) {
           status.className = 'ph-order-status error';
           status.textContent = error.message;
@@ -397,6 +695,40 @@
         }
       });
     }
+    // Approve is deliberately two actions: tick the contract, then press. The
+    // fingerprint shown is what the hub binds its HMAC to.
+    const confirmBox = root.querySelector('[data-ph-approve-confirm]');
+    const approveButton = root.querySelector('[data-ph-approve]');
+    confirmBox?.addEventListener('change', () => { approveButton.disabled = !confirmBox.checked; });
+    approveButton?.addEventListener('click', async () => {
+      const row = activeRequest();
+      if (!row) return;
+      approveButton.disabled = true;
+      approveButton.textContent = 'Approving…';
+      try {
+        await sendJson(`/api/v2/portfolio/order-intents/${encodeURIComponent(row.request_id)}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ contract_fingerprint: row.contract_fingerprint }),
+        });
+        await refreshOrderRequests();
+        renderPortfolio();
+        startTicketPolling();
+      } catch (error) {
+        state.orderNotice = { type: 'error', message: error.message };
+        await refreshOrderRequests();
+        renderPortfolio();
+      }
+    });
+    root.querySelector('[data-ph-dismiss-ticket]')?.addEventListener('click', () => {
+      state.activeRequestId = null;
+      stopTicketPolling();
+      renderPortfolio();
+    });
+    root.querySelectorAll('[data-ph-open-ticket]').forEach((button) => button.addEventListener('click', () => {
+      state.activeRequestId = button.dataset.phOpenTicket;
+      renderPortfolio();
+      startTicketPolling();
+    }));
     root.querySelectorAll('[data-ph-cancel-paper]').forEach((button) => button.addEventListener('click', async () => {
       button.disabled = true;
       try {
@@ -432,12 +764,15 @@
   async function loadActiveSectionData() {
     try {
       if (state.section === 'orders') {
-        const [central, paper] = await Promise.allSettled([
+        const [central, paper, requests] = await Promise.allSettled([
           getJson('/api/v2/portfolio/orders'),
           getJson('/api/v2/portfolio/paper-orders'),
+          getJson('/api/v2/portfolio/order-intents'),
         ]);
         state.orders = central.status === 'fulfilled' ? central.value : { error: central.reason.message, events: [], broker_open_orders: [] };
         state.paperOrders = paper.status === 'fulfilled' ? paper.value : { error: paper.reason.message, orders: [], viewer: {} };
+        state.orderRequests = requests.status === 'fulfilled' ? requests.value : { error: requests.reason.message, requests: [], viewer: {} };
+        if (activeRequest()) startTicketPolling();
       } else if (state.selectedPositionKey) state.orders = await getJson('/api/v2/portfolio/orders');
       if (state.section === 'performance') state.performance = await getJson(`/api/v2/portfolio/performance?owner=${state.scope}`);
       if (state.section === 'margin' && !state.margin) state.margin = await getJson('/api/v2/portfolio/margin');

@@ -50,6 +50,10 @@ def main(argv: list[str] | None = None) -> int:
     apply_boot = commands.add_parser("bootstrap-apply")
     apply_boot.add_argument("review", type=Path)
     apply_boot.add_argument("--effective-at", required=True)
+    bridge = commands.add_parser("order-bridge", help="Run the live order command loop (client 91, sole transmitter)")
+    bridge.add_argument("--account", required=True)
+    bridge.add_argument("--url", default=os.environ.get("PORTFOLIO_COMMAND_BASE_URL", ""))
+    bridge.add_argument("--once", action="store_true", help="Single tick, for drills")
     dual = commands.add_parser("dual-publish")
     dual.add_argument("--spx", type=Path)
     dual.add_argument("--ls", type=Path)
@@ -69,6 +73,37 @@ def main(argv: list[str] | None = None) -> int:
                 print(ledger.ingest_account_snapshot(payload), flush=True)
                 if args.once: break
                 time.sleep(max(5, args.interval))
+        elif args.command == "order-bridge":
+            # Everything that can transmit is constructed here and nowhere else:
+            # the approval secret, the broker socket, and the live interlock all
+            # stay in this process on the trusted host.
+            from .command_poller import ChannelConfig, OrderCommandChannel, OrderCommandLoop
+            from .ib_bridge import BridgeProfile, IbOrderBridge
+            from .orders import GuardedOrderService
+
+            secret = os.environ.get("PORTFOLIO_APPROVAL_SECRET", "")
+            if len(secret) < 32:
+                raise SystemExit("PORTFOLIO_APPROVAL_SECRET must be at least 32 characters")
+            broker = IbOrderBridge(BridgeProfile.from_env())
+            broker.connect()  # refuses to serve until ownership recovery passes
+            service = GuardedOrderService(
+                ledger, broker, secret,
+                live_enabled=os.environ.get("PORTFOLIO_LIVE_ENABLED", "0") == "1",
+                kill_switch=os.environ.get("PORTFOLIO_KILL_SWITCH", "0") == "1",
+            )
+            channel = OrderCommandChannel(ChannelConfig(
+                base_url=args.url, token=os.environ.get("PORTFOLIO_INGEST_TOKEN", ""),
+                account_alias=args.account,
+            ))
+            loop = OrderCommandLoop(service, channel, account_alias=args.account,
+                                    live_enabled=service.live_enabled)
+            try:
+                if args.once:
+                    print(json.dumps({"desk_open": loop.tick()}))
+                else:
+                    loop.run_forever()
+            finally:
+                broker.disconnect()
         elif args.command == "ingest-snapshot": print(ledger.ingest_account_snapshot(json.loads(args.payload.read_text(encoding="utf-8"))))
         elif args.command == "ingest-flex": print(json.dumps(ledger.ingest_flex_eod(json.loads(args.payload.read_text(encoding="utf-8"))), indent=2))
         elif args.command == "allocate": print(ledger.add_allocation(account_alias=args.account, conid=args.conid, model_code=args.model, owner=args.owner, strategy=args.strategy, bucket=args.bucket, quantity=args.quantity, effective_at=args.effective_at, note=args.note))

@@ -24,6 +24,7 @@ from insight_format import (  # noqa: E402
     is_portfolio_wide,
     split_insight_rows,
 )
+from listing_units import resolve_units  # noqa: E402
 from valuation_synthesis import website_implied_irr  # noqa: E402
 from calculation_proof import floor_equity_value_range  # noqa: E402
 from decision_authority import contract_return_display, resolve_authority  # noqa: E402
@@ -86,6 +87,10 @@ def source_document_ref(ref: str | None) -> str | None:
 
 
 DATED_MD_RE = re.compile(r"_(\d{4}-\d{2}-\d{2})\.md$")
+
+# Listings whose quote units could not be resolved, reported at the end of the build.
+# An unresolved listing still renders -- as a bare number, never with a guessed symbol.
+UNRESOLVED_UNITS: dict[str, str] = {}
 
 
 # Known metadata fallback when holdings.md is sparse
@@ -2589,6 +2594,9 @@ def build_ticker_row(
     deep_dive = latest_deep_dive(ticker_dir, classification)
     display_ticker = meta.get("display_ticker") or ticker
     quote_ticker = meta.get("quote_ticker") or ticker
+    units = resolve_units(ticker, meta.get("market"), meta.get("exchange"))
+    if units["source"] == "unresolved":
+        UNRESOLVED_UNITS[ticker] = units["reason"]
     row = {
         "ticker": ticker,
         "display_ticker": display_ticker,
@@ -2596,6 +2604,9 @@ def build_ticker_row(
         "company": meta.get("company", ticker),
         "market": meta.get("market", "—"),
         "exchange": meta.get("exchange", "—"),
+        # Quote units for every per-share figure in this payload. Resolved once here
+        # so no renderer has to infer a currency from the ticker or assume USD.
+        "units": units,
         "folder": f"{ticker}/",
         "readme": (ticker_dir / "README.md").exists(),
         "download_script": dl_script,
@@ -3312,6 +3323,16 @@ def main() -> None:
     OUTPUT.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
     write_oauth_config()
     print(f"Wrote {OUTPUT} ({payload['summary']['ticker_count']} tickers)")
+    if UNRESOLVED_UNITS:
+        # Not fatal: these render as bare numbers, which is honest. It is still a
+        # gap in _system/reference/listing_units_overrides.json worth closing.
+        print(
+            f"WARNING: {len(UNRESOLVED_UNITS)} listings have unresolved quote units; "
+            "their figures render without a currency symbol.",
+            file=sys.stderr,
+        )
+        for ticker, reason in sorted(UNRESOLVED_UNITS.items())[:20]:
+            print(f"  {ticker}: {reason}", file=sys.stderr)
     from build_dashboard_shards import write_shards
 
     write_shards(payload, insights_doc, DATA_DIR)

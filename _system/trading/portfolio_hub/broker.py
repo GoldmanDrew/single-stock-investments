@@ -129,18 +129,43 @@ class IBAsyncCollector:
         multiplier = Decimal(str(getattr(row.contract, "multiplier", None) or 1))
         native_value = Decimal(str(row.position)) * Decimal(str(row.marketPrice)) * multiplier
         base_value = Decimal(str(row.marketValue))
-        fx_rate = base_value / native_value if native_value else None
+        fx_rate, fx_source = self._fx_translation(row.contract.currency, base_currency, native_value, base_value)
         result.update({
             "base_currency": base_currency,
             "mark": str(row.marketPrice), "mark_native": str(row.marketPrice),
             "market_value": str(row.marketValue), "market_value_native": str(native_value),
             "market_value_base": str(row.marketValue), "fx_rate_to_base": str(fx_rate) if fx_rate is not None else None,
-            "fx_as_of": as_of, "fx_source": "ibkr_portfolio_translation" if fx_rate is not None else None,
+            "fx_as_of": as_of, "fx_source": fx_source,
             "unrealized_pnl": str(row.unrealizedPNL), "unrealized_pnl_base": str(row.unrealizedPNL),
             "realized_pnl": str(row.realizedPNL), "realized_pnl_base": str(row.realizedPNL),
-            "quality": "live",
+            # An untranslatable non-base row is published and flagged, never dropped and never
+            # silently mixed into base totals. Only a flat row stays "live" without a rate.
+            "quality": "estimated" if fx_source == "fx_unavailable" and Decimal(str(row.position)) else "live",
         })
         return result
+
+    @staticmethod
+    def _fx_translation(native_currency: str, base_currency: str, native_value: Decimal, base_value: Decimal) -> tuple[Decimal | None, str]:
+        """Derive the native->base rate, naming the reason when it cannot be derived.
+
+        IBKR reports marketPrice in the contract currency and marketValue in account base, so the
+        rate is implied by their ratio. A zero mark (no market-data permission, halted name) or a
+        flat row makes that ratio indeterminate; that is a row-level quality fact, not a reason to
+        reject the account snapshot.
+        """
+        if native_currency == base_currency:
+            return Decimal(1), "identity"
+        if native_value:
+            rate = base_value / native_value
+            # A ratio of exactly 1 between two different currencies is not an FX
+            # rate: it means marketValue came back in the contract currency rather
+            # than account base. Reporting it as a translation is what lets a
+            # JPY 5,064,000 position render as USD 5,064,000 and sort to the top
+            # of the book. No real pair sits at exactly 1.0, so this is safe.
+            if rate == Decimal(1):
+                return None, "fx_unavailable"
+            return rate, "ibkr_portfolio_translation"
+        return None, "fx_unavailable"
 
     @staticmethod
     def _open_order(trade: Any, as_of: str) -> dict[str, Any]:

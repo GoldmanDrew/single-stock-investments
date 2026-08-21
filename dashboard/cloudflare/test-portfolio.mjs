@@ -30,6 +30,51 @@ test("non-base positions require explicit native/base conversion lineage", () =>
   assert.throws(() => validateAccountSnapshot(payload), /native\/base FX/);
 });
 
+function untranslatedJpyPosition(overrides = {}) {
+  // IBKR implies the rate from marketValue/marketPrice. Without a TSE market-data
+  // permission the mark comes back 0, so the ratio is indeterminate.
+  return {
+    conid: 101, symbol: "3905", sec_type: "STK", currency: "JPY", native_currency: "JPY",
+    base_currency: "USD", quantity: "100", quantity_unit: "shares", mark: "0",
+    market_value: "0", market_value_native: "0", market_value_base: "0",
+    fx_rate_to_base: null, fx_as_of: null, fx_source: "fx_unavailable",
+    quality: "estimated", ...overrides,
+  };
+}
+
+test("an underivable FX rate degrades its own row instead of failing the snapshot", () => {
+  // Regression: this rejected the whole envelope, so one unquotable JPY position
+  // took the entire account offline rather than showing as incomplete.
+  const payload = accountSnapshot();
+  payload.positions[0] = untranslatedJpyPosition();
+  assert.equal(validateAccountSnapshot(payload).positions[0].fx_source, "fx_unavailable");
+
+  const flat = accountSnapshot();
+  flat.positions[0] = untranslatedJpyPosition({ quantity: "0", quality: "live" });
+  assert.equal(validateAccountSnapshot(flat).positions.length, 1);
+});
+
+test("an untranslated position carrying value cannot claim live quality", () => {
+  const payload = accountSnapshot();
+  payload.positions[0] = untranslatedJpyPosition({
+    market_value: "34982.2902", market_value_native: "5577000",
+    market_value_base: "34982.2902", quality: "live",
+  });
+  assert.throws(() => validateAccountSnapshot(payload), /estimated or unknown/);
+});
+
+test("FX provenance must be a recognised source with a usable rate", () => {
+  const unknown = accountSnapshot();
+  unknown.positions[0] = untranslatedJpyPosition({ fx_source: "guessed" });
+  assert.throws(() => validateAccountSnapshot(unknown), /native\/base FX/);
+
+  const rateless = accountSnapshot();
+  rateless.positions[0] = untranslatedJpyPosition({
+    fx_source: "ibkr_portfolio_translation", fx_rate_to_base: null,
+  });
+  assert.throws(() => validateAccountSnapshot(rateless), /without a usable rate/);
+});
+
 test("strategy envelope retains producer reconciliation metadata", () => {
   const payload = { schema_version: "strategy_snapshot.v1", producer: "ls_risk", source_run_id: "ls-1", as_of: "2026-08-17T14:00:00Z", complete: true, rows: [] };
   assert.equal(validateStrategySnapshot(payload).producer, "ls_risk");

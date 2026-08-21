@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -35,10 +36,123 @@ def user_agent() -> str:
     return doc.get("user_agent") or "SSI-PodcastAgent/1.0 (+research)"
 
 
+# Failures that say nothing about the episode, only about the moment. DNS is the
+# one that matters most: getaddrinfo fails in milliseconds, so a brief outage
+# burns an item's whole retry budget in under a second and buries a perfectly
+# good episode as permanently "failed". On 2026-08-20 that killed 696 of them.
+TRANSIENT_ERROR_MARKERS = (
+    "getaddrinfo",            # DNS (WSAHOST_NOT_FOUND / EAI_NONAME)
+    "temporary failure in name resolution",
+    "name or service not known",
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "timed out",
+    "timeout",
+    "network is unreachable",
+    "no route to host",
+    "ssl",                    # handshake flake, not a bad file
+    "remote end closed",
+    "http error 429",         # rate limited
+    "http error 500",
+    "http error 502",
+    "http error 503",
+    "http error 504",
+)
+
+
+def is_transient_failure(status: str) -> bool:
+    """True when a failure is about the network, not about this episode."""
+    text = str(status or "").lower()
+    return any(marker in text for marker in TRANSIENT_ERROR_MARKERS)
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write a file so that a crash can never leave it half-written.
+
+    This corpus is built by runs measured in days, on a machine that may lose
+    power at any point. Path.write_text() truncates first and buffers, so an
+    interruption can leave an empty or partial file -- and for
+    whisper_backlog.json, which is the single index of what has already been
+    transcribed, a truncated write loses the resume state for the entire
+    backlog rather than one episode.
+
+    Write to a sibling temp file, flush it all the way to the platter, then
+    rename. os.replace is atomic on POSIX and on Windows, so a reader either
+    sees the previous complete file or the new complete file, never a mix.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Include the pid so two processes writing the same path cannot corrupt each
+    # other's temp file, and clean up on any failure -- an orphaned .tmp would
+    # otherwise accumulate across a multi-day run and be swept into the vault by
+    # the daemon's `git add -A podcasts`.
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    # Persist the rename itself; without this the directory entry can still be
+    # lost on power failure even though the file contents are safe.
+    if hasattr(os, "O_DIRECTORY"):
+        try:
+            fd = os.open(path.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        except OSError:
+            pass
+
+
 def http_get(url: str, timeout: int = 60) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": user_agent()})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
+
+
+# A real episode page is HTML. Many RSS feeds point <link> straight at the audio
+# enclosure, and a 24MB MP3 run through .decode("utf-8", errors="ignore") yields
+# a very long "string" that sails past any length test. That is how 211 episodes
+# ended up with audio saved as .txt transcripts, 2.4GB of the corpus.
+TEXTUAL_CONTENT_TYPES = ("text/", "application/xhtml", "application/xml", "application/json")
+# Roughly four hours of speech. Anything beyond this is not a transcript.
+MAX_TRANSCRIPT_BYTES = 4 * 1024 * 1024
+
+
+def http_get_text(url: str, timeout: int = 60) -> str | None:
+    """Fetch a URL only if it is actually text. Returns None for anything else."""
+    req = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        content_type = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if content_type and not content_type.startswith(TEXTUAL_CONTENT_TYPES):
+            return None
+        raw = resp.read(MAX_TRANSCRIPT_BYTES + 1)
+    if len(raw) > MAX_TRANSCRIPT_BYTES:
+        return None
+    # Servers lie about Content-Type, so sniff too. NUL bytes never appear in
+    # HTML and are the clearest signal that this is a media container.
+    if b"\x00" in raw[:8192]:
+        return None
+    return raw.decode("utf-8", errors="ignore")
+
+
+def looks_like_transcript(text: str | None) -> bool:
+    """Reject decoded binary that survived the header and NUL checks."""
+    if not text:
+        return False
+    sample = text[:8192]
+    if not sample:
+        return False
+    printable = sum(1 for ch in sample if ch.isprintable() or ch in "\n\r\t")
+    return printable / len(sample) >= 0.90
 
 
 def year_from_published(published: str | None) -> str:
@@ -74,8 +188,11 @@ def try_published_transcript(episode: dict, show: dict | None) -> str | None:
         return None
     prefer = [p.lower() for p in ((show or {}).get("prefer_transcript_urls") or ["transcript"])]
     try:
-        html = http_get(link, timeout=45).decode("utf-8", errors="ignore")
+        html = http_get_text(link, timeout=45)
     except Exception:
+        return None
+    # Not text, too large, or binary that lied about its Content-Type.
+    if not looks_like_transcript(html):
         return None
     lower = html.lower()
     if not any(p in lower for p in prefer):
@@ -164,7 +281,7 @@ def load_whisper_backlog() -> dict:
 def save_whisper_backlog(doc: dict) -> None:
     doc["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
-    whisper_backlog_path().write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(whisper_backlog_path(), json.dumps(doc, indent=2) + "\n")
 
 
 def whisper_pending_count() -> int:
@@ -277,9 +394,15 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
         if episode.get("audio_url")
         else None,
     }
-    meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    # Order matters: write the transcript first. meta.json is what declares a
+    # transcript exists, so if the machine dies between the two writes the
+    # surviving state must be "transcript present, not yet recorded" (harmless
+    # and re-derivable) rather than "recorded but missing" -- the inconsistency
+    # that left 215 episodes claiming transcripts they never had.
     if text:
-        txt_path.write_text(text + "\n", encoding="utf-8")
+        atomic_write_text(txt_path, text + "\n")
+    atomic_write_text(meta_path, json.dumps(meta, indent=2) + "\n")
+    if text:
         # Mark backlog done if present
         doc = load_whisper_backlog()
         changed = False
@@ -406,10 +529,20 @@ def drain_whisper_backlog(*, batch: int = 20) -> dict:
         # refresh doc after fetch_one may have marked done
         doc = load_whisper_backlog()
         if result.get("status") not in ("transcribed", "fetched_published", "exists"):
+            transient = is_transient_failure(result.get("status"))
             for row in doc.get("items") or []:
                 if row.get("episode_id") == it.get("episode_id"):
-                    if int(row.get("attempts") or 0) >= 3:
+                    if transient:
+                        # Give the attempt back. The retry budget exists to
+                        # retire episodes that are genuinely unfetchable, and a
+                        # DNS outage answers in milliseconds -- left as-is it
+                        # spends all three attempts inside one bad second and
+                        # permanently buries a good episode.
+                        row["attempts"] = max(0, int(row.get("attempts") or 0) - 1)
+                        row["last_transient_error"] = str(result.get("status"))[:200]
+                    elif int(row.get("attempts") or 0) >= 3:
                         row["status"] = "failed"
+                        row["failed_reason"] = str(result.get("status"))[:200]
                     break
             doc["pending_count"] = sum(1 for i in (doc.get("items") or []) if i.get("status") == "pending")
             save_whisper_backlog(doc)
