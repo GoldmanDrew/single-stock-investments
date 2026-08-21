@@ -141,7 +141,13 @@ jobs:
           python _system/scripts/investment_committee_pipeline.py validate "${{ needs.prepare.outputs.ticker }}" --date "${{ needs.prepare.outputs.committee_date }}"
           python _system/scripts/investment_committee_pipeline.py assemble "${{ needs.prepare.outputs.ticker }}" --date "${{ needs.prepare.outputs.committee_date }}"
           python _system/scripts/refresh_valuation_dashboard_rows.py --tickers "${{ needs.prepare.outputs.ticker }}"
-          python _system/scripts/validate_dashboard_data.py
+          # Same reason as power-zone-universe.yml: this job refreshes rows but
+          # never runs build_dashboard_data.py, so the gitignored
+          # dashboard_data.json intermediate does not exist here. Validate the
+          # committed core.json the SPA boots from. ls-algo-universe.yml
+          # deliberately does NOT set this -- it rebuilds the monolith first,
+          # so an absent one there is a real error.
+          CI_PAGES_DEPLOY_ONLY=1 python _system/scripts/validate_dashboard_data.py
       - name: Commit assembled committee
         env:
           GH_TOKEN: ${{ github.token }}
