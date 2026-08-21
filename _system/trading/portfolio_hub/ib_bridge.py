@@ -10,7 +10,7 @@ Ownership rules come from CLIENT_ID_REGISTRY.md and are enforced here, not
 assumed:
 
   * Client ID 91 is the sole transmitter. The collector (81) and the master
-    observer (90) connect read-only and are prevented in code from transmitting;
+    observer (82; 90 belongs to ls-algo's screener) connect read-only and are prevented in code from transmitting;
     Gateway's global read-only setting is not relied upon, because it also
     suppresses order information the bridge needs to prove ownership.
   * Only orders whose `orderRef` starts with `MAGIS|` and that this client

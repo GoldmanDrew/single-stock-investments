@@ -17,6 +17,12 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 
 Cross-system map: SPX 0DTE runs as client **17** (live executor) and **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
+Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
+remedial Gateway restart per session day when the API handshake is provably
+wedged (all clients equally disconnected). Hub collector and bridge reconnect
+logic must treat that like IBKR's nightly restart: reconnect, re-classify open
+orders, never assume a dropped session implies operator action.
+
 The production registry records account alias, host, port, client ID, process owner, orderRef namespace, and kill switch. Client IDs are unique. The master observer's next valid order ID must exceed every order ID it observes, but it never transmits. The bridge persists `gateway_session_id`, `clientId`, `orderId`, `permId`, `orderRef`, `parentId`, `ocaGroup`, account alias, and producer.
 
 ## Recovery invariant
