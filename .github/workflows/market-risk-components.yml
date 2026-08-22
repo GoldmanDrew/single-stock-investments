@@ -45,13 +45,16 @@ jobs:
           git -C "$source_root" sparse-checkout init --no-cone
           git -C "$source_root" sparse-checkout set \
             _system/scripts/build_market_risk_components.py \
-            dashboard/data/technical_summary.json
+            dashboard/data/technical_summary.json \
+            dashboard/data/spx_surface_latest.json \
+            dashboard/data/vol_metrics_latest.json
           git -C "$source_root" checkout --detach "$GITHUB_SHA"
           mkdir -p _system/scripts dashboard/data
           cp "$source_root/_system/scripts/build_market_risk_components.py" \
             _system/scripts/build_market_risk_components.py
-          cp "$source_root/dashboard/data/technical_summary.json" \
-            dashboard/data/technical_summary.json
+          for name in technical_summary spx_surface_latest vol_metrics_latest; do
+            cp "$source_root/dashboard/data/$name.json" "dashboard/data/$name.json"
+          done
 
       - name: Check out ETF Dashboard data
         uses: actions/checkout@v5
@@ -72,15 +75,11 @@ jobs:
           sparse-checkout: data/etf_screened_today.csv
           sparse-checkout-cone-mode: false
 
-      - name: Check out SPX 0DTE data
-        uses: actions/checkout@v5
-        with:
-          repository: magis-capital-partners/spx-0dte
-          path: _external/spx-0dte
-          token: ${{ secrets.SPX_0DTE_TOKEN || secrets.LS_ALGO_TOKEN }}
-          fetch-depth: 1
-          sparse-checkout: data
-          sparse-checkout-cone-mode: true
+      # The spx-0dte checkout that used to sit here is deliberately gone. It
+      # 404'd on a token that no longer resolves to that repository, and the
+      # SPX marks the risk stack needs are already committed in this repo by
+      # build_spx_surface.py (CBOE delayed chain) and build_vol_metrics.py
+      # (^VIX complex). Nothing here reaches into the trading repository.
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -93,15 +92,15 @@ jobs:
           set -euo pipefail
           test -f _external/etf-dashboard/data/letf_rebalance_flows_latest.json
           test -f _external/ls-algo/data/etf_screened_today.csv
-          test -d _external/spx-0dte/data
           test -f dashboard/data/technical_summary.json
+          test -f dashboard/data/spx_surface_latest.json
+          test -f dashboard/data/vol_metrics_latest.json
 
       - name: Build and publish signed component snapshot
         run: |
           python _system/scripts/build_market_risk_components.py \
             --etf-root "$GITHUB_WORKSPACE/_external/etf-dashboard" \
             --ls-root "$GITHUB_WORKSPACE/_external/ls-algo" \
-            --spx-root "$GITHUB_WORKSPACE/_external/spx-0dte" \
             --ssi-root "$GITHUB_WORKSPACE" \
             --output "$RUNNER_TEMP/market-risk-components.json" \
             --publish

@@ -387,7 +387,12 @@ class Spx0dteTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def test_carries_raw_zscores_from_options_stress(self):
+    def test_block_is_retired_and_never_reads_the_component_file(self):
+        # options_stress is now built FROM this file (chain snapshot + the
+        # z-scores in `metrics`). Carrying it back in would put this module's
+        # own output in its input and make one number look like two agreeing
+        # sources. Even with a perfectly good component file on disk, the block
+        # must stay null.
         dates = trading_dates(60)
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
@@ -408,27 +413,25 @@ class Spx0dteTests(unittest.TestCase):
                 components_path=components,
             )
         block = result["latest"]["spx_0dte"]
-        self.assertTrue(block["available"])
-        self.assertEqual(block["status"], "ok")
-        self.assertEqual(block["skew_z"], -0.2331)
-        self.assertEqual(block["straddle_residual_z"], 0.470631)
-        self.assertEqual(block["source_as_of"], "2026-07-31T16:00:00")
-
-    def test_absent_component_yields_nulls(self):
-        dates = trading_dates(60)
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp)
-            result = bvm.build(
-                output_dir=out,
-                fetcher=make_fetcher(dates),
-                dry_run=True,
-                components_path=out / "nope.json",
-            )
-        block = result["latest"]["spx_0dte"]
         self.assertFalse(block["available"])
-        self.assertEqual(block["status"], "components_file_missing")
+        self.assertEqual(block["status"], "retired:options_stress_now_derives_from_this_file")
+        self.assertIsNone(block["source"])
+        self.assertIsNone(block["source_as_of"])
         for key in bvm.SPX_0DTE_KEYS:
             self.assertIsNone(block[key])
+
+    def test_the_replacement_zscores_are_carried_natively(self):
+        # What the retired block used to mirror is available first-hand, so
+        # nothing was lost in the retirement.
+        dates = trading_dates(60)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = bvm.build(
+                output_dir=Path(tmp), fetcher=make_fetcher(dates), dry_run=True,
+            )
+        metrics = result["latest"]["metrics"]
+        for name in ("skew", "slope_vix_3m", "iv_rv_spread"):
+            self.assertIn(name, metrics)
+            self.assertIn("z1y", metrics[name])
 
 
 class OutputTests(unittest.TestCase):

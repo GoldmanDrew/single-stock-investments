@@ -19,8 +19,13 @@ from typing import Any, Iterable
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ETF_ROOT = Path.home() / "Projects/quant/etf-dashboard"
 DEFAULT_LS_ROOT = Path.home() / "Projects/quant/ls-algo"
-DEFAULT_SPX_ROOT = Path.home() / "Projects/options-trading/spx-0dte"
 OUTPUT = ROOT / "dashboard" / "data" / "market_risk_components.json"
+
+# SPX risk marks come from this repo's own committed SPX tab, not from a
+# checkout of the spx-0dte trading repository. See build_spx().
+SPX_SURFACE_LATEST = "dashboard/data/spx_surface_latest.json"
+VOL_METRICS_LATEST = "dashboard/data/vol_metrics_latest.json"
+VOL_METRICS_HISTORY = "dashboard/data/vol_metrics_history.jsonl"
 MODEL_VERSION = "market-risk-components-v1"
 SECTOR_ETFS = {"XLB", "XLC", "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY"}
 
@@ -260,51 +265,213 @@ def build_ls_algo(root: Path) -> list[dict]:
     )]
 
 
-def latest_signal_file(root: Path) -> Path | None:
-    base = root / "data/processed/symbol=SPXW"
-    candidates = sorted(base.glob("date=*/signals.csv"), reverse=True)
-    return candidates[0] if candidates else None
+def load_snapshot(path: Path, ok_states: tuple[str, ...] = ("ready", "ok", "delayed")) -> dict:
+    """A committed dashboard snapshot, or {} when it is absent or unhealthy.
+
+    Health is read off the payload, never off the file existing. Both upstream
+    builders write a well-formed file with a failed fetch recorded *inside* it,
+    so an existence check would hand back a snapshot already known to be bad.
+    """
+    if not path.exists():
+        return {}
+    try:
+        payload = read_json(path)
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    if str(payload.get("fetch_status") or "ok") != "ok":
+        return {}
+    state = str(payload.get("quality_state") or "")
+    if state and state not in ok_states:
+        return {}
+    return payload
 
 
-def build_options(root: Path) -> list[dict]:
+def tenor_near(tenors: Any, target: int) -> dict:
+    """The chain tenor closest to `target` DTE.
+
+    The surface builder aims at 7/30/91/182 but publishes whatever the chain
+    actually offered that session, so match on distance rather than trusting a
+    fixed slot.
+    """
+    usable = [row for row in (tenors or [])
+              if isinstance(row, dict) and finite(row.get("dte")) is not None]
+    if not usable:
+        return {}
+    return min(usable, key=lambda row: abs((finite(row.get("dte")) or 0.0) - target))
+
+
+def prior_vix_close(ssi_root: Path, latest_date: str) -> float | None:
+    """The ^VIX close of the session before `latest_date`.
+
+    Read off the committed history spine rather than differencing whatever
+    happens to be in the file, so a rerun on the same session cannot report a
+    0% change against itself.
+    """
+    path = ssi_root / VOL_METRICS_HISTORY
+    if not path.exists() or not latest_date:
+        return None
+    prior = None
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if not isinstance(row, dict) or str(row.get("date") or "") >= latest_date:
+                continue
+            value = finite(row.get("vix"))
+            if value is not None:
+                prior = value
+    except (OSError, ValueError):
+        return None
+    return prior
+
+
+def build_spx(ssi_root: Path) -> list[dict]:
+    """SPX risk marks read off this dashboard's own SPX tab.
+
+    These components used to require a sparse checkout of the spx-0dte trading
+    repository. That cross-repo read is gone -- it broke on a token that no
+    longer resolves, and the hub has no business reaching into the trading repo
+    for figures it already publishes itself. Everything here now comes from two
+    artifacts this repo builds and commits:
+
+      * spx_surface_latest.json -- the CBOE delayed SPX chain: the EOD spot
+        mark, ATM implied vol per tenor, the 25-delta risk reversal and
+        butterfly, and the open-interest dealer-gamma proxy.
+      * vol_metrics_latest.json -- the listed vol complex: the real ^VIX close
+        with its own trailing z-scores, 20-day realized vol on ^GSPC, and the
+        implied-minus-realized spread.
+
+    Z-scores are taken from vol_metrics, which computes them on strictly
+    trailing windows over ~2,500 sessions. Nothing here re-z-scores an already
+    z-scored figure, and an absent source yields null rather than a zero.
+    """
+    surface = load_snapshot(ssi_root / SPX_SURFACE_LATEST)
+    vol = load_snapshot(ssi_root / VOL_METRICS_LATEST)
+    if not surface and not vol:
+        return []
+
     output: list[dict] = []
-    signals_path = latest_signal_file(root)
-    if signals_path:
-        rows = csv_rows(signals_path)
-        if rows:
-            last = rows[-1]
-            fields = ("straddle_residual_z", "skew_z", "term_ratio_z", "realized_vs_implied_z")
-            peak = {field: max((abs(finite(row.get(field)) or 0.0) for row in rows), default=0.0) for field in fields}
-            score = min(100.0, 25.0 * max(peak.values(), default=0.0))
-            output.append(component(
-                "options_stress", "SPX", last.get("timestamp"), "intraday",
-                f"spx-0dte:{signals_path.relative_to(root).as_posix()}", {
-                    "label": "SPX 0DTE options stress",
-                    "description": "Sanitized market features only; no orders, positions, fills or P&L leave the trading repository.",
-                    "observations": len(rows),
-                    "latest": {field: finite(last.get(field)) for field in fields},
-                    "latest_vix": finite(last.get("vix")),
-                    "latest_straddle": finite(last.get("straddle")),
-                    "latest_underlying": finite(last.get("underlying_price")),
-                    "intraday_peak_abs_z": peak,
-                }, score=score, value=finite(last.get("skew_z")), unit="z_score", entitlement_mode="derived",
-            ))
-    vix_path = root / "data/calendar/vix_daily.csv"
-    vix_rows = csv_rows(vix_path)
-    if vix_rows:
-        last = vix_rows[-1]
-        close = finite(last.get("close"))
-        prior = finite(last.get("prior_close"))
-        score = 0.0 if close is None else min(100.0, max(0.0, (close - 12.0) * 3.0))
+    metrics = vol.get("metrics") or {}
+    regime = vol.get("regime") or {}
+    spot = surface.get("spot") or {}
+    front = tenor_near(surface.get("tenors"), 30)
+    back = tenor_near(surface.get("tenors"), 91)
+    atm_30 = finite(front.get("atm_iv"))
+    atm_91 = finite(back.get("atm_iv"))
+
+    def metric(name: str, field: str = "value") -> float | None:
+        return finite((metrics.get(name) or {}).get(field))
+
+    spx_close = finite(spot.get("close")) or finite(spot.get("value"))
+    skew_z = metric("skew", "z1y")
+    term_z = metric("slope_vix_3m", "z1y")
+    rv_z = metric("iv_rv_spread", "z1y")
+
+    # Near/far, matching build_vol_metrics' convention: below 1.0 is contango
+    # (the normal upward-sloping curve); above 1.0 is backwardation, i.e. stress.
+    term_ratio = None if not atm_30 or not atm_91 else round(atm_30 / atm_91, 6)
+    peaks = [abs(value) for value in (skew_z, term_z, rv_z) if value is not None]
+    output.append(component(
+        "options_stress", "SPX", surface.get("as_of") or vol.get("as_of"), "daily",
+        f"single-stock-investments:{SPX_SURFACE_LATEST}", {
+            "label": "SPX surface stress",
+            "description": (
+                "EOD SPX chain marks from this dashboard's own SPX tab (CBOE delayed "
+                "quotes), scored against the listed vol complex. No orders, positions, "
+                "fills or P&L are involved."
+            ),
+            "observations": int((vol.get("coverage") or {}).get("rows") or 0),
+            "latest": {
+                "skew_z": skew_z,
+                "term_ratio_z": term_z,
+                "realized_vs_implied_z": rv_z,
+                # Retired with the spx-0dte intraday feed. The straddle residual
+                # was a minute-bar construct; nothing in the EOD chain reproduces
+                # it, so it reports null rather than a look-alike.
+                "straddle_residual_z": None,
+            },
+            "latest_vix": metric("vix"),
+            "latest_underlying": spx_close,
+            "spx_eod_mark": spx_close,
+            "atm_iv_30d": atm_30,
+            "atm_iv_91d": atm_91,
+            "rr_25d_30d": finite(front.get("rr_25d")),
+            "bf_25d_30d": finite(front.get("bf_25d")),
+            "term_ratio": term_ratio,
+            "term_state": regime.get("term_state"),
+            "spx_rv20": finite(regime.get("spx_rv20")),
+            "iv_rv_spread": finite(regime.get("iv_rv_spread")),
+            "z_basis": (
+                "trailing 252-session z-scores from vol_metrics_latest.json; "
+                "straddle_residual_z retired with the spx-0dte intraday feed"
+            ),
+        },
+        score=min(100.0, 25.0 * max(peaks)) if peaks else 0.0,
+        value=skew_z, unit="z_score", entitlement_mode="derived",
+    ))
+
+    vix_close = metric("vix")
+    if vix_close is not None:
+        prior_close = prior_vix_close(ssi_root, str(metrics.get("vix", {}).get("last_value_date") or ""))
+        # The real ^VIX close out of the listed complex, not a chain proxy: the
+        # spx-0dte vix_daily.csv this replaces was the same underlying index.
+        score = min(100.0, max(0.0, (vix_close - 12.0) * 3.0))
         output.append(component(
-            "vix_regime", "VIX", last.get("date"), "daily",
-            "spx-0dte:data/calendar/vix_daily.csv", {
+            "vix_regime", "VIX", metrics.get("vix", {}).get("last_value_date") or vol.get("as_of"),
+            "daily", f"single-stock-investments:{VOL_METRICS_LATEST}", {
                 "label": "VIX cash regime",
-                "description": "Daily VIX OHLC context used by the SPX 0DTE research stack.",
-                "open": finite(last.get("open")), "high": finite(last.get("high")),
-                "low": finite(last.get("low")), "close": close, "prior_close": prior,
-                "change_pct": None if not close or not prior else round((close / prior - 1.0) * 100.0, 3),
-            }, score=score, value=close, unit="index_points", entitlement_mode="free_delayed",
+                "description": (
+                    "^VIX daily close from the dashboard's volatility-metrics spine "
+                    "(Yahoo chart-v8 with official Cboe repair)."
+                ),
+                "close": vix_close,
+                "prior_close": prior_close,
+                "change_pct": None if not vix_close or not prior_close
+                else round((vix_close / prior_close - 1.0) * 100.0, 3),
+                "z1y": metric("vix", "z1y"),
+                "pct1y": metric("vix", "pct1y"),
+                "spx_rv20": finite(regime.get("spx_rv20")),
+                "iv_rv_spread": finite(regime.get("iv_rv_spread")),
+                "term_state": regime.get("term_state"),
+                "vvix_vix_ratio": finite(regime.get("vvix_vix_ratio")),
+            }, score=score, value=vix_close, unit="index_points", entitlement_mode="free_delayed",
+        ))
+
+    gamma = surface.get("dealer_gamma_proxy") or {}
+    gamma_value = finite(gamma.get("value"))
+    if gamma_value is not None:
+        call_gamma = finite(gamma.get("call_gamma_notional")) or 0.0
+        put_gamma = finite(gamma.get("put_gamma_notional")) or 0.0
+        gross = abs(call_gamma) + abs(put_gamma)
+        # Short-gamma is the stress reading: dealers hedging a negative book
+        # amplify moves. Positive net gamma dampens them, so it scores zero.
+        score = 0.0 if gamma_value >= 0 or not gross else min(100.0, 100.0 * abs(gamma_value) / gross)
+        output.append(component(
+            "dealer_gamma", "SPX", surface.get("as_of"), "daily",
+            f"single-stock-investments:{SPX_SURFACE_LATEST}", {
+                "label": "Dealer gamma (open-interest proxy)",
+                "description": (
+                    "Open-interest gamma proxy from the delayed CBOE chain. This is NOT "
+                    "licensed dealer positioning: the sign convention is an assumption "
+                    "and open interest is start-of-day, so intraday positioning is invisible."
+                ),
+                "call_gamma_notional": call_gamma,
+                "put_gamma_notional": put_gamma,
+                "net_gamma_notional": gamma_value,
+                "contracts_used": gamma.get("contracts_used"),
+                "method": gamma.get("method"),
+                "formula": gamma.get("formula"),
+                "sign_convention": gamma.get("sign_convention"),
+                "oi_caveat": gamma.get("oi_caveat"),
+                "gamma_flip_estimate_status": gamma.get("gamma_flip_estimate_status"),
+                "gamma_flip_omitted_reason": gamma.get("gamma_flip_omitted_reason"),
+                "research_only": True,
+            }, score=score, value=gamma_value, unit=gamma.get("units") or "usd_delta_per_1pct",
+            entitlement_mode="derived",
         ))
     return output
 
@@ -350,12 +517,12 @@ def unavailable(name: str, symbol: str, source: str, description: str, cadence: 
     return row
 
 
-def build(etf_root: Path, ls_root: Path, spx_root: Path, ssi_root: Path = ROOT) -> dict:
+def build(etf_root: Path, ls_root: Path, ssi_root: Path = ROOT) -> dict:
     groups = {
         "etf_rebalance": build_letf(etf_root),
         "etf_holdings": build_holdings(etf_root),
         "ls_algo": build_ls_algo(ls_root),
-        "spx_options": build_options(spx_root),
+        "spx_options": build_spx(ssi_root),
         "market_breadth": build_breadth(ssi_root),
     }
     components = [item for rows in groups.values() for item in rows]
@@ -363,11 +530,20 @@ def build(etf_root: Path, ls_root: Path, spx_root: Path, ssi_root: Path = ROOT) 
     if "letf_rebalance_intraday" not in present:
         components.append(unavailable("letf_rebalance_intraday", "US_EQUITY", "etf-dashboard", "Intraday LETF output has not been generated."))
     if "options_stress" not in present:
-        components.append(unavailable("options_stress", "SPX", "spx-0dte", "No sanitized SPX options signal file was found."))
-    components.append(unavailable(
-        "dealer_gamma", "SPX", "options-positioning-provider",
-        "Open-interest gamma/vanna/charm positioning is not yet licensed or connected.", "daily",
-    ))
+        components.append(unavailable(
+            "options_stress", "SPX", f"single-stock-investments:{SPX_SURFACE_LATEST}",
+            "The committed SPX chain and vol-metrics snapshots are both absent or unhealthy.", "daily",
+        ))
+    if "vix_regime" not in present:
+        components.append(unavailable(
+            "vix_regime", "VIX", f"single-stock-investments:{VOL_METRICS_LATEST}",
+            "No ^VIX close in the committed vol-metrics snapshot.", "daily",
+        ))
+    if "dealer_gamma" not in present:
+        components.append(unavailable(
+            "dealer_gamma", "SPX", f"single-stock-investments:{SPX_SURFACE_LATEST}",
+            "No open-interest gamma proxy in the committed SPX chain snapshot.", "daily",
+        ))
     components.append(unavailable(
         "observed_vol_target_flows", "US_EQUITY", "institutional-flow-provider",
         "Observed vol-control and risk-parity holdings are not public; current vol-target output remains a scenario estimate.", "daily",
@@ -385,7 +561,7 @@ def build(etf_root: Path, ls_root: Path, spx_root: Path, ssi_root: Path = ROOT) 
         "research_only": True,
         "components": components,
         "coverage": {"ready": ready, "delayed": delayed, "stale": stale, "unavailable": missing, "total": len(components)},
-        "sources": ["etf-dashboard", "ls-algo", "spx-0dte"],
+        "sources": ["etf-dashboard", "ls-algo", "single-stock-investments"],
     }
 
 
@@ -419,12 +595,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--etf-root", type=Path, default=DEFAULT_ETF_ROOT)
     parser.add_argument("--ls-root", type=Path, default=DEFAULT_LS_ROOT)
-    parser.add_argument("--spx-root", type=Path, default=DEFAULT_SPX_ROOT)
     parser.add_argument("--ssi-root", type=Path, default=ROOT)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
-    payload = build(args.etf_root, args.ls_root, args.spx_root, args.ssi_root)
+    payload = build(args.etf_root, args.ls_root, args.ssi_root)
     write_atomic(args.output, payload)
     result = None
     if args.publish:

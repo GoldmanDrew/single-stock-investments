@@ -21,11 +21,13 @@ The published spine is capped at the latest completed US session (18:00 New
 York cutoff), avoiding a mixture of today's partial Yahoo candle and yesterday's
 official closes.
 
-SPX 0DTE options-derived z-scores (``straddle_residual_z``, ``skew_z``,
-``term_ratio_z``, ``realized_vs_implied_z``) are carried from the
-``options_stress`` component of ``dashboard/data/market_risk_components.json``
-onto the **latest row only** -- they are already z-scores and are stored raw,
-never re-z-scored, never invented (absent source -> nulls).
+The ``spx_0dte`` block is **retired** and reports nulls. It used to carry
+``options_stress`` z-scores forward out of ``market_risk_components.json``,
+built then from the spx-0dte trading repository's intraday signals. That feed
+is gone and ``options_stress`` now derives from this file, so reading it back
+would make this module its own upstream and present one number as two agreeing
+sources. Use ``metrics.skew``, ``metrics.slope_vix_3m`` and
+``metrics.iv_rv_spread`` instead -- each carries its own trailing z-score.
 
 Conventions
 -----------
@@ -536,37 +538,27 @@ def fetch_close_series(symbol: str) -> dict:
 
 
 def read_spx_0dte(components_path: Path) -> dict:
-    """Carry the options_stress z-scores forward. Absent -> nulls, never invented."""
+    """Retired. Reports nulls with a status saying why.
+
+    This block used to carry the ``options_stress`` z-scores forward out of
+    ``market_risk_components.json``, back when that component was built from a
+    checkout of the spx-0dte trading repository's intraday signals.
+
+    That feed is gone, and ``options_stress`` is now derived from *this file* --
+    the chain snapshot plus the very z-scores in ``metrics`` below. Reading it
+    back in would put this module's own output in its input and dress one
+    number up as two independent sources agreeing with each other. So the block
+    stays, reporting null with a reason, and the numbers it used to mirror are
+    available directly: ``metrics.skew``, ``metrics.slope_vix_3m`` and
+    ``metrics.iv_rv_spread``, each with its own trailing z-score.
+
+    ``components_path`` is accepted and ignored so callers need not change.
+    """
     block = {key: None for key in SPX_0DTE_KEYS}
     block["source_as_of"] = None
     block["source"] = None
     block["available"] = False
-    if not components_path.exists():
-        block["status"] = "components_file_missing"
-        return block
-    try:
-        payload = json.loads(components_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        block["status"] = f"components_unreadable:{str(exc)[:80]}"
-        return block
-    component = None
-    for candidate in payload.get("components") or []:
-        if isinstance(candidate, dict) and candidate.get("component") == "options_stress":
-            component = candidate
-            break
-    if component is None:
-        block["status"] = "options_stress_component_absent"
-        return block
-    latest = component.get("latest") or {}
-    found = False
-    for key in SPX_0DTE_KEYS:
-        value = _round(latest.get(key), 6)
-        block[key] = value
-        found = found or value is not None
-    block["source_as_of"] = component.get("as_of")
-    block["source"] = component.get("source")
-    block["available"] = found
-    block["status"] = "ok" if found else "options_stress_values_absent"
+    block["status"] = "retired:options_stress_now_derives_from_this_file"
     return block
 
 
