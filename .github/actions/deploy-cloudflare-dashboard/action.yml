@@ -187,6 +187,35 @@ runs:
         if [ -z "${PORTFOLIO_DREW_ACCESS_EMAILS:-}" ] || [ -z "${PORTFOLIO_MICHAEL_ACCESS_EMAILS:-}" ]; then
           echo "Portfolio owner login maps are not fully provisioned; paper order entry stays fail-closed."
         fi
+        # An address in BOTH owner maps is a configuration error that
+        # portfolioOrderOwner() raises on — but only at request time, which means
+        # the first person to find it is the operator who cannot place an order.
+        # Catch it here instead. Prints no addresses: these are secrets, and the
+        # count is enough to act on.
+        python - <<'PY'
+        import os, re, sys
+
+        def emails(name):
+            # Must match emailSet() in dashboard/functions/_lib/paper-orders.js
+            # exactly -- it splits on commas, semicolons AND whitespace. A guard
+            # that parses the list differently from the code it guards can pass
+            # while the runtime still collides.
+            raw = os.environ.get(name) or ""
+            return {p.strip().lower() for p in re.split(r"[\s,;]+", raw) if p.strip()}
+
+        drew = emails("PORTFOLIO_DREW_ACCESS_EMAILS")
+        michael = emails("PORTFOLIO_MICHAEL_ACCESS_EMAILS")
+        both = drew & michael
+        if both:
+            print(
+                f"::error::{len(both)} address(es) appear in BOTH portfolio owner maps. "
+                "Paper order entry would raise 'assigned to more than one owner' for them. "
+                "Remove the overlap from one map and redeploy.",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        print(f"Owner maps disjoint: drew={len(drew)} michael={len(michael)} addresses.")
+        PY
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
         SECRET_FILE="$RUNNER_TEMP/market-risk-pages-secrets.json"
         trap 'rm -f "$SECRET_FILE"' EXIT

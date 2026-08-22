@@ -564,7 +564,12 @@
     const lockMessage = state.paperOrders?.error
       ? state.paperOrders.error
       : !orderOwner
-        ? 'This Access login has no paper-order role. Add it to exactly one owner map before order entry can be used.'
+        // Name the verified email. Without it the operator has to guess which
+        // address Access actually asserted, and a guess lands in one of two bad
+        // places: an alias that never matches (stays silently read-only), or a
+        // second variant added "to be safe" that collides with the other owner
+        // map and hard-errors. The address is already in the payload.
+        ? `This Access login (${esc(viewer.email || 'email not returned')}) has no paper-order role. Add exactly this address to exactly one owner map — PORTFOLIO_DREW_ACCESS_EMAILS or PORTFOLIO_MICHAEL_ACCESS_EMAILS, never both — then redeploy.`
         : state.scope === 'all'
           ? `Choose the ${ownerLabel} portfolio to open your owner-locked paper ticket.`
           : `Signed in for ${ownerLabel}. Order entry cannot be opened on the ${state.scope[0].toUpperCase() + state.scope.slice(1)} portfolio.`;
