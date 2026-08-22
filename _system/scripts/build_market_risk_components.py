@@ -469,9 +469,12 @@ def build_spx(ssi_root: Path) -> list[dict]:
                 "oi_caveat": gamma.get("oi_caveat"),
                 "gamma_flip_estimate_status": gamma.get("gamma_flip_estimate_status"),
                 "gamma_flip_omitted_reason": gamma.get("gamma_flip_omitted_reason"),
+                # The figure is USD, so it carries unit "USD" and formats as
+                # -$47.5B. What the USD measures lives here rather than in the
+                # unit, which the dashboard formats against a fixed set.
+                "unit_description": gamma.get("units"),
                 "research_only": True,
-            }, score=score, value=gamma_value, unit=gamma.get("units") or "usd_delta_per_1pct",
-            entitlement_mode="derived",
+            }, score=score, value=gamma_value, unit="USD", entitlement_mode="derived",
         ))
     return output
 

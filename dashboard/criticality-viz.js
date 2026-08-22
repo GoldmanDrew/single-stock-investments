@@ -358,6 +358,16 @@
       return `<dl><div><dt>Funds mapped</dt><dd>${whole(item.funds)}</dd></div><div><dt>Positions</dt><dd>${whole(item.positions)}</dd></div>
         <div><dt>Derivatives</dt><dd>${whole(item.derivative_positions)}</dd></div></dl>`;
     }
+    if (item.component === 'dealer_gamma') {
+      // Open-interest proxy, not licensed positioning. The sign convention is
+      // an assumption, so the tile says so rather than presenting a net number
+      // as an observation.
+      return `<dl><div><dt>Net</dt><dd>${compactNumber(item.net_gamma_notional, 'USD')}</dd></div>
+        <div><dt>Call</dt><dd>${compactNumber(item.call_gamma_notional, 'USD')}</dd></div>
+        <div><dt>Put</dt><dd>${compactNumber(item.put_gamma_notional, 'USD')}</dd></div>
+        <div><dt>Contracts</dt><dd>${whole(item.contracts_used)}</dd></div>
+        <div><dt>Basis</dt><dd>proxy, assumed sign</dd></div></dl>`;
+    }
     if (item.component === 'vix_regime') {
       return `<dl><div><dt>Close</dt><dd>${compactNumber(item.close, 'index_points')}</dd></div><div><dt>Daily change</dt><dd>${finite(item.change_pct) == null ? '—' : `${Number(item.change_pct).toFixed(1)}%`}</dd></div></dl>`;
     }
@@ -411,8 +421,9 @@
   }
 
   // A component with no dataset behind it is not rendered at all. Dead tiles
-  // (observed_vol_target_flows has no free source; options_stress and
-  // dealer_gamma went dark) used to occupy a third of this grid saying nothing.
+  // (observed_vol_target_flows still has no free source) used to occupy a third
+  // of this grid saying nothing. options_stress and dealer_gamma came back when
+  // they moved onto our own SPX tab instead of the spx-0dte checkout.
   // The count of unconnected sources is still disclosed in the header.
   function componentStack(payload, escapeHtml) {
     const all = payload?.components || [];

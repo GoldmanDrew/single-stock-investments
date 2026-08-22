@@ -230,19 +230,23 @@ def has_download_script(ticker_dir: Path) -> tuple[bool, str | None]:
         ticker_dir / "_scripts" / "download_and_organize.ps1",
         ticker_dir / "investor-documents" / "download_*_investor_docs.py",
     ]
+    # as_posix(), not str(): every other path emitted into the payload is
+    # normalised to forward slashes, and this function was the one that was not.
+    # A rebuild run on Windows wrote "AVGO\investor-documents\..." into all 833
+    # shards, which is a dead link everywhere the dashboard renders it.
     ps1 = ticker_dir / "_scripts" / "download_and_organize.ps1"
     if ps1.exists():
-        return True, str(ps1.relative_to(ROOT))
+        return True, ps1.relative_to(ROOT).as_posix()
     scripts_dir = ticker_dir / "_scripts"
     if scripts_dir.exists():
         for script in scripts_dir.glob("download*"):
             if script.is_file():
-                return True, str(script.relative_to(ROOT))
+                return True, script.relative_to(ROOT).as_posix()
     for py in (ticker_dir / "investor-documents").glob("download_*_investor_docs.py"):
-        return True, str(py.relative_to(ROOT))
+        return True, py.relative_to(ROOT).as_posix()
     for py in ticker_dir.rglob("download_*.py"):
         if "_system" not in py.parts:
-            return True, str(py.relative_to(ROOT))
+            return True, py.relative_to(ROOT).as_posix()
     return False, None
 
 
