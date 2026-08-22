@@ -39,5 +39,11 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=portfolio-hub-bridge
 
+# Deliberately NOT niced or CPU-capped, unlike the other hub units (CLAUDE.md
+# rule 7). This process transmits and cancels live orders; delaying it to
+# protect CPU would trade a real execution risk for a theoretical one. It is a
+# single low-duty-cycle poller, not a background batch job, so it cannot starve
+# the SPX executor the way a collector or backfill can.
+
 [Install]
 WantedBy=multi-user.target

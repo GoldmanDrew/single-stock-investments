@@ -15,7 +15,7 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 | LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
 
-Cross-system map: SPX 0DTE runs as client **17** (live executor) and **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
+Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens) and **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
 remedial Gateway restart per session day when the API handshake is provably
