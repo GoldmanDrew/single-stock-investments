@@ -13,7 +13,11 @@
     "profile": "scarce_strategic_asset",
     "security_type": "resource_developer",
     "horizon_years": 7,
-    "entry_hurdles_pct": [10, 12, 15],
+    "entry_hurdles_pct": [
+      10,
+      12,
+      15
+    ],
     "owner_cash_definition": "Pre-production developer: no normalized owner cash. Lawrence base uses scenario payoffs on probability-weighted project NAV plus marked uranium inventory, minus net debt and future dilution.",
     "decision_rule": "Keep marked uranium inventory, Wheeler River Phoenix/Gryphon options, and exploration portfolio separate from corporate burn. Do not capitalize feasibility-study NPV at 100% without probability and timing discounts.",
     "explicit_profile_override": "scarce_asset_optionality"
@@ -29,9 +33,9 @@
     "moi_bucket": "binary_milestone"
   },
   "inputs": {
-    "price": 2.83,
-    "price_source": "Yahoo DNN close 2026-07-20 (refresh will update)",
-    "price_as_of": "2026-07-20",
+    "price": 3.5,
+    "price_source": "Yahoo DNN close 2026-08-21",
+    "price_as_of": "2026-08-21",
     "shares_outstanding": 901610950,
     "shares_outstanding_m": 901.61095,
     "shares_source": "901,610,950 common shares at December 31, 2025 (40-F cover; dei:EntityCommonStockSharesOutstanding accession 0001104659-26-036912)",
@@ -55,8 +59,8 @@
     "floor_type": "marked_uranium_inventory_plus_net_cash",
     "catalyst": "Phoenix final investment decision, provincial/federal permits, uranium price",
     "primary_metric": "lawrence_base",
-    "primary_label": "7yr scenario return",
-    "primary_return_pct": 0.4
+    "primary_label": "7yr IRR",
+    "primary_return_pct": -2.7
   },
   "nav_overlay": {
     "enabled": true,
@@ -100,13 +104,106 @@
     }
   },
   "implied_return": {
-    "base_pct": 0.4,
-    "bear_pct": -13.0,
-    "bull_pct": 9.4,
+    "base_pct": -2.7,
+    "bear_pct": -14.9,
+    "bull_pct": 6.6,
     "years": 7,
     "method": "scenario_payoff"
   },
-  "stance_proposal": "watch",
+  "stance_proposal": {
+    "suggested": "watch",
+    "irr_band": "<15%",
+    "gates": {
+      "moat_ok": false,
+      "dhando_ok": false,
+      "floor_pass": false,
+      "valuation_mode": "optionality"
+    },
+    "override_reason": null
+  },
+  "economic_value": {
+    "schema_version": "1.0",
+    "method": "component_economic_value",
+    "economic_claim": {
+      "description": "One common share of Denison Mines Corp. (NYSE American: DNN) representing Wheeler River Phoenix/Gryphon options, marked uranium inventory, and exploration portfolio net of corporate debt.",
+      "unit_label": "common share",
+      "unit_count": 901610950,
+      "unit_source": "901,610,950 common shares at December 31, 2025 (40-F cover; dei:EntityCommonStockSharesOutstanding accession 0001104659-26-036912)",
+      "enterprise_to_equity_reconciliation": "Marked uranium contracts and probability-weighted project NPV components are additive per share; net cash/debt is a single corporate row; exploration/JV interests risked separately from Wheeler NPV to avoid double count."
+    },
+    "gaap_role": "cross_check",
+    "accounting_reference": "Denison Mines Form 40-F FY2025 (accession 0001104659-26-036912); SEC companyfacts XBRL.",
+    "wisdom_applied": [
+      "Pabrai: binary milestone on Phoenix FID; do not capitalize feasibility NPV at 100%.",
+      "Munger: marked inventory is partial floor; derivative/financing volatility can swamp book equity."
+    ],
+    "limitations": [
+      "Exhibits 99.1-99.3 (AIF/MD&A) not in admitted evidence packet; Phoenix/Gryphon NPV rows remain [Assumption].",
+      "No normalized owner cash; scenario payoffs are migration cross-check only."
+    ],
+    "component_groups": [
+      {
+        "id": "net_cash",
+        "label": "Cash and equivalents minus debt",
+        "component_ids": ["net_cash"],
+        "economic_claim": "Corporate net cash position per share",
+        "valuation_basis": "FY2025 balance sheet cash less debt instruments at 1.3829 CAD/USD.",
+        "adjustments": "Low case assumes working capital draw before Phoenix FID.",
+        "overlap_control": "Unique overlap key corporate_net_cash."
+      },
+      {
+        "id": "uranium_inventory_contracts",
+        "label": "Uranium prepayment and sale contracts at fair value",
+        "component_ids": ["uranium_inventory_contracts"],
+        "economic_claim": "Marked uranium prepayment and sale contract portfolio",
+        "valuation_basis": "Financial assets at fair value CAD 746M per ifrs-full FY2025.",
+        "adjustments": "High case assumes uranium price uplift on contract marks.",
+        "overlap_control": "Unique overlap key uranium_marked_inventory."
+      },
+      {
+        "id": "wheeler_phoenix_isr",
+        "label": "Wheeler River Phoenix ISR project (probability-weighted NPV)",
+        "component_ids": ["wheeler_phoenix_isr"],
+        "economic_claim": "95% interest in Phoenix ISR post-tax NPV after probability and timing discount",
+        "valuation_basis": "Feasibility economics incorporated by reference; base P=0.55 with timing discount [Assumption].",
+        "adjustments": "Binary milestone: provincial permits and FID gate value.",
+        "overlap_control": "Unique overlap key wheeler_phoenix.",
+        "risk_and_timing": {
+          "probability_basis": "Base case P=0.55 on Phoenix FID by 2028; low case P=0.25 with delay; high case P=0.75 with early FID.",
+          "timing_basis": "Seven-year horizon; value recognized as FID/construction milestones advance, not as current owner cash.",
+          "remaining_capital_basis": "Construction capex and equity raises before first production are charged in scenario payoffs, not as a separate additive row."
+        }
+      },
+      {
+        "id": "wheeler_gryphon",
+        "label": "Wheeler River Gryphon conventional option",
+        "component_ids": ["wheeler_gryphon"],
+        "economic_claim": "Follow-on Gryphon conventional mine option after Phoenix",
+        "valuation_basis": "Gryphon PFS update incorporated by reference; base P=0.25 with deferral discount [Assumption].",
+        "adjustments": "Zero in bear scenario; follows Phoenix success.",
+        "overlap_control": "Unique overlap key wheeler_gryphon.",
+        "risk_and_timing": {
+          "probability_basis": "Base P=0.25; high P=0.45 if Phoenix funds Gryphon; low P=0.0 if shelved.",
+          "timing_basis": "Deferred past Phoenix FID; no value in first five years in base case.",
+          "remaining_capital_basis": "Gryphon capex not modeled separately; absorbed in consolidated scenario payoffs."
+        }
+      },
+      {
+        "id": "exploration_and_jv",
+        "label": "Athabasca exploration portfolio, JVs, and equity-method investments",
+        "component_ids": ["exploration_and_jv"],
+        "economic_claim": "Regional exploration and JV interests outside Wheeler consolidated NPV",
+        "valuation_basis": "Risked NAV on associates, JVs, and capitalized exploration PP&E lines.",
+        "adjustments": "Excludes double-count with Wheeler NPV rows.",
+        "overlap_control": "Unique overlap key exploration_pipeline.",
+        "risk_and_timing": {
+          "probability_basis": "Low/base/high range reflects discovery and JV optionality, not producing cash.",
+          "timing_basis": "Long-dated option value; no near-term cash distributions modeled.",
+          "remaining_capital_basis": "Exploration burn continues until Phoenix construction funding closes."
+        }
+      }
+    ]
+  },
   "component_valuation": {
     "schema_version": "2.0",
     "all_material_components_identified": true,
@@ -242,14 +339,86 @@
             "in_base_irr": false
           },
           {
-            "id": "ura_etf",
-            "label": "URA uranium miners ETF (USD)",
-            "latest": 46.06999969482422,
+            "id": "ust_2y",
+            "label": "US Treasury 2Y yield (%)",
+            "latest": 4.423999786376953,
             "as_of": "2026-08-21",
-            "yoy_pct": 23.9,
+            "yoy_pct": 14.7,
             "direction": "up",
-            "good_for": "uranium_sentiment",
-            "source": "yahoo:URA",
+            "good_for": "rates_regime",
+            "source": "yahoo:^FVX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "dxy_broad",
+            "label": "Trade-weighted USD index (broad)",
+            "latest": 98.80000305175781,
+            "as_of": "2026-08-21",
+            "yoy_pct": 0.2,
+            "direction": "flat",
+            "good_for": "dollar_regime",
+            "source": "yahoo:DX-Y.NYB",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "vix_level",
+            "label": "VIX index level",
+            "latest": 15.130000114440918,
+            "as_of": "2026-08-21",
+            "yoy_pct": -8.9,
+            "direction": "down",
+            "good_for": "vol_regime",
+            "source": "yahoo:^VIX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "credit_impulse_1m",
+            "label": "HYG vs TLT 1-month return spread (%)",
+            "latest": 1.83,
+            "as_of": "2026-08-21",
+            "yoy_pct": 315.3,
+            "direction": "up",
+            "good_for": "credit_impulse",
+            "source": "spread:HYG-TLT:21d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "spy_20d_realized_vol",
+            "label": "SPY 20-day realized vol (annualized %)",
+            "latest": 13.12,
+            "as_of": "2026-08-21",
+            "yoy_pct": 25.2,
+            "direction": "up",
+            "good_for": "equity_vol",
+            "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "agi_years_ahead",
+            "label": "AGI expert-horizon years ahead (public quotes)",
+            "latest": 5.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:agi",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "robotaxi_years_ahead",
+            "label": "Robotaxi expert-horizon years ahead (public quotes)",
+            "latest": 2.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:robotaxi",
             "stale": false,
             "in_base_irr": false
           }
@@ -270,6 +439,42 @@
             "source": "yahoo:URA",
             "stale": false,
             "in_base_irr": false
+          },
+          {
+            "id": "hyperscaler_capex_ttm_usd_bn",
+            "label": "Hyperscaler capex guide (USD bn, latest)",
+            "latest": 467.3,
+            "as_of": "2026-08-22",
+            "yoy_pct": null,
+            "direction": "flat",
+            "good_for": "firm_power_demand",
+            "source": "repo:valuation.json/ai_overlay",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "electricity_price_us",
+            "label": "US avg electricity price (cents/kWh)",
+            "latest": 0.197,
+            "as_of": "2026-07-01",
+            "yoy_pct": 4.2,
+            "direction": "up",
+            "good_for": "power_price",
+            "source": "fred:APU000072610",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "agi_years_ahead",
+            "label": "AGI expert-horizon years ahead (public quotes)",
+            "latest": 5.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:agi",
+            "stale": false,
+            "in_base_irr": false
           }
         ]
       }
@@ -280,33 +485,122 @@
     "strip_label": "steady",
     "predictability_class": "P3_oriented",
     "claim_ceiling": "P3_oriented",
-    "industry_node_ids": ["nuclear_firm_power"],
+    "industry_node_ids": [
+      "nuclear_firm_power"
+    ],
     "industries": [
       {
         "node_id": "nuclear_firm_power",
         "label": "Nuclear / SMR firm power for AI grid",
         "kind": "thesis",
         "checklist": {
-          "capacity": {"status": "watch", "note": "GW online and interconnection queues."},
-          "pricing": {"status": "watch", "note": "Power price and contracted offtake to hyperscalers."},
-          "regulatory": {"status": "permissioning", "note": "NRC/state siting is the binding gate."}
+          "capacity": {
+            "status": "watch",
+            "note": "GW online and interconnection queues."
+          },
+          "pricing": {
+            "status": "watch",
+            "note": "Power price and contracted offtake to hyperscalers."
+          },
+          "regulatory": {
+            "status": "permissioning",
+            "note": "NRC/state siting is the binding gate."
+          }
         }
       }
     ],
-    "theme_ids": ["nuclear_power", "ai_power_land", "macro_regime"],
+    "theme_ids": [
+      "nuclear_power",
+      "ai_power_land",
+      "macro_regime"
+    ],
     "in_base_irr": false,
     "disclaimer": "Context only."
   },
   "lens_consensus": {
-    "as_of": "2026-07-20",
+    "as_of": "2026-08-22",
     "shared_inputs_ref": "valuation.json@2026-08-22",
-    "valuation_richness": 0.0,
-    "blended_return_pct": null,
-    "stance": "pending",
-    "agreement_pct": 0,
+    "valuation_richness": 0.973,
+    "blended_return_pct": -2.48,
+    "band_pct": [
+      -13.0,
+      0.4
+    ],
+    "weighted_median_pct": 0.4,
+    "median_mean_flag": false,
+    "stance": "pass",
+    "agreement_pct": 100,
     "dissent_count": 0,
     "lawrence_divergence": false,
+    "top_dissents": [],
+    "contributor_count": 11,
     "in_base_irr": false,
-    "disclaimer": "Advisory lens blend only."
+    "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "option_scan": [
+    {
+      "q": 1,
+      "question": "GAAP book misstates core assets?",
+      "answer": "Yes",
+      "treatment": "nav_overlay",
+      "evidence": "nav_overlay in valuation.json"
+    },
+    {
+      "q": 2,
+      "question": "Undeveloped reserves / acreage?",
+      "answer": "Yes",
+      "treatment": "nav_floor",
+      "evidence": "Segment build / undeveloped row"
+    }
+  ],
+  "total_return_panel": {
+    "schema_version": "3.0",
+    "ticker": "DNN",
+    "as_of": "2026-08-22",
+    "status": "partial",
+    "error": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+    "price_source": "yahoo:DNN",
+    "currency": "USD",
+    "return_currency": "USD",
+    "fx_basis": "listing_currency_nominal",
+    "history_start": "2005-02-09",
+    "history_end": "2026-08-21",
+    "price_points": 5417,
+    "price_interval": "1d",
+    "history_basis": "earliest_available_vendor_trading_history",
+    "chart_scale": "logarithmic",
+    "chart_y_axis": "cumulative_return_pct",
+    "chart_series": [
+      "total_return",
+      "price_only"
+    ],
+    "return_contract": "split-adjusted close excluding dividends; event amounts normalized for later splits; cash reinvested at ex-date close; pre-tax nominal",
+    "coverage": {
+      "status": "vendor_only",
+      "start": null,
+      "end": null,
+      "note": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+      "ledger_path": null
+    },
+    "event_count": 1,
+    "event_counts": {
+      "split": 1
+    },
+    "cash_distributions_on_initial_share_path": 0,
+    "distribution_contribution_by_type": {},
+    "cumulative_distributions_per_share": 0,
+    "start_price": 4.189,
+    "end_price": 3.5,
+    "price_index_end": 83.55,
+    "total_return_index_end": 83.55,
+    "cumulative_price_return_pct": -16.45,
+    "cumulative_total_return_pct": -16.45,
+    "price_only_annualized_pct": -0.83,
+    "total_return_annualized_pct": -0.83,
+    "market_cap_m": 3155.64,
+    "shares_outstanding": 901610950,
+    "price_for_market_cap": 3.5,
+    "chart": "DNN/research/charts/total_return_2026-08-22.svg",
+    "panel_json": "DNN/research/total_return_panel.json"
   }
 }
