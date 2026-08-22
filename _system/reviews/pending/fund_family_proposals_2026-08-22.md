@@ -3,19 +3,73 @@
 Auto-detected multi-strategy shops from shared prefix + identical letter snippets.
 Promote confirmed rows into `_system/data/fund_families.json`.
 
-## `chilton` — Chilton
-- Shared snippet clusters: **2**
+## `apis` — Apis
+- Shared snippet clusters: **3**
 - Fund IDs:
-  - `chilton-flagship-long-only` (Chilton Flagship Long Only)
-  - `chilton-flagship-strategy` (Chilton Flagship Strategy)
+  - `apis-deep-value` (Apis Deep Value)
+  - `apis-flagship` (Apis Flagship)
 
 ```json
 {
-  "chilton": {
-    "display": "Chilton",
+  "apis": {
+    "display": "Apis",
     "fund_ids": [
-      "chilton-flagship-long-only",
-      "chilton-flagship-strategy"
+      "apis-deep-value",
+      "apis-flagship"
+    ]
+  }
+}
+```
+
+## `keefe` — Keefe
+- Shared snippet clusters: **3**
+- Fund IDs:
+  - `keefe-stevens` (Keefe Stevens)
+  - `keefe-stevensons` (Keefe Stevensons)
+
+```json
+{
+  "keefe": {
+    "display": "Keefe",
+    "fund_ids": [
+      "keefe-stevens",
+      "keefe-stevensons"
+    ]
+  }
+}
+```
+
+## `moody` — Moody
+- Shared snippet clusters: **2**
+- Fund IDs:
+  - `moody-analytics` (Moody Analytics)
+  - `moody-analytics-canada-housing` (Moody Analytics Canada Housing)
+
+```json
+{
+  "moody": {
+    "display": "Moody",
+    "fund_ids": [
+      "moody-analytics",
+      "moody-analytics-canada-housing"
+    ]
+  }
+}
+```
+
+## `seg` — Seg
+- Shared snippet clusters: **2**
+- Fund IDs:
+  - `seg-assessment` (Seg Assessment)
+  - `seg-ii-ltdq` (Seg Ii Ltdq)
+
+```json
+{
+  "seg": {
+    "display": "Seg",
+    "fund_ids": [
+      "seg-assessment",
+      "seg-ii-ltdq"
     ]
   }
 }
@@ -40,7 +94,7 @@ Promote confirmed rows into `_system/data/fund_families.json`.
 ```
 
 ## `viking` — Viking
-- Shared snippet clusters: **3**
+- Shared snippet clusters: **2**
 - Fund IDs:
   - `viking-global` (Viking Global)
   - `viking-long-manager` (Viking Long Manager)
