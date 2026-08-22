@@ -1,6 +1,6 @@
 # DNN — Investment Thesis
 
-**Last updated:** 2026-08-22
+**Last updated:** auto-sync
 
 ## Classification
 
@@ -11,8 +11,13 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
 | **Cycle** | mid |
-| **MOI bucket** (legacy) | binary_milestone |
+| **Implied 7yr IRR** (base) | — |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | other |
 | **Payoff lens** | asset |
+| **MOI bucket** | binary_milestone |
+
+**Deep dive:** `DNN/research/deep_dive_2026-08-22.md` (auto-sync)
 
 ## One-line thesis
 

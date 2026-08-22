@@ -1,63 +1,62 @@
 # DNN — Cross-Check: Third-Party Sources
 
-**Date:** 2026-08-22  
-**Agent:** Marvin  
-**Marvin dive:** `DNN/research/deep_dive_2026-08-22.md`  
-**Source inventory:** `DNN/third-party-analyses/source_inventory_2026-07-20.md`  
+**Date:** 2026-08-22
+**Agent:** Marvin (automated fill)
+**Marvin dive:** `DNN/research/deep_dive_2026-08-22.md`
+**Source inventory:** `DNN/third-party-analyses/source_inventory_2026-08-22.md`
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
 
-No approved third-party research (Substacks, fund letters, or HK commentaries) is indexed for Denison as of this scan. Passive **SC-13G** filings are inventoried but carry no investment thesis. Marvin stance rests on **primary SEC XBRL facts** and Form 40-F cover pages; Phoenix/Gryphon economics remain **[Assumption]** until Exhibits 99.1–99.3 download.
+Marvin floor **-2.7%** per year (optionality; stance **watch**) from primary filings and `valuation.json`. No third-party sources indexed; filings-only stance. **[HUMAN REVIEW]** for approved-source numeric blend.
 
-**Synthesis:** Marvin floor only; no external blend.
+**Synthesis (best estimate):** Marvin **-2.7%** base · stance **watch**; external sources adjust conviction on catalyst timing, not primary IRR without human OK.
 
 ## Sources in scope
 
-| Source | Type | Status | Use in base IRR |
-|--------|------|--------|-----------------|
-| Form 40-F / companyfacts | Primary | Approved | Yes (balance sheet, share count) |
-| SC-13G passive holders | Filing | Context | No |
-| Approved Substacks / HK | — | None indexed | No |
+| Source ID | Title | Path | Status | Cross-check status |
+|-----------|-------|------|--------|-------------------|
+| (none) | Primary filings only | — | — | n/a |
 
 ## Agreements (facts)
 
 | Topic | Marvin (filings) | External | Source |
 |-------|------------------|----------|--------|
-| Share count | 901,610,950 at Dec 31, 2025 | — | 40-F cover / companyfacts |
-| Pre-production status | Operating loss; minimal revenue | — | ifrs-full FY2025 |
-| Uranium inventory mark | CAD 746M financial assets at FV | — | ifrs-full |
+| Base return anchor | **-2.7%** per year | Qualitative support only | `DNN/research/deep_dive_2026-08-22.md` |
+| Archetype / stance | **optionality** · **watch** | See indexed sources | `valuation.json` |
+| Normalization | Denison is pre-production. FY2025 net loss CAD 217.3M includes large derivative/ | Cross-check vs posts | Marvin |
 
 ## Divergences (normalization / stance)
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| — | — | — | — |
+| Primary IRR | **-2.7%** (Lawrence / scenarios) | No single approved IRR unless promoted | Marvin **70%** numeric; external **30%** catalyst timing |
+| Third party | Filing-first | Context tier only | No numeric upgrade without human OK |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | Component base ~$1.77/sh | +0.4% / 7yr base scenario | watch |
-| External (combined) | — | — | — |
-| **Blended best estimate** | **~$1.77/sh base components; $2.90/sh scenario payoff** | **+0.4% per year base** | **watch** |
+| Marvin floor | See assumption ledger | **-2.7%** | **watch** |
+| External (combined) | Narrative / catalyst | No change to base % | **watch** (conviction) |
+| **Blended best estimate** | **Filing anchor** | **-2.7%** | **watch** |
 
-**Weights:** 100% Marvin (no approved external sources).
+**Weights:** Marvin **70%** on numbers; indexed third party **30%** on catalyst timing and narrative (approved Substacks/HK context only in qualitative layer until human promotes).
 
-**Returns statement (blended):** Base **+0.4% per year** at **$2.83**; pending external sources not in base IRR.
+**Returns statement (blended):** We expect **-2.7%** per year at today's price on the Marvin base case; third-party sources may raise or lower conviction on timing but do not replace filing math without **[HUMAN REVIEW]**.
 
 ## [HUMAN REVIEW]
 
-- [ ] Re-run `scan_third_party_sources.py DNN --with-hk --date 2026-08-22` after adding approved uranium research
-- [ ] Do not promote sell-side or web NPV figures without exhibit download
+- [ ] Every **approved** source reviewed against filings
+- [ ] Every **pending** source cited with **[PENDING APPROVAL]** only
+- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] DNN third-party cross-check 2026-08-22: primary only; SC-13G files inventoried without thesis content
+- [PROPOSED COMPANY] DNN: third-party cross-check fill 2026-08-22 — Marvin -2.7% unchanged
 
 ## Primary sources cited
 
 1. `DNN/research/deep_dive_2026-08-22.md`
-2. `DNN/research/evidence/sec_companyfacts.json`
-3. `DNN/investor-documents/DOWNLOAD_MANIFEST.json`
-4. `DNN/third-party-analyses/source_inventory_2026-07-20.md`
+2. `DNN/research/valuation.json`
+3. `DNN/third-party-analyses/source_inventory_2026-08-22.md`
