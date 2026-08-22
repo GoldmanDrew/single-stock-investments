@@ -1,22 +1,22 @@
 # DNN — Investment Thesis
 
-**Last updated:** 2026-07-20
+**Last updated:** 2026-08-22
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | mid |
+| **MOI bucket** (legacy) | binary_milestone |
+| **Payoff lens** | asset |
 
 ## One-line thesis
 
-DNN — thesis pending Marvin deep dive.
+Pre-production Athabasca uranium developer: equity is a probability-weighted call on Wheeler River Phoenix ISR plus marked inventory; base case ~0.4% per year at $2.83 is not decision-grade accumulate.
 
 ## Key questions
 
