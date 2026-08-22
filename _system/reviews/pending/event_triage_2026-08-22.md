@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-22
-**Rows:** 1596
+**Rows:** 1598
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -39,6 +39,7 @@
 | 2026-08-21 | DIS | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Bank of New York Mellon Corp Acquires New Position in The Wa |
 | 2026-08-21 | CHTR | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Cox CEO to chair Charter Communications (CHTR) under new gov |
 | 2026-08-21 | CHTR | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Charter (NASDAQ: CHTR) holder pledges preferred shares for m |
+| 2026-08-21 | CVNA | podcast_episode | context | 23 | rule_conflict, activist_cross_link, neutral_low_impact | 2026 Half-Year Letter to Co-Investors |
 | 2026-08-20 | BMY | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Bristol-Myers (BMY) Results Review: The EPS Result Is Above  |
 | 2026-08-20 | CTVA | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Corteva spinoff Vylor launches $1.1B bond sale to fund paren |
 | 2026-08-20 | BE | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Bloom Energy: Up 136% This Year -- Is There Still Room to Ru |
@@ -196,6 +197,7 @@
 | 2026-06-17 | NVDA | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: NVDA |
 | 2026-06-14 | FRMI | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, activist_cross_link, neutral_low_impact | Letter: FRMI |
 | 2026-06-14 | CHTR | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
+| 2026-06-02 | MSFT | podcast_episode | context | 14 | rule_conflict, activist_cross_link, neutral_low_impact | Steven Sinofsky on AI PCs, NVIDIA, and the Future of Computi |
 | 2026-05-25 | BKR | podcast_episode | context | 14 | rule_conflict, activist_cross_link, neutral_low_impact | Pershing Square Challenge 2026 runner-ups on Baker Hughes $B |
 | 2026-05-14 | FRMI | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
 | 2026-05-08 | BUR | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
@@ -203,5 +205,3 @@
 | 2026-05-06 | GS | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: GS |
 | 2026-05-05 | QDEL | earnings | context | 27 | rule_conflict, activist_cross_link, neutral_low_impact | Reported earnings |
 | 2026-05-03 | TBBK | superinvestor_letter | context | 21 | rule_conflict, letter_actionable, neutral_low_impact | Letter: TBBK |
-| 2026-05-03 | CHTR | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
-| 2026-05-03 | CSGP | superinvestor_letter | context | 20 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CSGP |
