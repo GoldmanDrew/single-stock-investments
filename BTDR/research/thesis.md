@@ -1,18 +1,23 @@
 # BTDR — Investment Thesis
 
-**Last updated:** 2026-07-19
+**Last updated:** auto-sync
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | mid |
+| **Implied 7yr IRR** (base) | — |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | other |
+| **Payoff lens** | operating |
+| **MOI bucket** | pending |
+
+**Deep dive:** `BTDR/research/deep_dive_2026-08-20.md` (auto-sync)
 
 ## One-line thesis
 
