@@ -21,9 +21,19 @@ PRODUCER_ADAPTERS = {
 }
 
 
+# D1 caps a row near 1 MB and the read path ships payload_json straight to the
+# browser, so an oversized snapshot fails at INSERT -- after the R2 archive write
+# has already succeeded, which makes it look like a partial publish. Catch it in
+# the adapter instead, where the message can name the producer and the size.
+MAX_D1_PAYLOAD_BYTES = 900_000
+
+
 def _load(source: dict[str, Any] | Path) -> dict[str, Any]:
     if isinstance(source, Path):
-        return json.loads(source.read_text(encoding="utf-8"))
+        # utf-8-sig, not utf-8: spx-0dte writes some live artifacts with a BOM and
+        # plain utf-8 raises on it. The sig codec strips a BOM when present and is
+        # identical to utf-8 when it is not.
+        return json.loads(source.read_text(encoding="utf-8-sig"))
     return source
 
 
@@ -53,6 +63,14 @@ def assert_producer_semantics(payload: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("live B5 snapshot leaked a non-B5 row")
         if producer == "ls_bucket5_product" and (row.get("reconciliation_role") != "research_only" or row.get("conid")):
             raise ValueError("B5 product snapshot cannot broker-reconcile")
+    size = len(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    if size > MAX_D1_PAYLOAD_BYTES:
+        raise ValueError(
+            f"{producer} snapshot is {size:,} bytes, over the {MAX_D1_PAYLOAD_BYTES:,} "
+            "byte D1 row budget. Do not raise this cap -- trim the adapter's summary "
+            "allowlist instead. The full payload is archived to R2 regardless, so "
+            "dropping a panel here loses nothing."
+        )
     return payload
 
 

@@ -118,20 +118,27 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
         "as_of": source.get("generated_at_utc") or source.get("generated_at") or source.get("as_of") or _now(),
         "complete": bool(source.get("book") and source.get("buckets")),
         "supported_scopes": ["account", "strategy", "bucket"], "rows": rows,
+        # Allowlisted, and it has to stay that way. The docstring above promises a
+        # "minimal allowlisted export", but this block used to forward thirteen
+        # analytics panels wholesale, which made the payload 2.38 MB. D1 caps a row
+        # around 1 MB, so storeStrategySnapshot's INSERT would have failed on every
+        # publish -- and the read path ships payload_json straight to the browser,
+        # so even a larger cap would have meant a multi-megabyte page load.
+        #
+        # These seven are exactly what portfolio-viz.js renders for ls_risk; the
+        # dropped panels (bucket_movers 830 KB, dividends 246 KB, pnl 206 KB,
+        # hedged_pnl 203 KB, component_attribution 114 KB, drawdown, movers) had no
+        # reader. LS P&L reaches the page through rows[].metrics, not summary.pnl.
+        # Nothing is lost: ingest archives the FULL payload to R2 first, so the
+        # dropped detail stays retrievable at portfolio/strategy/<producer>/<date>/.
+        # Adding a key here means checking the size again.
         "summary": {
             "book": source.get("book") or {},
-            "pnl": source.get("pnl_panel") or {},
-            "hedged_pnl": source.get("hedged_pnl_panel") or {},
-            "movers": source.get("movers_panel") or {},
-            "bucket_movers": source.get("bucket_movers_panel") or {},
-            "component_attribution": source.get("component_attribution_panel") or {},
-            "dividends": source.get("dividend_panel") or {},
             "factors": source.get("factor_panel") or {},
             "concentration": source.get("concentration_panel") or {},
             "slide_risk": source.get("slide_risk_panel") or {},
             "borrow_shocks": source.get("borrow_shock_panel") or {},
             "sleeves": source.get("bucket_sleeve_panel") or {},
-            "drawdown": source.get("drawdown_panel") or {},
             "data_quality": source.get("data_quality") or {},
         },
     }
