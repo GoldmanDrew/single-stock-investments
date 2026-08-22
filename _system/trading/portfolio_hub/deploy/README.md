@@ -146,3 +146,38 @@ Then work the `CLIENT_ID_REGISTRY.md` live gate in order: producers stamp
 positive orderRefs, every working order classifies, the restart /
 cancel-fill-race / partial-fill / uncertain-send drills pass, watchdog and
 backups are active, and only then a capped allowlisted canary.
+
+## Reality check: where this is actually installed
+
+This README installs to `/opt` + `/etc` + `/var/lib` under **system** systemd.
+The live NY4 install does none of that. It runs under **`/home/spx` with `spx`'s
+*user* systemd**, which `systemctl list-units` cannot see. Use:
+
+```bash
+sudo -u spx XDG_RUNTIME_DIR=/run/user/1000 systemctl --user list-units --all 'portfolio-hub*'
+```
+
+| Thing | Live location |
+|---|---|
+| Repo | `/home/spx/single-stock-investments` — a **file copy, no `.git`** |
+| Ledger | `/home/spx/portfolio-hub/portfolio.db` |
+| Venv | `/home/spx/portfolio-hub-venv` |
+| Unit dir | `/home/spx/.config/systemd/user/` |
+| Secrets | `/home/spx/.config/portfolio-hub/secrets.env` |
+
+Because the repo there is a copy, **merging to `main` does not deploy anything**.
+A stale copy is how owner attribution broke silently: `allocation_policy.py` was
+absent, so every position fell through to Michael's residual book.
+
+Rule 7 guards are applied as drop-ins rather than by editing these unit files,
+since the installed units have different paths:
+`~/.config/systemd/user/<unit>.service.d/10-spx-coexistence.conf`.
+
+## Strategy snapshot feed
+
+`publish-strategy-snapshots.sh` + `portfolio-strategy-publish.{service,timer}`
+publish SPX 0DTE and ls-algo positions/P&L to the dashboard at 16:35 ET on market
+days. Both producers are on this same box, so it reads two local JSON files and
+POSTs to the HMAC ingest — it opens **no IB connection** and is outside the
+Gateway safety surface. It refuses any source file older than 30h rather than
+republishing a dead producer's last state as current.

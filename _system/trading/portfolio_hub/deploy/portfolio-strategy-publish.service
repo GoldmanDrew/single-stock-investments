@@ -1,0 +1,19 @@
+[Unit]
+Description=Publish SPX 0DTE and ls-algo strategy snapshots to the dashboard
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/spx/single-stock-investments
+ExecStart=/home/spx/bin/publish-strategy-snapshots.sh
+
+# CLAUDE.md rule 7 (IB Gateway coexistence): background job on the NY4 box that
+# also runs the live SPX 0DTE executor. Niced and CPU-capped so SPX never waits
+# behind it for a core. This job opens NO IB connection -- it reads two local
+# JSON files and POSTs to the HMAC ingest -- but it still shares the CPU.
+Nice=15
+CPUQuota=35%
+IOSchedulingClass=idle
+
+NoNewPrivileges=true
+PrivateTmp=true

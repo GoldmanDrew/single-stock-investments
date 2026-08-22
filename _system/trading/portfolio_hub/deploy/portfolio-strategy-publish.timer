@@ -1,0 +1,14 @@
+[Unit]
+Description=Publish strategy snapshots after the US cash close
+
+[Timer]
+# 16:35 ET on market days, 35 minutes after the close and after the executor has
+# written its final live_status.json. Weekends are excluded because neither
+# producer writes then; the script also refuses anything older than 30h, so a
+# market holiday publishes nothing rather than republishing yesterday as today.
+OnCalendar=Mon..Fri 16:35 America/New_York
+Persistent=true
+Unit=portfolio-strategy-publish.service
+
+[Install]
+WantedBy=timers.target
