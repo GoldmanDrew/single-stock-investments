@@ -18,6 +18,16 @@ be mirrored there in the same PR. The hub-side detail lives in
 | this repo | 71/72/73 (sleeves drew/michael/sync), 81 (collector, read-only), 82 (master observer, reserved — **not 90**, which is ls-algo's screener), **91** (order bridge, sole hub transmitter) |
 | Operator TWS | manual only |
 
+**Rule 0 — the one that governs the rest. During market hours on a market day
+(09:30–16:00 ET, Mon–Fri, US holidays excluded) no agent initiates anything that
+touches the Gateway.** Not a connect, not a probe, not a "quick read-only check",
+not a unit restart. Diagnose from logs, the local ledger, D1 and the committed
+payload — none of which need a socket. If a task truly requires the Gateway
+during RTH, stop and ask the user in chat and say why it cannot wait until after
+16:15 ET; approval for one such action never carries to the next. Off-hours, and
+after 16:15 ET on a weekday, is the normal window. This is mirrored for Cursor in
+`.cursor/rules/ib-gateway-safety.mdc` (`alwaysApply: true`); the two must agree.
+
 Rules that keep SPX safe (test-enforced where noted):
 
 1. **Never `reqGlobalCancel`** — cancels every working order account-wide,
@@ -45,4 +55,28 @@ Rules that keep SPX safe (test-enforced where noted):
    equally disconnected, so the restart harms no one — it pages Slack when it
    fires. Mirror this clause in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 7. **Background jobs deployed to NY4** (Whisper backfill, collectors) run
-   `Nice≥15` + `CPUQuota` so the SPX executor never waits on CPU.
+   `Nice≥15` + `CPUQuota` + `IOSchedulingClass=idle` so the SPX executor never
+   waits on CPU. The box has **4 cores**. Enforced with systemd drop-ins at
+   `~/.config/systemd/user/<unit>.service.d/10-spx-coexistence.conf`. Retry loops
+   need a real backoff: at the stock `RestartSec=5` the collector produced
+   **6,785 restarts and ~315k journal lines in one day** against a Gateway that
+   was intentionally down.
+8. **`ibc.service` is a session service.** It starts, runs a few hours, and exits
+   `0/SUCCESS` after the close; weekends it is down entirely. A
+   `ConnectionRefusedError` on 127.0.0.1:**7496** is therefore normal off-hours,
+   **not a fault**. Never "fix" it by restarting anything, and never by touching
+   `ibc.service` (see rule 6).
+
+**What is actually deployed on NY4 (verified 2026-08-22).** Do not re-derive this
+from `portfolio_hub/deploy/README.md`: that README installs to `/opt` + `/etc` +
+`/var/lib` under *system* systemd, but the real install is under **`/home/spx`
+with `spx`'s *user* systemd**, which is invisible to `systemctl list-units`. Use
+`sudo -u spx XDG_RUNTIME_DIR=/run/user/1000 systemctl --user list-units --all
+'portfolio-hub*'`. The repo there is `/home/spx/single-stock-investments`, a
+**file copy with no `.git`** — so changes merged to `main` do NOT reach it until
+someone copies them. That is how owner attribution broke silently: the copy
+predated the Michael split, `allocation_policy.py` was absent entirely, and every
+position fell through to Michael's residual book. Ledger is
+`/home/spx/portfolio-hub/portfolio.db`; account id `U805366` and
+`IBKR_ACCOUNT_ALIAS=U805366` (same string, different concept — the alias is a hub
+partition key, never read from IB).

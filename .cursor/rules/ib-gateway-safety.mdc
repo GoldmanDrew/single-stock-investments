@@ -1,0 +1,99 @@
+---
+description: Non-negotiable safeties for anything that touches IB Gateway, the NY4 box, or the portfolio hub. The Gateway is shared with a LIVE options executor.
+alwaysApply: true
+---
+
+# IB Gateway safety — SPX 0DTE is the protected party
+
+One IB Gateway on the NY4 box (`spx-ny4`, FXVPS374628) is shared by **spx-0dte**,
+**ls-algo**, and **this repo's portfolio hub**. spx-0dte runs a **live money**
+options executor on it. Nothing here may cost it a connection, a client ID, a
+market-data line, or a CPU core.
+
+The full contract is in the repo-root `CLAUDE.md` and is mirrored in spx-0dte
+`AGENTS.md` and ls-algo `CLAUDE.md`. A change to any clause must land in all
+three in the same PR.
+
+## The rule that governs everything else
+
+**During market hours on a market day (09:30–16:00 ET, Mon–Fri, US market
+holidays excluded), do not initiate anything that touches the Gateway.** Not a
+connect, not a probe, not a "quick read-only check", not a service restart.
+Diagnose from logs, the local ledger, D1, and the committed payload instead —
+all of which are available without a socket.
+
+If a task genuinely requires the Gateway during RTH, stop and ask the user
+first, in chat, and say why it cannot wait until after 16:15 ET. Approval for
+one such action is not approval for the next.
+
+Off-hours work is fine, and after 16:15 ET on a weekday is the normal window.
+
+## Never, under any circumstances
+
+| Forbidden | Why |
+|---|---|
+| `reqGlobalCancel()` | Cancels every working order account-wide, including SPX's. **Test-enforced**: `test_ib_bridge.py` asserts no call site exists. |
+| `reqAutoOpenOrders(True)` | Binds TWS-created orders to this client — how a hub session ends up owning an SPX order. **Test-enforced.** |
+| Reusing another system's client ID | The hazard is grabbing an ID while its owner is mid-reconnect. Reserved: `{0, 17, 18, 19, 41, 77, 87, 90, 197, 207, 71, 72, 73, 82}` plus ls-algo worker ranges 241–273, 341–373, 551, 1041+. |
+| Stopping/restarting the Gateway, or flipping its global Read-Only toggle | SPX rides through IBKR's daily restart by design. The **only** carve-out is spx-0dte's own `ibc_guard`. |
+| Adding a streaming market-data subscription | Lines are one account-wide pool shared with SPX's option NBBO stream. The hub uses `snapshot=True` only and cancels in `finally`. Leak-tested. |
+| Cancelling an order you cannot prove you own | Requires a `MAGIS|` orderRef **and** `clientId == 91`. |
+
+## Client-ID map
+
+| System | IDs |
+|---|---|
+| spx-0dte | 17 (live executor), 18 (ibc_guard probe), 19 (market-data line probe, off-hours only), 87 (ES/SPX basis sampler) |
+| ls-algo | 0, 41, 77, 90, 197/207, workers 241–273, 341–373, 551, 1041+ |
+| this repo | 71/72/73 (sleeves), 81 (collector, read-only), 82 (observer, reserved), **91** (order bridge, sole transmitter) |
+| Operator TWS | manual only |
+
+New IDs go in this table, in `CLAUDE.md`, and in `CLIENT_ID_REGISTRY.md` **before
+first use**. The Gateway accepts ~32 connections total; the hub holds at most 2.
+
+## What is actually deployed (verified 2026-08-22)
+
+Do not re-derive this from `deploy/README.md` — the README describes `/opt` +
+system systemd, and the real install is **`/home/spx` under `spx`'s *user*
+systemd**. `systemctl list-units` shows nothing; you must use:
+
+```bash
+sudo -u spx XDG_RUNTIME_DIR=/run/user/1000 systemctl --user list-units --all 'portfolio-hub*'
+```
+
+| Thing | Location |
+|---|---|
+| Repo | `/home/spx/single-stock-investments` — a **file copy, no `.git`** |
+| Ledger | `/home/spx/portfolio-hub/portfolio.db` |
+| Venv | `/home/spx/portfolio-hub-venv` |
+| Gateway API port | **7496** (the code default `IBKR_PORT=4002` is wrong for this host) |
+| Reachability | UFW allows **OpenSSH only** → `ssh -N -L 7496:127.0.0.1:7496 spx-ny4` |
+| Account / alias | id `U805366`; `IBKR_ACCOUNT_ALIAS=U805366` (same string, different concept) |
+
+Because the repo there is a **copy**, code changes on `main` do not reach it.
+A stale copy is how attribution silently broke: `allocation_policy.py` was
+simply absent, so every position fell through to Michael's residual book.
+
+## The Gateway is a session service
+
+`ibc.service` starts, runs a few hours, and exits `0/SUCCESS` after the close.
+Weekends it is down entirely. So `ConnectionRefusedError` on 127.0.0.1:7496 is
+**normal off-hours, not a fault** — do not "fix" it by restarting anything, and
+never by touching `ibc.service`.
+
+## Background jobs must yield
+
+Anything long-running deployed to NY4 runs `Nice>=15` + a `CPUQuota` +
+`IOSchedulingClass=idle`, so the SPX executor never waits for a core. The box has
+**4 cores**. Enforced via systemd drop-ins at
+`~/.config/systemd/user/<unit>.service.d/10-spx-coexistence.conf`.
+
+Retry loops need a real backoff. At the stock `RestartSec=5` the collector
+produced **6,785 restarts and ~315k journal lines in a single day** against a
+Gateway that was intentionally down.
+
+## Read-only is a property of the connection, not an intention
+
+The collector connects `readonly=True`, which is an **IB-API-level** bar on
+transmitting, pins `clientId=81`, and makes no `reqMktData` call at all. Keep it
+that way. "I'll just be careful" is not a safety; the flag is.
