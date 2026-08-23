@@ -15,7 +15,7 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 | LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
 
-Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens) and **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 197/207 and worker ranges 241–273, 341–373, 551, 1041+; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
+Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines) and **97** (dead-executor watchdog, 17 + offset 80); ls-algo holds 0 (cancel coordinator), 41, 77, 90, **92** (bucket5 EOD monitor), 197/198 (bucket5 probes) and worker ranges 241–273, 341–373, 551, 1041–1568; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
 remedial Gateway restart per session day when the API handshake is provably
@@ -24,6 +24,28 @@ logic must treat that like IBKR's nightly restart: reconnect, re-classify open
 orders, never assume a dropped session implies operator action.
 
 The production registry records account alias, host, port, client ID, process owner, orderRef namespace, and kill switch. Client IDs are unique. The master observer's next valid order ID must exceed every order ID it observes, but it never transmits. The bridge persists `gateway_session_id`, `clientId`, `orderId`, `permId`, `orderRef`, `parentId`, `ocaGroup`, account alias, and producer.
+
+## Client-ID audit, 2026-08-22
+
+This registry's own note — that the master observer was moved off 90 before
+first use because it collided with ls-algo's screener — is the pattern that
+worked. It failed elsewhere, because it depended on a human reading a table.
+
+An audit of source across all three repos found three drifts. **87** was live in
+both spx-0dte (`sample_es_basis.py`) and ls-algo (`bucket5_monitor.py`); this
+registry and ls-algo's `CLAUDE.md` both assigned it to spx-0dte, so ls-algo
+moved to **92** and SPX was untouched. ls-algo's **207** reservation was a
+phantom — its bucket5 contract probe runs on **198**, registered nowhere. And
+**97** (spx-0dte's watchdog) was absent from all three tables.
+
+ls-algo now enforces its side in code: `config/ib_client_ids.yml` is the
+machine-readable allocation, `assert_allocated()` runs inside its `connect_ib`
+so a foreign ID raises before the socket opens, and a test scans its source for
+unregistered IDs and `--client-id` defaults. The hub's own protection is
+unchanged and remains the positive-ownership rule below — no ID guard removes
+the need to classify every working order by `MAGIS|` orderRef before acting on
+it. Hub IDs 71–73, 81, 82 and 91 are recorded in ls-algo's YAML as foreign, so
+an ls-algo process can no longer take one even by mistake.
 
 ## Recovery invariant
 
