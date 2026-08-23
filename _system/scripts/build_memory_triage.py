@@ -102,6 +102,8 @@ KINDS = ("durable_belief", "company_observation", "process_learning",
          "ephemeral_output", "parse_artifact")
 TICKER_PREFIX = re.compile(r"^(?:\*\*)?([A-Z0-9][A-Z0-9.\-]{0,11})(?:\*\*)?\s*[:\-]")
 TICKER_CITATION = re.compile(r"`([A-Z0-9][A-Z0-9.\-]{0,11})/")
+# Leading markdown list/bullet marker on a daily-log line: "- ", "* ", "1. ".
+LIST_MARKER = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 
 # The back-sync path (`--sync-promoted-from-memory`) does not make a judgement —
 # it observes that a belief is already in MEMORY.md and back-marks the proposal
@@ -233,6 +235,12 @@ def proposal_kind(item: dict) -> str:
 def route_destination(item: dict, kind: str) -> str | None:
     if kind == "company_observation":
         body = " ".join(item.get("body") or []).strip()
+        # Daily logs are written as bullet lists, so the body usually arrives as
+        # "- BTDR FY2025: ...". Left unstripped, TICKER_PREFIX cannot anchor and
+        # the naive fallback below reads the first token as "-", which resolves
+        # to no directory and drops an otherwise perfectly routable observation
+        # into the triage_ledger fallback. Strip the marker first.
+        body = LIST_MARKER.sub("", body, count=1).strip()
         match = TICKER_PREFIX.match(body) or TICKER_CITATION.search(body)
         ticker = match.group(1).upper() if match else body.split(" ", 1)[0].upper()
         if ticker and (ROOT / ticker / "research").is_dir():

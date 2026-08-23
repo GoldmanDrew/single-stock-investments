@@ -401,3 +401,32 @@ def test_route_uses_cited_ticker_and_existing_ledger_fallback(tmp_path, monkeypa
     assert triage.route_destination(cited, "company_observation") == "8697.T/research"
     assert triage.route_destination(unknown, "company_observation") == \
         "_system/memory/triage_ledger.json"
+
+
+def test_route_strips_the_markdown_list_marker_before_reading_the_ticker(tmp_path, monkeypatch):
+    """Daily logs are bullet lists, so bodies arrive as "- BTDR FY2025: ...".
+
+    Unstripped, TICKER_PREFIX cannot anchor and the naive fallback reads the
+    first token as "-", which resolves to no directory. The observation then
+    lands in the triage_ledger fallback even though its ticker folder exists --
+    18 rows in the committed ledger had been mis-routed exactly that way.
+    """
+    for ticker in ("BTDR", "AAPL", "MSFT"):
+        (tmp_path / ticker / "research").mkdir(parents=True)
+    (tmp_path / "_system/memory").mkdir(parents=True)
+    (tmp_path / "_system/memory/triage_ledger.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(triage, "ROOT", tmp_path)
+
+    for body, expected in (
+        ("- BTDR FY2025: $620M revenue, owner cash ~$0.04/sh", "BTDR/research"),
+        ("* AAPL: services margin held", "AAPL/research"),
+        ("1. MSFT: capex guide raised", "MSFT/research"),
+        ("BTDR: no marker at all", "BTDR/research"),
+    ):
+        assert triage.route_destination(_item(lens="COMPANY", body=(body,)),
+                                        "company_observation") == expected, body
+
+    # A line with no resolvable ticker must still take the honest fallback
+    # rather than inventing a directory from whatever word came first.
+    assert triage.route_destination(_item(lens="COMPANY", body=("- broad macro note",)),
+                                    "company_observation") == "_system/memory/triage_ledger.json"
