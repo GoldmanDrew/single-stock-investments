@@ -49,6 +49,12 @@
       "workflow_file": "daily-sync.yml",
       "subject_regex": "^chore: daily download sync",
       "freshness_hours": 48
+    },
+    {
+      "name": "letters",
+      "workflow_file": "letter-backfill.yml",
+      "subject_regex": "^(chore|feat|fix)\\((letters|letter)\\)|letter backfill|Refresh dashboard payloads after letter backfill",
+      "freshness_hours": 120
     }
   ],
   "guards": {
@@ -279,7 +285,11 @@
       "healer": "python _system/scripts/build_spx_surface.py (data-pipeline technicals lane, cron 15 2 * * 1-5)",
       "assert_fields": {
         "quality_state": {
-          "not_in": ["stale", "unavailable", "error"],
+          "not_in": [
+            "stale",
+            "unavailable",
+            "error"
+          ],
           "why": "the chain snapshot is now the term-state fallback when VIX3M is dark, so its own health cannot go unwatched"
         }
       }
@@ -297,7 +307,9 @@
       "healer": "python _system/scripts/refresh_warrant_universe.py --refresh-market --capture-cohort && python _system/scripts/build_warrant_dashboard.py (data-pipeline nightly + Monday discovery)",
       "assert_fields": {
         "health.status": {
-          "not_in": ["unhealthy"],
+          "not_in": [
+            "unhealthy"
+          ],
           "why": "repeated SEC failures, stale last-successful market refreshes, and stale active marks must be loud"
         },
         "health.structural_errors": {
@@ -313,12 +325,41 @@
   },
   "classification_vocab": {
     "_doc": "L4 registry: canonical enum values per classification field, mirrored from _system/frameworks/classification.md (the prose authority). Sentinels mean 'not yet classified' and are exempt everywhere. Criteria surfaces (personas.json criteria, power_zones.json zone rules and profile preferred_archetypes) may only reference canonical values; data surfaces (valuation.json classification_inputs, portfolio registry) may only carry canonical values or sentinels. L4 also asserts no persona lens is strictly narrower than its own power zone on a shared axis -- the stahl-omits-optionality class.",
-    "sentinels": ["", "pending", "unknown", "-"],
+    "sentinels": [
+      "",
+      "pending",
+      "unknown",
+      "-"
+    ],
     "fields": {
-      "archetype": ["croupier", "compounder", "serial_acquirer", "platform", "holding_co", "optionality", "turnaround", "infrastructure"],
-      "payoff_lens": ["operating", "asset", "event", "levered"],
-      "moat": ["widening", "stable", "eroding", "unproven", "n/a"],
-      "dhando": ["full", "partial", "none"]
+      "archetype": [
+        "croupier",
+        "compounder",
+        "serial_acquirer",
+        "platform",
+        "holding_co",
+        "optionality",
+        "turnaround",
+        "infrastructure"
+      ],
+      "payoff_lens": [
+        "operating",
+        "asset",
+        "event",
+        "levered"
+      ],
+      "moat": [
+        "widening",
+        "stable",
+        "eroding",
+        "unproven",
+        "n/a"
+      ],
+      "dhando": [
+        "full",
+        "partial",
+        "none"
+      ]
     }
   },
   "derived_artifacts": {

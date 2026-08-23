@@ -250,13 +250,42 @@ jobs:
           # pages sparse checkout omits ticker research/valuation.json; keep prior VAL/IRR.
           DASHBOARD_PRESERVE_DOCUMENT_REGISTRY: "1"
         run: |
+          set -euo pipefail
+
+          # This job checks out the `pages` profile: _system .github dashboard Makefile.
+          # It has NO ticker trees. build_dashboard_data.py walks them to compute
+          # pdf_count / readme / research_dir / sec_filings, so on this checkout every
+          # one of those computes to zero and its clobber guard correctly refuses:
+          #
+          #   Refusing to write dashboard_data.json: sparse/empty ticker checkout would
+          #   clobber infra stats over 833 tickers -- pdf_count 148->0; readme 830->0 ...
+          #
+          # That guard is right and must not be worked around. It failed four scheduled
+          # runs in a row (2026-08-12/16/19/23) at the END of a ~43 minute step, after
+          # build_superinvestor_insights.py had already spent 40 of those minutes.
+          #
+          # The ticker payload is not this lane's job. data-pipeline.yml `intake-full`
+          # rebuilds it nightly at 03:00 UTC on a `full` checkout that actually has the
+          # trees. Switching this job to `full` would fetch ~8,600 PDFs blobful (the
+          # full profile does not pass --filter=blob:none) to duplicate that work.
+          #
+          # So: the letter builders run here, the ticker payload is left to the lane
+          # that can do it, and the skip is stated rather than silent.
+          TICKER_TREES=$(find . -maxdepth 2 -type d -name research -not -path './_system/*' -not -path './dashboard/*' 2>/dev/null | head -20 | wc -l)
+          echo "ticker research trees present: $TICKER_TREES"
+
           python _system/scripts/repair_letter_dates.py --apply
           python _system/scripts/build_document_registry.py
           python _system/scripts/build_letter_drive_links.py
           python _system/scripts/build_superinvestor_insights.py
           python _system/scripts/build_insights.py
-          python _system/scripts/refresh_cvr_universe.py
-          python _system/scripts/build_dashboard_data.py
+
+          if [ "$TICKER_TREES" -ge 20 ]; then
+            python _system/scripts/refresh_cvr_universe.py
+            python _system/scripts/build_dashboard_data.py
+          else
+            echo "::notice::Skipping refresh_cvr_universe + build_dashboard_data: this is the 'pages' checkout and has no ticker trees. The ticker payload is rebuilt nightly by data-pipeline.yml intake-full on a full checkout. Letter artifacts below are unaffected."
+          fi
 
       - name: Letter Drive coverage gate
         env:
