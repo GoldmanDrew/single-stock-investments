@@ -1,15 +1,39 @@
 name: Darwin Portfolio Refresh
 
-# Weekday 01:20 UTC cron plus push triggers on Darwin code paths; also manual dispatch.
+# DISABLED INDEFINITELY 2026-08-23, by request.
+#
+# Also disabled in the GitHub UI (state: disabled_manually). Both, deliberately:
+# the UI state is invisible in code and a fresh clone gives no hint, while the
+# commented cron is invisible to the API. Whoever re-enables one should find the
+# other and read this.
+#
+# It had failed every run since 2026-08-11 for the same reason Letter Backfill
+# did: it checks out `ci_checkout_workspace.sh darwin` -- a sparse profile whose
+# own step name says "no ticker PDF trees" -- and then runs
+# build_dashboard_data.py, which walks those trees. Every infra stat computed to
+# zero and the clobber guard correctly refused:
+#
+#   Refusing to write dashboard_data.json: ... pdf_count 143->0; readme 830->0;
+#   research_dir 833->0; total_pdfs 8615->0 (floor 100)
+#
+# So this is NOT unfixable -- it is the same one-line mismatch fixed in
+# letter-backfill.yml, and the ticker payload it wants is rebuilt nightly anyway
+# by data-pipeline.yml intake-full on a full checkout. It is off because it is
+# not wanted, not because it cannot work.
+#
+# To re-enable: restore the triggers below, `gh workflow enable "Darwin Portfolio
+# Refresh"`, re-add the `darwin` lane to _system/graph/graph_sources.json, and
+# fix the sparse/rebuild mismatch first or it will simply fail again.
 on:
-  schedule:
-    - cron: "20 1 * * 1-5"
-  push:
-    branches: [main]
-    paths:
-      - "_system/scripts/*darwin*"
-      - "_system/config/darwin*"
-      - ".github/workflows/darwin-refresh.yml"
+  workflow_dispatch:
+# schedule:
+#   - cron: "20 1 * * 1-5"
+# push:
+#   branches: [main]
+#   paths:
+#     - "_system/scripts/*darwin*"
+#     - "_system/config/darwin*"
+#     - ".github/workflows/darwin-refresh.yml"
 
 permissions:
   contents: write
