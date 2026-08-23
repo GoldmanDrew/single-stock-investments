@@ -15,7 +15,7 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 | LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
 
-Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines) and **97** (dead-executor watchdog, 17 + offset 80); ls-algo holds 0 (cancel coordinator), 41, 77, 90, **92** (bucket5 EOD monitor), 197/198 (bucket5 probes) and worker ranges 241–273, 341–373, 551, 1041–1568; the sleeves use 71–73. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
+Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines) and **97** (dead-executor watchdog, 17 + offset 80); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 198 (bucket5 contract probe) and a leased worker pool at **100–129**; hub IDs are 81 and 91. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
 remedial Gateway restart per session day when the API handshake is provably
@@ -46,6 +46,35 @@ unchanged and remains the positive-ownership rule below — no ID guard removes
 the need to classify every working order by `MAGIS|` orderRef before acting on
 it. Hub IDs 71–73, 81, 82 and 91 are recorded in ls-algo's YAML as foreign, so
 an ls-algo process can no longer take one even by mistake.
+
+## Client-ID reduction, 2026-08-23
+
+ls-algo cut its reserved footprint from 602 client IDs to 35. Its worker
+sessions now lease from a 100-129 pool and return the ID on disconnect, instead
+of deriving one from the coordinator base (`+200+i`, `+300+i`,
+`+1000+16i+leg`) -- three formulas whose combinatorial range reserved 594
+integers to serve a peak of 12 simultaneous workers. IB only requires a client
+ID to be unique among live connections, and ls-algo identifies its orders by
+the `ETF_LS|` orderRef prefix rather than by clientId, so none of those workers
+ever needed a stable or derivable number.
+
+Two ls-algo IDs were deleted rather than renumbered: **92**, whose only code
+path (`bucket5_monitor --live`) had no caller and which had collided with
+spx-0dte's basis sampler on 87; and **197**, whose TWS signal provider never
+ran because both NY4 and CI override it to yfinance.
+
+**Hub IDs 71/72/73 and 82 were unreserved.** An audit of this repo's `main`
+found no implementing code: `portfolio_hub` uses 81 (`broker.py`) and 91
+(`paper.py`, `config.example.toml`), and the only mention of 71-73 anywhere in
+the tree was this file asserting the reservation. Nothing was removed from the
+hub -- only the claim on numbers it never used. **If sleeves are implemented,
+register the IDs here first**, because ls-algo's pool now sits at 100-129 and
+its guard will refuse anything it does not own, which is no protection for a
+hub ID that was never written down.
+
+The hub's own protection is unchanged and does not depend on any of this: the
+positive-ownership rule below still stands on its own, and no ID guard removes
+the need to classify every working order by `MAGIS|` orderRef before acting.
 
 ## Recovery invariant
 
