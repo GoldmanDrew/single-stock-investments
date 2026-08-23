@@ -130,6 +130,14 @@ jobs:
           test "$COUNT" -le 200
       - name: Guard rebuild profiles
         run: python _system/scripts/test_pages_fast_rebuild_steps.py
+      # A ticker-less checkout paired with build_dashboard_data.py broke two
+      # scheduled lanes for weeks each (letter-backfill on `pages`, darwin on
+      # `darwin`). The clobber guard catches it, but only after ~43 minutes of
+      # rebuild, and only at runtime. This reads it off the workflow file.
+      - name: Guard checkout/rebuild profile match
+        run: |
+          python -m pip install --disable-pip-version-check --quiet pytest pyyaml
+          python -m pytest -q _system/scripts/tests/test_workflow_checkout_rebuild_match.py
 
   drive-intake:
     runs-on: ubuntu-latest
