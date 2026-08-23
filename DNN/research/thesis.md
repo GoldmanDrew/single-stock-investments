@@ -1,22 +1,27 @@
 # DNN — Investment Thesis
 
-**Last updated:** 2026-07-20
+**Last updated:** auto-sync
 
 ## Classification
 
 | Field | Value |
 |-------|-------|
-| **Archetype** (Stahl) | unknown |
+| **Archetype** (Stahl) | optionality |
 | **Moat** (Munger) | unproven |
-| **Dhando** (Pabrai) | pending |
+| **Dhando** (Pabrai) | partial |
 | **Stance** | watch |
-| **Cycle** | - |
-| **MOI bucket** (legacy) | pending |
-| **Payoff lens** | pending |
+| **Cycle** | mid |
+| **Implied 7yr IRR** (base) | — |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | — |
+| **Payoff lens** | asset |
+| **MOI bucket** | pending |
+
+**Deep dive:** `DNN/research/deep_dive_2026-08-23.md` (auto-sync)
 
 ## One-line thesis
 
-DNN — thesis pending Marvin deep dive.
+Pre-production Athabasca uranium developer; equity is mostly Wheeler River and JV optionality, not owner cash. **Watch** at **-8.0%** base scenario over seven years at **$3.50**.
 
 ## Key questions
 
@@ -26,4 +31,5 @@ DNN — thesis pending Marvin deep dive.
 
 ## [HUMAN REVIEW]
 
-- Onboarded 2026-07-20; awaiting deep dive.
+- AIF/MD&A exhibits (99.1-99.3) not downloaded; Wheeler River NPV proof-blocked.
+- Epistemic loop BOOTSTRAP_BLOCKED; calibration insufficient_outcomes.

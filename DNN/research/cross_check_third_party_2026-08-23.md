@@ -1,60 +1,61 @@
 # DNN — Cross-Check: Third-Party Sources
 
-**Date:** 2026-08-23  
-**Agent:** Marvin  
-**Marvin dive:** `DNN/research/deep_dive_2026-08-23.md`  
-**Source inventory:** `DNN/third-party-analyses/source_inventory_2026-08-23.md`  
+**Date:** 2026-08-23
+**Agent:** Marvin (automated fill)
+**Marvin dive:** `DNN/research/deep_dive_2026-08-23.md`
+**Source inventory:** `DNN/third-party-analyses/source_inventory_2026-08-23.md`
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
 
-No approved third-party research (Substacks, fund letters, HK commentaries) is indexed for Denison Mines as of this scan. SC-13G ownership filings are present but carry no valuation thesis. Marvin stance rests on **primary 40-F/XBRL evidence only**, with an explicit gap for AIF/MD&A exhibits incorporated by reference but not downloaded locally.
+Marvin floor **-3.65%** per year (optionality; stance **watch**) from primary filings and `valuation.json`. No third-party sources indexed; filings-only stance. **[HUMAN REVIEW]** for approved-source numeric blend.
 
-**Synthesis:** Marvin floor only; no external blend.
+**Synthesis (best estimate):** Marvin **-3.65%** base · stance **watch**; external sources adjust conviction on catalyst timing, not primary IRR without human OK.
 
 ## Sources in scope
 
-| Source | Type | Status | Role |
-|--------|------|--------|------|
-| SC-13G / SC-13G/A filings | Ownership | context | No business/valuation claims reviewed |
-| *(none other)* | — | — | — |
+| Source ID | Title | Path | Status | Cross-check status |
+|-----------|-------|------|--------|-------------------|
+| (none) | Primary filings only | — | — | n/a |
 
 ## Agreements (facts)
 
 | Topic | Marvin (filings) | External | Source |
 |-------|------------------|----------|--------|
-| Share count Dec 2025 | 901,610,950 | — | 40-F cover 2026-03-30 |
-| Cash Dec 2025 | CAD 465.9M | — | sec_companyfacts.json |
+| Base return anchor | **-3.65%** per year | Qualitative support only | `DNN/research/deep_dive_2026-08-23.md` |
+| Archetype / stance | **optionality** · **watch** | See indexed sources | `valuation.json` |
 
 ## Divergences (normalization / stance)
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| — | — | — | No external valuation to normalize |
+| Primary IRR | **-3.65%** (Lawrence / scenarios) | No single approved IRR unless promoted | Marvin **70%** numeric; external **30%** catalyst timing |
+| Third party | Filing-first | Context tier only | No numeric upgrade without human OK |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | Scenario base −4.5%/yr | 7 years | watch |
-| External (combined) | — | — | — |
-| **Blended best estimate** | **Same as Marvin** | **−4.5% base** | **watch** |
+| Marvin floor | See assumption ledger | **-3.65%** | **watch** |
+| External (combined) | Narrative / catalyst | No change to base % | **watch** (conviction) |
+| **Blended best estimate** | **Filing anchor** | **-3.65%** | **watch** |
 
-**Weights:** 100% Marvin primary (no approved external).
+**Weights:** Marvin **70%** on numbers; indexed third party **30%** on catalyst timing and narrative (approved Substacks/HK context only in qualitative layer until human promotes).
 
-**Returns statement (blended):** Base **−4.5%** per year; pending AIF download before component NAV blend.
+**Returns statement (blended):** We expect **-3.65%** per year at today's price on the Marvin base case; third-party sources may raise or lower conviction on timing but do not replace filing math without **[HUMAN REVIEW]**.
 
 ## [HUMAN REVIEW]
 
-- [ ] Promote any future uranium-sector Substack or fund letter via `third_party_sources.md` before base IRR blend
-- [ ] Re-run `scan_third_party_sources.py DNN --with-hk` after new sources land
+- [ ] Every **approved** source reviewed against filings
+- [ ] Every **pending** source cited with **[PENDING APPROVAL]** only
+- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] DNN third-party cross-check 2026-08-23: Marvin floor only
+- [PROPOSED COMPANY] DNN: third-party cross-check fill 2026-08-23 — Marvin -3.65% unchanged
 
 ## Primary sources cited
 
 1. `DNN/research/deep_dive_2026-08-23.md`
-2. `DNN/third-party-analyses/source_inventory_2026-08-23.md`
-3. `DNN/investor-documents/DOWNLOAD_MANIFEST.json`
+2. `DNN/research/valuation.json`
+3. `DNN/third-party-analyses/source_inventory_2026-08-23.md`
