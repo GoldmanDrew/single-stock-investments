@@ -1,15 +1,171 @@
 {
   "ticker": "DNN",
-  "as_of": "2026-07-20",
-  "method": "price_stub",
+  "as_of": "2026-08-23",
+  "method": "scenario",
+  "irr_method": "scenario",
+  "valuation_mode": "optionality",
   "inputs": {
     "price": 2.83,
     "price_as_of": "2026-07-20",
-    "price_source": "Yahoo DNN close 2026-07-20"
+    "price_source": "Yahoo DNN close 2026-07-20",
+    "shares_outstanding": 901610950,
+    "shares_source": "DNN/research/evidence/sec_companyfacts.json dei:EntityCommonStockSharesOutstanding FY2025 40-F",
+    "cash_m_cad": 465.918,
+    "equity_m_cad": 368.37,
+    "revenue_m_cad": 4.918,
+    "operating_loss_m_cad": 61.354,
+    "net_loss_m_cad": 217.288,
+    "financial_assets_fv_m_cad": 746.197,
+    "financial_liabilities_fv_m_cad": 683.008,
+    "fx_cad_usd": 0.7561,
+    "fx_source": "DNN/investor-documents/sec-edgar/40-F_20240328_rpt20231231_acc0001104659_24_040470.htm (Bank of Canada Dec 30 2023; [HUMAN REVIEW] refresh to measurement date)"
   },
-  "notes": "Price stub created by fetch_equity_prices.py --create-stub; replace with a real model before decision-grade.",
+  "classification_inputs": {
+    "archetype": "optionality",
+    "moat": "unproven",
+    "dhando": "partial",
+    "stance": "watch",
+    "cycle": "mid",
+    "payoff_lens": "asset",
+    "investment_sleeve": "ls_algo_underlying",
+    "lawrence_bucket": "other"
+  },
+  "nav_overlay": {
+    "primary_asset": "wheeler_river_isr_project",
+    "gaap_book_misstates_core": true,
+    "base_terminal_rationale": "Pre-FID development asset; GAAP equity reflects fair-value marks on derivatives and financial instruments, not project NPV. Base case assigns partial probability-weighted NAV only after AIF resource/feasibility evidence is indexed.",
+    "in_base_irr": false
+  },
+  "option_treatment": "probability_weighted",
+  "component_valuation": {
+    "version": "1.0",
+    "all_material_components_identified": false,
+    "components": [
+      {
+        "id": "cash_and_equivalents",
+        "label": "Cash and cash equivalents",
+        "category": "financial_asset",
+        "overlap_key": "cash_m",
+        "treatment": "additive",
+        "valuation": {
+          "basis": "per_share",
+          "method": "market_value",
+          "low": 0.45,
+          "base": 0.52,
+          "high": 0.52,
+          "evidence_tier": "filing",
+          "evidence": "ifrs-full:CashAndCashEquivalents CAD 465.918M at 2025-12-31; 901.6M shares",
+          "cross_check": "DNN/research/evidence/sec_companyfacts.json"
+        }
+      },
+      {
+        "id": "reported_equity_book",
+        "label": "IFRS equity (marked portfolio net of liabilities)",
+        "category": "financial_asset",
+        "overlap_key": "equity_book",
+        "treatment": "additive",
+        "valuation": {
+          "basis": "per_share",
+          "method": "market_value",
+          "low": 0.35,
+          "base": 0.41,
+          "high": 0.41,
+          "evidence_tier": "filing",
+          "evidence": "ifrs-full:Equity CAD 368.37M at 2025-12-31",
+          "cross_check": "Not a project NPV floor; includes FV financial assets/liabilities"
+        }
+      },
+      {
+        "id": "wheeler_river_development",
+        "label": "Wheeler River ISR project (Phoenix/Gryphon)",
+        "category": "real_option",
+        "overlap_key": "wheeler_river_npv",
+        "treatment": "additive",
+        "valuation": {
+          "basis": "per_share",
+          "method": "risked_nav",
+          "low": null,
+          "base": null,
+          "high": null,
+          "evidence_tier": "filing",
+          "evidence": "Referenced in 40-F reclamation and AIF (Exhibit 99.1) but AIF not downloaded to ticker folder as of 2026-08-23",
+          "cross_check": "[HUMAN REVIEW] download AIF + feasibility update before pricing"
+        }
+      },
+      {
+        "id": "exploration_and_jv_interests",
+        "label": "Exploration properties and JV mill interests",
+        "category": "real_option",
+        "overlap_key": "exploration_jv",
+        "treatment": "additive",
+        "valuation": {
+          "basis": "per_share",
+          "method": "risked_nav",
+          "low": null,
+          "base": null,
+          "high": null,
+          "evidence_tier": "filing",
+          "evidence": "Equity-method JVs per XBRL; McClean Lake/Midwest/Wheeler obligations in 40-F contractual disclosure",
+          "cross_check": "Partial only until AIF segment map indexed"
+        }
+      }
+    ]
+  },
+  "scenarios": {
+    "base": {
+      "label": "Delayed FID; partial option recognition",
+      "horizon_years": 7,
+      "terminal_value_per_share": 2.0,
+      "probability": 0.45,
+      "implied_return_pct": -4.5,
+      "assumptions": [
+        "Wheeler River FID slips beyond 2030; equity funds burn at ~CAD 60-70M/year operating cash use",
+        "Terminal price embeds modest uranium sentiment but no full project NPV",
+        "Share count drifts to ~950M with ongoing stock compensation and occasional issuance"
+      ]
+    },
+    "bear": {
+      "label": "Permit/funding failure; dilution",
+      "horizon_years": 7,
+      "terminal_value_per_share": 1.0,
+      "probability": 0.30,
+      "implied_return_pct": -17.2,
+      "assumptions": [
+        "Wheeler River does not reach production; cash competes with reclamation/JV calls",
+        "Meaningful dilution to ~1.1B shares",
+        "Uranium price reverts while burn continues"
+      ]
+    },
+    "bull": {
+      "label": "FID + construction; uranium upcycle",
+      "horizon_years": 7,
+      "terminal_value_per_share": 5.5,
+      "probability": 0.25,
+      "implied_return_pct": 9.3,
+      "assumptions": [
+        "Positive FID on Phoenix ISR with constructive uranium term pricing",
+        "McClean Lake tolling path preserved",
+        "Share count contained near 920M"
+      ]
+    }
+  },
+  "implied_return": {
+    "base_pct": -4.5,
+    "bear_pct": -17.2,
+    "bull_pct": 9.3,
+    "method": "scenario_terminal_price",
+    "horizon_years": 7
+  },
+  "stance_proposal": "watch",
+  "growth_explanation": {
+    "mechanism": "No normalized owner-cash growth path; return is entirely a function of Wheeler River development milestones, uranium price, and dilution.",
+    "in_base_irr": false
+  },
+  "notes": "First Marvin scenario model. Contract remains evidence_blocked until AIF/feasibility exhibits are downloaded and Wheeler River NPV is proof-complete. Power Zone route still quality_reinvestment from registry override; narrative classification is optionality/asset.",
   "human_review": {
-    "live_price_confirmed": false
+    "live_price_confirmed": false,
+    "aif_not_indexed": true,
+    "wheeler_river_npv_pending": true
   },
   "context_overlay": {
     "as_of": "2026-08-23",
