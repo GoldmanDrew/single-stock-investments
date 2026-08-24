@@ -219,20 +219,74 @@ def download_audio(audio_url: str, dest: Path) -> Path:
     return dest
 
 
-def whisper_transcribe(audio_path: Path) -> str | None:
-    """Transcribe with faster-whisper (preferred) or openai-whisper CLI."""
-    # Prefer faster-whisper (CPU int8) — openai-whisper base on long episodes is too slow.
-    try:
+# Whisper model, overridable with WHISPER_MODEL. Benchmarked 2026-08-24 on this
+# corpus (5 min of two-speaker, name-dense audio, CPU int8, 12-14 threads):
+#
+#   base              11.3x realtime   "Murray stole the died", no Horizon Kinetics
+#   base + hotwords    9.2x realtime   names fixed, negation still inverted
+#   small + hotwords   3.5x realtime   everything fixed
+#   distil-large-v3    4.3x realtime   everything fixed, and FASTER than small
+#
+# distil-large-v3 wins on both axes, so it is the default. `base` remains the
+# fallback because it is the only checkpoint guaranteed to already be on disk.
+WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "distil-large-v3")
+WHISPER_FALLBACK_MODEL = "base"
+WHISPER_THREADS = int(os.environ.get("WHISPER_THREADS", "0") or 0)
+
+_WHISPER_CACHE: dict = {}
+
+
+def _whisper_model(size: str):
+    """Load once per process. Model load is ~30s for distil-large-v3."""
+    if size not in _WHISPER_CACHE:
         from faster_whisper import WhisperModel  # type: ignore
 
-        model = WhisperModel("base", device="cpu", compute_type="int8")
-        segments, _info = model.transcribe(str(audio_path), language="en")
-        parts = [seg.text.strip() for seg in segments if seg.text]
-        text = "\n".join(parts).strip()
-        if text:
-            return text
-    except Exception:
-        pass
+        kwargs = {"device": "cpu", "compute_type": "int8"}
+        if WHISPER_THREADS > 0:
+            kwargs["cpu_threads"] = WHISPER_THREADS
+        _WHISPER_CACHE[size] = WhisperModel(size, **kwargs)
+    return _WHISPER_CACHE[size]
+
+
+def whisper_transcribe(audio_path: Path, episode: dict | None = None) -> str | None:
+    """Transcribe with faster-whisper (preferred) or openai-whisper CLI.
+
+    `episode` supplies the title/show used to build hotwords. Passing it is what
+    recovers proper nouns -- without it the decoder has no reason to prefer
+    "Murray Stahl" over "Murray stole the", and a mangled name never resolves to
+    a ticker. See whisper_vocab.build_hotwords for the measured effect.
+    """
+    hotwords = None
+    if episode:
+        try:
+            from whisper_vocab import build_hotwords  # noqa: E402
+
+            hotwords = build_hotwords(
+                episode.get("title") or "",
+                show_id=episode.get("show_id") or "",
+                description=episode.get("description") or "",
+            ) or None
+        except Exception:
+            hotwords = None
+
+    for size in (WHISPER_MODEL, WHISPER_FALLBACK_MODEL):
+        try:
+            model = _whisper_model(size)
+            segments, _info = model.transcribe(
+                str(audio_path),
+                language="en",
+                vad_filter=True,
+                hotwords=hotwords,
+            )
+            parts = [seg.text.strip() for seg in segments if seg.text]
+            text = "\n".join(parts).strip()
+            if text:
+                return text
+        except Exception:
+            # A missing checkpoint, an OOM, or a corrupt download all land here.
+            # Trying the fallback beats dropping the episode back into the queue.
+            continue
+
     try:
         out_dir = audio_path.parent
         subprocess.run(
@@ -242,7 +296,7 @@ def whisper_transcribe(audio_path: Path) -> str | None:
                 "whisper",
                 str(audio_path),
                 "--model",
-                "base",
+                WHISPER_FALLBACK_MODEL,
                 "--language",
                 "en",
                 "--output_format",
@@ -261,7 +315,6 @@ def whisper_transcribe(audio_path: Path) -> str | None:
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError):
         pass
     return None
-
 
 WHISPER_BACKLOG_NAME = "whisper_backlog.json"
 
@@ -343,6 +396,7 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
     status = "skipped"
     source = None
     text = None
+    name_repairs: dict = {}
 
     if txt_path.exists() and meta_path.exists():
         meta = load_json(meta_path) or {}
@@ -367,10 +421,11 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
         try:
             if not audio_path.exists():
                 download_audio(url, audio_path)
-            text = whisper_transcribe(audio_path)
+            text = whisper_transcribe(audio_path, episode)
             if text:
                 source = "whisper"
                 status = "transcribed"
+                text, name_repairs = repair_transcript_names(text, episode)
             else:
                 status = "whisper_unavailable"
         except Exception as exc:
@@ -390,6 +445,7 @@ def fetch_one(episode: dict, show_by_id: dict[str, dict], *, allow_whisper: bool
         "transcript_status": status,
         "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "transcript_path": str(txt_path.relative_to(podcasts_root())) if text else None,
+        "name_repairs": name_repairs or None,
         "sha1_audio": hashlib.sha1((episode.get("audio_url") or "").encode()).hexdigest()
         if episode.get("audio_url")
         else None,
@@ -500,12 +556,67 @@ def fetch_from_discovery(
     return summary
 
 
+def repair_transcript_names(text: str, episode: dict) -> tuple[str, dict]:
+    """Normalise mangled company names, and record what moved.
+
+    Hotwords bias the decoder but do not bind it: on the Fastenal episode the
+    correct spelling landed twice against 26 mangled ones, and "UnitedHealth"
+    never appeared at all -- the model wrote "United Health" 85 times. Entity
+    resolution matches aliases literally, so every variant is a lost mention.
+
+    The repair is written into the transcript rather than applied at read time,
+    because the .txt is what every downstream consumer reads. The counts go into
+    the meta so the rewrite is auditable rather than silent -- if a name is ever
+    repaired wrongly, `name_repairs` is where that shows up.
+    """
+    try:
+        from transcript_names import expected_names, repair  # noqa: E402
+
+        # Title only. The description is show boilerplate -- sponsor reads,
+        # disclaimers, "thanks for listening" -- and matching companies in it
+        # produced the junk that the first dry run surfaced.
+        return repair(text, expected_names(episode.get("title") or ""))
+    except Exception:
+        return text, {}
+
+
+def whisper_priority(item: dict) -> tuple:
+    """Sort key for the pending queue: value first, then newest.
+
+    The backlog is 1,439 episodes and drains at roughly 4x realtime, so it runs
+    for days. Strict newest-first ordering means an episode naming a position we
+    actually hold can sit behind a year of unrelated ones. Rank by whether the
+    title names a security in the book, then near-universe, then date -- the
+    first hundred episodes are worth more than the last thousand.
+
+    Ranking reads only the title, which is already in the backlog item, so this
+    costs nothing and needs no network.
+    """
+    title = item.get("title") or ""
+    rank = 2
+    try:
+        from whisper_vocab import in_book_hits, universe_hits  # noqa: E402
+
+        if in_book_hits(title):
+            rank = 0
+        elif universe_hits(title):
+            rank = 1
+    except Exception:
+        pass
+    return (rank, _invert_date(item.get("published") or ""))
+
+
+def _invert_date(published: str) -> str:
+    """Descending date inside an ascending sort, without a second sort pass."""
+    return "".join(chr(0x7E - ord(c)) if 0x20 <= ord(c) <= 0x7E else c for c in published)
+
+
 def drain_whisper_backlog(*, batch: int = 20) -> dict:
     """Whisper pending backlog items newest-first; delete audio after success."""
     root = podcasts_root(create=True)
     doc = load_whisper_backlog()
     items = [i for i in (doc.get("items") or []) if i.get("status") == "pending" and i.get("audio_url")]
-    items.sort(key=lambda e: e.get("published") or "", reverse=True)
+    items.sort(key=whisper_priority)
     batch_items = items[: max(0, batch)]
     shows = {s.get("show_id"): s for s in ((load_json(SHOW_REG) or {}).get("shows") or [])}
     results = []

@@ -372,6 +372,40 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
     return 0
 
 
+def deprioritise() -> str:
+    """Drop to the lowest useful scheduling priority, on either platform.
+
+    os.nice does not exist on Windows, so the original `if hasattr(os, "nice")`
+    guard silently did nothing there -- and this job now runs on a 16-core
+    Windows workstation for days at a time, which is exactly where a greedy
+    background process is felt. SetPriorityClass with BELOW_NORMAL keeps the
+    machine responsive; IDLE would let it starve outright.
+    """
+    if hasattr(os, "nice"):
+        try:
+            os.nice(15)
+            return "nice+15"
+        except OSError:
+            return "unchanged"
+    try:
+        import ctypes
+
+        BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+        kernel32 = ctypes.windll.kernel32
+        # GetCurrentProcess returns the pseudo-handle (HANDLE)-1. Without an
+        # explicit restype ctypes truncates it to a 32-bit int and the call
+        # fails with ERROR_INVALID_HANDLE while still looking like a normal
+        # no-op -- which is how the original guard managed to do nothing twice.
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+        if kernel32.SetPriorityClass(kernel32.GetCurrentProcess(),
+                                     BELOW_NORMAL_PRIORITY_CLASS):
+            return "below-normal"
+    except Exception:
+        pass
+    return "unchanged"
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--chunk", type=int, default=DEFAULT_CHUNK,
@@ -397,11 +431,7 @@ def main() -> int:
     deadline = _now() + timedelta(hours=args.hours) if args.hours else None
     # Background work. An order preview has a 10s quote budget and must never
     # wait behind a transcription on the same host.
-    if hasattr(os, "nice"):
-        try:
-            os.nice(15)
-        except OSError:
-            pass
+    deprioritise()
     install_stop_handlers()
     return run(chunk=args.chunk, deadline=deadline, until_empty=args.until_empty,
                push=not args.no_push, push_minutes=args.push_every_minutes)
