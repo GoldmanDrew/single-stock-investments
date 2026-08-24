@@ -50,12 +50,12 @@ re_pass: false
 
 | Check | Expected (valuation.json) | Found in dive | OK? |
 |-------|---------------------------|---------------|-----|
-| Returns statement | 2.44% | 2.44% | Yes |
-| Classification IRR | 2.44% | 2.44% | Yes |
-| Valuation bridge base | 2.44% | 2.44% | Yes |
+| Returns statement | 2.64% | 2.64% | Yes |
+| Classification IRR | 2.64% | 2.64% | Yes |
+| Valuation bridge base | 2.64% | 2.64% | Yes |
 
 **Lint notes:**
-- AMZN/research/deep_dive_2026-07-25.md: executive_summary_first_pct -35.5% vs valuation.json base 2.44% (tol 0.25pp)
+- AMZN/research/deep_dive_2026-07-25.md: executive_summary_first_pct -35.5% vs valuation.json base 2.64% (tol 0.25pp)
 
 ---
 
