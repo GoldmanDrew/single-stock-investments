@@ -91,7 +91,10 @@ def core_name(name: str) -> str:
         tokens.pop()
     while tokens and tokens[0].lower() in SUFFIXES:
         tokens.pop(0)
-    return " ".join(tokens)
+    # Strip again after popping. "Tesla, Inc." only reveals its trailing comma
+    # once "Inc." is gone -- stripping the raw string first leaves "Tesla,",
+    # which then gets written into the transcript comma and all.
+    return " ".join(tokens).strip(" ,;:.")
 
 
 def _real_words(text: str) -> set[str]:

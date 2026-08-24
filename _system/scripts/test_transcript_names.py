@@ -169,11 +169,17 @@ class FalsePositiveGuardTests(unittest.TestCase):
         self.assertEqual(counts, {})
 
     def test_trailing_punctuation_in_a_master_name_is_stripped(self):
-        """The master stores "Tesla," -- writing that in inserts a comma."""
-        text = "Teslas everywhere."
-        fixed, counts = repair(text, ["Tesla,"])
-        self.assertEqual(fixed, "Tesla everywhere.")
-        self.assertEqual(counts, {"Tesla": 1})
+        """The master stores "Tesla, Inc." -- the comma survives suffix removal.
+
+        Stripping the raw string first is not enough: the comma only becomes
+        trailing once "Inc." is popped, so it has to be stripped again after.
+        Otherwise "Teslas" is rewritten to "Tesla," comma and all.
+        """
+        self.assertEqual(core_name("Tesla, Inc."), "Tesla")
+        for name in ("Tesla,", "Tesla, Inc."):
+            fixed, counts = repair("Teslas everywhere.", [name])
+            self.assertEqual(fixed, "Tesla everywhere.")
+            self.assertEqual(counts, {"Tesla": 1})
 
     def test_quarantined_securities_are_not_usable_names(self):
         """5,545 master rows are quarantined, 1,125 of them all-caps junk.
