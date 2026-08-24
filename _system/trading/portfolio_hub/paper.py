@@ -10,6 +10,9 @@ from typing import Any, Callable
 class PaperOrderBroker:
     """Deterministic paper bridge for drills and Python-client integration tests."""
 
+    # Nothing here reaches IBKR, and the policy layer relies on being told so.
+    transmits = False
+
     def __init__(self, quote_provider: Callable[[int], dict[str, Any]], *, client_id: int = 91,
                  contracts: dict[int, dict[str, Any]] | None = None):
         self.quote_provider = quote_provider
@@ -77,3 +80,51 @@ class PaperOrderBroker:
             raise ValueError("paper order ownership mismatch")
         order["status"] = "PendingCancel"
         return {"client_id": client_id, "order_id": order_id, "status": "PendingCancel"}
+
+
+class PaperRoutedBroker:
+    """Live prices and live margin, with no route to the exchange.
+
+    The paper desk is only worth having if its numbers are real: a preview
+    priced off a simulated book teaches nothing, and the whole point of the
+    guarded workflow -- price bands, tick validity, IBKR's own margin answer --
+    depends on the quote being the real NBBO.
+
+    So the read paths go to the live bridge and the write paths go to the paper
+    ledger. `resolve`, `contract_identity`, `quote` and `what_if` are all
+    read-only at IBKR (`quote` uses a self-cancelling snapshot, never a
+    streaming line; `what_if` sets whatIf=True and transmit=False), while
+    `place_limit` and `cancel_owned_order` never leave this process.
+
+    This is what a bridge should be started with. Routing live is a separate,
+    deliberate act -- see cli.py's `--route`.
+    """
+
+    transmits = False
+
+    def __init__(self, live: Any, paper: PaperOrderBroker):
+        self.live = live
+        self.paper = paper
+
+    # -- read: the real broker, because the numbers have to be real ----------
+    def resolve(self, request: dict[str, Any]) -> list[dict[str, Any]]:
+        return self.live.resolve(request)
+
+    def contract_identity(self, conid: int) -> dict[str, Any]:
+        return self.live.contract_identity(conid)
+
+    def quote(self, conid: int) -> dict[str, Any]:
+        return self.live.quote(conid)
+
+    def what_if(self, ticket: dict[str, Any]) -> dict[str, Any]:
+        return self.live.what_if(ticket)
+
+    # -- write: never the real broker ---------------------------------------
+    def place_limit(self, ticket: dict[str, Any]) -> dict[str, Any]:
+        return self.paper.place_limit(ticket)
+
+    def find_owned_order(self, order_ref: str) -> dict[str, Any] | None:
+        return self.paper.find_owned_order(order_ref)
+
+    def cancel_owned_order(self, order_ref: str, client_id: int, order_id: int) -> dict[str, Any]:
+        return self.paper.cancel_owned_order(order_ref, client_id, order_id)

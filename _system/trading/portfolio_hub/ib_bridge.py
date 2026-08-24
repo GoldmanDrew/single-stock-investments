@@ -260,12 +260,33 @@ class IbOrderBridge:
             "transmitted": False,
         }
 
+    # This bridge transmits. Anything wrapping or substituting for it must say
+    # so, because the policy layer decides what to route here based on it.
+    transmits = True
+
     def place_limit(self, ticket: dict[str, Any]) -> dict[str, Any]:
         """The single transmitting call in the hub. Never retried by this layer."""
         self._require_ready()
         order_ref = str(ticket.get("order_ref") or "")
         if not order_ref.startswith(HUB_ORDER_PREFIX):
             raise OrderOwnershipError("refusing to transmit an order without a hub orderRef")
+        # Only an explicitly live ticket may reach the exchange.
+        #
+        # GuardedOrderService.submit() short-circuits `dry_run` and nothing else,
+        # so a `paper` ticket falls through to this call with transmit=True --
+        # and the browser pins every ticket to `paper`. That was survivable only
+        # while the sole broker in use was PaperOrderBroker. The moment this
+        # bridge is the broker, "paper" would mean a real order under a button
+        # labelled PAPER - NEVER TRANSMITTED.
+        #
+        # Refusing here rather than only in the service is deliberate: this is
+        # the one function in the repo that reaches IBKR, so it should be the one
+        # that refuses, regardless of which policy layer called it.
+        mode = str(ticket.get("mode") or "").lower()
+        if mode != "live":
+            raise OrderOwnershipError(
+                f"refusing to transmit a '{mode or 'unspecified'}' ticket; only mode=live may reach the exchange"
+            )
         with self._lock:
             contract = self._qualify(ticket["conid"])
             order = self._limit_order(ticket, transmit=True)

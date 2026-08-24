@@ -54,6 +54,12 @@ def main(argv: list[str] | None = None) -> int:
     bridge.add_argument("--account", required=True)
     bridge.add_argument("--url", default=os.environ.get("PORTFOLIO_COMMAND_BASE_URL", ""))
     bridge.add_argument("--once", action="store_true", help="Single tick, for drills")
+    # Routing live is an explicit act, not a config default. `paper` still opens
+    # the Gateway connection -- real NBBO, real IBKR margin, real contract
+    # resolution -- but fills land in the paper ledger and placeOrder is never
+    # reached. Start here; move to `live` as its own decision.
+    bridge.add_argument("--route", choices=("paper", "live"), default="paper",
+                        help="Where fills go. paper (default) = live prices, no exchange route.")
     dual = commands.add_parser("dual-publish")
     dual.add_argument("--spx", type=Path)
     dual.add_argument("--ls", type=Path)
@@ -84,8 +90,15 @@ def main(argv: list[str] | None = None) -> int:
             secret = os.environ.get("PORTFOLIO_APPROVAL_SECRET", "")
             if len(secret) < 32:
                 raise SystemExit("PORTFOLIO_APPROVAL_SECRET must be at least 32 characters")
-            broker = IbOrderBridge(BridgeProfile.from_env())
-            broker.connect()  # refuses to serve until ownership recovery passes
+            gateway = IbOrderBridge(BridgeProfile.from_env())
+            gateway.connect()  # refuses to serve until ownership recovery passes
+            if args.route == "live":
+                broker = gateway
+            else:
+                from .paper import PaperOrderBroker, PaperRoutedBroker
+
+                broker = PaperRoutedBroker(gateway, PaperOrderBroker(gateway.quote))
+            print(json.dumps({"route": args.route, "transmits": broker.transmits}), flush=True)
             service = GuardedOrderService(
                 ledger, broker, secret,
                 live_enabled=os.environ.get("PORTFOLIO_LIVE_ENABLED", "0") == "1",
@@ -100,11 +113,16 @@ def main(argv: list[str] | None = None) -> int:
                                     options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1")
             try:
                 if args.once:
-                    print(json.dumps({"desk_open": loop.tick()}))
+                    print(json.dumps({"desk_open": loop.tick(), "route": args.route}))
                 else:
                     loop.run_forever()
             finally:
-                broker.disconnect()
+                # The gateway owns the socket, not whatever is wrapping it. Under
+                # the paper route `broker` is the wrapper and has no disconnect,
+                # so releasing client 91 has to go through the gateway itself --
+                # leaking that connection would hold one of the ~32 API slots
+                # this Gateway shares with SPX.
+                gateway.disconnect()
         elif args.command == "ingest-snapshot": print(ledger.ingest_account_snapshot(json.loads(args.payload.read_text(encoding="utf-8"))))
         elif args.command == "ingest-flex": print(json.dumps(ledger.ingest_flex_eod(json.loads(args.payload.read_text(encoding="utf-8"))), indent=2))
         elif args.command == "allocate": print(ledger.add_allocation(account_alias=args.account, conid=args.conid, model_code=args.model, owner=args.owner, strategy=args.strategy, bucket=args.bucket, quantity=args.quantity, effective_at=args.effective_at, note=args.note))

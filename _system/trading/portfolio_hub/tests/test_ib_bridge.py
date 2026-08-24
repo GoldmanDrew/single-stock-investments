@@ -134,6 +134,9 @@ def ticket(**overrides):
         "conid": 101, "action": "BUY", "quantity_decimal": "10",
         "limit_price_decimal": "25.40", "tif": "DAY", "outside_rth": False,
         "order_ref": "MAGIS|single_stock|drew|abc-123",
+        # These tests drive the one call that reaches the exchange, and it now
+        # refuses anything not explicitly live.
+        "mode": "live",
     }
     return {**base, **overrides}
 

@@ -190,3 +190,81 @@ def test_a_half_point_strike_keeps_its_half():
         "right": "C", "expiry": "20260918", "multiplier": "100",
     })
     assert "542.5 C" in text
+
+
+# ------------------------------------------------- paper must never transmit
+
+def test_a_paper_ticket_is_refused_by_a_transmitting_broker(_stub_ib_async):
+    """The browser pins every ticket to `paper`; only `dry_run` was short-circuited."""
+    ib = FakeIB()
+    live = bridge(ib)
+    with pytest.raises(Exception) as excinfo:
+        live.place_limit({
+            "conid": 101, "action": "BUY", "quantity_decimal": "10",
+            "limit_price_decimal": "25.40", "order_ref": "MAGIS|s|drew|1", "mode": "paper",
+        })
+    assert "only mode=live" in str(excinfo.value)
+    assert ib.placed == [], "nothing may reach placeOrder for a non-live ticket"
+
+
+def test_a_ticket_with_no_mode_at_all_is_refused(_stub_ib_async):
+    ib = FakeIB()
+    with pytest.raises(Exception, match="only mode=live"):
+        bridge(ib).place_limit({
+            "conid": 101, "action": "BUY", "quantity_decimal": "10",
+            "limit_price_decimal": "25.40", "order_ref": "MAGIS|s|drew|1",
+        })
+    assert ib.placed == []
+
+
+def test_the_paper_route_reads_live_and_writes_paper(_stub_ib_async):
+    from _system.trading.portfolio_hub.paper import PaperRoutedBroker
+
+    ib = FakeIB()
+    gateway = bridge(ib)
+    routed = PaperRoutedBroker(gateway, PaperOrderBroker(_quotes))
+    assert routed.transmits is False
+
+    # Reads reach the real broker, because a preview off a simulated book proves
+    # nothing about a price band or a margin requirement.
+    assert routed.contract_identity(272093)["conid"] == 272093
+    assert routed.resolve({"symbol": "MSFT", "sec_type": "STK", "kind": "contract"})[0]["symbol"] == "MSFT"
+
+    # Writes never do.
+    placed = routed.place_limit({
+        "conid": 101, "action": "BUY", "quantity_decimal": "10",
+        "limit_price_decimal": "25.40", "order_ref": "MAGIS|s|drew|1", "mode": "paper",
+    })
+    assert placed["gateway_session_id"] == "paper-session"
+    assert ib.placed == [], "the paper route must not reach placeOrder"
+
+
+def test_a_transmitting_broker_refuses_the_paper_ticket_at_the_policy_layer(tmp_path):
+    """Two independent guards: the service refuses, and the bridge would too."""
+    from _system.trading.portfolio_hub.ledger import PortfolioLedger
+    from _system.trading.portfolio_hub.orders import GuardedOrderService, OrderIntent
+
+    class _Transmitting(PaperOrderBroker):
+        transmits = True
+
+    ledger = PortfolioLedger(tmp_path / "p.db")
+    ledger.migrate()
+    service = GuardedOrderService(ledger, _Transmitting(_quotes), "s" * 32)
+    intent = OrderIntent(
+        account_alias="U123", conid=101, contract_fingerprint="fp", action="BUY",
+        quantity=Decimal("1"), limit_price=Decimal("5.15"), owner="drew",
+        strategy="single_stock", mode="paper",
+    )
+    created = service.create(intent)
+    ledger.connection.execute(
+        "UPDATE order_intents SET state='Approved' WHERE intent_uuid=?", (created["intent_uuid"],))
+    ledger.connection.commit()
+    result = service.submit(created["intent_uuid"])
+    assert result["state"] == "Rejected"
+
+
+def test_an_unmarked_broker_is_assumed_to_transmit(tmp_path):
+    """A simulator that forgets to declare itself gets refused; a live one would not get trusted."""
+    from _system.trading.portfolio_hub.orders import OrderBroker
+
+    assert "transmits" in OrderBroker.__annotations__

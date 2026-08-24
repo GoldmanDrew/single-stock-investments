@@ -10,6 +10,10 @@ from _system.trading.portfolio_hub.orders import GuardedOrderService, OrderInten
 
 
 class FakeBroker:
+    # A simulator, so paper tickets may be filled here. submit() assumes a broker
+    # transmits unless told otherwise, which is why this has to be explicit.
+    transmits = False
+
     def __init__(self, uncertain: bool = False):
         self.uncertain = uncertain
         self.placed = []

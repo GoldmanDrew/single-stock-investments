@@ -52,6 +52,12 @@ class OrderIntent:
 
 
 class OrderBroker(Protocol):
+    # Whether place_limit can reach the exchange. submit() routes on this, so a
+    # broker that omits it is assumed to transmit -- the safe default, because a
+    # simulator that forgets to say so merely gets refused, while a live bridge
+    # that forgot would get trusted.
+    transmits: bool
+
     # resolve/contract_identity are used by the command loop rather than by this
     # service, but they belong on the protocol: a broker that cannot say what a
     # conId *is* cannot produce a fingerprint a human could meaningfully approve.
@@ -158,6 +164,19 @@ class GuardedOrderService:
             return self._transition(intent_uuid, "Rejected", "kill_switch_engaged", {})
         if order["mode"] == "live" and not self.live_enabled:
             return self._transition(intent_uuid, "Rejected", "live_interlock_disabled", {})
+        # A non-live ticket must never reach a broker that can transmit.
+        #
+        # Only `dry_run` was short-circuited below, so a `paper` ticket fell
+        # through to place_limit(transmit=True) -- and the browser pins every
+        # ticket it creates to `paper`. That was safe only for as long as the
+        # configured broker happened to be a simulator. Making the broker declare
+        # whether it transmits turns "safe because of how it was wired" into
+        # "safe because it is checked".
+        if order["mode"] != "live" and getattr(self.broker, "transmits", True):
+            return self._transition(intent_uuid, "Rejected", "paper_ticket_on_transmitting_broker", {
+                "mode": order["mode"],
+                "detail": "this hub is routed live; a paper ticket cannot be filled here",
+            })
         self._transition(intent_uuid, "Submitting", "submit_started", {})
         if order["mode"] == "dry_run":
             return self._transition(intent_uuid, "Acknowledged", "dry_run_acknowledged", {"transmitted": False})
