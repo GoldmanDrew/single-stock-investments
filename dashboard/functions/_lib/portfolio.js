@@ -3,10 +3,17 @@ import { normalizeMatches, rememberContracts } from "./contracts.js";
 
 const DECIMAL = /^-?[0-9]+(?:\.[0-9]+)?$/;
 const OWNERS = new Set(["all", "drew", "michael", "unallocated"]);
-// Every non-base position names how it was translated. "identity" is a same-currency
-// row, "fx_unavailable" is an honest failure that carries a null rate and a degraded
-// quality; anything unrecognised is rejected so a new source cannot arrive unreviewed.
-const FX_SOURCES = new Set(["identity", "ibkr_portfolio_translation", "fx_unavailable"]);
+// Every non-base position names how it was translated, and the set is closed so a
+// new source cannot arrive unreviewed.
+//
+//   identity                   same-currency row, rate 1
+//   ibkr_exchange_rate         the rate IBKR states for the currency; preferred
+//   ibkr_portfolio_translation inferred from marketValue / (position x price),
+//                              usable only when that ratio is not ~1
+//   fx_unavailable             an honest failure: null rate, degraded quality
+const FX_SOURCES = new Set([
+  "identity", "ibkr_exchange_rate", "ibkr_portfolio_translation", "fx_unavailable",
+]);
 const DEGRADED_QUALITY = new Set(["estimated", "unknown"]);
 
 function hex(bytes) {

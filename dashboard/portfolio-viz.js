@@ -73,8 +73,28 @@
    * native figure as base is what made a small Tokyo position sort as the
    * largest holding in the book.
    */
+  // Sources whose rate is inferred rather than stated. IBKR's own ExchangeRate is
+  // authoritative and needs no sanity test -- EUR and CHF have both traded within
+  // a whisker of parity, and second-guessing a stated rate would reject them.
+  const INFERRED_FX = new Set(['ibkr_portfolio_translation']);
+
+  /**
+   * An inferred rate of ~1 between two different currencies carries no
+   * information: it means the collector divided a figure by itself, because
+   * IBKR returned marketValue in the contract currency rather than in base. It
+   * is never exactly 1 -- marketValue is rounded to 2dp against a full-precision
+   * product -- so an equality test cannot catch it. Observed live: JPY at
+   * 1.000000000645, CAD at 0.999999996454, both labelled as real translations.
+   */
+  const hasUsableRate = (row) => {
+    if (!INFERRED_FX.has(row?.fx_source)) return true;
+    const rate = num(row?.fx_rate_to_base_decimal);
+    return rate != null && Math.abs(rate - 1) >= 0.0001;
+  };
+
   const hasBaseValue = (row) => isNativeBase(row)
-    || (row?.market_value_base_decimal != null && row?.fx_source && row.fx_source !== 'fx_unavailable');
+    || (row?.market_value_base_decimal != null && row?.fx_source
+        && row.fx_source !== 'fx_unavailable' && hasUsableRate(row));
 
   const scopeToOwner = (row, value) => {
     if (value == null || state.scope === 'all') return value;
