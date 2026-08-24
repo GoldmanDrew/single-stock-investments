@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Voyager Technologies, Inc./TX  (VOYG)  (CIK 0001788060) contingent / CVR candidate (VOYG)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** VOYG | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

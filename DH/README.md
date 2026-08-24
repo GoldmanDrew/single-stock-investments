@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Definitive Healthcare Corp.  (DH)  (CIK 0001861795) contingent / CVR candidate (DH)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** DH | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

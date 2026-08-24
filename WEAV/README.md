@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Weave Communications, Inc.  (WEAV)  (CIK 0001609151) contingent / CVR candidate (WEAV)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** WEAV | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

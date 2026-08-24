@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Teamshares Inc  (TMS, TMSWW)  (CIK 0002048951) contingent / CVR candidate (TMS)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** TMS | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

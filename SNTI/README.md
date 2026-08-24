@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Senti Biosciences Holdings, Inc.  (SNTI)  (CIK 0001854270) contingent / CVR candidate (SNTI)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** SNTI | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

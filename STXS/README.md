@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Stereotaxis, Inc.  (STXS)  (CIK 0001289340) contingent / CVR candidate (STXS)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** STXS | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

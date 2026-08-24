@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# ELUTIA INC.  (ELUT)  (CIK 0001708527) contingent / CVR candidate (ELUT)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** ELUT | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

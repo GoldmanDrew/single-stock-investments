@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Aureus Greenway Holdings Inc  (PUSA)  (CIK 0002009312) contingent / CVR candidate (PUSA)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** PUSA | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

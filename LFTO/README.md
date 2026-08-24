@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Liftoff Mobile, Inc.  (LFTO)  (CIK 0001850351) contingent / CVR candidate (LFTO)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** LFTO | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

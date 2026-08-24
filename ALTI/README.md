@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# AlTi Global, Inc.  (ALTI)  (CIK 0001838615) contingent / CVR candidate (ALTI)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** ALTI | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# CECO ENVIRONMENTAL CORP  (CECO)  (CIK 0000003197) contingent / CVR candidate (CECO)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** CECO | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

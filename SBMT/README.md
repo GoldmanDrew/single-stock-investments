@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# SILVER BOW MINING CORP.  (SBMT)  (CIK 0002067674) contingent / CVR candidate (SBMT)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** SBMT | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

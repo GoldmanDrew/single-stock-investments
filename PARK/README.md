@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Park Dental Partners, Inc.  (PARK)  (CIK 0002069604) contingent / CVR candidate (PARK)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** PARK | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

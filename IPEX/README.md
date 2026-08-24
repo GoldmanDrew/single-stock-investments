@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# IPEX contingent / CVR candidate (IPEX)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** IPEX | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

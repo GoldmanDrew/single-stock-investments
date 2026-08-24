@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# NewHold Investment Corp. III  (NHIC, NHICU, NHICW)  (CIK 0002043699) contingent / CVR candidate (NHIC)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** NHIC | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

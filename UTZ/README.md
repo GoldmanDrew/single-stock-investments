@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Utz Brands, Inc.  (UTZ)  (CIK 0001739566) contingent / CVR candidate (UTZ)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** UTZ | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

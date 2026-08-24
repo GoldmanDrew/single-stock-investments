@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# Ocean Power Technologies, Inc.  (OPTT)  (CIK 0001378140) contingent / CVR candidate (OPTT)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** OPTT | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 

@@ -1,6 +1,6 @@
-# Intuitive Machines, Inc.  (LUNR)  (CIK 0001844452) contingent / CVR candidate (LUNR)
+# QT IMAGING HOLDINGS, INC.  (QTI, QTIWW)  (CIK 0001844505) contingent / CVR candidate (QTI)
 
-**Ticker:** LUNR | **Market:** US  
+**Ticker:** QTI | **Market:** US  
 **Last updated:** 2026-08-24  
 **Stage:** pre-close stub (discovery)
 
