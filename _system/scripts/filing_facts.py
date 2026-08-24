@@ -437,6 +437,72 @@ def parse_otc_prose_metrics(text: str) -> dict:
     return metrics
 
 
+COMPANYFACTS_FALLBACK = {
+    "cash": (
+        ("ifrs-full", "CashAndCashEquivalents"),
+        ("us-gaap", "CashAndCashEquivalentsAtCarryingValue"),
+    ),
+    "stockholders_equity": (
+        ("ifrs-full", "Equity"),
+        ("us-gaap", "StockholdersEquity"),
+    ),
+    "net_income": (
+        ("ifrs-full", "ProfitLoss"),
+        ("us-gaap", "NetIncomeLoss"),
+    ),
+    "operating_cash_flow": (
+        ("ifrs-full", "CashFlowsFromUsedInOperatingActivities"),
+        ("us-gaap", "NetCashProvidedByUsedInOperatingActivities"),
+    ),
+    "revenues": (
+        ("ifrs-full", "Revenue"),
+        ("ifrs-full", "Revenues"),
+        ("us-gaap", "Revenues"),
+    ),
+}
+
+
+def metrics_from_companyfacts(evidence_dir: Path) -> dict:
+    """Fallback when HTML extract has no inline XBRL (common for IFRS 40-F shells)."""
+    path = evidence_dir / "sec_companyfacts.json"
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    facts = payload.get("facts") or {}
+    metrics: dict = {}
+    for canon, specs in COMPANYFACTS_FALLBACK.items():
+        for namespace, tag in specs:
+            block = (facts.get(namespace) or {}).get(tag)
+            if not block:
+                continue
+            units = block.get("units") or {}
+            best_row = None
+            best_end = ""
+            for unit_key, rows in units.items():
+                for row in rows:
+                    end = str(row.get("end") or "")
+                    if end >= best_end:
+                        best_end = end
+                        best_row = row
+                        best_unit = unit_key
+            if best_row is None:
+                continue
+            metrics[canon] = {
+                "current": best_row.get("val"),
+                "prior": None,
+                "source": f"sec_companyfacts:{namespace}:{tag}",
+                "unit": best_unit,
+                "as_of": best_end,
+                "parser_confidence": "high",
+                "parser_flags": ["companyfacts_fallback"],
+            }
+            break
+    return metrics
+
+
 def build_filing_facts(ticker: str, evidence_dir: Path, source_path: Path | None) -> dict:
     if source_path is None or not source_path.exists():
         return {
@@ -454,6 +520,11 @@ def build_filing_facts(ticker: str, evidence_dir: Path, source_path: Path | None
         if otc:
             metrics = otc
             parser = "otc_prose"
+    if not metrics:
+        cf = metrics_from_companyfacts(evidence_dir)
+        if cf:
+            metrics = cf
+            parser = "companyfacts_fallback"
     try:
         rel_src = source_path.relative_to(evidence_dir.parent)
     except ValueError:

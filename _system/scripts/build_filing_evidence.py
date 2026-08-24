@@ -429,7 +429,7 @@ def build_ticker(ticker: str) -> int:
         ):
             kind_latest[k] = d
 
-    full_kinds = {"10-K", "10-Q", "20-F", "40-F", "annual", "quarterly", "proxy", "otcqx", "10-k", "10-q", "20-f", "40-f", "md&a", "S-1", "424B"}
+    full_kinds = {"10-K", "10-Q", "20-F", "40-F", "40-F-cover", "annual", "quarterly", "proxy", "otcqx", "10-k", "10-q", "20-f", "40-f", "md&a", "S-1", "424B"}
     transcript_kinds = {"transcript", "earnings_transcript"}
     transcript_latest: list[dict] = []
     full_count = 0
@@ -466,7 +466,7 @@ def build_ticker(ticker: str) -> int:
             [
                 d
                 for d in docs
-                if d.get("kind") in ("20-F", "40-F", "10-K", "20-f", "40-f", "10-k")
+                if d.get("kind") in ("20-F", "40-F", "40-F-cover", "10-K", "20-f", "40-f", "10-k")
                 and d.get("tier") in ("full", "partial")
             ],
             key=lambda d: (d.get("file_date") or "", d.get("filename") or ""),
