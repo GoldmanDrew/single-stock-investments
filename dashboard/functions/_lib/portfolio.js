@@ -1,4 +1,5 @@
 import { requireDatabase } from "./http.js";
+import { normalizeMatches, rememberContracts } from "./contracts.js";
 
 const DECIMAL = /^-?[0-9]+(?:\.[0-9]+)?$/;
 const OWNERS = new Set(["all", "drew", "michael", "unallocated"]);
@@ -193,6 +194,17 @@ export async function storeAccountSnapshot(env, payload, bytes) {
     ));
   }
   await db.batch(statements);
+  // Every position seeds the contract cache. This is what makes the order
+  // ticket's symbol box useful without asking IBKR anything: the account's own
+  // holdings are the contracts most likely to be traded again, and remembering
+  // them here means the box still answers on a weekend, when `ibc.service` is
+  // legitimately down and no live lookup can resolve.
+  await rememberContracts(db, normalizeMatches(payload.positions.map((row) => ({
+    conid: row.conid, symbol: row.symbol, local_symbol: row.local_symbol,
+    sec_type: row.sec_type, currency: row.currency, exchange: row.exchange,
+    trading_class: row.trading_class, expiry: row.expiry, strike: row.strike,
+    right: row.right, multiplier: row.multiplier, description: row.description,
+  })), payload.positions.length), "position");
   return { duplicate: false, object_key: objectKey };
 }
 

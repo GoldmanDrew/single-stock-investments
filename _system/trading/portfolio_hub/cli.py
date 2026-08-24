@@ -96,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
                 account_alias=args.account,
             ))
             loop = OrderCommandLoop(service, channel, account_alias=args.account,
-                                    live_enabled=service.live_enabled)
+                                    live_enabled=service.live_enabled,
+                                    options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1")
             try:
                 if args.once:
                     print(json.dumps({"desk_open": loop.tick()}))

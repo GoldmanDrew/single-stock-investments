@@ -51,6 +51,35 @@ def _finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def fingerprint_for(identity: dict[str, Any]) -> str:
+    """The string a human confirms before anything is transmitted.
+
+    It has to be readable, because its whole job is to let a person notice that
+    the ticket is not the contract they meant. "907480285|OPT||SMART" fails that
+    test; "XSP 270129P00540000 | OPT | 540 P | 20270129 | 100x | SMART/USD"
+    passes it. It also has to be built from the *qualified* contract -- a
+    fingerprint assembled from the browser's own claim would agree with the
+    browser no matter what the browser said.
+    """
+    parts = [
+        str(identity.get("local_symbol") or identity.get("symbol") or ""),
+        str(identity.get("sec_type") or ""),
+    ]
+    if str(identity.get("sec_type") or "").upper() in {"OPT", "FOP"}:
+        # IBKR returns strike as a float, so a $540 strike arrives as 540.0. The
+        # trailing zero is noise in a string whose only job is to be checked at a
+        # glance -- but a half-point strike must keep its half.
+        strike = identity.get("strike")
+        if isinstance(strike, float) and strike.is_integer():
+            strike = int(strike)
+        parts.append(f"{strike} {identity.get('right') or ''}".strip())
+        parts.append(str(identity.get("expiry") or ""))
+        parts.append(f"{identity.get('multiplier') or '?'}x")
+    parts.append(f"{identity.get('exchange') or 'SMART'}/{identity.get('currency') or ''}")
+    parts.append(f"conId {identity.get('conid')}")
+    return " | ".join(part for part in parts if part)
+
+
 class BridgeUnavailable(RuntimeError):
     """Gateway is not connected, or connected without the data the bridge needs."""
 
@@ -281,6 +310,128 @@ class IbOrderBridge:
                 self._ib.cancelOrder(order)
                 return {"client_id": client_id, "order_id": order_id, "status": "PendingCancel"}
         raise OrderOwnershipError("no matching working order proves hub ownership")
+
+    # ------------------------------------------------------- contract lookup
+
+    def resolve(self, request: dict[str, Any]) -> list[dict[str, Any]]:
+        """Turn a symbol a human typed into conIds IBKR agrees exist.
+
+        This is the only way an option ever reaches a ticket. An option conId is
+        a nine-digit number that identifies one strike of one expiry; asking a
+        person to type it is asking them to approve something they cannot check,
+        so the browser sends what a person knows -- symbol, month, strike, right
+        -- and this resolves it.
+
+        Costs no market-data line. reqContractDetails and reqSecDefOptParams are
+        contract-definition requests, drawn from a different pool than the
+        reqMktData subscriptions that CLAUDE.md rule 4 protects, so a resolver
+        that never touches reqMktData cannot starve the SPX option NBBO stream
+        no matter how often it is called.
+        """
+        self._require_ready()
+        kind = request.get("kind") or "contract"
+        if kind == "option_chain":
+            return self._option_chain(request)
+        return self._contract_details(request)
+
+    def _contract_details(self, request: dict[str, Any]) -> list[dict[str, Any]]:
+        from ib_async import Contract
+
+        sec_type = str(request.get("sec_type") or "STK").upper()
+        contract = Contract(
+            symbol=str(request["symbol"]).upper(),
+            secType=sec_type,
+            currency=str(request.get("currency") or "USD").upper(),
+            exchange=str(request.get("exchange") or "SMART").upper(),
+        )
+        if sec_type == "OPT":
+            contract.lastTradeDateOrContractMonth = str(request.get("expiry") or "")
+            if request.get("strike_decimal"):
+                contract.strike = float(request["strike_decimal"])
+            if request.get("right_code"):
+                contract.right = str(request["right_code"]).upper()
+        details = self._ib.reqContractDetails(contract) or []
+        # Bounded on purpose. An under-specified query can match the entire chain,
+        # and a picker with four hundred rows is not a picker.
+        return [self._describe_contract(detail) for detail in details[:200]]
+
+    def _option_chain(self, request: dict[str, Any]) -> list[dict[str, Any]]:
+        """Expirations and strikes for one underlying, in a single request.
+
+        reqSecDefOptParams returns the whole chain definition at once. The
+        alternative -- looping reqContractDetails over candidate strikes -- is
+        how a resolver walks into IBKR's pacing limits and starts failing during
+        a live session, so it is not done here.
+        """
+        from ib_async import Contract
+
+        underlying = Contract(
+            symbol=str(request["symbol"]).upper(), secType="STK",
+            currency=str(request.get("currency") or "USD").upper(), exchange="SMART",
+        )
+        qualified = self._ib.qualifyContracts(underlying)
+        if not qualified:
+            raise BridgeUnavailable(f"underlying {request['symbol']} could not be qualified")
+        root = qualified[0]
+        params = self._ib.reqSecDefOptParams(root.symbol, "", root.secType, root.conId) or []
+        rows: list[dict[str, Any]] = []
+        for entry in params:
+            for expiry in sorted(getattr(entry, "expirations", None) or []):
+                rows.append({
+                    "conid": None, "symbol": root.symbol, "sec_type": "OPT",
+                    "expiry": expiry, "trading_class": getattr(entry, "tradingClass", None),
+                    "exchange": getattr(entry, "exchange", None),
+                    "multiplier": getattr(entry, "multiplier", None),
+                    "strikes": sorted(getattr(entry, "strikes", None) or []),
+                    "currency": root.currency,
+                })
+        return rows
+
+    @staticmethod
+    def _describe_contract(detail: Any) -> dict[str, Any]:
+        contract = detail.contract
+        return {
+            "conid": contract.conId,
+            "symbol": contract.symbol,
+            "local_symbol": getattr(contract, "localSymbol", None),
+            "sec_type": contract.secType,
+            "currency": contract.currency,
+            "exchange": contract.exchange,
+            "primary_exchange": getattr(contract, "primaryExchange", None),
+            "trading_class": getattr(contract, "tradingClass", None),
+            "expiry": getattr(contract, "lastTradeDateOrContractMonth", None) or None,
+            "strike": getattr(contract, "strike", None) or None,
+            "right": getattr(contract, "right", None) or None,
+            "multiplier": getattr(contract, "multiplier", None) or None,
+            "min_tick": getattr(detail, "minTick", None),
+            "description": getattr(detail, "longName", None),
+        }
+
+    def contract_identity(self, conid: int) -> dict[str, Any]:
+        """What the human is actually approving, taken from IBKR, not the browser.
+
+        The approval fingerprint used to be assembled from the request row, so a
+        stock ticket bound to the string "272093|STK||SMART" -- which names
+        nothing a person could check, and for an option would be worse than
+        useless. Building it here means the fingerprint describes the contract
+        the bridge would really send.
+        """
+        self._require_ready()
+        contract = self._qualify(int(conid))
+        details = self._ib.reqContractDetails(contract)
+        identity = self._describe_contract(details[0]) if details else {
+            "conid": contract.conId, "symbol": contract.symbol,
+            "local_symbol": getattr(contract, "localSymbol", None),
+            "sec_type": contract.secType, "currency": contract.currency,
+            "exchange": contract.exchange,
+            "trading_class": getattr(contract, "tradingClass", None),
+            "expiry": getattr(contract, "lastTradeDateOrContractMonth", None) or None,
+            "strike": getattr(contract, "strike", None) or None,
+            "right": getattr(contract, "right", None) or None,
+            "multiplier": getattr(contract, "multiplier", None) or None,
+        }
+        identity["fingerprint"] = fingerprint_for(identity)
+        return identity
 
     # ---------------------------------------------------------------- helpers
 

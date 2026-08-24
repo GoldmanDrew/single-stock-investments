@@ -82,14 +82,29 @@ class OrderCommandChannel:
         self._call("/api/v2/portfolio/ingest/order-requests/publish",
                    {"account_alias": self.config.account_alias, "request_id": request_id, **update})
 
+    def claim_lookups(self) -> list[dict[str, Any]]:
+        """Take pending contract questions. Same pull-only direction as orders."""
+        payload = self._call("/api/v2/portfolio/ingest/contract-lookups/claim",
+                             {"account_alias": self.config.account_alias})
+        return payload.get("lookups") or []
+
+    def publish_lookup(self, lookup_id: str, update: dict[str, Any]) -> None:
+        self._call("/api/v2/portfolio/ingest/contract-lookups/publish",
+                   {"account_alias": self.config.account_alias, "lookup_id": lookup_id, **update})
+
 
 class OrderCommandLoop:
     def __init__(self, service: GuardedOrderService, channel: OrderCommandChannel, *,
-                 account_alias: str, live_enabled: bool = False):
+                 account_alias: str, live_enabled: bool = False, options_enabled: bool = False):
         self.service = service
         self.channel = channel
         self.account_alias = account_alias
         self.live_enabled = live_enabled
+        # Deliberately separate from live_enabled. Turning on live stock trading
+        # is a decision about this desk; turning on options is a decision about a
+        # different instrument with different failure modes, and one flag for
+        # both would mean the second decision got made by accident.
+        self.options_enabled = options_enabled
 
     # ------------------------------------------------------------------ loop
 
@@ -106,8 +121,9 @@ class OrderCommandLoop:
 
     def tick(self) -> bool:
         """Advance every claimable request one step. Returns True if the desk is open."""
+        busy_lookups = self.resolve_lookups()
         requests = self.channel.claim()
-        open_desk = False
+        open_desk = busy_lookups
         for row in requests:
             state = row.get("state")
             if state in OPEN_STATES:
@@ -122,6 +138,32 @@ class OrderCommandLoop:
                 self.channel.publish(row["request_id"], {"state": "rejected", "reject_reason": str(exc)})
         return open_desk
 
+    def resolve_lookups(self) -> bool:
+        """Answer contract questions. Returns True if any were waiting.
+
+        A failed lookup is published as `failed` with its reason rather than
+        left to time out. A picker that spins forever teaches people to retype
+        the conId by hand, which is the habit this whole path exists to remove.
+        """
+        try:
+            lookups = self.channel.claim_lookups()
+        except Exception as exc:
+            print(f"contract lookup claim failed: {exc}", flush=True)
+            return False
+        for row in lookups:
+            try:
+                matches = self.service.broker.resolve(row)
+                if not matches:
+                    self.channel.publish_lookup(row["lookup_id"], {
+                        "state": "failed",
+                        "error": f"IBKR returned no contract for {row.get('symbol')}.",
+                    })
+                    continue
+                self.channel.publish_lookup(row["lookup_id"], {"state": "resolved", "matches": matches})
+            except Exception as exc:
+                self.channel.publish_lookup(row["lookup_id"], {"state": "failed", "error": str(exc)})
+        return bool(lookups)
+
     # ----------------------------------------------------------------- steps
 
     def _draft_and_preview(self, row: dict[str, Any]) -> None:
@@ -132,11 +174,23 @@ class OrderCommandLoop:
                 "reject_reason": "Live transmission is disabled on the hub (interlock off).",
             })
             return
+        if str(row.get("sec_type") or "").upper() == "OPT" and not self.options_enabled:
+            self.channel.publish(row["request_id"], {
+                "state": "rejected",
+                "reject_reason": "Option orders are disabled on the hub (options interlock off).",
+            })
+            return
 
+        # Identity comes from IBKR, never from the row. The browser supplied the
+        # conId; asking the broker what that conId actually is turns the ticket
+        # from "what the page claimed" into "what would be sent", and any
+        # disagreement between the two shows up in the fingerprint the human is
+        # asked to confirm.
+        identity = self._identity(row)
         intent = OrderIntent(
             account_alias=self.account_alias,
             conid=int(row["conid"]),
-            contract_fingerprint=self._fingerprint(row),
+            contract_fingerprint=identity["fingerprint"],
             action=row["action"],
             quantity=Decimal(str(row["quantity_decimal"])),
             limit_price=Decimal(str(row["limit_price_decimal"])),
@@ -169,6 +223,16 @@ class OrderCommandLoop:
             "contract_fingerprint": approval["contract_fingerprint"],
             "approval_expires_at": approval["expires_at"],
             "preview": self._preview_payload(draft["intent_uuid"]),
+            # Echo the qualified identity back so the ticket shows the contract
+            # IBKR named, not the one the form was filled in with.
+            "local_symbol": identity.get("local_symbol"),
+            "expiry": identity.get("expiry"),
+            "strike_decimal": None if identity.get("strike") is None else str(identity["strike"]),
+            "right_code": identity.get("right"),
+            "multiplier_decimal": None if identity.get("multiplier") is None else str(identity["multiplier"]),
+            "trading_class": identity.get("trading_class"),
+            "exchange": identity.get("exchange"),
+            "currency": identity.get("currency"),
         })
 
     def _approve_and_submit(self, row: dict[str, Any]) -> None:
@@ -198,10 +262,25 @@ class OrderCommandLoop:
 
     # --------------------------------------------------------------- helpers
 
-    @staticmethod
-    def _fingerprint(row: dict[str, Any]) -> str:
-        """Identity of the exact instrument, bound into the approval HMAC."""
-        return f"{row['conid']}|{row['sec_type']}|{row.get('currency') or ''}|{row.get('exchange') or 'SMART'}"
+    def _identity(self, row: dict[str, Any]) -> dict[str, Any]:
+        """Ask the broker what this conId is, and refuse if it is not what was asked for.
+
+        The old version built the fingerprint from the request row itself, which
+        made it a restatement of the browser's claim rather than a check on it:
+        every stock ticket fingerprinted as "<conid>|STK||SMART" because the
+        table has no exchange column and the form never set a currency.
+
+        The security type cross-check matters more than it looks. A form that
+        says STK while the conId is an option would otherwise sail through --
+        conId is what actually gets sent, so the ticket would have been priced,
+        approved and transmitted as an option while every screen said stock.
+        """
+        identity = self.service.broker.contract_identity(int(row["conid"]))
+        wanted = str(row.get("sec_type") or "").upper()
+        got = str(identity.get("sec_type") or "").upper()
+        if wanted and got and wanted != got:
+            raise ValueError(f"conId {row['conid']} is a {got}, not the {wanted} this ticket claims")
+        return identity
 
     @staticmethod
     def _edge_state(hub_state: str) -> str:

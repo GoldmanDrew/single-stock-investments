@@ -17,7 +17,8 @@ import { validateOrderRequest } from "../../../_lib/order-requests.js";
 const PUBLIC_COLUMNS = `request_id,owner,strategy,conid,symbol,sec_type,action,quantity_decimal,
   limit_price_decimal,currency,tif,outside_rth,mode,rationale,state,intent_uuid,contract_fingerprint,
   preview_json,preview_as_of,approval_expires_at,reject_reason,approved_at,approved_by,
-  broker_status,order_ref,client_id,order_id,perm_id,created_at,updated_at`;
+  broker_status,order_ref,client_id,order_id,perm_id,created_at,updated_at,
+  expiry,strike_decimal,right_code,multiplier_decimal,trading_class,exchange,local_symbol`;
 
 const privateHeaders = () => ({ "cache-control": "private, no-store" });
 
@@ -76,13 +77,21 @@ export async function onRequestPost(context) {
 
     const now = new Date().toISOString();
     const requestKey = uuid();
+    // The option identity rides with the request so the ticket can be *read*.
+    // It is not the source of truth for what gets sent: the hub re-qualifies the
+    // conId at preview and builds the fingerprint from what IBKR returns, so a
+    // browser that lied about the strike would produce a fingerprint that does
+    // not match what it displayed, and the approval would not bind.
     await db.prepare(`INSERT INTO portfolio_order_requests
       (request_id,account_alias,owner,strategy,conid,symbol,sec_type,action,quantity_decimal,
-       limit_price_decimal,currency,tif,outside_rth,mode,rationale,state,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'requested',?,?)`).bind(
+       limit_price_decimal,currency,tif,outside_rth,mode,rationale,expiry,strike_decimal,right_code,
+       multiplier_decimal,trading_class,exchange,local_symbol,state,created_at,updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'requested',?,?)`).bind(
       requestKey, run.account_alias, ticket.owner, ticket.strategy, ticket.conid, ticket.symbol,
       ticket.sec_type, ticket.action, ticket.quantity, ticket.limit_price, ticket.currency,
-      ticket.tif, ticket.outside_rth ? 1 : 0, ticket.mode, ticket.rationale, now, now,
+      ticket.tif, ticket.outside_rth ? 1 : 0, ticket.mode, ticket.rationale,
+      ticket.expiry, ticket.strike, ticket.right, ticket.multiplier,
+      ticket.trading_class, ticket.exchange, ticket.local_symbol, now, now,
     ).run();
 
     return json({

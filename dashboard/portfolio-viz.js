@@ -28,6 +28,11 @@
     // Guarded order desk. `orderRequests` is the owner's recent tickets from the
     // command channel; `activeRequest` is the one being worked right now.
     orderRequests: null, activeRequestId: null, orderPollTimer: null,
+    // Contract resolution. `contractDraft` is what the picker has settled on so
+    // far; a ticket cannot be submitted until it holds a conId the hub resolved,
+    // because a hand-typed option id is something nobody can check.
+    contractDraft: { sec_type: 'STK', symbol: '', conid: null, identity: null },
+    contractSuggestions: [], contractChain: null, contractLookup: null, lookupPollTimer: null,
     visibleColumns: loadColumns(), savedViews: loadViews(),
   };
   const sections = ['positions', 'risk', 'margin', 'performance', 'orders', 'reconciliation'];
@@ -549,7 +554,81 @@
     });
   }
 
+  // ---------------------------------------------------------- contract picker
+  //
+  // A conId is a broker fact, so nothing in this file ever produces one. These
+  // renderers only display conIds the hub resolved and wrote back, and the
+  // submit path refuses to send a ticket whose conId did not come from there.
+
+  function contractSuggestionList() {
+    const rows = state.contractSuggestions || [];
+    if (!rows.length) return '';
+    return `<ul class="ph-typeahead" role="listbox">${rows.map((row) => `<li><button type="button" role="option" data-ph-pick-contract="${esc(row.conid)}">
+      <b>${esc(row.local_symbol || row.symbol)}</b><span>${esc(row.sec_type)}${row.expiry ? ` · ${esc(row.expiry)}` : ''}${row.right_code ? ` ${esc(row.right_code)}${esc(row.strike_decimal || '')}` : ''} · ${esc(row.currency || '')} · conId ${esc(row.conid)}</span>
+      <em>${esc(row.description || (row.source === 'position' ? 'held in this account' : 'previously resolved'))}</em>
+    </button></li>`).join('')}</ul>`;
+  }
+
+  function optionChainPicker() {
+    const draft = state.contractDraft;
+    const chain = state.contractChain;
+    const lookup = state.contractLookup;
+    if (!chain) {
+      const busy = lookup && ['requested', 'resolving'].includes(lookup.state);
+      return `<div class="ph-order-field ph-order-chain"><span>Option chain</span>
+        <button type="button" class="ph-chain-load" data-ph-load-chain ${busy || !draft.symbol ? 'disabled' : ''}>
+          ${busy ? 'Asking the hub…' : draft.symbol ? `Load ${esc(draft.symbol)} chain` : 'Enter a symbol first'}</button>
+        ${lookup?.state === 'failed' ? `<p class="ph-order-status error">${esc(lookup.error || 'The hub could not resolve that symbol.')}</p>` : ''}
+        <p class="ph-dim">Expirations and strikes come from IBKR through the private hub. The browser never contacts the broker.</p>
+      </div>`;
+    }
+    const expiries = [...new Set(chain.map((row) => row.expiry))].sort();
+    const chosenExpiry = draft.expiry && expiries.includes(draft.expiry) ? draft.expiry : '';
+    const strikes = chosenExpiry
+      ? [...new Set(chain.filter((row) => row.expiry === chosenExpiry).flatMap((row) => row.strikes || []))].sort((a, b) => a - b)
+      : [];
+    return `<div class="ph-order-field ph-order-chain"><span>Expiry</span>
+        <select data-ph-expiry><option value="">Choose an expiry</option>${expiries.map((value) => `<option value="${esc(value)}"${value === chosenExpiry ? ' selected' : ''}>${esc(formatExpiry(value))}</option>`).join('')}</select>
+      </div>
+      <div class="ph-order-field"><span>Right</span>
+        <select data-ph-right><option value="P"${draft.right === 'P' ? ' selected' : ''}>Put</option><option value="C"${draft.right === 'C' ? ' selected' : ''}>Call</option></select>
+      </div>
+      <div class="ph-order-field"><span>Strike</span>
+        <select data-ph-strike ${strikes.length ? '' : 'disabled'}><option value="">${strikes.length ? 'Choose a strike' : 'Choose an expiry first'}</option>${strikes.map((value) => `<option value="${value}"${String(value) === String(draft.strike) ? ' selected' : ''}>${value}</option>`).join('')}</select>
+      </div>`;
+  }
+
+  function formatExpiry(value) {
+    const raw = String(value || '');
+    if (!/^\d{8}$/.test(raw)) return raw;
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6)}`;
+  }
+
+  function resolvedContractCell() {
+    const draft = state.contractDraft;
+    const lookup = state.contractLookup;
+    if (draft.conid && draft.identity) {
+      const row = draft.identity;
+      return `<div class="ph-resolved ok"><b>${esc(row.local_symbol || row.symbol)}</b>
+        <span>${esc(row.sec_type)}${row.expiry ? ` · ${esc(formatExpiry(row.expiry))}` : ''}${row.right_code ? ` · ${esc(row.right_code)} ${esc(row.strike_decimal || '')}` : ''}${row.multiplier_decimal ? ` · ${esc(row.multiplier_decimal)}x` : ''}</span>
+        <span class="ph-dim">conId ${esc(row.conid)} · ${esc(row.exchange || 'SMART')}/${esc(row.currency || '')}</span>
+        <button type="button" class="ph-order-cancel" data-ph-clear-contract>Change contract</button></div>`;
+    }
+    if (lookup && ['requested', 'resolving'].includes(lookup.state)) {
+      return '<div class="ph-resolved"><span>Waiting on the hub to resolve this contract…</span></div>';
+    }
+    if (lookup?.state === 'failed') {
+      return `<div class="ph-resolved error"><span>${esc(lookup.error || 'The hub could not resolve that contract.')}</span></div>`;
+    }
+    // Never offer a free-text conId box as a fallback. The whole point of this
+    // panel is that the identity on the ticket came from IBKR; a manual escape
+    // hatch would be used exactly when resolution failed, which is exactly when
+    // the number is least likely to be right.
+    return '<div class="ph-resolved"><span class="ph-dim">Pick a contract above. Order entry stays closed until the hub resolves one.</span></div>';
+  }
+
   function ordersView() {
+    const draft = state.contractDraft;
     const events = state.orders?.events || [];
     const broker = state.orders?.broker_open_orders || [];
     const paper = state.paperOrders?.orders || [];
@@ -583,10 +662,12 @@
         <div class="ph-order-desk-body">
           <div class="ph-order-intro"><div><div class="ph-kicker">Owner-locked order entry</div><h3 id="ph-paper-order-title">Queue a paper limit</h3></div><p>The login fixes the owner. This ticket is stored only in the paper ledger and has no broker route.</p></div>
           <form class="ph-order-form" data-ph-paper-order>
-            <label class="ph-order-field ph-order-shortcut"><span>Existing contract shortcut</span><select data-ph-contract-shortcut><option value="">Enter a contract manually</option>${positionOptions}</select></label>
-            <label class="ph-order-field"><span>Symbol</span><input name="symbol" maxlength="24" autocomplete="off" spellcheck="false" required placeholder="MSFT"></label>
-            <label class="ph-order-field"><span>Security type</span><select name="sec_type" required><option value="STK">Stock</option><option value="ETF">ETF</option><option value="OPT">Option</option><option value="WAR">Warrant</option></select></label>
-            <label class="ph-order-field"><span>IB contract ID</span><input name="conid" inputmode="numeric" pattern="[0-9]+" min="1" required placeholder="272093"></label>
+            <label class="ph-order-field ph-order-shortcut"><span>Existing contract shortcut</span><select data-ph-contract-shortcut><option value="">Search for a contract instead</option>${positionOptions}</select></label>
+            <label class="ph-order-field"><span>Security type</span><select name="sec_type" required data-ph-sec-type>${[['STK', 'Stock / ETF'], ['OPT', 'Option']].map(([value, label]) => `<option value="${value}"${draft.sec_type === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
+            <label class="ph-order-field ph-order-symbol"><span>Symbol</span><input name="symbol" maxlength="24" autocomplete="off" spellcheck="false" required placeholder="MSFT" value="${esc(draft.symbol || '')}" data-ph-symbol>${contractSuggestionList()}</label>
+            ${draft.sec_type === 'OPT' ? optionChainPicker() : ''}
+            <div class="ph-order-field ph-order-resolved"><span>Contract</span>${resolvedContractCell()}</div>
+            <input type="hidden" name="conid" value="${esc(draft.conid == null ? '' : String(draft.conid))}">
             <label class="ph-order-field"><span>Side</span><select name="side" required><option value="BUY">Buy</option><option value="SELL">Sell</option></select></label>
             <label class="ph-order-field"><span>Quantity</span><input name="quantity" inputmode="decimal" type="number" min="0.000001" step="any" required placeholder="10"></label>
             <label class="ph-order-field"><span>DAY limit price · USD</span><input name="limit_price" inputmode="decimal" type="number" min="0.000001" step="any" required placeholder="415.25"></label>
@@ -595,7 +676,7 @@
               <div class="ph-kicker">Ticket preview</div>
               <dl><div><dt>Owner</dt><dd>${esc(ownerLabel)} · locked</dd></div><div><dt>Route</dt><dd>Paper ledger only</dd></div><div><dt>Estimated notional</dt><dd data-ph-paper-notional>—</dd></div><div><dt>Current → paper position</dt><dd data-ph-paper-position>—</dd></div><div><dt>Quote / margin</dt><dd>Not modeled · queue only</dd></div></dl>
               <label class="ph-order-confirm"><input type="checkbox" name="paper_confirmed" required><span>I understand this will not place a broker order.</span></label>
-              <button type="submit" class="ph-order-submit">Queue paper order</button>
+              <button type="submit" class="ph-order-submit"${draft.conid ? '' : ' disabled'}>${draft.conid ? 'Request preview' : 'Resolve a contract first'}</button>
               <div class="ph-order-status" data-ph-order-status aria-live="polite"></div>
             </aside>
           </form>
@@ -641,6 +722,131 @@
     if (position) position.textContent = qty != null ? `${quantity(current)} → ${quantity(post)}` : `${quantity(current)} → —`;
   }
 
+  // ------------------------------------------------------- resolver behaviour
+
+  let symbolDebounce = null;
+  // The order desk re-renders by replacing innerHTML, so a suggestion list that
+  // arrives while someone is still typing would take the caret with it. Same
+  // problem the positions search box already solves at the bottom of
+  // renderPortfolio; this is the flag that lets the symbol box do it too.
+  let restoreSymbolCaret = null;
+
+  function selectContract(identity) {
+    state.contractDraft = {
+      ...state.contractDraft,
+      conid: Number(identity.conid),
+      symbol: identity.symbol || state.contractDraft.symbol,
+      sec_type: identity.sec_type || state.contractDraft.sec_type,
+      identity,
+    };
+    state.contractSuggestions = [];
+    state.contractLookup = null;
+    stopLookupPolling();
+    renderPortfolio();
+  }
+
+  function clearContract(keepSymbol = true) {
+    state.contractDraft = {
+      sec_type: state.contractDraft.sec_type,
+      symbol: keepSymbol ? state.contractDraft.symbol : '',
+      conid: null, identity: null,
+      expiry: state.contractDraft.expiry, right: state.contractDraft.right, strike: state.contractDraft.strike,
+    };
+  }
+
+  async function searchContracts(query) {
+    if (!query || query.length < 1) { state.contractSuggestions = []; renderPortfolio(); return; }
+    try {
+      const params = new URLSearchParams({ q: query, sec_type: state.contractDraft.sec_type });
+      const payload = await getJson(`/api/v2/portfolio/contracts?${params}`);
+      // The cache can go stale between keystrokes; only render the answer to the
+      // question still on screen.
+      if (String(state.contractDraft.symbol || '').toUpperCase() !== String(payload.query || '').toUpperCase()) return;
+      state.contractSuggestions = payload.contracts || [];
+      restoreSymbolCaret = query.length;
+      renderPortfolio();
+    } catch (_) {
+      // A cache miss is not an error worth interrupting typing for; the explicit
+      // lookup button is still there.
+      state.contractSuggestions = [];
+    }
+  }
+
+  async function requestLookup(body) {
+    stopLookupPolling();
+    state.contractLookup = { state: 'requested' };
+    renderPortfolio();
+    try {
+      const created = await sendJson('/api/v2/portfolio/contract-lookups', { method: 'POST', body: JSON.stringify(body) });
+      pollLookup(created.lookup_id);
+    } catch (error) {
+      state.contractLookup = { state: 'failed', error: error.message };
+      renderPortfolio();
+    }
+  }
+
+  function stopLookupPolling() {
+    if (state.lookupPollTimer) { clearInterval(state.lookupPollTimer); state.lookupPollTimer = null; }
+  }
+
+  function pollLookup(lookupId) {
+    if (!lookupId) return;
+    let elapsed = 0;
+    state.lookupPollTimer = setInterval(async () => {
+      elapsed += 2;
+      try {
+        const payload = await getJson(`/api/v2/portfolio/contract-lookups?lookup_id=${encodeURIComponent(lookupId)}`);
+        const row = (payload.lookups || [])[0];
+        if (!row) return;
+        state.contractLookup = row;
+        if (row.state === 'resolved') {
+          stopLookupPolling();
+          applyResolution(row);
+        } else if (row.state === 'failed') {
+          stopLookupPolling();
+        }
+        renderPortfolio();
+      } catch (error) {
+        stopLookupPolling();
+        state.contractLookup = { state: 'failed', error: error.message };
+        renderPortfolio();
+      }
+      // Give up out loud rather than spinning. The bridge is not running on a
+      // weekend -- `ibc.service` is a session service -- and a picker that spins
+      // forever reads as a bug rather than as "the Gateway is down right now".
+      if (elapsed >= 40) {
+        stopLookupPolling();
+        state.contractLookup = { state: 'failed', error: 'The hub did not answer in 40 seconds. It may be outside session hours; held contracts still work.' };
+        renderPortfolio();
+      }
+    }, 2000);
+  }
+
+  function applyResolution(row) {
+    const matches = row.matches || [];
+    if (row.kind === 'option_chain') {
+      state.contractChain = matches;
+      return;
+    }
+    // One unambiguous match is selected outright; several means the user has to
+    // say which, because guessing among real contracts is how the wrong one gets
+    // bought.
+    if (matches.length === 1) selectContract(matches[0]);
+    else state.contractSuggestions = matches;
+  }
+
+  function maybeResolveOption() {
+    const draft = state.contractDraft;
+    // Only ask once all three are pinned. A partial option query matches many
+    // contracts, and the hub would have to pick one -- which is precisely the
+    // guess this design refuses to make on a person's behalf.
+    if (!draft.symbol || !draft.expiry || !draft.strike || !draft.right) { renderPortfolio(); return; }
+    requestLookup({
+      kind: 'option_contract', sec_type: 'OPT', symbol: draft.symbol,
+      expiry: draft.expiry, strike: String(draft.strike), right: draft.right,
+    });
+  }
+
   function bindOrderDesk(root) {
     root.querySelector('[data-ph-open-order-owner]')?.addEventListener('click', (event) => {
       state.scope = event.currentTarget.dataset.phOpenOrderOwner;
@@ -653,13 +859,80 @@
       shortcut?.addEventListener('change', () => {
         const option = shortcut.selectedOptions?.[0];
         if (!option?.value) return;
-        form.elements.conid.value = option.value;
-        form.elements.symbol.value = option.dataset.symbol || '';
-        form.elements.sec_type.value = option.dataset.secType || 'STK';
-        updatePaperOrderPreview(form);
+        // A held position is already a resolved contract: the collector got its
+        // conId from IBKR, so selecting one is a pick, not a manual entry.
+        const held = (state.book?.positions || []).find((row) => Number(row.conid) === Number(option.value));
+        selectContract({
+          conid: Number(option.value),
+          symbol: held?.symbol || option.dataset.symbol || '',
+          local_symbol: held?.local_symbol || null,
+          sec_type: held?.sec_type || option.dataset.secType || 'STK',
+          currency: held?.currency || null,
+          exchange: held?.exchange_name || null,
+          expiry: held?.expiry || null,
+          strike_decimal: held?.strike_decimal || null,
+          right_code: held?.right_code || null,
+          multiplier_decimal: held?.multiplier_decimal || null,
+        });
       });
       form.querySelectorAll('input,select').forEach((control) => control.addEventListener('input', () => updatePaperOrderPreview(form)));
       updatePaperOrderPreview(form);
+
+      // Symbol typing searches the cache. Changing the symbol drops any resolved
+      // contract: keeping it would leave the ticket showing one instrument while
+      // holding the conId of another.
+      const symbolInput = form.querySelector('[data-ph-symbol]');
+      if (symbolInput && restoreSymbolCaret != null) {
+        const caret = restoreSymbolCaret;
+        restoreSymbolCaret = null;
+        symbolInput.focus();
+        symbolInput.setSelectionRange(caret, caret);
+      }
+      symbolInput?.addEventListener('input', () => {
+        const value = String(symbolInput.value || '').toUpperCase();
+        if (value !== state.contractDraft.symbol) {
+          state.contractDraft.symbol = value;
+          if (state.contractDraft.conid) clearContract();
+          state.contractChain = null;
+        }
+        if (symbolDebounce) clearTimeout(symbolDebounce);
+        symbolDebounce = setTimeout(() => searchContracts(value), 250);
+      });
+
+      form.querySelector('[data-ph-sec-type]')?.addEventListener('change', (event) => {
+        state.contractDraft = { sec_type: event.currentTarget.value, symbol: state.contractDraft.symbol, conid: null, identity: null };
+        state.contractChain = null;
+        state.contractSuggestions = [];
+        state.contractLookup = null;
+        renderPortfolio();
+      });
+
+      root.querySelectorAll('[data-ph-pick-contract]').forEach((button) => button.addEventListener('click', () => {
+        const match = (state.contractSuggestions || []).find((row) => Number(row.conid) === Number(button.dataset.phPickContract));
+        if (match) selectContract(match);
+      }));
+
+      root.querySelector('[data-ph-clear-contract]')?.addEventListener('click', () => {
+        clearContract();
+        renderPortfolio();
+      });
+
+      root.querySelector('[data-ph-load-chain]')?.addEventListener('click', () => {
+        requestLookup({ kind: 'option_chain', symbol: state.contractDraft.symbol, sec_type: 'OPT' });
+      });
+
+      root.querySelector('[data-ph-expiry]')?.addEventListener('change', (event) => {
+        state.contractDraft = { ...state.contractDraft, expiry: event.currentTarget.value, strike: null, conid: null, identity: null };
+        renderPortfolio();
+      });
+      root.querySelector('[data-ph-right]')?.addEventListener('change', (event) => {
+        state.contractDraft = { ...state.contractDraft, right: event.currentTarget.value, conid: null, identity: null };
+        maybeResolveOption();
+      });
+      root.querySelector('[data-ph-strike]')?.addEventListener('change', (event) => {
+        state.contractDraft = { ...state.contractDraft, strike: event.currentTarget.value, conid: null, identity: null };
+        maybeResolveOption();
+      });
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!form.reportValidity()) return;
@@ -679,10 +952,23 @@
             body: JSON.stringify({
               symbol: values.get('symbol'),
               sec_type: values.get('sec_type'),
-              conid: Number(values.get('conid')),
+              // Straight from the resolved identity, never from a typed field.
+              // The hub re-qualifies this conId and rebuilds the fingerprint, so
+              // anything the page got wrong here surfaces as a mismatch on the
+              // approval rather than as a wrong order.
+              conid: Number(state.contractDraft.conid),
               action: values.get('side'),
               quantity: values.get('quantity'),
               limit_price: values.get('limit_price'),
+              ...(state.contractDraft.sec_type === 'OPT' ? {
+                expiry: state.contractDraft.identity?.expiry || state.contractDraft.expiry,
+                strike: String(state.contractDraft.identity?.strike_decimal ?? state.contractDraft.strike ?? ''),
+                right: state.contractDraft.identity?.right_code || state.contractDraft.right,
+                multiplier: state.contractDraft.identity?.multiplier_decimal || null,
+                trading_class: state.contractDraft.identity?.trading_class || null,
+                exchange: state.contractDraft.identity?.exchange || null,
+                local_symbol: state.contractDraft.identity?.local_symbol || null,
+              } : {}),
               tif: 'DAY', mode: 'paper',
               strategy: 'single_stock',
               rationale: values.get('rationale'),

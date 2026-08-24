@@ -81,8 +81,28 @@ class FakeIB:
     def reqMarketDataType(self, kind): self.market_data_type = kind
     def reqAllOpenOrders(self): return self._open
     def reqCompletedOrders(self, apiOnly=False): return self._completed
-    def qualifyContracts(self, contract): return [_Contract(contract.conId)]
-    def reqContractDetails(self, contract): return [types.SimpleNamespace(minTick=0.01)]
+    def qualifyContracts(self, contract): return [_Contract(getattr(contract, "conId", 0) or 101, symbol=getattr(contract, "symbol", "MSFT"), secType=getattr(contract, "secType", "STK"))]
+
+    def reqContractDetails(self, contract):
+        # Contract details carry the contract itself; quote() reads minTick off
+        # the detail while the resolver reads identity off detail.contract.
+        resolved = _Contract(
+            getattr(contract, "conId", 0) or 101,
+            symbol=getattr(contract, "symbol", "MSFT"),
+            secType=getattr(contract, "secType", "STK"),
+            localSymbol=getattr(contract, "localSymbol", None) or getattr(contract, "symbol", "MSFT"),
+            exchange=getattr(contract, "exchange", "SMART"),
+            lastTradeDateOrContractMonth=getattr(contract, "lastTradeDateOrContractMonth", ""),
+            strike=getattr(contract, "strike", 0.0),
+            right=getattr(contract, "right", ""),
+        )
+        return [types.SimpleNamespace(minTick=0.01, contract=resolved, longName="Test Contract")]
+
+    def reqSecDefOptParams(self, symbol, exchange, sec_type, conid):
+        return [types.SimpleNamespace(
+            tradingClass=symbol, exchange="SMART", multiplier="100",
+            expirations={"20270129", "20260918"}, strikes={520.0, 540.0, 620.0},
+        )]
     def reqMktData(self, *a, **kw): return self._ticker
     def cancelMktData(self, contract): pass
     def positions(self, account=None): return self._positions
