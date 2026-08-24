@@ -9,6 +9,100 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _display_symbol(row: dict[str, Any]) -> Any:
+    """What the row actually holds, not merely what it tracks.
+
+    ls-algo's aggregate exposure rows carry `symbols` -- the instruments held --
+    and `underlying`, what they track, but no singular `symbol`. Falling straight
+    through to `underlying` renamed a long UVIX leg "SVIX" on the B5 tab, because
+    both legs of the volatility pair share the SVIX underlying, so the page
+    showed the same ticker twice for two different instruments. `symbols` is a
+    bare string on a single-leg row and a list on a multi-leg one.
+    """
+    if row.get("symbol"):
+        return row["symbol"]
+    symbols = row.get("symbols")
+    if isinstance(symbols, str) and symbols:
+        return symbols
+    if isinstance(symbols, (list, tuple)) and symbols:
+        return " / ".join(str(symbol) for symbol in symbols)
+    return row.get("underlying")
+
+
+def _bucket5_hedge_rows(source: dict[str, Any]) -> list[dict[str, Any]]:
+    """The B5 index-put ladder, which does not appear under `buckets` at all.
+
+    ls-algo publishes the volatility-ETP legs in `buckets.bucket_5` but keeps the
+    XSP put ladder that insures them in a separate top-level `bucket5_live`
+    panel. An adapter that walks only `buckets` therefore forwarded the risk and
+    dropped the hedge, and the B5 tab rendered what looked like a naked short-vol
+    pair. These lots carry a conId, so they reconcile against the broker like any
+    other position.
+
+    Deliberately no notional: a long put's market value and the index notional it
+    covers differ by orders of magnitude, and signing a delta-adjusted notional
+    needs a delta this producer does not publish. Emitting either one under a
+    column labelled "notional" would repeat the mislabelling this change fixes,
+    so the hedge publishes value and cost and leaves notional absent.
+    """
+    live = source.get("bucket5_live") or {}
+    puts = live.get("puts") or {}
+    underlying = ((live.get("contract_preflight") or {}).get("underlying") or {}).get("symbol") or "XSP"
+    coverage = {
+        str(row.get("rung_id")): row
+        for row in (live.get("coverage") or [])
+        if row.get("rung_id")
+    }
+    rows = []
+    for index, lot in enumerate(puts.get("lots") or []):
+        conid = lot.get("conId", lot.get("conid"))
+        try:
+            conid = int(conid)
+        except (TypeError, ValueError):
+            conid = None
+        # IB local symbols pad the root out to six characters ("XSP   270129P...").
+        local_symbol = " ".join(str(lot.get("local_symbol") or "").split())
+        rung = coverage.get(str(lot.get("rung_id"))) or {}
+        cost, mark = lot.get("cost_basis_usd"), lot.get("mark_value_usd")
+        unrealized = None
+        if isinstance(cost, (int, float)) and isinstance(mark, (int, float)):
+            unrealized = mark - cost
+        rows.append({
+            "row_id": f"ls:b5:put:{lot.get('rung_id') or conid or index}",
+            "row_kind": "position",
+            "account_alias": None, "conid": conid, "model_code": None,
+            "symbol": local_symbol or f"{underlying} put",
+            "underlying": underlying,
+            "strategy": "leveraged_etf",
+            "bucket": "B5",
+            "product_class": "index_put_hedge",
+            "reconciliation_role": "broker_reconciling" if conid else "detail_only",
+            "exposure_basis": "broker_quantity" if conid else "attribution",
+            "position_units": "contracts",
+            "metrics": {
+                "contracts": lot.get("remaining_contracts", lot.get("entry_contracts")),
+                "market_value": mark, "cost_basis": cost,
+                "unrealized_pnl": unrealized, "marked_pnl": unrealized,
+                "mark_multiple": lot.get("mark_multiple"),
+                "dte_business_days": lot.get("dte_business_days"),
+                "strike": lot.get("strike"), "expiry": lot.get("expiry"),
+                "right": lot.get("right"), "rung_id": lot.get("rung_id"),
+                "roll_due": lot.get("roll_due"),
+                **({"coverage_ratio": rung.get("coverage_ratio")} if rung.get("coverage_ratio") is not None else {}),
+                **({"target_contracts": rung.get("target_contracts")} if rung.get("target_contracts") is not None else {}),
+            },
+            "lineage": {
+                "producer_schema": live.get("schema"),
+                "strategy_version": live.get("strategy_version"),
+                "quality": live.get("health"),
+                "position_scope": ((puts.get("accounting") or {}).get("position_scope")),
+                "account_scope": ((puts.get("accounting") or {}).get("account_scope")),
+                "value_kind": "producer_mark",
+            },
+        })
+    return rows
+
+
 def normalize_spx_status(source: dict[str, Any], *, source_run_id: str | None = None) -> dict[str, Any]:
     """Allowlisted adapter for SPX schema-2 status; strategy math remains producer-owned."""
     risk = source.get("risk") or {}
@@ -79,8 +173,9 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
                 role, basis = "detail_only", "pair_detail"
             rows.append({
                 "row_id": f"ls:{bucket_id}:{row.get('position_id') or row.get('symbol') or index}",
+                "row_kind": "exposure",
                 "account_alias": row.get("account_alias"), "conid": row.get("conid"), "model_code": row.get("model_code"),
-                "symbol": row.get("symbol") or row.get("underlying"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
+                "symbol": _display_symbol(row), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
                 "bucket": bucket_id.upper(), "product_class": row.get("product_class"),
                 "reconciliation_role": role, "exposure_basis": basis,
                 "metrics": {
@@ -96,8 +191,11 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
         for index, row in enumerate(bucket.get("pnl_rows") or []):
             rows.append({
                 "row_id": f"ls:pnl:{bucket_id}:{row.get('position_id') or row.get('symbol') or index}",
+                # Attribution only. It carries no quantity or value, so the
+                # positions table must not render it as if it were a holding.
+                "row_kind": "pnl",
                 "account_alias": row.get("account_alias"), "conid": row.get("conid"), "model_code": row.get("model_code"),
-                "symbol": row.get("symbol") or row.get("underlying"), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
+                "symbol": _display_symbol(row), "underlying": row.get("underlying"), "strategy": "leveraged_etf",
                 "bucket": bucket_id.upper(), "product_class": row.get("product_class"),
                 "reconciliation_role": "additive", "exposure_basis": "attribution",
                 "metrics": {
@@ -112,6 +210,8 @@ def normalize_ls_snapshot(source: dict[str, Any], *, source_run_id: str | None =
                 },
                 "lineage": {"session_date": row.get("session_date"), "denominator_kind": row.get("denominator_kind"), "denominator_value": row.get("denominator_value"), "currency": row.get("currency")},
             })
+    # The B5 hedge lives outside `buckets` entirely; see _bucket5_hedge_rows.
+    rows.extend(_bucket5_hedge_rows(source))
     return {
         "schema_version": "strategy_snapshot.v1", "producer": "ls_risk",
         "source_run_id": source_run_id or f"ls-{uuid.uuid4()}",
@@ -168,8 +268,28 @@ def normalize_ls_bucket5_product(source: dict[str, Any], *, source_run_id: str |
 
 
 def normalize_ls_bucket5_live(source: dict[str, Any], *, source_run_id: str | None = None) -> dict[str, Any]:
+    """The live B5 sleeve: the volatility-ETP legs and the put ladder insuring them.
+
+    This used to be `normalize_ls_snapshot` filtered to B5 and nothing more, which
+    made it a byte-for-byte duplicate of the ls_risk B5 slice under a name that
+    promised the live sleeve. It never read `bucket5_live`, so the coverage
+    ladder, the put accounting and the kill/health state stayed on the producer
+    box. The rows come from the shared walk (which now includes the hedge); what
+    is added here is the sleeve state that only this panel carries.
+    """
     result = normalize_ls_snapshot(source, source_run_id=source_run_id or f"ls-b5-live-{uuid.uuid4()}")
+    live = source.get("bucket5_live") or {}
     result["producer"] = "ls_bucket5_live"
     result["rows"] = [row for row in result["rows"] if row.get("bucket") == "B5"]
     result["supported_scopes"] = ["account", "strategy", "bucket"]
+    result["summary"] = {
+        **result.get("summary", {}),
+        "b5_mode": live.get("mode"), "b5_health": live.get("health"),
+        "b5_kill_mode": live.get("kill_mode"),
+        "b5_strategy_version": live.get("strategy_version"),
+        "b5_coverage": live.get("coverage") or [],
+        "b5_put_accounting": (live.get("puts") or {}).get("accounting") or {},
+        "b5_open_contracts": (live.get("puts") or {}).get("open_contracts"),
+        "b5_tracking": live.get("tracking") or {},
+    }
     return result
