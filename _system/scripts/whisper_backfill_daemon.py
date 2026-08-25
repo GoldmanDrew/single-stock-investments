@@ -115,6 +115,52 @@ def counts(doc: dict) -> dict[str, int]:
     return tally
 
 
+def reconcile_with_disk(doc: dict) -> int:
+    """Mark done any pending item whose transcript is already on disk.
+
+    The backlog is the resume index, but the transcripts are the truth. The two
+    drift apart whenever this file is merged textually instead of semantically --
+    `_merge_backlog` unions the two sides on push, but a rebase done by hand
+    takes one side wholesale and silently discards the other's done-markings.
+
+    That happened on 2026-08-25 and the failure mode is expensive rather than
+    loud: eight episodes sat `pending` with their transcripts already written, so
+    every chunk re-downloaded and re-transcribed roughly fifty minutes of audio
+    each, landed nothing new, and reported a barren round. Six barren rounds stop
+    the daemon, and four attempts park the episode -- so left alone this parks
+    work that was already finished.
+
+    Cheap to check (a stat per pending item) and it runs before every round, so
+    the drift can only cost one round rather than the run.
+    """
+    root = podcasts_root(create=True)
+    episodes = root / "episodes"
+    healed = 0
+    for item in doc.get("items") or []:
+        if item.get("status") != "pending":
+            continue
+        eid = item.get("episode_id")
+        if not eid:
+            continue
+        published = str(item.get("published") or "")
+        year = published[:4] if published[:4].isdigit() else None
+        candidate = episodes / year / f"{eid}.txt" if year else None
+        if candidate is None or not candidate.exists():
+            matches = list(episodes.rglob(f"{eid}.txt"))
+            candidate = matches[0] if matches else None
+        if candidate is None or not candidate.exists():
+            continue
+        item["status"] = "done"
+        item["reconciled_at"] = _stamp()
+        healed += 1
+    if healed:
+        from fetch_podcast_transcript import atomic_write_text
+
+        doc["updated_at"] = _stamp()
+        atomic_write_text(backlog_path(), json.dumps(doc, indent=2) + "\n")
+    return healed
+
+
 def park_exhausted(doc: dict) -> int:
     """Mark repeatedly-failing items so they stop being selected."""
     parked = 0
@@ -281,11 +327,15 @@ def run(*, chunk: int, deadline: datetime | None, until_empty: bool, push: bool,
     barren_rounds = 0
     push_seconds = max(60, push_minutes * 60)
 
+    healed = reconcile_with_disk(read_backlog())
+    if healed:
+        print(f"reconciled {healed} pending items that were already transcribed", flush=True)
     parked = park_exhausted(read_backlog())
     if parked:
         print(f"parked {parked} items at >= {MAX_ATTEMPTS} attempts", flush=True)
 
     while True:
+        reconcile_with_disk(read_backlog())
         doc = read_backlog()
         tally = counts(doc)
         pending = tally.get("pending", 0)
