@@ -703,6 +703,7 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-25.
 | STT | STT/ | State Street Corporation | US | 2026-07-10 | 2026-08-25 | unknown | watch |
 | STX | STX/ | Seagate Technology | US | 2026-07-28 | 2026-08-25 | unknown | watch |
 | STZ | STZ/ | Constellation Brands | US | 2026-07-09 | 2026-08-25 | unknown | watch |
+| SUM | SUM/ | Summit Royalties Ltd. | CA | — | 2026-08-25 | unknown | watch |
 | SVIX | SVIX/ | SVIX | US | 2026-07-29 | 2026-08-25 | unknown | watch |
 | SW | SW/ | Smurfit Westrock | US | 2026-07-10 | 2026-08-25 | unknown | watch |
 | SWK | SWK/ | Stanley Black & Decker | US | 2026-07-10 | 2026-08-25 | unknown | watch |
@@ -840,4 +841,4 @@ Synced from `_system/portfolio/registry.json`. Last sync: 2026-08-25.
 | ZETA | ZETA/ | ZETA | US | 2026-07-28 | 2026-08-25 | unknown | watch |
 | ZTS | ZTS/ | Zoetis | US | 2026-07-10 | 2026-08-25 | unknown | watch |
 
-**833 holdings total.** Registry: `_system/portfolio/registry.json`
+**834 holdings total.** Registry: `_system/portfolio/registry.json`
