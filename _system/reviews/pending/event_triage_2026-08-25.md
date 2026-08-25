@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-25
-**Rows:** 2665
+**Rows:** 1609
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -32,6 +32,8 @@
 | 2026-08-25 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-25 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-25 | ZBRA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-08-25 | BR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 28, 2022 |
+| 2026-08-25 | BR | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 04-Broadridge |
 | 2026-08-24 | INTU | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Intuit Stock Nearly Halved While Its Operating Margin Kept C |
 | 2026-08-24 | INTU | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Weekly Recap: Intuit guidance and Deutsche Bank cuts Intuit  |
 | 2026-08-24 | SYK | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Maxi Investments CY Ltd Acquires New Position in Stryker Cor |
@@ -148,7 +150,6 @@
 | 2026-08-02 | APD | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | MANTLE RIDGE LP — DFAN14A (proxy solicitation) |
 | 2026-08-02 | WULF | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Mariner (+7) — SC 13D/A |
 | 2026-08-02 | WULF | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | I.R.S. IDENTIFICATION NO. OF ABOVE PERSON — SC 13D/A |
-| 2026-08-02 | BR | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 28, 2022 |
 | 2026-08-02 | INTU | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 20, 2024 |
 | 2026-08-02 | LRCX | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Oct 18, 2022 |
 | 2026-08-02 | MNST | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Apr 8, 2025 |
@@ -199,9 +200,8 @@
 | 2026-07-28 | FRMI | earnings | context | 34 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
 | 2026-07-21 | CSGP | earnings | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
 | 2026-07-16 | MRSH | earnings | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Upcoming earnings |
-| 2026-06-30 | CHTR | superinvestor_letter | context | 32 | rule_conflict, activist_cross_link, neutral_low_impact | Letter: CHTR |
-| 2026-06-30 | NVDA | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: NVDA |
-| 2026-06-30 | CTSH | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CTSH |
-| 2026-06-30 | ABBV | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: ABBV |
-| 2026-06-30 | SPGI | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: SPGI |
-| 2026-06-30 | CRM | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: CRM |
+| 2026-06-17 | CHTR | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, activist_cross_link, neutral_low_impact | Letter: CHTR |
+| 2026-06-17 | GS | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: GS |
+| 2026-06-17 | MDB | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: MDB |
+| 2026-06-17 | NVDA | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, neutral_low_impact | Letter: NVDA |
+| 2026-06-14 | FRMI | superinvestor_letter | context | 34 | rule_conflict, letter_actionable, activist_cross_link, neutral_low_impact | Letter: FRMI |
