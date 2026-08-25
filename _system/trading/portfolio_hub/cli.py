@@ -94,21 +94,34 @@ def main(argv: list[str] | None = None) -> int:
             # the approval secret, the broker socket, and the live interlock all
             # stay in this process on the trusted host.
             from .command_poller import ChannelConfig, OrderCommandChannel, OrderCommandLoop
-            from .ib_bridge import BridgeProfile, IbOrderBridge
+            from .gateway_budget import BudgetLimits, ConnectionBudget
+            from .gateway_session import build_live_session_factory
             from .orders import GuardedOrderService
+            from .paper import PaperOrderBroker
 
             secret = os.environ.get("PORTFOLIO_APPROVAL_SECRET", "")
             if len(secret) < 32:
                 raise SystemExit("PORTFOLIO_APPROVAL_SECRET must be at least 32 characters")
-            gateway = IbOrderBridge(BridgeProfile.from_env())
-            gateway.connect()  # refuses to serve until ownership recovery passes
-            if args.route == "live":
-                broker = gateway
-            else:
-                from .paper import PaperOrderBroker, PaperRoutedBroker
 
-                broker = PaperRoutedBroker(gateway, PaperOrderBroker(gateway.quote))
-            print(json.dumps({"route": args.route, "transmits": broker.transmits}), flush=True)
+            # Nothing here connects. The factory is inert until a claimed ticket
+            # needs the broker, so this process can run all day on an idle desk
+            # having made zero Gateway contact (CLAUDE.md rule 10).
+            budget = ConnectionBudget(limits=BudgetLimits(
+                max_per_hour=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_HOUR", "12")),
+                max_per_day=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_DAY", "60")),
+            ))
+            sessions = build_live_session_factory(
+                route=args.route, budget=budget,
+                on_event=lambda event: print(json.dumps(event), flush=True),
+            )
+            # The service needs *a* broker to satisfy its constructor; the loop
+            # swaps in the session's broker for the duration of each tick. This
+            # placeholder can neither transmit nor reach IBKR.
+            broker = PaperOrderBroker(lambda conid: {})
+            print(json.dumps({
+                "route": args.route, "standing_gateway_connection": False,
+                "budget": budget.state(),
+            }), flush=True)
             service = GuardedOrderService(
                 ledger, broker, secret,
                 live_enabled=os.environ.get("PORTFOLIO_LIVE_ENABLED", "0") == "1",
@@ -120,19 +133,19 @@ def main(argv: list[str] | None = None) -> int:
             ))
             loop = OrderCommandLoop(service, channel, account_alias=args.account,
                                     live_enabled=service.live_enabled,
-                                    options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1")
-            try:
-                if args.once:
-                    print(json.dumps({"desk_open": loop.tick(), "route": args.route}))
-                else:
-                    loop.run_forever()
-            finally:
-                # The gateway owns the socket, not whatever is wrapping it. Under
-                # the paper route `broker` is the wrapper and has no disconnect,
-                # so releasing client 91 has to go through the gateway itself --
-                # leaking that connection would hold one of the ~32 API slots
-                # this Gateway shares with SPX.
-                gateway.disconnect()
+                                    options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1",
+                                    sessions=sessions)
+            # No teardown block: there is nothing held open between ticks. Each
+            # session disconnects in its own `finally` inside GatewaySessionFactory,
+            # so killing this process can never leak a client-91 socket.
+            if args.once:
+                print(json.dumps({
+                    "desk_open": loop.tick(), "route": args.route,
+                    "sessions_opened": sessions.sessions_opened,
+                    "budget": budget.state(),
+                }))
+            else:
+                loop.run_forever()
         elif args.command == "ingest-snapshot": print(ledger.ingest_account_snapshot(json.loads(args.payload.read_text(encoding="utf-8"))))
         elif args.command == "ingest-flex": print(json.dumps(ledger.ingest_flex_eod(json.loads(args.payload.read_text(encoding="utf-8"))), indent=2))
         elif args.command == "allocate": print(ledger.add_allocation(account_alias=args.account, conid=args.conid, model_code=args.model, owner=args.owner, strategy=args.strategy, bucket=args.bucket, quantity=args.quantity, effective_at=args.effective_at, note=args.note))
