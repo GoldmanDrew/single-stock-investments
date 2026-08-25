@@ -349,3 +349,35 @@ export async function loadPortfolio(env, owner = "all") {
     broker_open_order_count: Number(openOrders.results?.[0]?.count || 0), reconciliation_breaks: breaks.results || [],
   };
 }
+
+// Sources whose rate is inferred rather than stated by IBKR. Mirrors INFERRED_FX
+// in portfolio-viz.js; both exist because the same rule has to hold whether a
+// number is being rendered or being summed into an exposure total.
+const INFERRED_FX_SOURCES = new Set(["ibkr_portfolio_translation"]);
+
+/**
+ * The position's market value in account base currency, or null when it cannot
+ * honestly be stated in base.
+ *
+ * Never falls back across currencies. A foreign row without a usable rate means
+ * "unknown in base", not "same as native" -- reading the native figure as base
+ * is what put a JPY 4,842,000 position into a USD gross-exposure total at
+ * $4,842,000 and gave it 30% of the book's concentration weight.
+ *
+ * An inferred rate within 0.01% of parity is treated as no rate at all: it means
+ * the collector divided a figure by itself because IBKR returned marketValue in
+ * the contract currency. A *stated* rate near parity is fine -- EUR and CHF
+ * legitimately trade there.
+ */
+export function baseMarketValue(row, baseCurrency) {
+  const native = row?.native_currency || row?.currency || baseCurrency;
+  const value = Number(row?.market_value_base_decimal ?? row?.market_value_decimal);
+  if (!Number.isFinite(value)) return null;
+  if (native === baseCurrency) return value;
+  if (!row?.fx_source || row.fx_source === "fx_unavailable") return null;
+  if (INFERRED_FX_SOURCES.has(row.fx_source)) {
+    const rate = Number(row.fx_rate_to_base_decimal);
+    if (!Number.isFinite(rate) || Math.abs(rate - 1) < 0.0001) return null;
+  }
+  return Number.isFinite(Number(row?.market_value_base_decimal)) ? Number(row.market_value_base_decimal) : null;
+}
