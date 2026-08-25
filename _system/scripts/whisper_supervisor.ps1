@@ -36,7 +36,12 @@
 param(
     [string] $Model      = 'distil-large-v3',
     [int]    $Threads    = 12,
-    [int]    $Chunk      = 8,
+    # The daemon evaluates its push interval at chunk boundaries, not per
+    # episode, so the chunk size -- not PushMins -- is what really governs how
+    # often finished work reaches the vault. At 8 with the machine busy, three
+    # completed transcripts sat unpushed for five hours. Three keeps a
+    # checkpoint roughly hourly even when transcription is slow.
+    [int]    $Chunk      = 3,
     [int]    $PushMins   = 15,
     [int]    $MinBackoff = 120,
     [int]    $MaxBackoff = 1800,
