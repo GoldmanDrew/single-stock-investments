@@ -1,0 +1,14 @@
+[Unit]
+Description=Publish the Flex book after the close
+
+[Timer]
+# 18:15 ET on weekdays: after the close, and after ls-algo's own Flex fetch has
+# had time to land. Deliberately not intraday -- nothing on this dashboard needs
+# sub-daily broker truth, and pretending otherwise is what produced the
+# collector. A missed run waits for tomorrow rather than catching up in a burst.
+OnCalendar=Mon..Fri 18:15 America/New_York
+Persistent=false
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

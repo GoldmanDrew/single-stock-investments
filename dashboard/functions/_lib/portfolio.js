@@ -7,12 +7,14 @@ const OWNERS = new Set(["all", "drew", "michael", "unallocated"]);
 // new source cannot arrive unreviewed.
 //
 //   identity                   same-currency row, rate 1
-//   ibkr_exchange_rate         the rate IBKR states for the currency; preferred
+//   ibkr_flex_rate             fxRateToBase, stated per row by Flex; preferred,
+//                              and the only source once the collector is gone
+//   ibkr_exchange_rate         the rate IBKR states for the currency (Gateway)
 //   ibkr_portfolio_translation inferred from marketValue / (position x price),
 //                              usable only when that ratio is not ~1
 //   fx_unavailable             an honest failure: null rate, degraded quality
 const FX_SOURCES = new Set([
-  "identity", "ibkr_exchange_rate", "ibkr_portfolio_translation", "fx_unavailable",
+  "identity", "ibkr_flex_rate", "ibkr_exchange_rate", "ibkr_portfolio_translation", "fx_unavailable",
 ]);
 const DEGRADED_QUALITY = new Set(["estimated", "unknown"]);
 

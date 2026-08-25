@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .ledger import PortfolioLedger
-from .broker import BrokerProfile, IBAsyncCollector
 from .publisher import publish_payload
 from .adapters import normalize_ls_bucket5_live, normalize_ls_bucket5_product, normalize_ls_snapshot, normalize_spx_status
 from .bootstrap import apply_approved_bootstrap, build_bootstrap_plan
@@ -21,7 +20,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", type=Path, default=Path("_private/portfolio-hub/portfolio.db"))
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init")
-    collect = commands.add_parser("collect"); collect.add_argument("--once", action="store_true"); collect.add_argument("--interval", type=int, default=30)
+    # There is no `collect` command. Polling IB Gateway from this repo is
+    # prohibited -- see CLAUDE.md rule 9. Broker truth arrives via Flex.
+    flex_publish = commands.add_parser("flex-publish", help="Publish broker truth from IBKR Flex XML (no Gateway)")
+    flex_publish.add_argument("--positions", type=Path, required=True)
+    flex_publish.add_argument("--cash", type=Path)
+    flex_publish.add_argument("--trades", type=Path)
+    flex_publish.add_argument("--account", required=True)
+    flex_publish.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
+    flex_publish.add_argument("--stale-hours", type=int, default=30)
+    flex_publish.add_argument("--dry-run", action="store_true")
     ingest = commands.add_parser("ingest-snapshot"); ingest.add_argument("payload", type=Path)
     ingest_flex = commands.add_parser("ingest-flex"); ingest_flex.add_argument("payload", type=Path)
     allocate = commands.add_parser("allocate")
@@ -72,13 +80,15 @@ def main(argv: list[str] | None = None) -> int:
     try:
         ledger.migrate()
         if args.command == "init": print(args.db.resolve())
-        elif args.command == "collect":
-            profile = BrokerProfile.from_env(); collector = IBAsyncCollector(profile)
-            while True:
-                payload = asyncio.run(collector.collect())
-                print(ledger.ingest_account_snapshot(payload), flush=True)
-                if args.once: break
-                time.sleep(max(5, args.interval))
+        elif args.command == "flex-publish":
+            from .flex_ingest import publish_flex_snapshot
+
+            print(json.dumps(publish_flex_snapshot(
+                ledger,
+                positions=args.positions, cash=args.cash, trades=args.trades,
+                account_alias=args.account, url=args.url,
+                stale_hours=args.stale_hours, dry_run=args.dry_run,
+            ), indent=2))
         elif args.command == "order-bridge":
             # Everything that can transmit is constructed here and nowhere else:
             # the approval secret, the broker socket, and the live interlock all

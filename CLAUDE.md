@@ -65,7 +65,45 @@ Rules that keep SPX safe (test-enforced where noted):
    need a real backoff: at the stock `RestartSec=5` the collector produced
    **6,785 restarts and ~315k journal lines in one day** against a Gateway that
    was intentionally down.
-8. **`ibc.service` is a session service.** It starts, runs a few hours, and exits
+9. **NEVER POLL THE GATEWAY FROM THIS REPO. This rule has no exceptions.**
+   Broker truth arrives via **IBKR Flex**, which is an HTTPS report service and
+   touches no Gateway, no TWS API socket and no client ID. There is no
+   `collect` command in this repo and there must never be one again.
+
+   Why this is a rule and not a preference: the hub collector (client 81) held
+   a *single* connection at a time and so passed rule 3 for months, while
+   opening and closing that connection **every 30 seconds** -- about 780
+   connects per session. On Monday 2026-08-24, an ordinary day with no outage,
+   systemd logged **213 restarts of it during RTH alone**; on 2026-08-25 it
+   logged 1,057 start/stop events before the SPX side masked it. It was a
+   standing denial-of-service against the Gateway carrying the live SPX 0DTE
+   executor, and it read as healthy the entire time because the thing being
+   counted (concurrent sockets) was not the thing doing the harm.
+
+   The three failures that combined, all of which any future design must avoid:
+   * **Churn.** A session opened and closed per poll. Any Gateway session must
+     be long-lived; a small number of concurrent connections is not the same as
+     a small number of connection *events*.
+   * **Crash-to-restart.** A failed connect escaped and killed the process, so
+     an upstream outage became a restart loop. Connection failure must be
+     caught in-process with real backoff and a daily cap.
+   * **Polling at all.** Nothing on this dashboard needs sub-daily broker
+     truth. It is a research and allocation surface, not an execution screen.
+     Intraday state belongs to the systems that own it.
+
+   Applies to any future component, in any language, under any name. If a
+   design needs a repeating Gateway connection to work, the design is wrong.
+   The only Gateway contact this repo may ever make is a **human-initiated,
+   single-shot** order action (see rule 10).
+
+10. **Order placement, if it exists, is event-driven and never scheduled.**
+    No standing Gateway session, no poll loop against IB. A connection may be
+    opened only in response to a specific human action on a specific ticket,
+    must be released when that ticket reaches a terminal state, and must be
+    rate-limited with a circuit breaker that fails closed. The command channel
+    is polled against **D1 over HTTPS**, never against the Gateway.
+
+11. **`ibc.service` is a session service.** It starts, runs a few hours, and exits
    `0/SUCCESS` after the close; weekends it is down entirely. A
    `ConnectionRefusedError` on 127.0.0.1:**7496** is therefore normal off-hours,
    **not a fault**. Never "fix" it by restarting anything, and never by touching
