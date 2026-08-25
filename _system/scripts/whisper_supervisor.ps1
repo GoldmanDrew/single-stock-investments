@@ -107,8 +107,15 @@ try {
 
         Write-Log "starting daemon ($pending pending)"
         $started = Get-Date
+        # Not Tee-Object: on Windows PowerShell 5.1 its -FilePath has no
+        # encoding parameter and writes UTF-16LE, which interleaves with the
+        # UTF-8 lines Write-Log appends and leaves the log unreadable -- every
+        # character separated by a NUL. Echo and append explicitly instead.
         & $python '-u' $daemon '--until-empty' '--chunk' "$Chunk" '--push-every-minutes' "$PushMins" 2>&1 |
-            Tee-Object -FilePath $log -Append
+            ForEach-Object {
+                Write-Host $_
+                Add-Content -Path $log -Value $_ -Encoding utf8
+            }
         $code = $LASTEXITCODE
         $ran  = [int]((Get-Date) - $started).TotalSeconds
         Write-Log "daemon exited code=$code after ${ran}s"
