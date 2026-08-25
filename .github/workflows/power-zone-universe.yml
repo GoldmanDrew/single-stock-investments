@@ -132,8 +132,16 @@ jobs:
                          '_system/lenses/universe_percentiles.json' \
                          '_system/data/runs/power_zone_universe_run_*.json' \
                          dashboard/data/valuation_method_registry.json \
-                         dashboard/data/power_zones.json \
-                         dashboard/data/dashboard_data.json
+                         dashboard/data/power_zones.json
+          # dashboard_data.json is deliberately absent from that list. It has
+          # been gitignored since the 2026-08-11 monolith cleanup, so it can
+          # never be committed -- but `git add` on a pathspec matching nothing
+          # is fatal, not a no-op, and this job runs --skip-dashboard so nothing
+          # creates it. That is the same asymmetry the validation step above
+          # documents: on workflow_run an upstream rebuild leaves a monolith in
+          # the runner and the add succeeds, while a bare push or dispatch has
+          # no monolith and the step dies with exit 128. The step above was
+          # fixed for it in August; this one was missed.
           while IFS= read -r -d '' path; do
             git add -A -- "$path"
           done < <(find . -mindepth 3 -maxdepth 3 -type d -path './*/research/committee_work' -print0)

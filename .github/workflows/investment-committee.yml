@@ -155,9 +155,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A -- "${{ needs.prepare.outputs.ticker }}/research/committee_${{ needs.prepare.outputs.committee_date }}"*.json
+          # dashboard_data.json is not listed here: gitignored since the
+          # 2026-08-11 monolith cleanup, so it can never be committed, and
+          # `git add` on a pathspec matching nothing exits 128 rather than
+          # doing nothing. Same fix as power-zone-universe.yml.
           git add "${{ needs.prepare.outputs.ticker }}/research/committee_work/${{ needs.prepare.outputs.committee_date }}/manifest.json" \
-                  "${{ needs.prepare.outputs.ticker }}/research/valuation_workbench.json" \
-                  dashboard/data/dashboard_data.json
+                  "${{ needs.prepare.outputs.ticker }}/research/valuation_workbench.json"
           git commit -m "feat(ic): assemble ${{ needs.prepare.outputs.ticker }} committee ${{ needs.prepare.outputs.committee_date }}"
           git push origin HEAD:main
           gh api --method POST "repos/${{ github.repository }}/dispatches" \
