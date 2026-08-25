@@ -340,7 +340,13 @@ export async function loadPortfolio(env, owner = "all") {
   const allocationCount = Number(allocationRow?.allocation_count || 0);
   const allocationState = brokerPositionCount === 0 ? "not_applicable" : allocationCount > 0 ? "complete" : "upstream_absent";
   return {
-    schema_version: "portfolio_read_model.v1", status: "complete", scope: owner, snapshot: run,
+    schema_version: "portfolio_read_model.v1",
+    // "complete" describes the snapshot's contents, not its age. With the
+    // collector disabled (2026-08-25) nothing writes new snapshots, so this
+    // query keeps returning the same run forever and every figure on the page
+    // would present as current. Age is stated so the page can say otherwise --
+    // a feed that has stopped must not look identical to one that is live.
+    status: "complete", scope: owner, snapshot: { ...run, ...snapshotAge(run) },
     account_values: values.results || [], positions, cash_events: cash.results || [],
     broker_position_count: brokerPositionCount, owner_position_count: positions.length,
     allocation_status: allocationState,
@@ -381,3 +387,18 @@ export function baseMarketValue(row, baseCurrency) {
   }
   return Number.isFinite(Number(row?.market_value_base_decimal)) ? Number(row.market_value_base_decimal) : null;
 }
+
+
+// A snapshot older than this is presented as stale rather than as current. Two
+// hours is generous for a 30-second publisher and short enough that a feed which
+// died overnight is obvious the next morning.
+const STALE_AFTER_SECONDS = 7200;
+
+function snapshotAge(run, now = Date.now()) {
+  const asOf = Date.parse(run?.as_of || "");
+  if (!Number.isFinite(asOf)) return { age_seconds: null, stale: null };
+  const age = Math.max(0, Math.round((now - asOf) / 1000));
+  return { age_seconds: age, stale: age > STALE_AFTER_SECONDS };
+}
+
+export { snapshotAge, STALE_AFTER_SECONDS };

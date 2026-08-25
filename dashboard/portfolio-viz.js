@@ -262,13 +262,27 @@
     return `<svg class="ph-sparkline ${positive ? 'positive' : 'negative'}" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Net liquidation history"><defs><linearGradient id="ph-nav-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".24"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polygon points="0,40 ${points} 100,40" fill="url(#ph-nav-fill)"/><polyline points="${points}" fill="none" vector-effect="non-scaling-stroke"/>${benchPoints ? `<polyline class="ph-benchmark" points="${benchPoints}" fill="none" vector-effect="non-scaling-stroke"/>` : ''}</svg>${timeAxis(rows.map((row) => row.asOf), 'Account value time axis')}`;
   }
 
+  function describeAge(seconds) {
+    if (seconds == null) return 'an unknown time';
+    if (seconds < 3600) return `${Math.round(seconds / 60)} min`;
+    if (seconds < 172_800) return `${Math.round(seconds / 3600)} h`;
+    return `${Math.round(seconds / 86_400)} days`;
+  }
+
   function accountCockpit(book) {
     const values = valueMap(book);
     const nav = num(values.NetLiquidation); const daily = num(values.DailyPnL || values.DailyPnl);
     const maintenance = num(values.MaintMarginReq); const excess = num(values.ExcessLiquidity);
     const cushion = num(values.Cushion); const marginLoad = nav > 0 && maintenance != null ? Math.max(0, Math.min(1, maintenance / nav)) : null;
-    const dataState = book?.status === 'complete' ? 'Broker feed complete' : 'Broker feed unavailable';
-    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state"><i class="${book?.status === 'complete' ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>BROKER READ ONLY</span> Paper tickets never route to IBKR.</div></div></section>`;
+    // A stopped feed must not read the same as a live one. The collector was
+    // disabled on 2026-08-25, so "complete" now means "this snapshot was whole
+    // when it was taken", which can be days ago.
+    const stale = book?.snapshot?.stale === true;
+    const ageSeconds = num(book?.snapshot?.age_seconds);
+    const dataState = book?.status !== 'complete'
+      ? 'Broker feed unavailable'
+      : stale ? `Broker feed stopped · last snapshot ${describeAge(ageSeconds)} ago` : 'Broker feed complete';
+    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state ${stale ? 'stale' : ''}"><i class="${book?.status === 'complete' && !stale ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>BROKER READ ONLY</span> Paper tickets never route to IBKR.</div></div></section>`;
   }
 
   function accountFacts(book) {

@@ -1,3 +1,40 @@
+# DISABLED INDEFINITELY - 2026-08-25. DO NOT INSTALL OR UNMASK.
+#
+# This unit reconnect-stormed IBKR client 81 against the Gateway shared with the
+# live SPX 0DTE executor. It was masked on NY4 at 12:44 ET on 2026-08-25 after
+# the SPX side flagged it, and it stays off by Drew's instruction.
+#
+# The evidence is that it was never healthy, not that one bad day broke it:
+#   * 213 systemd "Scheduled restart" events during RTH on Monday 2026-08-24 --
+#     a normal trading day. That is one restart every ~1.8 minutes against a
+#     RestartSec=60 floor, i.e. crashing about as fast as systemd would restart.
+#   * 1,057 unit start/stop events on 2026-08-25 before it was masked.
+#   * Each restart is a fresh client-81 connect attempt on the Gateway.
+#
+# Two independent defects, both in this repo, and BOTH must be fixed before this
+# unit is ever considered again:
+#
+#   1. cli.py `collect` calls asyncio.run(collector.collect()) in a loop, and
+#      collect() opens a Gateway session and tears it down in its own `finally`.
+#      So a perfectly healthy collector connects and disconnects every 30
+#      seconds -- roughly 780 connects per RTH session. It must hold ONE session
+#      for the life of the process and poll on it.
+#   2. A failed connect raises out of collect() and kills the process, turning
+#      an upstream outage into a restart loop. Connection failure has to be
+#      caught in-process and retried with real backoff. The RestartSec=60
+#      drop-in caps the symptom; it does not stop a dead Gateway from killing
+#      the process every minute.
+#
+# CLAUDE.md rule 3 counts *concurrent* connections and we passed it. The rule's
+# intent is Gateway stability, and churning a session every 30 seconds is worse
+# for the Gateway than holding one open. Passing the letter of a coexistence
+# rule while violating its purpose is what this file is a record of.
+#
+# Consequence to keep in view: with this off, nothing publishes broker truth.
+# The dashboard serves the last complete snapshot indefinitely. The replacement
+# is IBKR Flex, which needs no Gateway client at all -- see
+# deploy/user/README.md and portfolio_hub/flex.py.
+
 [Unit]
 Description=Magis portfolio hub IBKR collector
 After=network-online.target ibgateway.service

@@ -15,7 +15,7 @@ be mirrored there in the same PR. The hub-side detail lives in
 |---|---|
 | spx-0dte | **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, refuses 09:20–16:10 ET, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only, snapshot requests only, no streaming lines held) |
 | ls-algo | 0 (cancel coordinator, orderRef-filtered), 41 (rebalancer base), 77 (flow program), 90 (daily screener), 197/207 (bucket5 probes), workers 241–273, 341–373, 551, 1041+ |
-| this repo | 71/72/73 (sleeves drew/michael/sync), 81 (collector, read-only), 82 (master observer, reserved — **not 90**, which is ls-algo's screener), **91** (order bridge, sole hub transmitter) |
+| this repo | 71/72/73 (sleeves drew/michael/sync), ~~81~~ (collector — **DISABLED INDEFINITELY 2026-08-25**, reconnect storm; see `deploy/portfolio-hub-collector.service`), 82 (master observer, reserved — **not 90**, which is ls-algo's screener), **91** (order bridge, sole hub transmitter — not yet deployed) |
 | Operator TWS | manual only |
 
 **Rule 0 — the one that governs the rest. During market hours on a market day
@@ -39,7 +39,11 @@ Rules that keep SPX safe (test-enforced where noted):
    before first use.
 3. **Connection slots:** the Gateway accepts ~32 API connections total; the
    hub holds at most 2 (81 + 91) and never opens worker pools. ls-algo caps
-   itself at 26 for the same reason.
+   itself at 26 for the same reason. **Counting concurrent sockets is not
+   sufficient** — the hub collector passed this rule while connecting and
+   disconnecting client 81 every 30 seconds, ~780 connects per session, and was
+   masked on 2026-08-25 for it. A long-lived session is required, not merely a
+   small number of simultaneous ones.
 4. **Market-data lines are one account-wide pool** shared with SPX's option
    NBBO stream. The bridge uses `snapshot=True` only, cancels in `finally`,
    and is leak-tested (50 quotes → 0 open lines, ≤1 concurrent). Keep it
