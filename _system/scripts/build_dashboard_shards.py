@@ -23,6 +23,7 @@ CORE_VERSION = 1
 # Row fields only needed once a ticker is opened in the detail pane.
 DETAIL_ONLY_FIELDS = (
     "download_script_path",
+    "two_phase_watch",
     "insights",
     "insight_events",
     "letter_discussants",
