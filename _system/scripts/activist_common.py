@@ -50,8 +50,21 @@ ACTIVIST_FORMS = frozenset(
         "PX14A6G",
         # The company's answer. Without it a campaign reads as a one-sided claim.
         "DEFA14A",
+        # Hostile tender offer and the board's response. Rare per issuer.
+        "SC TO-T",
+        "SC TO-C",
+        "SC 14D9",
+        # Rule 14a-11 proxy access nominations. Rarer still.
+        "SC 14N",
+        "SC 14N-S",
     }
 )
+
+# Forms too voluminous to pull unconditionally. An 8-K names a campaign outcome
+# only under Item 5.02, and every issuer files many for unrelated reasons, so
+# these are fetched only for a ticker that already has a live campaign.
+CONDITIONAL_FORMS = frozenset({"8-K"})
+CONDITIONAL_FORM_CAP = 25
 
 # Publisher / wire rows share the same body-verification + false-positive gates.
 PUBLISHER_SOURCES = frozenset({"publisher_site", "local", "press_wire"})
@@ -130,25 +143,56 @@ def _boundary_pattern(term: str) -> re.Pattern[str]:
 
 
 @lru_cache(maxsize=1)
-def _firm_matchers_cached(registry_stamp: tuple) -> tuple[tuple[str, re.Pattern[str]], ...]:
-    matchers: list[tuple[str, str]] = []
+def _firm_terms_cached(registry_stamp: tuple) -> tuple[tuple[str, str], ...]:
+    """(firm_id, lowercase term) pairs, most specific term first."""
+    terms_by_firm: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for firm in load_firm_registry().get("firms") or []:
         fid = firm.get("id") or ""
         terms = [firm.get("name", "")]
         terms.extend(firm.get("aliases") or [])
         terms.extend(firm.get("sec_filer_patterns") or [])
-        seen: set[str] = set()
         for term in terms:
             key = str(term or "").strip().lower()
             if not key or key in seen:
                 continue
             seen.add(key)
-            matchers.append((fid, key))
+            terms_by_firm.append((fid, key))
     # Longest term first: a filing naming both "Engine Capital Management" and a
     # shorter generic alias should resolve to the most specific firm, not to
     # whichever happens to sit earlier in the registry file.
-    matchers.sort(key=lambda pair: (-len(pair[1]), pair[0]))
-    return tuple((fid, _boundary_pattern(key)) for fid, key in matchers)
+    terms_by_firm.sort(key=lambda pair: (-len(pair[1]), pair[0]))
+    return tuple(terms_by_firm)
+
+
+@lru_cache(maxsize=1)
+def _firm_matchers_cached(registry_stamp: tuple) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    return tuple(
+        (fid, _boundary_pattern(term)) for fid, term in _firm_terms_cached(registry_stamp)
+    )
+
+
+@lru_cache(maxsize=1)
+def _combined_firm_matcher(registry_stamp: tuple) -> tuple[re.Pattern[str], dict[str, str]]:
+    """One alternation over every firm term, plus a term -> firm_id lookup.
+
+    Scanning 325 separate patterns across a 250KB filing took ~2 seconds, and
+    the pipeline calls this up to three times per filing — a full reindex of
+    the 15.5k local filings would have taken about a day. The terms are literal
+    strings, so a single alternation finds them all in one pass and the matched
+    text maps straight back to its firm.
+    """
+    terms = _firm_terms_cached(registry_stamp)
+    lookup = {term: fid for fid, term in terms}
+    if not terms:
+        # Never matches; keeps callers branch-free.
+        return re.compile(r"(?!x)x"), lookup
+    alternation = "|".join(
+        f"{r'\b' if term[:1].isalnum() else ''}{re.escape(term)}"
+        f"{r'\b' if term[-1:].isalnum() else ''}"
+        for _fid, term in terms
+    )
+    return re.compile(alternation, re.I), lookup
 
 
 def _registry_stamp() -> tuple:
@@ -164,12 +208,25 @@ def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
 
 
 def match_firm_id(text: str) -> str | None:
+    """Resolve text to a registry firm, preferring the most specific term found.
+
+    One pass over the whole text collecting every term that appears, then the
+    longest wins — so "Engine Capital Management" beats a shorter alias no
+    matter where each sits in the document.
+    """
     if not text:
         return None
-    for fid, pattern in _firm_matchers_cached(_registry_stamp()):
-        if pattern.search(text):
-            return fid
-    return None
+    pattern, lookup = _combined_firm_matcher(_registry_stamp())
+    best_term = ""
+    best_fid = None
+    for match in pattern.finditer(text):
+        term = match.group(0).lower()
+        if len(term) <= len(best_term):
+            continue
+        fid = lookup.get(term)
+        if fid:
+            best_term, best_fid = term, fid
+    return best_fid
 
 
 def portfolio_tickers() -> list[str]:
@@ -303,7 +360,18 @@ def _distinctive_aliases(company: str, ticker: str) -> set[str]:
     return aliases
 
 
+@lru_cache(maxsize=4096)
+def _ticker_meta_cached(ticker: str, registry_stamp: tuple) -> dict:
+    return _build_ticker_meta(ticker)
+
+
 def ticker_meta(ticker: str) -> dict:
+    """Cached: this re-read and re-parsed two JSON files on every call, and
+    the reindex calls it once per filing across 15k filings."""
+    return _ticker_meta_cached(ticker.upper(), _registry_stamp())
+
+
+def _build_ticker_meta(ticker: str) -> dict:
     ticker = ticker.upper()
     reg = load_json(PORTFOLIO_REGISTRY, {})
     holding = (reg.get("holdings") or {}).get(ticker) or {}

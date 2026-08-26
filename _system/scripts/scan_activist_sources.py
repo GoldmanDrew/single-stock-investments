@@ -140,6 +140,11 @@ def main() -> int:
     parser.add_argument("--skip-site", action="store_true", help="Skip publisher site scrape")
     parser.add_argument("--include-passive", action="store_true", help="Index passive SC 13G filings")
     parser.add_argument("--reindex-local", action="store_true", help="Re-parse local SEC files without re-download")
+    parser.add_argument(
+        "--reindex-fetch-xml",
+        action="store_true",
+        help="During --reindex-local, also pull primary_doc.xml for post-2024-12-18 Schedules",
+    )
     parser.add_argument("--reconcile", action="store_true", help="Run Milly activist mechanical reconcile after scan")
     parser.add_argument(
         "--backfill-days",
@@ -176,6 +181,7 @@ def main() -> int:
             dry_run=args.dry_run,
             include_passive=args.include_passive,
             reindex_local=args.reindex_local,
+            fetch_xml=args.reindex_fetch_xml,
         )
         all_hits.extend(sec.get("hits") or [])
 

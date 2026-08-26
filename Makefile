@@ -453,12 +453,16 @@ filing-sentinel-packets:
 	$(PYTHON) $(SCRIPTS)/filing_sentinel_workflow.py create-packets --candidates _system/reviews/pending/filing_sentinel_candidates_$(DATE).jsonl --batch-id $(DATE) --output-dir _system/reviews/pending/filing_sentinel_$(DATE)_packets
 	@echo OK: filing-sentinel-packets $(DATE)
 
+activist-freshness-check:
+	$(PYTHON) $(SCRIPTS)/check_activist_freshness.py
+	@echo OK: activist-freshness-check
+
 activist-registry-audit:
 	$(PYTHON) $(SCRIPTS)/activist_registry_audit.py
 	@echo OK: activist-registry-audit
 
 activist-triage-check:
-	$(PYTHON) -m unittest _system/scripts/test_activist_triage.py _system/scripts/test_activist_feed.py _system/scripts/test_activist_coverage.py
+	$(PYTHON) -m unittest _system/scripts/test_activist_triage.py _system/scripts/test_activist_feed.py _system/scripts/test_activist_coverage.py _system/scripts/test_activist_taxonomy.py
 	@echo OK: activist-triage-check
 
 event-triage:

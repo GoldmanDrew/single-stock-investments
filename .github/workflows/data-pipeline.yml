@@ -261,8 +261,15 @@ jobs:
           python _system/scripts/scan_activist_sources.py --reconcile --fetch-sec --discover-filers
           python _system/scripts/short_scan_batch.py
           python _system/scripts/activist_registry_audit.py
+      - name: Japan large-shareholding reports (EDINET)
+        # Exits 0 and prints "not configured" until EDINET_API_KEY exists, so
+        # the lane can ship before the credential does. See
+        # _system/reference/activist-reports/COVERAGE_DECISIONS.md
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: python _system/scripts/edinet_activist_scan.py
       - name: Activist coverage guards
-        run: python -m unittest _system/scripts/test_activist_coverage.py
+        run: python -m unittest _system/scripts/test_activist_coverage.py _system/scripts/test_activist_taxonomy.py
       - name: Rebuild activist dashboard slice
         uses: ./.github/actions/rebuild-data
         env:
@@ -275,6 +282,13 @@ jobs:
         uses: ./.github/actions/commit-main
         with:
           message: "chore: activist scan sync $(date -u +%Y-%m-%d)"
+      # Runs after the commit and always, so it judges what actually shipped.
+      # A job that is cancelled while pending never reaches this step -- which
+      # is the point: the NEXT run then sees a stale feed and goes red, so the
+      # silence that hid three weeks of evictions cannot repeat.
+      - name: Assert the activist feed actually moved
+        if: always()
+        run: python _system/scripts/check_activist_freshness.py
 
   downloads:
     needs: decide
