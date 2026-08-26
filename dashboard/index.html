@@ -640,6 +640,21 @@
     text-decoration: none;
   }
   .dev-list a:hover, .subhead a:hover { text-decoration: underline; }
+  .two-phase-chip {
+    display: inline-flex; align-items: center; margin-top: 8px; padding: 3px 10px;
+    border: 1px solid rgba(239,68,68,0.4); border-radius: 999px;
+    font-size: 11px; font-weight: 700; color: var(--negative); background: rgba(239,68,68,0.1);
+    cursor: pointer; font-family: inherit;
+  }
+  .two-phase-chip:hover { border-color: var(--negative); }
+  .two-phase-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .two-phase-table th {
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--border);
+  }
+  .two-phase-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .two-phase-table tr.tp-falsifier td { color: var(--negative); }
+  .two-phase-quote { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .file-link { font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; }
 
   .empty { padding: 40px; text-align: center; color: var(--text-muted); }
@@ -2454,6 +2469,70 @@ function renderHumanReviewBanner(t) {
     ${hr.live_price_confirmed ? `<div class="hr-line">Price confirmed: ${escapeHtml(hr.live_price_confirmed)}</div>` : ''}
     ${notes.length ? `<details open><summary>${notes.length} note${notes.length === 1 ? '' : 's'}</summary><ul>${notes.map((n) => `<li>${escapeHtml(typeof n === 'string' ? n : (n.text || n.note || JSON.stringify(n)))}</li>`).join('')}</ul></details>` : ''}
   </div>`;
+}
+
+function twoPhaseRankBadge(rank) {
+  const n = Number(rank);
+  if (n <= 3) return 'badge-bad';
+  if (n === 4) return 'badge-warn';
+  return 'badge-purple';
+}
+
+function renderTwoPhaseWatch(t) {
+  const w = t.two_phase_watch;
+  if (!w || typeof w !== 'object') return '';
+  const rank = w.highest_open_rank;
+  const hits = Array.isArray(w.hits) ? w.hits : [];
+  const open = rank != null && Number(rank) <= 3;
+  const status = w.status || 'no_material_hit';
+  const spec = w.spec_path
+    ? linkHtml(`https://github.com/magis-capital-partners/single-stock-investments/blob/main/${w.spec_path}`, 'Watch spec')
+    : '';
+  const note = w.note_path
+    ? linkHtml(`https://github.com/magis-capital-partners/single-stock-investments/blob/main/${w.note_path}`, 'Latest note')
+    : '';
+  let body;
+  if (!hits.length) {
+    body = `<p class="summary" style="color:var(--text-muted)">No material two-phase hit this cycle. That is a valid outcome. ${spec} ${note}</p>`;
+  } else {
+    const rows = hits.map((h) => {
+      const vendors = (h.vendor_named || []).map((v) => escapeHtml(v)).join(', ') || '—';
+      const href = h.github_url || h.source_url;
+      const title = href ? linkHtml(href, h.title || 'hit') : escapeHtml(h.title || 'hit');
+      const cls = h.falsifier ? ' class="tp-falsifier"' : '';
+      const quote = h.quote ? `<div class="two-phase-quote">${escapeHtml(h.quote)}</div>` : '';
+      return `<tr${cls}>
+        <td><span class="badge ${twoPhaseRankBadge(h.rank)}">${escapeHtml(String(h.rank ?? '—'))}</span></td>
+        <td class="mono">${escapeHtml(h.date || '')}</td>
+        <td>${escapeHtml(h.source_ticker || '')} · ${escapeHtml((h.source_kind || '').replace(/_/g, ' '))}</td>
+        <td>${title}${quote}</td>
+        <td>${vendors}</td>
+      </tr>`;
+    }).join('');
+    body = `<p class="tier-sub">${escapeHtml(status)} · highest rank ${rank != null ? escapeHtml(String(rank)) : '—'} · ${spec} ${note}</p>
+      <table class="two-phase-table">
+        <thead><tr><th>Rank</th><th>Date</th><th>Source</th><th>Hit</th><th>Vendors</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="tier-sub" style="margin-top:8px">Rank 1–3 go to review. Rank 5–6 never enter base return. Falsifiers (Vertiv/Boyd GA without Accelsius, DarkNX-class reversals) stay in red.</p>`;
+  }
+  return `<details class="detail-section" id="two-phase-watch"${open ? ' open' : ''}>
+    <summary>Two-phase cooling watch${w.as_of ? ` · ${escapeHtml(w.as_of)}` : ''}${rank != null ? ` · rank ${escapeHtml(String(rank))}` : ''}</summary>
+    <div style="margin-top:10px">${body}</div>
+  </details>`;
+}
+
+function renderTwoPhaseHeaderChip(t) {
+  const w = t.two_phase_watch;
+  if (!w || !w.show_header_chip) return '';
+  const rank = w.highest_open_rank;
+  const asOf = w.as_of || '';
+  let age = '';
+  if (asOf) {
+    const days = Math.round((Date.now() - Date.parse(asOf + 'T00:00:00')) / 86400000);
+    if (Number.isFinite(days) && days >= 0) age = days === 0 ? 'today' : `${days}d ago`;
+  }
+  return `<button type="button" class="two-phase-chip" data-open-two-phase>Two-phase · rank ${escapeHtml(String(rank))} · ${escapeHtml(age || asOf)}</button>`;
 }
 
 function renderReadNextCard(t) {
@@ -5541,6 +5620,7 @@ function selectTicker(ticker, opts = {}) {
       <h2 style="margin:0">${escapeHtml(t.display_ticker || t.ticker)}${t.quote_ticker && t.quote_ticker !== (t.display_ticker || t.ticker) ? `<span class="irr-sub"> (${escapeHtml(t.quote_ticker)})</span>` : ''}${diveLink}</h2>
       <div class="subhead">${escapeHtml(t.company)} · ${escapeHtml(t.exchange || t.market || '')} · ${linkHtml(t.links?.folder, t.folder || t.ticker)}</div>
       ${thesisLine}
+      ${renderTwoPhaseHeaderChip(t)}
     </div>
 
     ${window.ValuationViz ? ValuationViz.renderDecisionStrip(t, valuationHelpers()) : ''}
@@ -5586,6 +5666,7 @@ function selectTicker(ticker, opts = {}) {
     ${((t.essential_insights || {}).bullets || []).length ? `<details class="detail-section"><summary>Essential insights</summary><div style="margin-top:10px">${essentialInsights}</div></details>` : ''}
     ${trendSection}
     ${dossierSection}
+    ${renderTwoPhaseWatch(t)}
     ${(t.research_memory && t.research_memory.claim_count) ? `<details class="detail-section"><summary>Research memory</summary><div style="margin-top:10px">${researchMemory}</div></details>` : ''}
     ${externalContext}
     ${consensusDetail}
@@ -5636,6 +5717,15 @@ function selectTicker(ticker, opts = {}) {
   wireDetailEvents(ticker);
   const closeBtn = document.querySelector('#detail [data-detail-close]');
   if (closeBtn) closeBtn.addEventListener('click', () => clearTickerSelection());
+  const tpChip = document.querySelector('#detail [data-open-two-phase]');
+  if (tpChip) {
+    tpChip.addEventListener('click', () => {
+      const el = document.getElementById('two-phase-watch');
+      if (!el) return;
+      el.open = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
   if (opts.syncHash !== false) syncRouteHash();
 }
 

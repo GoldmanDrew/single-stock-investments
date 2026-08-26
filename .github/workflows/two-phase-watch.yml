@@ -1,0 +1,71 @@
+name: Two-phase cooling watch
+
+# Weekly INV Accelsius monitor. Event PDF indexes on dispatch or in Mar/Aug/Oct.
+# Does not scrape LinkedIn. Does not edit valuation.json.
+
+on:
+  schedule:
+    - cron: "0 17 * * 0"   # Sunday 17:00 UTC, after World Model
+  workflow_dispatch:
+    inputs:
+      fetch_events:
+        description: Force event PDF index fetch (ARPA-E, Hot Chips, GTC, OCP, AMD Instinct)
+        type: boolean
+        default: false
+      fetch_ir:
+        description: Fetch Accelsius / Innventure IR allowlist
+        type: boolean
+        default: true
+      fetch_news:
+        description: Fetch Google News theme queries (including LinkedIn-as-publisher)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-commit-main-two-phase-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout two-phase-watch workspace
+        run: bash _system/scripts/ci_checkout_workspace.sh two-phase-watch
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile two-phase watch
+        run: |
+          set -euo pipefail
+          args=(--auto-events)
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.fetch_ir }}" = "true" ]; then
+            args+=(--ir)
+          fi
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.fetch_news }}" = "true" ]; then
+            args+=(--news)
+          fi
+          if [ "${{ inputs.fetch_events }}" = "true" ]; then
+            args+=(--events)
+          fi
+          python _system/scripts/two_phase_watch.py "${args[@]}"
+      - name: Commit watch artifacts
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore: INV two-phase cooling watch $(date -u +%Y-%m-%d)"
+          git_add: >-
+            INV/research/evidence/
+            INV/investor-documents/competitive/
+            _system/reviews/pending/INV_two_phase_watch_*.md
+            dashboard/data/tickers/INV.json

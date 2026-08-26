@@ -188,6 +188,15 @@ def test_sanitize_existing_news_reassigns_or_quarantines_legacy_rows():
         assert result["policy_version"] == POLICY_VERSION
 
 
+def test_inv_search_names_include_accelsius():
+    configs = load_holding_configs()
+    if "INV" not in configs:
+        return
+    names = " ".join(configs["INV"].search_names).lower()
+    assert "accelsius" in names
+    assert "neucool" in names
+
+
 if __name__ == "__main__":
     test_classify_guidance()
     test_rejects_analyst_noise()
@@ -203,4 +212,5 @@ if __name__ == "__main__":
     test_rejects_opinion_spinoff_headline()
     test_persist_writes_dashboard_portfolio_news()
     test_sanitize_existing_news_reassigns_or_quarantines_legacy_rows()
+    test_inv_search_names_include_accelsius()
     print("ok")
