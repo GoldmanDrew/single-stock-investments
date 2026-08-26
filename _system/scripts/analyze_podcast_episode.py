@@ -88,7 +88,12 @@ Extract only what this passage actually says. Reply with JSON:
 }}
 
 Rules:
-- "quote" MUST be copied character-for-character from the passage. Do not paraphrase, tidy, or join separate sentences.
+- "quote" MUST be COPIED AND PASTED from the passage above, character for character.
+  Do not paraphrase it. Do not fix grammar, fillers or punctuation. Do not join
+  two sentences that are not adjacent. Do not shorten with "...". If you cannot
+  find an exact span that supports the claim, omit the claim entirely.
+  A quote that does not appear verbatim in the passage is discarded automatically,
+  so an approximate quote loses the claim with it.
 - If the passage contains no view about any company, return {{"claims": [], "numbers": []}}.
 - Do not report the host reading advertisements or show boilerplate.
 
@@ -161,6 +166,53 @@ def build_aliases(limit_in_book: bool = False) -> dict[str, str]:
             if len(alias) >= 5:
                 out.setdefault(alias, ticker)
     return out
+
+
+# Models emit these as strings where the schema asked for JSON null.
+_NULLISH = {"", "null", "none", "n/a", "na", "nil", "unknown", "-"}
+
+
+def _clean_ticker(value) -> str | None:
+    text = str(value or "").strip()
+    return None if text.lower() in _NULLISH else text
+
+
+def validate_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
+    """Drop tickers that do not belong to the company the claim is about.
+
+    The model recalls symbols badly and confidently. On the Epic Systems episode
+    it attached CSCO -- Cisco -- to a claim about Constellation Software, which
+    is CSU.TO. A wrong ticker is worse than a missing one: it files a claim about
+    one company under another in the research, and no amount of quote
+    verification catches it, because the quote is real. The company name is what
+    the model read off the page and gets right; the symbol is what it guesses.
+    So the master decides, and a symbol that contradicts the name is discarded.
+
+    Returns the number of tickers rejected.
+    """
+    rejected = 0
+    for claim in claims or []:
+        ticker = _clean_ticker(claim.get("ticker"))
+        claim["ticker"] = ticker
+        company = str(claim.get("company") or "").strip().lower()
+        if not ticker or not company:
+            continue
+        expected = aliases.get(company)
+        if expected is None:
+            for alias, sym in aliases.items():
+                if len(alias) >= 5 and (alias.startswith(company) or company.startswith(alias)):
+                    expected = sym
+                    break
+        if expected and expected != ticker:
+            claim["ticker"] = expected
+            claim["ticker_corrected_from"] = ticker
+            rejected += 1
+        elif expected is None and ticker not in aliases.values():
+            # The model named a symbol for a company the master does not carry.
+            claim["ticker"] = None
+            claim["ticker_rejected"] = ticker
+            rejected += 1
+    return rejected
 
 
 def resolve_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
@@ -290,6 +342,7 @@ def analyze(transcript: str, *, title: str, show: str, model: str | None = None,
 
     claims, stats = verify_quotes(raw_claims, transcript)
     numbers, num_stats = verify_quotes(raw_numbers, transcript)
+    stats["tickers_rejected"] = validate_tickers(claims, aliases)
     stats["tickers_resolved_post_hoc"] = resolve_tickers(claims, aliases)
     before = len(claims)
     claims = dedupe_claims(claims)
@@ -307,10 +360,17 @@ def analyze(transcript: str, *, title: str, show: str, model: str | None = None,
         )
         summary_doc = extract_json(reply) or summary_doc
 
-    tickers = [t for t in (summary_doc.get("tickers") or []) if t]
-    for claim in claims:
-        t = claim.get("ticker")
-        if t and t not in tickers:
+    # Only symbols that survived validation against a claim. The reduce step
+    # emits its own list and it inherits the same guessing problem -- "null" as
+    # a string, and symbols for companies never discussed.
+    verified_syms = [t for t in (c.get("ticker") for c in claims) if t]
+    tickers: list[str] = []
+    for t in list(dict.fromkeys(verified_syms)):
+        if t not in tickers:
+            tickers.append(t)
+    for t in (summary_doc.get("tickers") or []):
+        t = _clean_ticker(t)
+        if t and t in verified_syms and t not in tickers:
             tickers.append(t)
 
     return {
