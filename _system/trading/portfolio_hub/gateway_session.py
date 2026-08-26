@@ -62,7 +62,7 @@ class GatewaySessionFactory:
         request 4f2a" is.
         """
         try:
-            self.budget.reserve()
+            self.budget.reserve(purpose)
         except GatewayBudgetExceeded as exc:
             self._on_event({"event": "gateway_refused", "purpose": purpose, "reason": str(exc)})
             raise GatewayUnavailable(str(exc)) from exc

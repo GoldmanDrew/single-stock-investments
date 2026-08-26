@@ -178,3 +178,96 @@ def test_state_reports_enough_to_diagnose_without_reading_the_code():
     assert state["last_hour"] == 1
     assert state["max_per_hour"] == 5
     assert state["tripped"] is False
+
+
+# ------------------------------------------------- the brakes survive a restart
+
+def durable_budget(tmp_path, clock, **limits):
+    """A budget backed by a real ledger, so persistence is tested, not mocked."""
+    from _system.trading.portfolio_hub.ledger import PortfolioLedger
+
+    ledger = PortfolioLedger(tmp_path / "portfolio.db")
+    ledger.migrate()
+    return ConnectionBudget(limits=BudgetLimits(**limits), clock=clock,
+                            store=ledger.budget_store()), ledger
+
+
+def test_the_daily_cap_survives_a_process_restart(tmp_path):
+    """The gap that made every brake resettable by the thing it was braking.
+
+    A restart used to clear the hourly cap, the daily cap and the breaker at
+    once -- and a restart is what a reconnect storm is made of. systemd would
+    have handed the storm a clean slate every 60 seconds.
+    """
+    clock = FakeClock()
+    first, ledger = durable_budget(tmp_path, clock, max_per_hour=100, max_per_day=3)
+    for _ in range(3):
+        first.reserve()
+        clock.advance(600)
+    with pytest.raises(GatewayBudgetExceeded):
+        first.reserve()
+
+    # The process dies and systemd brings it back. Same ledger, new object.
+    revived = ConnectionBudget(limits=BudgetLimits(max_per_hour=100, max_per_day=3),
+                               clock=clock, store=ledger.budget_store())
+    assert revived.state()["last_day"] == 3, "the restart must not forget the attempts"
+    with pytest.raises(GatewayBudgetExceeded, match="in the last day"):
+        revived.reserve()
+
+
+def test_an_open_breaker_survives_a_process_restart(tmp_path):
+    """A wedged Gateway that trips the breaker and then kills us must stay refused."""
+    clock = FakeClock()
+    first, ledger = durable_budget(tmp_path, clock, trip_after_failures=2, trip_seconds=900,
+                                   max_per_hour=100)
+    for _ in range(2):
+        first.reserve(); first.record_failure()
+    assert first.state()["tripped"] is True
+
+    revived = ConnectionBudget(limits=BudgetLimits(trip_after_failures=2, trip_seconds=900,
+                                                   max_per_hour=100),
+                               clock=clock, store=ledger.budget_store())
+    assert revived.state()["tripped"] is True, "a restart must not re-arm the breaker"
+    reason = revived.refusal_reason()
+    assert reason is not None and "circuit breaker is open" in reason
+
+
+def test_a_restart_loop_cannot_outrun_the_budget(tmp_path):
+    """The collector's shape, with systemd fighting the brake instead of the code.
+
+    Each iteration is a fresh process: crash, restart, reconnect, fail. Volatile
+    counters made this run forever; durable ones stop it in a few attempts and
+    keep it stopped.
+    """
+    clock = FakeClock()
+    _, ledger = durable_budget(tmp_path, clock, max_per_hour=12, trip_after_failures=3,
+                               trip_seconds=900)
+    attempts = 0
+    for _ in range(200):
+        process = ConnectionBudget(
+            limits=BudgetLimits(max_per_hour=12, trip_after_failures=3, trip_seconds=900),
+            clock=clock, store=ledger.budget_store())
+        if process.refusal_reason():
+            break
+        process.reserve(); process.record_failure()
+        attempts += 1
+        clock.advance(60)  # RestartSec=60
+    assert attempts == 3, f"a restart loop must stop in 3 attempts, took {attempts}"
+
+
+def test_without_a_store_the_budget_still_works_and_is_simply_volatile(tmp_path):
+    """Drills, `--once` runs and the tests must not need a database to have brakes."""
+    b, _ = budget(max_per_hour=1)
+    b.reserve()
+    assert b.refusal_reason() is not None
+
+
+def test_the_attempt_log_records_what_caused_each_connection(tmp_path):
+    """'Something connected' is not diagnosable; the receipt needs the purpose."""
+    clock = FakeClock()
+    b, ledger = durable_budget(tmp_path, clock, max_per_hour=10)
+    b.reserve("preview for request 4f2a")
+    row = ledger.connection.execute(
+        "SELECT purpose, attempted_at_iso FROM gateway_connection_attempts").fetchone()
+    assert row["purpose"] == "preview for request 4f2a"
+    assert row["attempted_at_iso"].endswith("Z")
