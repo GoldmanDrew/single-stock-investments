@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import subprocess
 import time
 import urllib.error
 import urllib.request
@@ -53,6 +55,34 @@ class LocalLLMUnavailable(RuntimeError):
     """The server is not reachable, or has no model loaded."""
 
 
+def discover() -> tuple[str, str] | None:
+    """Find LM Studio's llama-server by inspecting its command line.
+
+    LM Studio assigns its internal server a fresh port and API key on every
+    model load, so a base URL captured once goes stale the first time the model
+    is reloaded -- which over a multi-day batch is a certainty, not a risk. The
+    process itself is the reliable source of truth. Returns (base, key).
+
+    The user-facing server on :1234 is stable and needs no key, but it has to be
+    switched on in LM Studio; this makes the batch work either way.
+    """
+    if os.name != "nt":
+        return None
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "(Get-CimInstance Win32_Process -Filter \"Name='llama-server.exe'\").CommandLine"],
+            capture_output=True, text=True, timeout=60,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    port = re.search(r"--port\s+(\d+)", out or "")
+    if not port:
+        return None
+    key = re.search(r"--api-key\s+(\S+)", out or "")
+    return f"http://127.0.0.1:{port.group(1)}/v1", (key.group(1) if key else "")
+
+
 def _headers() -> dict:
     head = {"Content-Type": "application/json"}
     if DEFAULT_KEY:
@@ -67,7 +97,37 @@ def _post(url: str, payload: dict, timeout: int) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+_RESOLVED: dict[str, str] = {}
+
+
+def _resolve(base: str) -> str:
+    """Return a reachable base, rediscovering the rotating port if needed.
+
+    Cached: discovery spawns a PowerShell process, and without this the batch
+    paid that on every single call -- six spawns per episode, each logging a
+    "rediscovered" line, for a port that had not moved.
+    """
+    global DEFAULT_KEY
+    if base in _RESOLVED:
+        return _RESOLVED[base]
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(f"{base}/models", headers=_headers()), timeout=10
+        ).read(1)
+        _RESOLVED[base] = base
+        return base
+    except Exception:
+        found = discover()
+        if not found:
+            raise LocalLLMUnavailable(f"no local LLM server at {base}, and none discoverable")
+        DEFAULT_KEY = found[1]
+        print(f"[llm_local] rediscovered server at {found[0]}", flush=True)
+        _RESOLVED[base] = found[0]
+        return found[0]
+
+
 def models(base: str = DEFAULT_BASE, timeout: int = 15) -> list[str]:
+    base = _resolve(base)
     try:
         req = urllib.request.Request(f"{base}/models", headers=_headers())
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -93,6 +153,7 @@ def complete(
     `temperature` defaults low: this job extracts claims that must be traceable
     to the transcript, so creativity is a defect rather than a feature.
     """
+    base = _resolve(base)
     if model is None:
         available = models(base=base)
         if not available:
