@@ -116,8 +116,27 @@ Reply with JSON:
 Base the thesis only on the claims above. If they are thin, say so plainly rather than padding."""
 
 
+# Typographic characters a transcript carries and a model does not reproduce.
+# Published-HTML transcripts are full of them; Whisper output is nearly pure
+# ASCII. Measured across two episodes: Google Part III carries 1,251 curly
+# apostrophes (64 non-ASCII per 10k characters) and verified at 13.5%, while
+# Visa carries 17 (6.3 per 10k) and verified at 89.9%. The model writes "it's"
+# where the transcript has "it’s", so a literal substring check rejects a
+# perfectly good quote -- 32 of 37 claims discarded on that episode over
+# apostrophe encoding alone. Folding these does not weaken the check: the words
+# must still match exactly, so a fabricated quote still fails.
+_PUNCT_FOLD = str.maketrans({
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",
+    "“": '"', "”": '"', "„": '"', "‟": '"',
+    "–": "-", "—": "-", "―": "-", "−": "-",
+    " ": " ", " ": " ", " ": " ", " ": " ",
+    "…": "...", "´": "'", "`": "'", "′": "'",
+})
+
+
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", (text or "")).strip().lower()
+    folded = (text or "").translate(_PUNCT_FOLD)
+    return re.sub(r"\s+", " ", folded).strip().lower()
 
 
 def chunk_transcript(text: str) -> list[str]:
@@ -352,6 +371,13 @@ def analyze(transcript: str, *, title: str, show: str, model: str | None = None,
     claims = dedupe_claims(claims)
     stats["duplicate_claims_dropped"] = before - len(claims)
     numbers = dedupe_numbers(numbers)
+
+    # Figures without a thesis are clutter, not information. The Formula 1
+    # episode produced 57 verified numbers, zero claims and an empty thesis --
+    # a page of statistics with nothing saying what they are about. If no claim
+    # survives, the episode carried no investable view and the numbers go too.
+    if not claims:
+        numbers = []
 
     summary_doc: dict = {"thesis": "", "tickers": [], "themes": []}
     if claims:
