@@ -1,7 +1,7 @@
 # Activist triage — human review queue
 
 **Date:** 2026-08-26
-**Rows:** 304 (auto-triage could not resolve)
+**Rows:** 314 (auto-triage could not resolve)
 
 | Ticker | Side | Firm | Class | Stake | Age | Verdict rules |
 |--------|------|------|-------|-------|-----|---------------|
@@ -32,23 +32,31 @@
 | WYNN | long | unknown_activist | activist_13d | — | 3109 | rule_conflict, low_confidence, active_campaign, unknown_old |
 | WYNN | long | unknown_activist | activist_13d | — | 3121 | rule_conflict, low_confidence, active_campaign, unknown_old |
 | WULF | long | unknown_activist | activist_13d | 20.2% | 1037 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| WULF | long | unknown_activist | activist_13d | 22.5% | 1092 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| WULF | long | unknown_activist | activist_13d | 24.4% | 1121 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| WULF | long | unknown_activist | activist_13d | 26.3% | 1155 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
 | WULF | long | unknown_activist | activist_13d | 27.7% | 1300 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
 | WULF | long | unknown_activist | activist_13d | 36.0% | 1349 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
 | WULF | long | unknown_activist | activist_13d | 59.4% | 1412 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
 | WULF | long | unknown_activist | activist_13d | 58.5% | 1422 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| WULF | long | sec_filer:s_ault_global_holdings_inc | activist_13d | 0.1% | 1884 | rule_conflict, active_campaign, sec_filer_old_low_stake |
+| WULF | long | unknown_activist | activist_13d | 63.3% | 1454 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| WULF | long | sec_filer:ault_global_holdings_inc | activist_13d | 0.1% | 1884 | rule_conflict, active_campaign, sec_filer_old_low_stake |
 | TPHS | long | unknown_activist | activist_13d | — | 2631 | low_confidence, unknown_old |
-| SOUN | long | unknown_activist | activist_13d | 11.0% | 1573 | unknown_material, low_confidence, unknown_old |
 | SOUN | long | unknown_activist | activist_13d | 10.0% | 1573 | unknown_material, low_confidence, unknown_old |
+| SOUN | long | unknown_activist | activist_13d | 11.0% | 1573 | unknown_material, low_confidence, unknown_old |
 | SOFI | long | sec_filer:softbank_group_corp | activist_13d | 4.9% | 1470 | rule_conflict, active_campaign, sec_filer_old_low_stake |
 | SBUX | long | unknown_activist | activist_proxy | — | 944 | unknown_material, low_confidence, unknown_old |
 | SBUX | long | unknown_activist | activist_proxy | — | 958 | unknown_material, low_confidence, unknown_old |
-| QS | long | unknown_activist | activist_13d | 6.8% | 924 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
-| QS | long | unknown_activist | activist_13d | 2.6% | 924 | rule_conflict, low_confidence, active_campaign, unknown_old |
+| RKLB | long | unknown_activist | activist_13d | 10.2% | 629 | unknown_material, low_confidence |
+| RKLB | long | unknown_activist | activist_13d | 10.5% | 1073 | unknown_material, low_confidence, unknown_old |
+| RKLB | long | unknown_activist | activist_13d | 12.2% | 1814 | unknown_material, low_confidence, unknown_old |
+| RIOT | long | unknown_activist | activist_13d | 1.5% | 3116 | low_confidence, unknown_old |
 | QS | long | unknown_activist | activist_13d | 2.9% | 924 | rule_conflict, low_confidence, active_campaign, unknown_old |
-| QS | long | unknown_activist | activist_13d | 7.4% | 2088 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
-| QS | long | unknown_activist | activist_13d | 6.6% | 2088 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| QS | long | unknown_activist | activist_13d | 2.6% | 924 | rule_conflict, low_confidence, active_campaign, unknown_old |
+| QS | long | unknown_activist | activist_13d | 6.8% | 924 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
 | QS | long | unknown_activist | activist_13d | 14.9% | 2088 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
+| QS | long | unknown_activist | activist_13d | 6.6% | 2088 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
+| QS | long | unknown_activist | activist_13d | 7.4% | 2088 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
 | PDD | long | unknown_activist | activist_13d | 7.7% | 2242 | unknown_material, low_confidence, unknown_old |
 | NFLX | long | unknown_activist | activist_proxy | — | 184 | unknown_material, low_confidence, active_campaign |
 | NFLX | long | unknown_activist | activist_proxy | — | 184 | unknown_material, low_confidence, active_campaign |
@@ -80,7 +88,7 @@
 | LLY | long | unknown_activist | activist_13d | 25.5% | 1399 | unknown_material, low_confidence, unknown_old |
 | LEU | long | sec_filer:kulayba_llc | activist_13d | 4.0% | 673 | rule_conflict, active_campaign, sec_filer_old_low_stake |
 | J | long | unknown_activist | activist_proxy | — | 2683 | unknown_material, low_confidence, unknown_old |
-| IQV | long | sec_filer:cpp_investment_board_private_holdings_inc | activist_13d | 3.0% | 2819 | rule_conflict, active_campaign, sec_filer_old_low_stake |
+| IQV | long | sec_filer:tpg_group_holdings_sbs_advisors_inc | activist_13d | 4.3% | 2724 | rule_conflict, active_campaign, sec_filer_old_low_stake |
 | IBKR | long | unknown_activist | activist_13d | 3.1% | 685 | low_confidence |
 | IBKR | long | unknown_activist | activist_13d | 7.6% | 2655 | unknown_material, low_confidence, unknown_old |
 | IBKR | long | unknown_activist | activist_13d | 82.2% | 2948 | unknown_material, low_confidence, unknown_old |
@@ -197,13 +205,5 @@
 | GME | long | unknown_activist | activist_proxy | — | 2281 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
 | GME | long | unknown_activist | activist_proxy | 7.2% | 2282 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
 | GME | long | unknown_activist | activist_proxy | — | 2283 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | 7.2% | 2288 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | 7.2% | 2289 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | — | 2290 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | — | 2312 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | 7.2% | 2312 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | 7.2% | 2315 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
-| GME | long | unknown_activist | activist_proxy | 7.5% | 2333 | unknown_material, rule_conflict, low_confidence, active_campaign, unknown_old |
-| GME | long | unknown_activist | activist_proxy | 7.5% | 2336 | unknown_material, rule_conflict, low_confidence, stake_with_intent, active_campa |
 
 Reconcile in `{TICKER}/research/activist_reconcile_2026-08-26.md`.

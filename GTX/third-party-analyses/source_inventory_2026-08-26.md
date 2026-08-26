@@ -162,7 +162,7 @@
 | activist_long | IngleSea Capital, LLC — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201029_acc0001193125_20_281094.htm` | context | activist/long — sec_edgar |
 | activist_long | Whitebox Advisors LLC — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201030_acc0000919574_20_006636.htm` | context | activist/long — sec_edgar |
 | activist_long | FIN Capital Partners, LP — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201030_acc0001193125_20_282047.htm` | context | activist/long — sec_edgar |
-| activist_long | Sessa Capital — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201112_acc0000904454_20_000740.htm` | context | activist/long — sec_edgar |
+| activist_long | Benefit Street Partners L.L.C. — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201112_acc0000904454_20_000740.htm` | context | activist/long — sec_edgar |
 | activist_long | Marathon Asset Management, L.P. — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201221_acc0000905718_20_001171.htm` | context | activist/long — sec_edgar |
 | activist_long | Warlander Asset Management, LP — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201221_acc0001193125_20_323032.htm` | context | activist/long — sec_edgar |
 | activist_long | Owl Creek Credit Opportunities Master Fund, L.P. — SC 13D | `GTX/third-party-analyses/activist_reports/long/SC-13D_20201221_acc0001193125_20_323038.htm` | context | activist/long — sec_edgar |

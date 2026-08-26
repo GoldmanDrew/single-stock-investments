@@ -477,20 +477,26 @@ def should_include_in_feed(filing_class: str) -> bool:
 
 
 def resolve_firm(form: str, text: str, filers: list[str]) -> dict:
+    """Identify who FILED, which is not the same as who the document mentions.
+
+    Matching the whole body meant General Electric's own 13D/As resolved to
+    Trian, because a GE filing naturally discusses the activist campaigning at
+    GE. The reporting persons on the cover page are the filer's own statement of
+    identity, so they are tried first; the body is a fallback for filings whose
+    cover page yielded no usable name at all.
+    """
     capped = text[:FIRM_MATCH_TEXT_LIMIT]
-    blob = f"{capped}\n{' '.join(filers)}"
-    registry_id = match_firm_id(blob)
     primary = pick_primary_filer(filers)
     primary = re.sub(r"^[:;\s]+", "", primary).strip()
 
-    resolution = "registry" if registry_id else ("sec_filer" if primary else "unknown")
+    registry_id = match_firm_id(" ".join(filers)) if filers else None
     if registry_id:
         return {
             "firm_id": registry_id,
             "firm_name": firm_name(registry_id),
             "confidence": 0.95,
             "reporting_persons": filers,
-            "filer_resolution": resolution,
+            "filer_resolution": "registry",
         }
     if primary:
         fid = f"sec_filer:{slug_firm(primary)}"
@@ -829,9 +835,14 @@ def analyze_sec_filing(
         filers = [re.sub(r"^[:;\s]+", "", f).strip() for f in extract_reporting_persons(text)]
         filers = [f for f in filers if f]
     firm = resolve_firm(form, text, filers)
-    resolved = firm.get("firm_id") or ""
-    registry_id = resolved if resolved and not resolved.startswith("sec_filer:") and resolved != UNRESOLVED_FIRM_ID else ""
-    filing_class = classify_sec_filing(form, text, filers, firm_id=registry_id)
+    # Two different questions, each answered once. resolve_firm asks "who filed
+    # this" (cover page only). classify_sec_filing asks "is this filing about a
+    # campaign", for which a tracked activist named anywhere in the body is the
+    # right signal -- that is exactly what a DEFA14A rebuttal looks like.
+    body_registry_id = match_firm_id(
+        f"{text[:FIRM_MATCH_TEXT_LIMIT]} {' '.join(filers)}"
+    ) or ""
+    filing_class = classify_sec_filing(form, text, filers, firm_id=body_registry_id)
     firm["firm_name"] = display_firm_name(firm["firm_id"], firm["firm_name"], filers)
     result = {
         **firm,

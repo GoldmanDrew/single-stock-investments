@@ -20,7 +20,7 @@
 | activist_long | QVT (+1) — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20230509_acc0001193125_23_139394.htm` | context | activist/long — sec_edgar |
 | activist_long | QVT (+1) — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20230518_acc0001193125_23_147822.htm` | context | activist/long — sec_edgar |
 | activist_long | JHL Capital Group — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20230526_acc0001140361_23_026786.htm` | context | activist/long — sec_edgar |
-| activist_long | JHL Capital Group — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20230531_acc0001831746_23_000006.htm` | context | activist/long — sec_edgar |
+| activist_long | James H. Litinsky — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20230531_acc0001831746_23_000006.htm` | context | activist/long — sec_edgar |
 | activist_long | James H. Litinsky — SC 13D/A | `MP/third-party-analyses/activist_reports/long/SC-13D/A_20241204_acc0001341004_24_000236.htm` | context | activist/long — sec_edgar |
 | activist_long | JHL Capital Group — SC 13D | `MP/third-party-analyses/activist_reports/long/SC-13D_20201127_acc0001140361_20_026684.htm` | context | activist/long — sec_edgar |
 | activist_long | QVT (+4) — SC 13D | `MP/third-party-analyses/activist_reports/long/SC-13D_20201127_acc0001193125_20_304569.htm` | context | activist/long — sec_edgar |

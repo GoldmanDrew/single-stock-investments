@@ -33,30 +33,30 @@
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20230208_acc0000902664_23_001287.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20230209_acc0000902664_23_001385.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20231130_acc0000902664_23_005752.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20231214_acc0000902664_23_005876.htm` | context | activist/long — sec_edgar |
+| activist_long | Isaac Perlmutter Foundation Inc — DFAN14A (proxy solicitatio | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20231214_acc0000902664_23_005876.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20231214_acc0000902664_23_005877.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20231215_acc0000902664_23_005894.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240103_acc0001213900_24_000867.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240108_acc0000902664_24_000083.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240118_acc0000902664_24_000329.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240108_acc0000902664_24_000083.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240118_acc0000902664_24_000329.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240119_acc0000902664_24_000338.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240122_acc0001213900_24_005347.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240123_acc0000902664_24_000492.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240123_acc0000902664_24_000519.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240123_acc0000902664_24_000519.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240124_acc0000902664_24_000569.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240125_acc0000902664_24_000659.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240131_acc0000902664_24_000827.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240201_acc0000902664_24_000907.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240201_acc0000902664_24_000907.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240205_acc0000902664_24_001043.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240206_acc0000902664_24_001071.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240206_acc0001213900_24_010628.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240208_acc0000902664_24_001256.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240209_acc0000902664_24_001321.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240212_acc0000902664_24_001392.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240214_acc0000902664_24_001650.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240214_acc0000902664_24_001650.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240214_acc0001213900_24_014164.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240215_acc0000902664_24_001756.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240215_acc0001213900_24_014638.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240215_acc0001213900_24_014638.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240216_acc0000902664_24_001824.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240216_acc0001213900_24_014953.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240220_acc0000902664_24_001864.htm` | context | activist/long — sec_edgar |
@@ -68,7 +68,7 @@
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240222_acc0000902664_24_001952.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240223_acc0000902664_24_001974.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240223_acc0000902664_24_002000.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240223_acc0001213900_24_016559.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240223_acc0001213900_24_016559.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240226_acc0000902664_24_002028.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240226_acc0001213900_24_016733.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240226_acc0001213900_24_016964.htm` | context | activist/long — sec_edgar |
@@ -96,54 +96,54 @@
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240311_acc0001213900_24_021477.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240312_acc0000902664_24_002373.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240312_acc0000902664_24_002375.htm` | context | activist/long — sec_edgar |
-| activist_long | ValueAct Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240312_acc0001213900_24_021583.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240312_acc0001213900_24_021583.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240312_acc0001213900_24_021902.htm` | context | activist/long — sec_edgar |
-| activist_long | ValueAct Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240313_acc0000902664_24_002418.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240313_acc0000902664_24_002418.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240314_acc0000902664_24_002438.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240315_acc0000902664_24_002445.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240315_acc0000902664_24_002470.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240315_acc0001213900_24_022708.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240318_acc0000902664_24_002481.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240318_acc0000902664_24_002482.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240318_acc0000902664_24_002482.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240318_acc0001213900_24_023588.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240319_acc0000902664_24_002492.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240319_acc0001213900_24_024098.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240319_acc0001213900_24_024098.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240320_acc0000902664_24_002506.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240320_acc0001213900_24_024164.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240320_acc0001213900_24_024436.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0000902664_24_002534.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0000902664_24_002535.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0000902664_24_002536.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0000902664_24_002535.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0000902664_24_002536.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240321_acc0001213900_24_024805.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240322_acc0000902664_24_002549.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240322_acc0000902664_24_002574.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240322_acc0001213900_24_025204.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0000902664_24_002577.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0000902664_24_002585.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0000902664_24_002585.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0000902664_24_002596.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0001213900_24_025479.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0001213900_24_025479.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240325_acc0001213900_24_025611.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240326_acc0000902664_24_002600.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240326_acc0000902664_24_002610.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240326_acc0001213900_24_026103.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240327_acc0000902664_24_002629.htm` | context | activist/long — sec_edgar |
-| activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240327_acc0000902664_24_002634.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240327_acc0000902664_24_002634.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240327_acc0000902664_24_002639.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240327_acc0001213900_24_026654.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240328_acc0000902664_24_002664.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240328_acc0001213900_24_027326.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240329_acc0000902664_24_002668.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240329_acc0000902664_24_002688.htm` | context | activist/long — sec_edgar |
-| activist_long | ValueAct Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240329_acc0001213900_24_028045.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240329_acc0001213900_24_028045.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240329_acc0001213900_24_028066.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0000902664_24_002691.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0000902664_24_002693.htm` | context | activist/long — sec_edgar |
-| activist_long | ValueAct Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0000902664_24_002698.htm` | context | activist/long — sec_edgar |
+| activist_long | The Laura & Isaac Perlmutter Foundation Inc — DFAN14A (proxy | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0000902664_24_002698.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0000902664_24_002702.htm` | context | activist/long — sec_edgar |
 | activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240401_acc0001213900_24_028890.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240402_acc0000902664_24_002706.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240402_acc0000902664_24_002713.htm` | context | activist/long — sec_edgar |
-| activist_long | ValueAct Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240402_acc0001213900_24_028963.htm` | context | activist/long — sec_edgar |
+| activist_long | Blackwells Capital — DFAN14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/DFAN14A_20240402_acc0001213900_24_028963.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — PREC14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/PREC14A_20230112_acc0000902664_23_000180.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — PREC14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/PREC14A_20230117_acc0001193125_23_008942.htm` | context | activist/long — sec_edgar |
 | activist_long | Trian Partners — PREC14A (proxy solicitation) | `DIS/third-party-analyses/activist_reports/long/PREC14A_20240116_acc0001744489_24_000050.htm` | context | activist/long — sec_edgar |
