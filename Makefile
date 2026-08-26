@@ -458,7 +458,7 @@ activist-registry-audit:
 	@echo OK: activist-registry-audit
 
 activist-triage-check:
-	$(PYTHON) -m unittest _system/scripts/test_activist_triage.py _system/scripts/test_activist_feed.py
+	$(PYTHON) -m unittest _system/scripts/test_activist_triage.py _system/scripts/test_activist_feed.py _system/scripts/test_activist_coverage.py
 	@echo OK: activist-triage-check
 
 event-triage:

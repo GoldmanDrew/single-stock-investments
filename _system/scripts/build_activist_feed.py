@@ -40,7 +40,9 @@ from sec_filer_parse import (
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "dashboard" / "data" / "activist_feed.json"
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY", "magis-capital-partners/single-stock-investments")
-PROXY_DEDUP_FORMS = frozenset({"DFAN14A", "DEFC14A", "PREC14A"})
+PROXY_DEDUP_FORMS = frozenset(
+    {"DFAN14A", "DEFC14A", "PREC14A", "DEFN14A", "PREN14A", "PX14A6G", "DEFA14A"}
+)
 DEDUP_WINDOW_DAYS = 7
 WEAK_MATCH_TICKER_THRESHOLD = 5
 

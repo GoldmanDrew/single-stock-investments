@@ -1,17 +1,34 @@
 """Parse reporting-person names and filing class from SEC 13D/13G HTML/text."""
 from __future__ import annotations
 
+import html
 import re
 from pathlib import Path
+from xml.etree import ElementTree
 
-from activist_common import firm_name, match_firm_id
+from activist_common import FORM_ALIASES, firm_name, match_firm_id
 
 PASSIVE_13G_FORMS = frozenset({"SC 13G", "SC 13G/A"})
 ACTIVIST_13D_FORMS = frozenset({"SC 13D", "SC 13D/A"})
-PROXY_FORMS = frozenset({"DEFC14A", "PREC14A", "DFAN14A"})
+# Dissident-side proxy material. DEFN/PREN are the non-management statements a
+# dissident files when it runs its own slate; DEFC/PREC are the registrant-side
+# contested numbering.
+PROXY_FORMS = frozenset({"DEFC14A", "PREC14A", "DFAN14A", "DEFN14A", "PREN14A"})
+# Notice of exempt solicitation (Rule 14a-6(g)). Anyone over $5m can file one,
+# so these only count as a campaign when a registry firm is behind them.
+EXEMPT_SOLICITATION_FORMS = frozenset({"PX14A6G"})
+# The registrant's answer to a campaign. Routine comp/ESG DEFA14As are noise;
+# only the ones that actually name a tracked activist are worth indexing.
+COMPANY_RESPONSE_FORMS = frozenset({"DEFA14A"})
 UNRESOLVED_FIRM_ID = "unknown_activist"
 UNRESOLVED_FIRM_NAME = "Unresolved SEC filer"
-SEC_FILING_PREFIXES = ("SC-", "DEFC", "PREC", "DFAN")
+SEC_FILING_PREFIXES = ("SC-", "SCHEDULE-", "DEFC", "PREC", "DFAN", "DEFN", "PREN", "PX14", "DEFA")
+
+def normalize_form(form: str | None) -> str:
+    """Map an EDGAR submission type onto the canonical form string."""
+    raw = re.sub(r"\s+", " ", str(form or "")).strip()
+    return FORM_ALIASES.get(raw.upper(), raw)
+
 
 ACTIVIST_INTENT_RE = re.compile(
     r"\b("
@@ -28,6 +45,8 @@ ACTIVIST_INTENT_RE = re.compile(
 )
 
 TAG_RE = re.compile(r"<[^>]+>")
+# Decoded entities leave figure/en/no-break spaces behind (&#8199; &#8194; &nbsp;).
+UNICODE_SPACE_RE = re.compile("[   -​  　﻿]")
 ENTITY_SUFFIX_RE = re.compile(
     r"\b("
     r"LLC|L\.L\.C\.|LP|L\.P\.|INC\.?|CORP\.?|LTD\.?|TRUST|PARTNERS|"
@@ -59,9 +78,42 @@ SOLICITATION_GROUP_RE = re.compile(
 
 def strip_html(text: str) -> str:
     text = TAG_RE.sub(" ", text or "")
-    text = re.sub(r"&nbsp;|&#160;", " ", text)
+    # Decode entities after tags are gone, so &lt;b&gt; cannot become a tag.
+    # EDGAR cover pages are full of &#8199; (figure space) and bare &amp; used
+    # as column padding; leaving them encoded put literal "&#8199" into firm
+    # names. html.unescape also tolerates the missing trailing semicolon EDGAR
+    # frequently emits.
+    text = html.unescape(text)
+    text = UNICODE_SPACE_RE.sub(" ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+# Cover-page furniture that regularly ends up captured as a reporting person.
+COVER_BOILERPLATE_RE = re.compile(
+    r"^\s*(?:"
+    r"i\.?\s*r\.?\s*s\.?\s*identification\s+nos?\.?\s+of\s+above\s+persons?\s*(?:\(entities\s+only\))?|"
+    r"i\.?\s*r\.?\s*s\.?\s*identification\s+no\.?\s+of\s+above\s+person|"
+    r"names?\s+of\s+reporting\s+persons?|"
+    r"check\s+the\s+appropriate\s+box|"
+    r"sec\s+use\s+only"
+    r")\s*[:.\-]?\s*",
+    re.I,
+)
+BOILERPLATE_ONLY_RE = re.compile(
+    r"^(?:i\.?\s*r\.?\s*s\.?[\s.]*identification|names?\s+of\s+reporting|sec\s+use\s+only|"
+    r"citizenship\s+or\s+place|check\s+the\s+appropriate|source\s+of\s+funds|"
+    r"aggregate\s+amount\s+beneficially|percent\s+of\s+class|type\s+of\s+reporting\s+person)",
+    re.I,
+)
+# "S" / "s:" left behind when the label "NAMES OF REPORTING PERSONS" is split
+# mid-word by the cover-page table markup.
+LEADING_LABEL_ARTIFACT_RE = re.compile(r"^[Ss]\s*[:.\)]\s*|^[Ss]\s+(?=[A-Z])")
+# "... Gabelli Funds, LLC I.D. No . 13-4044523" — the EIN rides along with the name.
+TRAILING_EIN_RE = re.compile(
+    r"\s*(?:I\.?\s*D\.?|I\.?\s*R\.?\s*S\.?)\s*(?:No|Number)?\s*\.?\s*:?\s*\d{2}-?\d{7}\s*$",
+    re.I,
+)
 
 
 def _is_noise_name(name: str) -> bool:
@@ -72,6 +124,7 @@ def _is_noise_name(name: str) -> bool:
         "names of reporting persons",
         "name of reporting person",
         "i.r.s. identification no. of above persons (entities only)",
+        "i.r.s. identification nos. of above persons (entities only)",
         "delaware",
         "united states",
         "new york",
@@ -80,7 +133,12 @@ def _is_noise_name(name: str) -> bool:
         "payment of filing fee (check the appropriate box):",
     }:
         return True
+    if BOILERPLATE_ONLY_RE.match(low):
+        return True
     if re.fullmatch(r"[\d\-]+", name):
+        return True
+    # Nothing but stray punctuation / decoded padding characters.
+    if not re.search(r"[A-Za-z]{2}", name):
         return True
     if low.startswith("name of registrant"):
         return True
@@ -89,11 +147,40 @@ def _is_noise_name(name: str) -> bool:
     return False
 
 
-def _add_name(names: list[str], seen: set[str], name: str) -> None:
-    name = re.sub(r"\s+", " ", name).strip(" .,-")
+def clean_filer_name(name: str) -> str:
+    """Normalize one captured reporting-person string.
+
+    Handles the three ways EDGAR cover pages corrupted names in practice:
+    undecoded HTML entities, a boilerplate label glued to the front of a real
+    name, and a stray "S"/"s:" artifact from the split label.
+    """
+    name = html.unescape(name or "")
+    name = UNICODE_SPACE_RE.sub(" ", name)
+    name = re.sub(r"\s+", " ", name).strip()
+    # Strip the boilerplate prefix but keep whatever real name trails it, e.g.
+    # "I.R.S. IDENTIFICATION NOS. ... (ENTITIES ONLY) Abel Avellan". The label
+    # artifact and the boilerplate stack in either order, so alternate until
+    # neither matches.
+    for _ in range(4):
+        stripped = LEADING_LABEL_ARTIFACT_RE.sub("", name).strip()
+        stripped = COVER_BOILERPLATE_RE.sub("", stripped, count=1).strip()
+        if stripped == name:
+            break
+        name = stripped
+    # Trailing EIN the cover page carries alongside the name.
+    name = TRAILING_EIN_RE.sub("", name).strip()
+    name = name.strip(" .,-")
+    name = re.sub(r"\s*\(\d+\)$", "", name)
     name = re.sub(r"\s+\d+$", "", name)
     name = re.sub(r"^[:;\)\(]+", "", name).strip()
     name = re.sub(r"^[:;\s]+", "", name)
+    # A dangling "&" left by a truncated entity ("D. E. Shaw &").
+    name = re.sub(r"\s*&\s*$", "", name).strip()
+    return name
+
+
+def _add_name(names: list[str], seen: set[str], name: str) -> None:
+    name = clean_filer_name(name)
     if _is_noise_name(name):
         return
     low = name.lower()
@@ -279,6 +366,7 @@ def is_issuer_self_filing(ticker: str, meta: dict, report: dict) -> bool:
 
 
 def classify_sec_filing(form: str, text: str, filers: list[str]) -> str:
+    form = normalize_form(form)
     if form in PROXY_FORMS:
         return "activist_proxy"
     if form in ACTIVIST_13D_FORMS:
@@ -290,6 +378,17 @@ def classify_sec_filing(form: str, text: str, filers: list[str]) -> str:
         if ACTIVIST_INTENT_RE.search(blob):
             return "activist_13g"
         return "passive_13g"
+    if form in EXEMPT_SOLICITATION_FORMS:
+        blob = f"{text} {' '.join(filers)}"
+        if match_firm_id(blob) or ACTIVIST_INTENT_RE.search(blob):
+            return "activist_proxy"
+        return "exempt_solicitation"
+    if form in COMPANY_RESPONSE_FORMS:
+        # Only keep a defence filing that names a tracked activist — one that
+        # doesn't isn't about a campaign.
+        if match_firm_id(f"{text} {' '.join(filers)}"):
+            return "activist_proxy"
+        return "company_response"
     return "other"
 
 
@@ -399,15 +498,125 @@ def form_from_filing_path(path: Path | str) -> str | None:
     return None
 
 
-def analyze_sec_filing(form: str, text: str) -> dict:
-    filers = [re.sub(r"^[:;\s]+", "", f).strip() for f in extract_reporting_persons(text)]
-    filers = [f for f in filers if f]
+SCHEDULE_13_NS = "{http://www.sec.gov/edgar/schedule13D}"
+
+
+def _xml_text(node, tag: str) -> str:
+    """Read a child tag from either namespace form (schedule13D or bare)."""
+    if node is None:
+        return ""
+    for path in (f"{SCHEDULE_13_NS}{tag}", tag):
+        found = node.find(path)
+        if found is not None and (found.text or "").strip():
+            return found.text.strip()
+    return ""
+
+
+def _xml_find(node, tag: str):
+    if node is None:
+        return None
+    for path in (f"{SCHEDULE_13_NS}{tag}", tag):
+        found = node.find(path)
+        if found is not None:
+            return found
+    return None
+
+
+def _xml_findall(node, tag: str) -> list:
+    if node is None:
+        return []
+    for path in (f"{SCHEDULE_13_NS}{tag}", tag):
+        found = node.findall(path)
+        if found:
+            return found
+    return []
+
+
+def parse_schedule_13_xml(xml_text: str) -> dict:
+    """Parse a Schedule 13D/G ``primary_doc.xml`` into structured filer facts.
+
+    Mandatory for Schedules 13D/G filed on or after 2024-12-18. The XML carries
+    reporting-person names and CIKs verbatim, so it sidesteps the cover-page
+    regexes entirely — no boilerplate, no HTML entities, no truncation.
+
+    Returns {} when the payload is not a Schedule 13D/G submission.
+    """
+    if not xml_text or "edgarSubmission" not in xml_text:
+        return {}
+    try:
+        root = ElementTree.fromstring(xml_text)
+    except ElementTree.ParseError:
+        return {}
+
+    header = _xml_find(root, "headerData")
+    submission_type = _xml_text(header, "submissionType")
+    form_data = _xml_find(root, "formData")
+    cover = _xml_find(form_data, "coverPageHeader")
+    issuer = _xml_find(cover, "issuerInfo")
+
+    persons: list[str] = []
+    ciks: list[str] = []
+    stake: float | None = None
+    for info in _xml_findall(_xml_find(form_data, "reportingPersons"), "reportingPersonInfo"):
+        name = clean_filer_name(_xml_text(info, "reportingPersonName"))
+        if name and not _is_noise_name(name) and name.lower() not in {p.lower() for p in persons}:
+            persons.append(name)
+        cik = _xml_text(info, "reportingPersonCIK").lstrip("0")
+        if cik and cik not in ciks:
+            ciks.append(cik)
+        raw_pct = _xml_text(info, "percentOfClass")
+        if raw_pct:
+            try:
+                pct = float(raw_pct.rstrip("% "))
+            except ValueError:
+                pct = None
+            if pct is not None and 0 < pct <= 100 and (stake is None or pct > stake):
+                stake = pct
+
+    if not persons and not submission_type:
+        return {}
+
+    return {
+        "form": normalize_form(submission_type) if submission_type else "",
+        "reporting_persons": persons[:8],
+        "reporting_person_ciks": ciks[:8],
+        "stake_percent": stake,
+        "issuer_name": _xml_text(issuer, "issuerName"),
+        "issuer_cik": _xml_text(issuer, "issuerCIK").lstrip("0"),
+        "cusip": _xml_text(_xml_find(issuer, "issuerCusips"), "issuerCusipNumber"),
+        "event_date": _xml_text(cover, "dateOfEvent"),
+        "source": "schedule_13_xml",
+    }
+
+
+def analyze_sec_filing(form: str, text: str, *, xml_facts: dict | None = None) -> dict:
+    """Resolve filer identity for one filing.
+
+    ``xml_facts`` comes from :func:`parse_schedule_13_xml`. When present its
+    reporting-person names win: they are the filer's own structured input,
+    whereas the cover-page regexes are a best-effort read of rendered HTML.
+    """
+    form = normalize_form(form)
+    xml_persons = [p for p in (xml_facts or {}).get("reporting_persons") or [] if p]
+    if xml_persons:
+        filers = xml_persons
+    else:
+        filers = [re.sub(r"^[:;\s]+", "", f).strip() for f in extract_reporting_persons(text)]
+        filers = [f for f in filers if f]
     filing_class = classify_sec_filing(form, text, filers)
     firm = resolve_firm(form, text, filers)
     firm["firm_name"] = display_firm_name(firm["firm_id"], firm["firm_name"], filers)
-    return {
+    result = {
         **firm,
         "filing_class": filing_class,
         "include_in_feed": should_include_in_feed(filing_class),
         "index_filing": should_index_filing(filing_class),
     }
+    if xml_persons:
+        result["filer_resolution"] = (
+            "registry_xml" if firm.get("filer_resolution") == "registry" else "schedule_13_xml"
+        )
+        result["confidence"] = max(float(result.get("confidence") or 0), 0.97)
+        if (xml_facts or {}).get("reporting_person_ciks"):
+            result["reporting_person_ciks"] = xml_facts["reporting_person_ciks"]
+    return result
