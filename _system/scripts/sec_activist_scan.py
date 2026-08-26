@@ -20,7 +20,15 @@ from activist_common import (
     upsert_report,
 )
 from activist_date_parse import parse_local_report_metadata, normalize_partial_date, resolve_sec_filing_date
-from sec_filer_parse import analyze_sec_filing, build_activist_title, form_from_filing_path, is_sec_filing_relpath, should_index_filing
+from sec_filer_parse import (
+    analyze_sec_filing,
+    build_activist_title,
+    form_from_filing_path,
+    is_sec_filing_relpath,
+    normalize_form,
+    parse_schedule_13_xml,
+    should_index_filing,
+)
 
 SEC_UA = "MarvinActivistScan contact@example.com"
 SLEEP_SEC = 0.12
@@ -128,6 +136,30 @@ def _accession_from_name(name: str) -> str | None:
     return f"{raw[:10]}-{raw[10:12]}-{raw[12:]}"
 
 
+def _is_schedule_13(form: str) -> bool:
+    return normalize_form(form) in {"SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A"}
+
+
+def fetch_schedule_13_xml(cik_path: str, accession: str | None) -> dict:
+    """Read the structured cover page for a Schedule 13D/G, when one exists.
+
+    Mandatory since 2024-12-18. Absent for older filings, which 404 — that is
+    expected, not an error, so failures are silent and the HTML path stands.
+    """
+    if not accession:
+        return {}
+    nodash = accession.replace("-", "")
+    url = f"https://www.sec.gov/Archives/edgar/data/{cik_path}/{nodash}/primary_doc.xml"
+    req = urllib.request.Request(url, headers={"User-Agent": SEC_UA})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            payload = resp.read().decode("utf-8", errors="ignore")
+    except Exception:
+        return {}
+    time.sleep(SLEEP_SEC)
+    return parse_schedule_13_xml(payload)
+
+
 def _entry_from_analysis(
     ticker: str,
     form: str,
@@ -137,14 +169,25 @@ def _entry_from_analysis(
     source_url: str | None,
     accession: str | None,
     filing_date: str | None = None,
+    xml_facts: dict | None = None,
 ) -> dict | None:
-    analysis = analyze_sec_filing(form, text)
+    form = normalize_form(form)
+    analysis = analyze_sec_filing(form, text, xml_facts=xml_facts)
     if not should_index_filing(analysis["filing_class"], include_passive=False):
         return None
     date_meta = resolve_sec_filing_date(dest, text, filing_date=filing_date)
     fd = date_meta.get("report_date")
     title = build_activist_title(analysis, form, ticker=ticker, report_date=fd)
+    stake = (xml_facts or {}).get("stake_percent")
+    extra = {}
+    if stake is not None:
+        extra["stake_percent"] = stake
+    if (xml_facts or {}).get("reporting_person_ciks"):
+        extra["reporting_person_ciks"] = xml_facts["reporting_person_ciks"]
+    if (xml_facts or {}).get("cusip"):
+        extra["cusip"] = xml_facts["cusip"]
     return {
+        **extra,
         "firm_id": analysis["firm_id"],
         "firm_name": analysis["firm_name"],
         "side": "long",
@@ -194,9 +237,13 @@ def scan_ticker_sec(
     hits: list[dict] = []
     cik_path = str(int(cik))
 
-    for i, form in enumerate(forms):
-        if form not in ACTIVIST_FORMS:
+    for i, raw_form in enumerate(forms):
+        # EDGAR reports "SCHEDULE 13D" for anything filed since the 2024-12-18
+        # XML cutover; ACTIVIST_FORMS holds both spellings and normalize_form
+        # collapses them so filenames and downstream classes stay stable.
+        if raw_form not in ACTIVIST_FORMS:
             continue
+        form = normalize_form(raw_form)
         filing_date = (recent.get("filingDate") or [""])[i]
         if filing_date < min_date:
             continue
@@ -206,6 +253,8 @@ def scan_ticker_sec(
             continue
         url = sec_url(cik_path, accession, primary)
         ext = Path(primary).suffix or ".htm"
+        # Keep the "/" — it puts amendments in an "SC-13D/" subdirectory as
+        # "A_<date>...", which is the layout form_from_filing_path() reads back.
         dest_name = f"{form.replace(' ', '-')}_{filing_date.replace('-', '')}_acc{accession.replace('-', '_')}{ext}"
         dest = activist_reports_dir(ticker, "long") / dest_name
         if not dry_run:
@@ -213,8 +262,16 @@ def scan_ticker_sec(
             if not ok:
                 continue
         text = read_filing_text(dest) if dest.exists() else ""
+        xml_facts = fetch_schedule_13_xml(cik_path, accession) if _is_schedule_13(form) else {}
         entry = _entry_from_analysis(
-            ticker, form, dest, text, source_url=url, accession=accession, filing_date=filing_date
+            ticker,
+            form,
+            dest,
+            text,
+            source_url=url,
+            accession=accession,
+            filing_date=filing_date,
+            xml_facts=xml_facts,
         )
         if not entry:
             continue

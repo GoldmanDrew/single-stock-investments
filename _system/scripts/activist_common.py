@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date, datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,15 +13,43 @@ PORTFOLIO_REGISTRY = ROOT / "_system" / "portfolio" / "registry.json"
 US_TICKER_CONFIG = Path(__file__).resolve().parent / "us_ticker_config.json"
 GLOBAL_SCAN_PATH = ROOT / "_system" / "data" / "activist_scan_latest.json"
 SCAN_LOG_PATH = ROOT / "_system" / "data" / "activist_scan_log.json"
+# EDGAR renamed the beneficial-ownership submission types when Schedules 13D/G
+# moved to structured XML on 2024-12-18: data.sec.gov now reports "SCHEDULE 13D"
+# where it used to report "SC 13D". Both spellings must pass the form filter —
+# the filter runs on the raw EDGAR label, before normalization — and
+# sec_filer_parse.normalize_form() collapses them to the canonical left-hand
+# name for everything downstream.
+FORM_ALIASES = {
+    "SCHEDULE 13D": "SC 13D",
+    "SCHEDULE 13D/A": "SC 13D/A",
+    "SCHEDULE 13G": "SC 13G",
+    "SCHEDULE 13G/A": "SC 13G/A",
+    "SCHEDULE13D": "SC 13D",
+    "SCHEDULE13G": "SC 13G",
+}
+
 ACTIVIST_FORMS = frozenset(
     {
+        # Beneficial ownership (both the legacy and post-2024 EDGAR spellings)
         "SC 13D",
         "SC 13D/A",
         "SC 13G",
         "SC 13G/A",
+        *FORM_ALIASES,
+        # Contested proxy solicitations (management-side numbering)
         "DEFC14A",
         "PREC14A",
         "DFAN14A",
+        # Non-management proxy statements — the dissident's own solicitation.
+        # DEFC/PREC only cover contests the registrant files under; a dissident
+        # running its own slate files DEFN14A/PREN14A and was invisible before.
+        "DEFN14A",
+        "PREN14A",
+        # Notice of exempt solicitation (Rule 14a-6(g)) — the low-cost lever
+        # activists and shareholder proponents use instead of a full contest.
+        "PX14A6G",
+        # The company's answer. Without it a campaign reads as a one-sided claim.
+        "DEFA14A",
     }
 )
 
@@ -87,8 +116,22 @@ def firms_for_ingest(method: str, *, side: str | None = None) -> list[dict]:
     return out
 
 
-def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
-    matchers: list[tuple[str, re.Pattern[str]]] = []
+def _boundary_pattern(term: str) -> re.Pattern[str]:
+    """Compile a firm term so it only matches on word boundaries.
+
+    Without \\b an alias like "amber" matches inside "chamber" and "tci" inside
+    unrelated prose. Only anchor the side that starts/ends alphanumeric, so a
+    term such as "3d investment partners" or "l.p." still matches.
+    """
+    body = re.escape(term)
+    left = r"\b" if term[:1].isalnum() else ""
+    right = r"\b" if term[-1:].isalnum() else ""
+    return re.compile(f"{left}{body}{right}", re.I)
+
+
+@lru_cache(maxsize=1)
+def _firm_matchers_cached(registry_stamp: tuple) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    matchers: list[tuple[str, str]] = []
     for firm in load_firm_registry().get("firms") or []:
         fid = firm.get("id") or ""
         terms = [firm.get("name", "")]
@@ -100,14 +143,30 @@ def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
             if not key or key in seen:
                 continue
             seen.add(key)
-            matchers.append((fid, re.compile(re.escape(key), re.I)))
-    return matchers
+            matchers.append((fid, key))
+    # Longest term first: a filing naming both "Engine Capital Management" and a
+    # shorter generic alias should resolve to the most specific firm, not to
+    # whichever happens to sit earlier in the registry file.
+    matchers.sort(key=lambda pair: (-len(pair[1]), pair[0]))
+    return tuple((fid, _boundary_pattern(key)) for fid, key in matchers)
+
+
+def _registry_stamp() -> tuple:
+    try:
+        stat = REGISTRY_PATH.stat()
+    except OSError:
+        return (0, 0)
+    return (stat.st_mtime_ns, stat.st_size)
+
+
+def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
+    return list(_firm_matchers_cached(_registry_stamp()))
 
 
 def match_firm_id(text: str) -> str | None:
     if not text:
         return None
-    for fid, pattern in firm_matchers():
+    for fid, pattern in _firm_matchers_cached(_registry_stamp()):
         if pattern.search(text):
             return fid
     return None
