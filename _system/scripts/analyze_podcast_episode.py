@@ -218,6 +218,26 @@ def dedupe_numbers(numbers: list[dict]) -> list[dict]:
     return out
 
 
+def dedupe_claims(claims: list[dict]) -> list[dict]:
+    """One row per distinct claim.
+
+    Windows overlap by CHUNK_OVERLAP characters so an argument is not severed
+    mid-sentence, which means a passage in the seam is extracted twice. On the
+    Visa episode three of eight surviving claims were the same sentence citing
+    the same quote. Key on the quote plus the claim text: two genuinely
+    different readings of one quote survive, a straight repeat does not.
+    """
+    seen: set[tuple[str, str]] = set()
+    out: list[dict] = []
+    for claim in claims or []:
+        key = (_norm(claim.get("quote"))[:120], _norm(claim.get("claim"))[:120])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(claim)
+    return out
+
+
 def verify_quotes(claims: list[dict], transcript: str) -> tuple[list[dict], dict]:
     """Drop any claim whose quote is not literally in the transcript."""
     hay = _norm(transcript)
@@ -271,6 +291,9 @@ def analyze(transcript: str, *, title: str, show: str, model: str | None = None,
     claims, stats = verify_quotes(raw_claims, transcript)
     numbers, num_stats = verify_quotes(raw_numbers, transcript)
     stats["tickers_resolved_post_hoc"] = resolve_tickers(claims, aliases)
+    before = len(claims)
+    claims = dedupe_claims(claims)
+    stats["duplicate_claims_dropped"] = before - len(claims)
     numbers = dedupe_numbers(numbers)
 
     summary_doc: dict = {"thesis": "", "tickers": [], "themes": []}
