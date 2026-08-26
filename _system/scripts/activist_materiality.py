@@ -15,11 +15,10 @@ import math
 from datetime import datetime, timezone
 
 from activist_common import PUBLISHER_SOURCES, load_firm_registry
+from sec_filer_parse import PROXY_FORMS, normalize_form
 
 SIGNAL_THRESHOLD = 55
 NOISE_THRESHOLD = 25
-
-PROXY_FORMS = frozenset({"DEFC14A", "PREC14A", "DFAN14A"})
 
 _FIRM_TIERS: dict[str, int] | None = None
 
@@ -52,7 +51,8 @@ def firm_weight(firm_id: str | None) -> float:
 
 def filing_base_weight(row: dict) -> float:
     filing_class = row.get("filing_class") or ""
-    form = (row.get("form") or "").upper()
+    # Normalize so a post-2024 "SCHEDULE 13D/A" scores as the amendment it is.
+    form = normalize_form((row.get("form") or "").upper())
     if filing_class == "activist_proxy" or form in PROXY_FORMS:
         return 0.88
     if filing_class == "activist_13d":

@@ -22,6 +22,7 @@ from activist_common import (  # noqa: E402
     load_firm_registry,
     match_firm_id,
 )
+from activist_materiality import filing_base_weight  # noqa: E402
 from activist_site_fetchers import likely_report  # noqa: E402
 from sec_filer_parse import (  # noqa: E402
     analyze_sec_filing,
@@ -138,6 +139,30 @@ class FilingPathTests(unittest.TestCase):
         stored = normalize_form("SCHEDULE 13G").replace(" ", "-")
         path = f"AAOI/third-party-analyses/activist_reports/long/{stored}_20260814_acc0001_26_000004.htm"
         self.assertEqual(form_from_filing_path(path), "SC 13G")
+
+
+class MaterialityFormTests(unittest.TestCase):
+    """Scoring must see the same forms the scanner now collects."""
+
+    def test_renamed_forms_score_as_ownership_filings(self) -> None:
+        self.assertEqual(
+            filing_base_weight({"filing_class": "activist_13d", "form": "SCHEDULE 13D"}),
+            filing_base_weight({"filing_class": "activist_13d", "form": "SC 13D"}),
+        )
+        self.assertEqual(
+            filing_base_weight({"filing_class": "activist_13d", "form": "SCHEDULE 13D/A"}),
+            filing_base_weight({"filing_class": "activist_13d", "form": "SC 13D/A"}),
+        )
+
+    def test_dissident_proxy_forms_score_as_campaigns(self) -> None:
+        # DEFN14A used to fall through to the generic sec_edgar weight because
+        # materiality kept its own copy of PROXY_FORMS.
+        for form in ("DEFN14A", "PREN14A"):
+            self.assertEqual(
+                filing_base_weight({"filing_class": "", "form": form}),
+                filing_base_weight({"filing_class": "", "form": "DFAN14A"}),
+                form,
+            )
 
 
 class FilerNameTests(unittest.TestCase):
