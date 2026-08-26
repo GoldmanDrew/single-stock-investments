@@ -354,6 +354,48 @@ class SourceHygieneTests(unittest.TestCase):
         self.assertFalse(sec_filer_discovery._in_book({"issuer_cik": "2131524"}, set()))
 
 
+class ReindexTriageTests(unittest.TestCase):
+    """A re-parse must not throw away state that lives only on the index."""
+
+    def test_triage_fields_survive_a_reindex(self) -> None:
+        # reindex_local_sec rebuilds `reports` from the filings on disk, so the
+        # triage verdict -- and with it materiality_floor -- was silently lost.
+        # Real campaigns then dropped from signal to noise while the row count
+        # grew, which reads as "more data" rather than "worse data".
+        index = {
+            "reports": [
+                {
+                    "local_file": "X/third-party-analyses/activist_reports/long/SC-13D_20250101_acc1.htm",
+                    "triage_verdict": "auto_signal",
+                    "materiality_floor": 60,
+                    "triage_rules": ["registry_firm"],
+                }
+            ]
+        }
+        prior = {
+            r["local_file"]: {
+                k: r[k]
+                for k in ("triage_verdict", "triage_rules", "materiality_floor")
+                if k in r
+            }
+            for r in index["reports"]
+        }
+        fresh = {
+            "local_file": "X/third-party-analyses/activist_reports/long/SC-13D_20250101_acc1.htm",
+            "firm_id": "elliott",
+        }
+        carried = prior.get(fresh["local_file"])
+        self.assertIsNotNone(carried)
+        fresh.update(carried)
+        self.assertEqual(fresh["materiality_floor"], 60)
+        self.assertEqual(fresh["triage_verdict"], "auto_signal")
+
+    def test_reindex_source_carries_triage_forward(self) -> None:
+        source = (ROOT / "_system" / "scripts" / "sec_activist_scan.py").read_text(encoding="utf-8")
+        self.assertIn("prior_triage", source)
+        self.assertIn("materiality_floor", source)
+
+
 class EdinetLaneTests(unittest.TestCase):
     """Japan files with the FSA, not the SEC, so a CIK-driven scan cannot see it."""
 

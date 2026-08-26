@@ -101,6 +101,29 @@ def reindex_local_sec(
         if r.get("source") not in {"sec_edgar", "local"}
         or not is_sec_filing_relpath(r.get("local_file"))
     ]
+    # Triage verdicts live on the index entry, not on disk, and a re-parse
+    # rebuilds `reports` from the filings alone. Losing them silently drops
+    # every materiality_floor, which demotes real campaigns from signal to
+    # noise -- the feed shrinks in quality while the row count grows, so it
+    # reads as "more data" rather than "worse data".
+    prior_triage = {
+        r.get("local_file"): {
+            k: r[k]
+            for k in (
+                "triage_verdict",
+                "triage_rules",
+                "triage_confidence",
+                "materiality_floor",
+                "campaign_freshness_floor",
+                "status",
+                "milly_verdict",
+            )
+            if k in r
+        }
+        for r in (index.get("reports") or [])
+        if r.get("local_file")
+    }
+
     sec_entries: list[dict] = []
     for side in ("long", "short"):
         base = activist_reports_dir(ticker, side)
@@ -137,6 +160,9 @@ def reindex_local_sec(
                 continue
             if not should_index_filing(entry["filing_class"], include_passive=include_passive):
                 continue
+            carried = prior_triage.get(entry.get("local_file"))
+            if carried:
+                entry.update(carried)
             hits.append(entry)
             sec_entries.append(entry)
     index["reports"] = non_sec + sec_entries
