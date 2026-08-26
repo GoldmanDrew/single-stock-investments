@@ -48,9 +48,11 @@ ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "_system" / "frameworks" / "activist_firm_registry.json"
 OUTPUT_PATH = ROOT / "_system" / "data" / "activist_filer_discovery.json"
 SEC_UA = "MagisCapitalResearch activist-discovery contact@magiscapital.example"
-SLEEP_SEC = 0.15
-RETRY_SLEEP_SEC = 2.0
-MAX_RETRIES = 3
+# browse-edgar (cgi-bin) rate-limits harder than the Archives endpoints and
+# answers 503 rather than 429, so pace it and back off generously.
+SLEEP_SEC = 0.6
+RETRY_SLEEP_SEC = 5.0
+MAX_RETRIES = 4
 DEFAULT_MIN_DATE = "2025-01-01"
 DEFAULT_PER_FIRM = 40
 # Flush resolved CIKs to the registry this often, so an interrupted run keeps its work.
@@ -60,6 +62,10 @@ CIK_FLUSH_EVERY = 5
 # ownership signal that moves BETWEEN 13D/A amendments.
 SECTION_16_QUERY_FORM = "4"
 FUND_QUERY_FORMS = ("13F-HR", "N-PX")
+# Form labels to try when resolving a CIK by name. Both 13D spellings,
+# since EDGAR renamed the submission type on 2024-12-18 and a firm last
+# active before then is invisible to a query for the new one.
+CIK_PROBE_FORMS = ("SC 13D", "SCHEDULE 13D", "SC 13G", "DFAN14A")
 
 COMPANY_INFO_RE = re.compile(r"<company-info>(.*?)</company-info>", re.S)
 CIK_RE = re.compile(r"<cik>(\d+)</cik>")
@@ -111,56 +117,95 @@ TRAILING_DESCRIPTORS = (
 
 
 def firm_search_names(firm: dict) -> list[str]:
-    """Candidate names to try against EDGAR, most specific first."""
-    seeds = [firm.get("name") or ""]
-    seeds.extend(firm.get("aliases") or [])
+    """Candidate names to try against EDGAR, most specific first.
+
+    EDGAR's `company=` is a prefix match on ITS conformed name, which often
+    shares only the distinctive first word with ours: we say "Macellum Capital
+    Management", EDGAR says "Macellum Advisors GP, LLC". Stopping the walk at
+    two words meant that firm was never queried at all and came back as "no
+    EDGAR entity".
+
+    The firm's own name may shorten to a single distinctive word. Aliases may
+    not -- they include personal names like "Paul Singer", where a one-word
+    query matches the wrong entity entirely.
+    """
     out: list[str] = []
     seen: set[str] = set()
-    for seed in seeds:
-        # Personal names ("Paul Singer") match the wrong EDGAR entity.
+
+    def add(candidate: str) -> None:
+        key = candidate.lower()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(candidate)
+
+    seeds = [(firm.get("name") or "", True)]
+    seeds.extend((alias, False) for alias in (firm.get("aliases") or []))
+    for seed, allow_single_word in seeds:
         words = [w for w in str(seed or "").replace(",", " ").split() if w]
+        floor = 1 if allow_single_word else 2
         if len(words) < 2:
             continue
-        while len(words) >= 2:
-            candidate = " ".join(words)
-            key = candidate.lower()
-            if key not in seen:
-                seen.add(key)
-                out.append(candidate)
-            if words[-1].lower().strip(".,") in TRAILING_DESCRIPTORS:
+        while len(words) >= floor:
+            add(" ".join(words))
+            tail = words[-1].lower().strip(".,")
+            if len(words) > floor and tail in TRAILING_DESCRIPTORS:
                 words = words[:-1]
-            else:
-                break
+                continue
+            if len(words) == 2 and floor == 1:
+                # Try the distinctive stem alone, but only when it is long
+                # enough not to match half of EDGAR.
+                stem = words[0]
+                if len(stem) >= 5 and stem.lower() not in TRAILING_DESCRIPTORS:
+                    add(stem)
+            break
     return out
 
 
-def lookup_filer(name: str, *, form: str = "SCHEDULE 13D") -> dict | None:
-    """Resolve one filer name to its EDGAR CIK plus recent filings."""
-    query = urllib.parse.urlencode(
-        {
-            "action": "getcompany",
-            "company": name,
-            "type": form,
-            "dateb": "",
-            "owner": "include",
-            "count": "100",
-            "output": "atom",
-        }
-    )
-    try:
-        xml = fetch(f"https://www.sec.gov/cgi-bin/browse-edgar?{query}")
-    except Exception:
-        return None
+def lookup_filer(
+    name: str, *, form: str = "SCHEDULE 13D", cik: str | None = None
+) -> dict | None:
+    """List what one filer filed, by CIK when we know it and by name otherwise.
+
+    Querying by CIK is exact. Name search is a prefix match against EDGAR's own
+    conformed name, which is frequently spelled differently from ours -- so a
+    firm whose CIK we already hold would otherwise still come back empty just
+    because "Engine Capital Management" is "ENGINE CAPITAL, L.P." over there.
+    """
+    params = {
+        "action": "getcompany",
+        "type": form,
+        "dateb": "",
+        "owner": "include",
+        "count": "100",
+        "output": "atom",
+    }
+    if cik:
+        params["CIK"] = str(cik)
+    else:
+        params["company"] = name
+    query = urllib.parse.urlencode(params)
+    # Deliberately NOT swallowed. Returning None on a failed request makes a
+    # 503 indistinguishable from "EDGAR has no such filer", which is how this
+    # backfill reported 36 firms as having no entity when the truth was that
+    # sec.gov was rate-limiting -- Ancora and Browning West both resolve fine
+    # on a request that actually completes.
+    xml = fetch(f"https://www.sec.gov/cgi-bin/browse-edgar?{query}")
 
     info = COMPANY_INFO_RE.search(xml)
-    if not info:
-        return None
-    cik_match = CIK_RE.search(info.group(1))
+    if info:
+        cik_match = CIK_RE.search(info.group(1))
+        conformed = CONFORMED_RE.search(info.group(1))
+    else:
+        # EDGAR sometimes answers without a company-info block even for a single
+        # match. Accept it when exactly one CIK appears in the whole feed;
+        # several means the query was ambiguous, so decline rather than guess.
+        ciks = set(CIK_RE.findall(xml))
+        if len(ciks) != 1:
+            return None
+        cik_match = CIK_RE.search(xml)
+        conformed = CONFORMED_RE.search(xml)
     if not cik_match:
-        # Multiple companies matched; the feed lists them without a single
-        # company-info block. Ambiguous, so decline rather than guess.
         return None
-    conformed = CONFORMED_RE.search(info.group(1))
 
     filings = []
     for block in ENTRY_RE.findall(xml):
@@ -211,6 +256,7 @@ def discover(
     write_registry_ciks: bool = True,
     include_section_16: bool = True,
     include_fund_periodic: bool = True,
+    flush_rows: bool = True,
 ) -> dict:
     allowed_forms = set(ACTIVIST_FORMS)
     if include_section_16:
@@ -227,6 +273,9 @@ def discover(
     rows: list[dict] = []
     resolved_ciks: dict[str, str] = {}
     unresolved: list[str] = []
+    # Firms we could not even ask about. Kept apart from `unresolved`,
+    # which means EDGAR answered and had nothing.
+    lookup_errors: list[str] = []
 
     for firm in firms:
         fid = firm.get("id") or ""
@@ -234,22 +283,37 @@ def discover(
         record = None
         if cik:
             record = {"cik": cik, "conformed_name": firm.get("name") or fid, "filings": []}
-            forms = ["SCHEDULE 13D", "SCHEDULE 13G", "DFAN14A"]
+            forms = ["SCHEDULE 13D", "SC 13D", "SCHEDULE 13G", "SC 13G", "DFAN14A"]
             if include_section_16:
                 forms.append(SECTION_16_QUERY_FORM)
             if include_fund_periodic:
                 forms.extend(FUND_QUERY_FORMS)
             for form in forms:
-                found = lookup_filer(firm.get("name") or fid, form=form)
+                try:
+                    found = lookup_filer(firm.get("name") or fid, form=form, cik=cik)
+                except Exception as exc:
+                    lookup_errors.append(f"{fid}/{form}: {type(exc).__name__}: {str(exc)[:60]}")
+                    continue
                 if found and found["cik"] == cik:
                     record["filings"].extend(found["filings"])
         else:
+            # Both spellings, because a firm last active before the rename only
+            # appears under "SC 13D" and would otherwise read as "no entity".
             for name in firm_search_names(firm):
-                record = lookup_filer(name)
-                if record:
+                for probe_form in CIK_PROBE_FORMS:
+                    try:
+                        record = lookup_filer(name, form=probe_form)
+                    except Exception as exc:
+                        lookup_errors.append(f"{fid}: {type(exc).__name__}: {str(exc)[:80]}")
+                        record = None
+                        break
+                    if record:
+                        break
+                if record or any(e.startswith(f"{fid}:") for e in lookup_errors):
                     break
         if not record or not record.get("cik"):
-            unresolved.append(fid)
+            if not any(e.startswith(f"{fid}:") for e in lookup_errors):
+                unresolved.append(fid)
             continue
 
         resolved_ciks[fid] = record["cik"]
@@ -259,10 +323,20 @@ def discover(
         if write_registry_ciks and len(resolved_ciks) % CIK_FLUSH_EVERY == 0:
             _persist_ciks(resolved_ciks)
             print(
-                f"  ... resolved {len(resolved_ciks)} firm CIKs "
+                f"  ... {len(resolved_ciks)} firms done, {len(rows)} filings "
                 f"({len(unresolved)} unresolved so far)",
                 flush=True,
             )
+            if flush_rows:
+                # A full sweep outlives its own timeout; writing only at the end
+                # meant an interrupted run produced nothing at all.
+                write_json(
+                    OUTPUT_PATH,
+                    _assemble(
+                        rows, firms, resolved_ciks, unresolved, lookup_errors,
+                        min_date, holdings, complete=False,
+                    ),
+                )
         seen: set[str] = set()
         kept = 0
         for filing in record["filings"]:
@@ -297,6 +371,13 @@ def discover(
     if write_registry_ciks and resolved_ciks:
         _persist_ciks(resolved_ciks)
 
+    return _assemble(
+        rows, firms, resolved_ciks, unresolved, lookup_errors, min_date, holdings, complete=True
+    )
+
+
+def _assemble(rows, firms, resolved_ciks, unresolved, lookup_errors, min_date, holdings, *, complete):
+    rows = list(rows)
     rows.sort(key=lambda r: (r.get("filing_date") or "", r.get("firm_id") or ""), reverse=True)
     cik_map = _issuer_cik_to_ticker(_portfolio_stamp())
     for row in rows:
@@ -306,10 +387,17 @@ def discover(
     off_book = [r for r in rows if r.get("issuer_name") and not r["in_book"]]
     return {
         "generated_at": now_iso(),
+        # False when the pass was cut short. Anything reading this file needs to
+        # know it is looking at a partial sweep rather than "these are all the
+        # campaigns" -- a truncated run that looks complete is the same trap as
+        # a dark feed answering 200.
+        "complete": complete,
         "min_date": min_date,
         "firm_count": len(firms),
         "resolved_firm_count": len(resolved_ciks),
         "unresolved_firms": sorted(unresolved),
+        "lookup_error_count": len(lookup_errors),
+        "lookup_errors": lookup_errors[:40],
         "row_count": len(rows),
         "off_book_count": len(off_book),
         "rows": rows,

@@ -16,6 +16,6 @@
 | activist_long | Baker Bros. Advisors — SC 13D/A | `INCY/third-party-analyses/activist_reports/long/SC-13D/A_20240509_acc0001104659_24_059496.htm` | context | activist/long — sec_edgar |
 | activist_long | Baker Bros. Advisors — SC 13D/A | `INCY/third-party-analyses/activist_reports/long/SC-13D/A_20240513_acc0001104659_24_060709.htm` | context | activist/long — sec_edgar |
 | activist_long | Baker Bros. Advisors — SC 13D/A | `INCY/third-party-analyses/activist_reports/long/SC-13D/A_20240614_acc0001104659_24_071855.htm` | context | activist/long — sec_edgar |
-| activist_long | Baker Bros. Advisors — SC 13D | `INCY/third-party-analyses/activist_reports/long/SC-13D_20201228_acc0001104659_20_139754.htm` | context | activist/long — sec_edgar |
+| activist_long | Incyte Corporation — SC 13D | `INCY/third-party-analyses/activist_reports/long/SC-13D_20201228_acc0001104659_20_139754.htm` | context | activist/long — sec_edgar |
 
 Cross-check required: `INCY/research/cross_check_third_party_2026-08-26.md`

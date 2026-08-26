@@ -15,7 +15,7 @@
 | activist_long | Verde Investments, Inc. — SC 13D/A | `CVNA/third-party-analyses/activist_reports/long/SC-13D/A_20240909_acc0001193125_24_216148.htm` | context | activist/long — sec_edgar |
 | activist_long | ECG II SPE, LLC — SC 13D/A | `CVNA/third-party-analyses/activist_reports/long/SC-13D/A_20241025_acc0001193125_24_244398.htm` | context | activist/long — sec_edgar |
 | activist_long | ECG II SPE, LLC — SC 13D/A | `CVNA/third-party-analyses/activist_reports/long/SC-13D/A_20241216_acc0001193125_24_279801.htm` | context | activist/long — sec_edgar |
-| activist_long | HoldCo Asset Management — SC 13G/A | `CVNA/third-party-analyses/activist_reports/long/SC-13G/A_20240207_acc0001193125_24_027002.htm` | context | activist/long — sec_edgar |
-| activist_long | HoldCo Asset Management — SC 13G/A | `CVNA/third-party-analyses/activist_reports/long/SC-13G/A_20241112_acc0001193125_24_256019.htm` | context | activist/long — sec_edgar |
+| activist_long | CVAN Holdings, LLC — SC 13G/A | `CVNA/third-party-analyses/activist_reports/long/SC-13G/A_20240207_acc0001193125_24_027002.htm` | context | activist/long — sec_edgar |
+| activist_long | CVAN Holdings, LLC — SC 13G/A | `CVNA/third-party-analyses/activist_reports/long/SC-13G/A_20241112_acc0001193125_24_256019.htm` | context | activist/long — sec_edgar |
 
 Cross-check required: `CVNA/research/cross_check_third_party_2026-08-26.md`
