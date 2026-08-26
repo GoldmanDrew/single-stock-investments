@@ -53,6 +53,8 @@ RETRY_SLEEP_SEC = 2.0
 MAX_RETRIES = 3
 DEFAULT_MIN_DATE = "2025-01-01"
 DEFAULT_PER_FIRM = 40
+# Flush resolved CIKs to the registry this often, so an interrupted run keeps its work.
+CIK_FLUSH_EVERY = 5
 # Filer-side forms. These describe the firm rather than any one issuer, so an
 # issuer-driven scan can never see them. Form 4s in particular are the only
 # ownership signal that moves BETWEEN 13D/A amendments.
@@ -97,12 +99,39 @@ def fetch(url: str) -> str:
     raise last if last else RuntimeError("fetch failed")
 
 
+# EDGAR matches `company=` as a prefix of its own conformed name, which is
+# often shorter than ours: we call it "Engine Capital Management", EDGAR calls
+# it "ENGINE CAPITAL, L.P.". Searching the full name returns nothing at all --
+# not an error, just an empty feed -- so try progressively shorter prefixes.
+TRAILING_DESCRIPTORS = (
+    "management", "managements", "advisors", "advisers", "partners",
+    "capital", "investments", "investment", "group", "associates", "llc",
+    "lp", "l.p.", "inc", "inc.", "ltd", "ltd.", "limited", "holdings",
+)
+
+
 def firm_search_names(firm: dict) -> list[str]:
-    names = [firm.get("name") or ""]
-    names.extend(firm.get("aliases") or [])
-    # Personal names ("Paul Singer") match the wrong EDGAR entity; entity-shaped
-    # names only.
-    return [n for n in names if n and len(n.split()) >= 2]
+    """Candidate names to try against EDGAR, most specific first."""
+    seeds = [firm.get("name") or ""]
+    seeds.extend(firm.get("aliases") or [])
+    out: list[str] = []
+    seen: set[str] = set()
+    for seed in seeds:
+        # Personal names ("Paul Singer") match the wrong EDGAR entity.
+        words = [w for w in str(seed or "").replace(",", " ").split() if w]
+        if len(words) < 2:
+            continue
+        while len(words) >= 2:
+            candidate = " ".join(words)
+            key = candidate.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(candidate)
+            if words[-1].lower().strip(".,") in TRAILING_DESCRIPTORS:
+                words = words[:-1]
+            else:
+                break
+    return out
 
 
 def lookup_filer(name: str, *, form: str = "SCHEDULE 13D") -> dict | None:
@@ -224,6 +253,16 @@ def discover(
             continue
 
         resolved_ciks[fid] = record["cik"]
+        # Persist as we go. EDGAR name search is slow and 503s under load, so a
+        # full pass can outlive its timeout -- an all-or-nothing write at the
+        # end meant an interrupted run resolved nothing at all.
+        if write_registry_ciks and len(resolved_ciks) % CIK_FLUSH_EVERY == 0:
+            _persist_ciks(resolved_ciks)
+            print(
+                f"  ... resolved {len(resolved_ciks)} firm CIKs "
+                f"({len(unresolved)} unresolved so far)",
+                flush=True,
+            )
         seen: set[str] = set()
         kept = 0
         for filing in record["filings"]:
