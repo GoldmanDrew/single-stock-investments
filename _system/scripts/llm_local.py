@@ -241,8 +241,63 @@ def extract_json(text: str) -> dict | None:
                 try:
                     return json.loads(cleaned[start:i + 1])
                 except json.JSONDecodeError:
-                    return None
-    return None
+                    break
+    return salvage_truncated(cleaned)
+
+
+def _objects_in(text: str) -> list[dict]:
+    """Every balanced {...} in `text` that parses, in order."""
+    # A stack of open-brace positions, not a single one: the records worth
+    # salvaging are nested inside the outer object's "claims" array, so a walker
+    # that only closes at depth 0 finds nothing when the outer brace never
+    # closes -- which is exactly the truncated case this exists for.
+    out: list[dict] = []
+    stack: list[int] = []
+    in_str = False
+    esc = False
+    for i, ch in enumerate(text):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            stack.append(i)
+        elif ch == "}" and stack:
+            start = stack.pop()
+            try:
+                out.append(json.loads(text[start:i + 1]))
+            except json.JSONDecodeError:
+                pass
+    return out
+
+
+def salvage_truncated(text: str) -> dict | None:
+    """Recover the complete records from a reply that was cut mid-JSON.
+
+    A local model asked for structured extraction will happily produce more than
+    max_tokens allows, and the reply then ends mid-word with unbalanced braces.
+    Brace-matching alone returns nothing, so the entire window's work is thrown
+    away silently -- which is what made claim counts swing between 0 and 11 on
+    the same episode and looked like model variance. It was not; it was this.
+
+    The array elements before the cut are still complete and valid. Take those.
+    A partial final record is dropped, which is correct: it is the one the model
+    had not finished writing.
+    """
+    records = _objects_in(text)
+    if not records:
+        return None
+    claims = [r for r in records if "claim" in r or "company" in r]
+    numbers = [r for r in records if "value" in r and "what" in r]
+    if not claims and not numbers:
+        return None
+    return {"claims": claims, "numbers": numbers, "_salvaged": True}
 
 
 def main() -> int:

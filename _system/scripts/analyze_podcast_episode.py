@@ -334,7 +334,11 @@ def analyze(transcript: str, *, title: str, show: str, model: str | None = None,
             [{"role": "system", "content": SYSTEM},
              {"role": "user", "content": MAP_PROMPT.format(
                  show=show, title=title, universe=universe_note, chunk=chunk)}],
-            model=model, json_object=True, max_tokens=1600,
+            # 3000, not 1600: a dense 12k-character window routinely produces more
+            # than 1600 tokens of claims, and the reply then ends mid-word.
+            # Salvage recovers the complete records, but a ceiling the model
+            # actually fits under loses nothing in the first place.
+            model=model, json_object=True, max_tokens=3000,
         )
         doc = extract_json(reply) or {}
         raw_claims.extend(doc.get("claims") or [])
