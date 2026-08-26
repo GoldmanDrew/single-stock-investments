@@ -2090,6 +2090,7 @@ let activistSearch = '';
 let activistTierFilter = 'signal';
 let activistViewFilter = 'active';
 let activistSortMode = 'materiality';
+let activistFilerClass = 'activist';
 const activistExpandedGroups = new Set();
 let insightsSearchDebounce = null;
 let insightsSearchFocused = false;
@@ -3047,6 +3048,7 @@ function loadLazyFile(key) {
     respiratory_model: () => loadShardOnce('file:respiratory_model', 'data/respiratory_model.json', (doc) => { data.respiratory_model = doc; }),
     document_catalog: () => loadShardOnce('file:document_catalog', 'data/document_catalog.json', (doc) => { data.document_catalog = doc; }),
     activist_feed: () => loadShardOnce('file:activist_feed', 'data/activist_feed.json', (doc) => { data.activist_feed = doc; }),
+    activist_discovery: () => loadShardOnce('file:activist_discovery', 'data/activist_filer_discovery.json', (doc) => { data.activist_discovery = doc; }),
     darwin_bundle: () => loadShardOnce('file:darwin_bundle', 'data/darwin_bundle.json', (doc) => {
       if (doc.darwin) data.darwin = doc.darwin;
       if (doc.darwin_accounts) data.darwin_accounts = doc.darwin_accounts;
@@ -3552,6 +3554,7 @@ function renderActivist() {
     loading.style.display = '';
     content.style.display = 'none';
     if (activeView === 'activist') {
+      loadLazyFile('activist_discovery').catch(() => {});
       loadLazyFile('activist_feed').then(
         () => renderActivist(),
         () => {
@@ -3579,6 +3582,8 @@ function renderActivist() {
     view: activistViewFilter,
     sortMode: activistSortMode,
     expandedGroups: activistExpandedGroups,
+    filerClass: activistFilerClass,
+    discovery: data.activist_discovery || null,
   });
   content.querySelectorAll('[data-activist-side]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3599,6 +3604,12 @@ function renderActivist() {
     btn.addEventListener('click', () => {
       activistViewFilter = btn.dataset.activistView || 'active';
       activistReviewFilter = '';
+      renderActivist();
+    });
+  });
+  content.querySelectorAll('[data-activist-filer]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activistFilerClass = btn.dataset.activistFiler || 'activist';
       renderActivist();
     });
   });

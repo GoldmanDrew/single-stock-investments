@@ -25,6 +25,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from functools import lru_cache
+
 from activist_common import (
     ACTIVIST_FORMS,
     active_firms,
@@ -32,9 +34,15 @@ from activist_common import (
     load_json,
     now_iso,
     portfolio_tickers,
+    ticker_meta,
     write_json,
 )
-from sec_filer_parse import normalize_form, parse_schedule_13_xml
+from sec_filer_parse import (
+    FUND_PERIODIC_FORMS,
+    SECTION_16_FORMS,
+    normalize_form,
+    parse_schedule_13_xml,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "_system" / "frameworks" / "activist_firm_registry.json"
@@ -45,6 +53,11 @@ RETRY_SLEEP_SEC = 2.0
 MAX_RETRIES = 3
 DEFAULT_MIN_DATE = "2025-01-01"
 DEFAULT_PER_FIRM = 40
+# Filer-side forms. These describe the firm rather than any one issuer, so an
+# issuer-driven scan can never see them. Form 4s in particular are the only
+# ownership signal that moves BETWEEN 13D/A amendments.
+SECTION_16_QUERY_FORM = "4"
+FUND_QUERY_FORMS = ("13F-HR", "N-PX")
 
 COMPANY_INFO_RE = re.compile(r"<company-info>(.*?)</company-info>", re.S)
 CIK_RE = re.compile(r"<cik>(\d+)</cik>")
@@ -167,7 +180,15 @@ def discover(
     per_firm: int = DEFAULT_PER_FIRM,
     resolve_issuers: bool = True,
     write_registry_ciks: bool = True,
+    include_section_16: bool = True,
+    include_fund_periodic: bool = True,
 ) -> dict:
+    allowed_forms = set(ACTIVIST_FORMS)
+    if include_section_16:
+        allowed_forms |= set(SECTION_16_FORMS)
+    if include_fund_periodic:
+        allowed_forms |= set(FUND_PERIODIC_FORMS)
+
     holdings = {t.upper() for t in portfolio_tickers()}
     firms = [f for f in active_firms() if firm_has_ingest(f, "sec_13d")]
     if firm_ids:
@@ -184,7 +205,12 @@ def discover(
         record = None
         if cik:
             record = {"cik": cik, "conformed_name": firm.get("name") or fid, "filings": []}
-            for form in ("SCHEDULE 13D", "SCHEDULE 13G", "DFAN14A"):
+            forms = ["SCHEDULE 13D", "SCHEDULE 13G", "DFAN14A"]
+            if include_section_16:
+                forms.append(SECTION_16_QUERY_FORM)
+            if include_fund_periodic:
+                forms.extend(FUND_QUERY_FORMS)
+            for form in forms:
                 found = lookup_filer(firm.get("name") or fid, form=form)
                 if found and found["cik"] == cik:
                     record["filings"].extend(found["filings"])
@@ -203,7 +229,7 @@ def discover(
         for filing in record["filings"]:
             if kept >= per_firm:
                 break
-            if filing["form"] not in ACTIVIST_FORMS:
+            if filing["form"] not in allowed_forms:
                 continue
             if filing["filing_date"] < min_date:
                 continue
@@ -233,7 +259,12 @@ def discover(
         _persist_ciks(resolved_ciks)
 
     rows.sort(key=lambda r: (r.get("filing_date") or "", r.get("firm_id") or ""), reverse=True)
-    off_book = [r for r in rows if r.get("issuer_name") and not _in_book(r, holdings)]
+    cik_map = _issuer_cik_to_ticker(_portfolio_stamp())
+    for row in rows:
+        issuer_cik = str(row.get("issuer_cik") or "").lstrip("0")
+        row["in_book"] = _in_book(row, holdings)
+        row["book_ticker"] = cik_map.get(issuer_cik)
+    off_book = [r for r in rows if r.get("issuer_name") and not r["in_book"]]
     return {
         "generated_at": now_iso(),
         "min_date": min_date,
@@ -246,17 +277,54 @@ def discover(
     }
 
 
-def _in_book(row: dict, holdings: set[str]) -> bool:
-    """Best-effort book membership by issuer name token overlap.
+@lru_cache(maxsize=1)
+def _issuer_cik_to_ticker(stamp: tuple) -> dict[str, str]:
+    """Reverse map from EDGAR issuer CIK to the ticker we hold it under.
 
-    Ticker is not on the filing, so this is advisory: it decides whether a row
-    is highlighted as new, never whether it is kept.
+    The structured cover page carries the issuer CIK, which is exact. The
+    previous test compared the first word of the issuer name against the ticker
+    set, which is neither -- it missed every multi-word issuer and could collide
+    on a common first word.
     """
-    name = (row.get("issuer_name") or "").upper()
+    out: dict[str, str] = {}
+    for ticker in portfolio_tickers():
+        cik = str((ticker_meta(ticker) or {}).get("cik") or "").lstrip("0")
+        if cik:
+            out[cik] = ticker.upper()
+    return out
+
+
+def _in_book(row: dict, holdings: set[str]) -> bool:
+    """Whether this filing targets a company we hold.
+
+    Advisory: it decides whether a row is highlighted as new, never whether it
+    is kept.
+    """
+    issuer_cik = str(row.get("issuer_cik") or "").lstrip("0")
+    if issuer_cik:
+        return issuer_cik in _issuer_cik_to_ticker(_portfolio_stamp())
+    # No structured cover page (pre-2024-12-18): fall back to an exact
+    # normalized name match against the book, never a first-word prefix.
+    name = _normalize_issuer(row.get("issuer_name"))
     if not name:
         return False
-    token = re.sub(r"[^A-Z ]", "", name).split()
-    return bool(token) and token[0] in holdings
+    return any(name == _normalize_issuer(ticker_meta(t).get("company")) for t in holdings)
+
+
+def _normalize_issuer(value: str | None) -> str:
+    text = re.sub(r"[^a-z0-9 ]", " ", str(value or "").lower())
+    # Word-bounded: without \b this strips "inc" out of "Incyte" and "co" out
+    # of "Costar", collapsing unrelated issuers onto the same key.
+    text = re.sub(r"\b(inc|corp|corporation|company|co|ltd|plc|lp|llc|the)\b", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _portfolio_stamp() -> tuple:
+    try:
+        stat = (ROOT / "_system" / "portfolio" / "registry.json").stat()
+    except OSError:
+        return (0, 0)
+    return (stat.st_mtime_ns, stat.st_size)
 
 
 def _persist_ciks(resolved: dict[str, str]) -> None:
@@ -283,6 +351,12 @@ def main() -> int:
     parser.add_argument(
         "--no-issuers", action="store_true", help="Skip the per-filing issuer lookup"
     )
+    parser.add_argument(
+        "--no-section-16", action="store_true", help="Skip Form 4 accumulation filings"
+    )
+    parser.add_argument(
+        "--no-fund-periodic", action="store_true", help="Skip 13F-HR / N-PX filings"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Do not write output files")
     args = parser.parse_args()
 
@@ -292,6 +366,8 @@ def main() -> int:
         per_firm=args.per_firm,
         resolve_issuers=not args.no_issuers,
         write_registry_ciks=not args.dry_run,
+        include_section_16=not args.no_section_16,
+        include_fund_periodic=not args.no_fund_periodic,
     )
     if not args.dry_run:
         write_json(OUTPUT_PATH, result)
