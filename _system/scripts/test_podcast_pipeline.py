@@ -353,6 +353,15 @@ class TickerAttributionTests(unittest.TestCase):
         "visa inc.": "V",
         "ford motor company": "F",
         "amazon.com": "AMZN",
+        # Rows that made the model's own abbreviations dangerous: each is a
+        # real master entry whose name leads with a two- or three-letter symbol
+        # the model writes into the company field.
+        "bank of america": "BAC",
+        "bac.wa": "BAC.WA",
+        "general dynamics": "GD",
+        "gd culture group ltd": "GDC",
+        "texas instruments": "TXN",
+        "3m company": "MMM",
     }
 
     def _validated(self, company, ticker):
@@ -394,6 +403,36 @@ class TickerAttributionTests(unittest.TestCase):
         deleted Visa and Ford from attribution entirely. That floor belongs to
         the substring scanners, not here."""
         self.assertEqual(self._validated("Visa", "V")["ticker"], "V")
+
+    def test_self_naming_does_not_outrank_existence(self):
+        """The model spelling company and ticker the same way is not evidence.
+        "TSMC" is not a symbol -- the master carries TSM -- and "TI" is Telecom
+        Italia, not Texas Instruments, which is TXN. Both walked through on 10
+        and 7 claims because the self-naming case was tested before the master
+        was consulted at all."""
+        for symbol in ("TSMC", "TI"):
+            with self.subTest(symbol=symbol):
+                claim = self._validated(symbol, symbol)
+                self.assertIsNone(claim["ticker"])
+                self.assertEqual(claim["ticker_rejected"], symbol)
+
+    def test_self_naming_still_holds_for_a_symbol_the_master_carries(self):
+        for company, ticker in (("COST", "COST"), ("BAC", "BAC"), ("GD", "GD")):
+            with self.subTest(company=company):
+                self.assertEqual(self._validated(company, ticker)["ticker"], ticker)
+
+    def test_short_symbol_never_leads_a_longer_name(self):
+        """A leading-word run is not a licence for a stub. "BAC" leads
+        "BAC.WA" and took a Bank of America claim to a Warsaw listing; "GD"
+        leads "GD Culture Group Ltd" and took a General Dynamics claim to GDC.
+        Equality needs no floor, but this branch does."""
+        self.assertEqual(self._validated("BAC", "BAC")["ticker"], "BAC")
+        self.assertEqual(self._validated("GD", "GD")["ticker"], "GD")
+
+    def test_two_character_name_still_matches_exactly(self):
+        """The prefix floor must not cost the exact path: 3M is two characters
+        and matches "3M Company" outright."""
+        self.assertEqual(self._validated("3M", "MMM")["ticker"], "MMM")
 
     def test_real_symbol_for_the_wrong_company_is_dropped(self):
         """IVZ is a perfectly real symbol. It is not Vanguard, which the master

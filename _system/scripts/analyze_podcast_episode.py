@@ -193,6 +193,9 @@ def build_aliases(limit_in_book: bool = False) -> dict[str, str]:
 # the two scan sites instead of inside build_aliases is what keeps a claim about
 # Visa attributable to V.
 SCAN_MIN_ALIAS = 5
+# Floor for the leading-word-run branch only. Equality needs no floor -- Visa
+# matches "Visa Inc." exactly, and ("cost",) simply is not ("costco",).
+PREFIX_MIN_CHARS = 4
 
 
 def scan_aliases(aliases: dict[str, str]) -> dict[str, str]:
@@ -249,6 +252,16 @@ def _name_prefix_of(short: str, long: str) -> bool:
     a, b = _name_tokens(short), _name_tokens(long)
     if not a or not b or len(a) >= len(b):
         return False
+    # A stub is not a leading word. Unlike equality, which is self-protecting,
+    # this branch lets a short string capture any longer name that begins with
+    # it -- and the model writes ticker abbreviations into the company field, so
+    # the short strings arriving here are things like "BAC" and "GD". Both were
+    # mis-resolved: "BAC" led "BAC.WA" and took a Bank of America claim to a
+    # Warsaw listing; "GD" led "GD Culture Group Ltd" and took a General
+    # Dynamics claim to GDC. Four characters keeps Ford ("Ford Motor Company")
+    # while refusing every two- and three-letter symbol.
+    if len("".join(a)) < PREFIX_MIN_CHARS:
+        return False
     return b[:len(a)] == a
 
 
@@ -295,14 +308,20 @@ def _corroborates(ticker: str, company: str, by_ticker: dict[str, list[str]]) ->
     apply: the question here is only whether these two names describe the same
     company.
     """
-    # The model routinely puts the symbol in the company field ("COST" for
-    # Costco). A symbol that names itself is not a mismatch.
-    if company.strip().upper() == ticker.strip().upper():
-        return True
     names = by_ticker.get(ticker)
     if not names:
-        # A symbol the master does not carry at all is an unverifiable guess.
+        # A symbol the master does not carry at all is an unverifiable guess,
+        # and that has to be tested BEFORE the self-naming case below. Ordered
+        # the other way it accepted anything the model spelled the same way
+        # twice: "TSMC" (the master carries TSM) and "TI" for Texas Instruments
+        # (TXN) both walked through on 10 and 7 claims respectively, each
+        # because company and ticker matched each other rather than the master.
         return False
+    # The model routinely puts the symbol in the company field -- "COST" for
+    # Costco, "BAC" for Bank of America. A symbol the master carries, naming
+    # itself, is not a mismatch.
+    if company.strip().upper() == ticker.strip().upper():
+        return True
     return any(_same_company(company, n) or _name_prefix_of(company, n) for n in names)
 
 
