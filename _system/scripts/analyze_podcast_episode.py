@@ -157,9 +157,10 @@ def relevant_chunks(chunks: list[str], aliases: dict[str, str]) -> list[tuple[in
     sends two or three windows instead of twenty-two.
     """
     scored: list[tuple[int, int, str]] = []
+    scan = scan_aliases(aliases)
     for i, chunk in enumerate(chunks):
         low = chunk.lower()
-        hits = sum(1 for alias in aliases if alias in low)
+        hits = sum(1 for alias in scan if alias in low)
         if hits:
             scored.append((hits, i, chunk))
     scored.sort(key=lambda row: (-row[0], row[1]))
@@ -180,11 +181,23 @@ def build_aliases(limit_in_book: bool = False) -> dict[str, str]:
             continue
         for alias in [row.get("name") or "", *(row.get("aliases") or [])]:
             alias = (alias or "").strip().lower()
-            # Same 5-character floor as the hotword index: shorter aliases match
-            # inside ordinary prose and would pull in irrelevant windows.
-            if len(alias) >= 5:
+            if alias:
                 out.setdefault(alias, ticker)
     return out
+
+
+# Short names match inside ordinary prose -- "visa" in "visa requirements", "v"
+# in anything -- so the window scanners drop them. Attribution must not: it
+# compares whole names for equality, never substrings, and a floor there simply
+# deletes Visa, Ford and every other short name from the master. Applying it at
+# the two scan sites instead of inside build_aliases is what keeps a claim about
+# Visa attributable to V.
+SCAN_MIN_ALIAS = 5
+
+
+def scan_aliases(aliases: dict[str, str]) -> dict[str, str]:
+    """The subset of the name index safe to look for inside running text."""
+    return {a: t for a, t in aliases.items() if len(a) >= SCAN_MIN_ALIAS}
 
 
 # Models emit these as strings where the schema asked for JSON null.
@@ -194,6 +207,103 @@ _NULLISH = {"", "null", "none", "n/a", "na", "nil", "unknown", "-"}
 def _clean_ticker(value) -> str | None:
     text = str(value or "").strip()
     return None if text.lower() in _NULLISH else text
+
+
+# Dropped before comparing two company names. "Elevance Health" and "Elevance
+# Health Inc" are one company; "Vanguard" and "Vanguard Group" are one company.
+_NAME_NOISE = {
+    "inc", "incorporated", "corp", "corporation", "co", "company", "companies",
+    "ltd", "limited", "plc", "llc", "lp", "nv", "sa", "ag", "spa", "ab", "as",
+    "holdings", "holding", "group", "groupe", "the", "and", "class", "cl",
+    "ordinary", "shares", "share", "common", "stock", "adr", "ads",
+    # "Amazon" against a master row of "Amazon.com".
+    "com", "net", "org",
+}
+
+def _name_tokens(text: str) -> tuple[str, ...]:
+    """A company name reduced to the words that actually name it."""
+    words = re.findall(r"[a-z0-9]+", str(text or "").lower())
+    kept = [w for w in words if w not in _NAME_NOISE and len(w) > 1]
+    return tuple(kept)
+
+
+def _same_company(left: str, right: str) -> bool:
+    """Whether two company names are the same name, once the corporate
+    furniture is stripped. "Elevance Health" and "Elevance Health Inc"; "Visa"
+    and "Visa Inc."."""
+    a, b = _name_tokens(left), _name_tokens(right)
+    return bool(a) and a == b
+
+
+def _name_prefix_of(short: str, long: str) -> bool:
+    """Whether `short` is the leading whole-word run of `long`.
+
+    "Ford" of "Ford Motor Company". Whole tokens, never characters: the
+    character version is what matched "COST" against "costamare inc." and filed
+    four Costco claims under a Greek containership lessor.
+
+    A prefix on its own is still not enough to attribute a claim -- ("apple",)
+    leads both "Apple Inc." and "Apple Hospitality REIT". `_match_alias` is what
+    refuses the ambiguous ones.
+    """
+    a, b = _name_tokens(short), _name_tokens(long)
+    if not a or not b or len(a) >= len(b):
+        return False
+    return b[:len(a)] == a
+
+
+def _match_alias(company: str, aliases: dict[str, str]) -> str | None:
+    """The security master's symbol for a company name, or None.
+
+    Exact name first, then a leading-word run -- but only when the whole master
+    agrees on the answer. "Ford" leads exactly one row, "Ford Motor Company", so
+    it resolves; "Apple" leads both "Apple Inc." and "Apple Hospitality REIT",
+    so on its own it resolves to nothing and the caller drops the symbol rather
+    than picking whichever row the dictionary happened to store first. (Apple
+    itself never reaches that branch -- "Apple" matches "Apple Inc." exactly.)
+
+    Refusing ambiguity is the whole repair. The old code took the first
+    character-wise hit it found, which made dictionary insertion order the
+    arbiter of which company a claim belonged to.
+    """
+    name = str(company or "").strip().lower()
+    if not name:
+        return None
+    hit = aliases.get(name)
+    if hit:
+        return hit
+    exact = {aliases[a] for a in aliases if _same_company(name, a)}
+    if len(exact) == 1:
+        return exact.pop()
+    if exact:
+        return None
+    led = {aliases[a] for a in aliases if _name_prefix_of(name, a)}
+    return led.pop() if len(led) == 1 else None
+
+
+def _names_by_ticker(aliases: dict[str, str]) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for alias, ticker in aliases.items():
+        out.setdefault(ticker, []).append(alias)
+    return out
+
+
+def _corroborates(ticker: str, company: str, by_ticker: dict[str, list[str]]) -> bool:
+    """Whether the master's own name for `ticker` agrees it is `company`.
+
+    Scoped to one symbol, so ambiguity across the rest of the master does not
+    apply: the question here is only whether these two names describe the same
+    company.
+    """
+    # The model routinely puts the symbol in the company field ("COST" for
+    # Costco). A symbol that names itself is not a mismatch.
+    if company.strip().upper() == ticker.strip().upper():
+        return True
+    names = by_ticker.get(ticker)
+    if not names:
+        # A symbol the master does not carry at all is an unverifiable guess.
+        return False
+    return any(_same_company(company, n) or _name_prefix_of(company, n) for n in names)
 
 
 def validate_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
@@ -207,27 +317,45 @@ def validate_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
     the model read off the page and gets right; the symbol is what it guesses.
     So the master decides, and a symbol that contradicts the name is discarded.
 
+    This function spent its first eight episodes doing the opposite of that, in
+    both directions:
+
+    * It **manufactured** mismatches. The old fallback compared raw characters,
+      so `company` = "COST" matched the alias "costamare inc." and the function
+      helpfully "corrected" four Costco claims onto CMRE, a Greek containership
+      lessor. "costco" was in the master the whole time, later in the dict.
+      Matching is now whole-token, and the scan is sorted so a tie cannot
+      resolve differently between runs.
+
+    * It **waved through** real mismatches. The old rejection test asked whether
+      the symbol existed (`ticker not in aliases.values()`), which is the wrong
+      question -- IVZ exists and belongs to Invesco, which is how a Vanguard
+      claim was filed under a competitor. It now asks whether the master's own
+      name for that symbol agrees with the company, and drops it when it does
+      not.
+
     Returns the number of tickers rejected.
     """
+    by_ticker = _names_by_ticker(aliases)
     rejected = 0
     for claim in claims or []:
         ticker = _clean_ticker(claim.get("ticker"))
         claim["ticker"] = ticker
-        company = str(claim.get("company") or "").strip().lower()
+        company = str(claim.get("company") or "").strip()
         if not ticker or not company:
             continue
-        expected = aliases.get(company)
-        if expected is None:
-            for alias, sym in aliases.items():
-                if len(alias) >= 5 and (alias.startswith(company) or company.startswith(alias)):
-                    expected = sym
-                    break
+        expected = _match_alias(company, aliases)
         if expected and expected != ticker:
             claim["ticker"] = expected
             claim["ticker_corrected_from"] = ticker
             rejected += 1
-        elif expected is None and ticker not in aliases.values():
-            # The model named a symbol for a company the master does not carry.
+        elif expected is None and not _corroborates(ticker, company, by_ticker):
+            # The master cannot place this company, so the symbol is the model's
+            # unaided recall. Testing "is the symbol real" was the wrong
+            # question: IVZ is entirely real and belongs to Invesco, which is
+            # how a Vanguard claim ended up filed under a competitor. Ask
+            # instead whether the master's name for the symbol agrees with the
+            # company, and drop it when it does not.
             claim["ticker"] = None
             claim["ticker_rejected"] = ticker
             rejected += 1
@@ -247,14 +375,9 @@ def resolve_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
     for claim in claims or []:
         if claim.get("ticker") or not claim.get("company"):
             continue
-        name = str(claim["company"]).strip().lower()
-        ticker = aliases.get(name)
-        if not ticker:
-            # "Elevance Health" against an alias of "Elevance Health Inc".
-            for alias, sym in aliases.items():
-                if len(alias) >= 5 and (alias.startswith(name) or name.startswith(alias)):
-                    ticker = sym
-                    break
+        # "Elevance Health" against an alias of "Elevance Health Inc" -- but by
+        # whole tokens, so a stub cannot claim a longer name it resembles.
+        ticker = _match_alias(claim["company"], aliases)
         if ticker:
             claim["ticker"] = ticker
             filled += 1
