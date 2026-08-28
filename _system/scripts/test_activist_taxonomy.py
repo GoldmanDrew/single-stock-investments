@@ -32,6 +32,7 @@ from activist_common import (  # noqa: E402
 )
 from build_cloudflare_pages_site import stamp_asset_versions  # noqa: E402
 from sec_filer_parse import (  # noqa: E402
+    analyze_sec_filing,
     classify_filer_type,
     classify_sec_filing,
     parse_schedule_13_xml,
@@ -352,6 +353,120 @@ class SourceHygieneTests(unittest.TestCase):
         # Exact, not a first-word name comparison.
         self.assertTrue(sec_filer_discovery._in_book({"issuer_cik": "0000320193"}, set()))
         self.assertFalse(sec_filer_discovery._in_book({"issuer_cik": "2131524"}, set()))
+
+
+class LookupFailureTests(unittest.TestCase):
+    """A failed request must never read as 'EDGAR has no such filer'."""
+
+    def test_a_failed_request_propagates(self) -> None:
+        # Swallowing this reported 36 firms as having no EDGAR entity when
+        # sec.gov was simply rate-limiting; Ancora and Browning West both
+        # resolve fine on a request that completes.
+        with mock.patch.object(
+            sec_filer_discovery, "fetch", side_effect=RuntimeError("HTTP 503")
+        ):
+            with self.assertRaises(RuntimeError):
+                sec_filer_discovery.lookup_filer("Ancora")
+
+    def test_a_genuine_no_match_returns_none(self) -> None:
+        with mock.patch.object(sec_filer_discovery, "fetch", return_value="<feed></feed>"):
+            self.assertIsNone(sec_filer_discovery.lookup_filer("Nonexistent Fund"))
+
+    def test_discover_separates_errors_from_absence(self) -> None:
+        with mock.patch.object(
+            sec_filer_discovery, "fetch", side_effect=RuntimeError("HTTP 503")
+        ):
+            result = sec_filer_discovery.discover(
+                firm_ids=["elliott"], resolve_issuers=False, write_registry_ciks=False
+            )
+        self.assertEqual(result["unresolved_firms"], [])
+        self.assertGreaterEqual(result["lookup_error_count"], 1)
+
+    def test_cik_probe_covers_both_13d_spellings(self) -> None:
+        # A firm last active before the 2024-12-18 rename only appears under
+        # "SC 13D". Probing only the new label returned "no EDGAR entity" for
+        # Macellum, Soroban and Land & Buildings, all of which resolve at once
+        # under the old one.
+        self.assertIn("SC 13D", sec_filer_discovery.CIK_PROBE_FORMS)
+        self.assertIn("SCHEDULE 13D", sec_filer_discovery.CIK_PROBE_FORMS)
+
+    def test_single_word_firm_stems_are_searched(self) -> None:
+        # EDGAR calls it "Macellum Advisors GP, LLC"; we call it "Macellum
+        # Capital Management". Only the bare stem matches, and stopping the
+        # walk at two words meant it was never queried.
+        names = sec_filer_discovery.firm_search_names(
+            {"name": "Macellum Capital Management", "aliases": []}
+        )
+        self.assertIn("Macellum", names)
+
+    def test_personal_aliases_are_not_reduced_to_one_word(self) -> None:
+        # "Singer" alone would match the wrong EDGAR entity entirely.
+        names = sec_filer_discovery.firm_search_names(
+            {"name": "Elliott Management", "aliases": ["Paul Singer"]}
+        )
+        self.assertNotIn("Paul", names)
+        self.assertNotIn("Singer", names)
+
+    def test_unambiguous_cik_without_company_info_is_accepted(self) -> None:
+        feed = "<feed><cik>0001640326</cik><conformed-name>Macellum Advisors GP, LLC</conformed-name></feed>"
+        with mock.patch.object(sec_filer_discovery, "fetch", return_value=feed):
+            got = sec_filer_discovery.lookup_filer("Macellum")
+        self.assertEqual(got["cik"], "1640326")
+
+    def test_ambiguous_multi_cik_feed_is_declined(self) -> None:
+        feed = "<feed><cik>0000000001</cik><cik>0000000002</cik></feed>"
+        with mock.patch.object(sec_filer_discovery, "fetch", return_value=feed):
+            self.assertIsNone(sec_filer_discovery.lookup_filer("Ambiguous"))
+
+    def test_known_cik_is_queried_by_cik_not_by_name(self) -> None:
+        # EDGAR name search is a prefix match on ITS conformed name, so a firm
+        # whose CIK we hold would still come back empty from a name query.
+        captured = {}
+
+        def fake_fetch(url):
+            captured["url"] = url
+            return "<feed><company-info><cik>0001580320</cik></company-info></feed>"
+
+        with mock.patch.object(sec_filer_discovery, "fetch", side_effect=fake_fetch):
+            sec_filer_discovery.lookup_filer("Engine Capital Management", cik="1580320")
+        self.assertIn("CIK=1580320", captured["url"])
+        self.assertNotIn("company=", captured["url"])
+
+
+class FilerIdentityTests(unittest.TestCase):
+    """Who filed is not the same as who the document mentions."""
+
+    def test_issuer_filing_is_not_credited_to_the_activist_it_discusses(self) -> None:
+        # GE's own 13D/As resolved to Trian, because a GE filing naturally
+        # discusses the activist campaigning at GE. 4 rows on ticker GE were
+        # labelled activist as a result.
+        text = (
+            "Trian Fund Management has campaigned at the company. "
+            "NAMES OF REPORTING PERSONS General Electric Company CITIZENSHIP"
+        )
+        analysis = analyze_sec_filing("SC 13D/A", text)
+        self.assertNotEqual(analysis["firm_id"], "trian")
+        self.assertTrue(analysis["firm_id"].startswith("sec_filer:"))
+        self.assertEqual(analysis["filer_class"], "strategic")
+
+    def test_the_actual_filer_still_resolves(self) -> None:
+        analysis = analyze_sec_filing(
+            "SC 13D/A", "NAMES OF REPORTING PERSONS Trian Fund Management, L.P. CITIZENSHIP"
+        )
+        self.assertEqual(analysis["firm_id"], "trian")
+        self.assertEqual(analysis["filer_class"], "activist")
+
+    def test_body_scan_still_drives_campaign_classification(self) -> None:
+        # A DEFA14A is a campaign filing precisely because it names an activist
+        # in the body -- that question is separate from filer identity.
+        self.assertEqual(
+            analyze_sec_filing("DEFA14A", "the board responds to Starboard Value")["filing_class"],
+            "activist_proxy",
+        )
+        self.assertEqual(
+            analyze_sec_filing("DEFA14A", "routine compensation discussion")["filing_class"],
+            "company_response",
+        )
 
 
 class ReindexTriageTests(unittest.TestCase):
