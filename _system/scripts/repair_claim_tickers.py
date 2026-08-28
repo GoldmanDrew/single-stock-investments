@@ -93,16 +93,22 @@ def main() -> int:
         if not isinstance(analysis, dict) or not analysis.get("claims"):
             continue
         episodes += 1
+        before = json.dumps(meta, indent=2, ensure_ascii=False, sort_keys=True)
         report = revalidate(analysis, aliases)
-        if not report["changed"]:
-            continue
-        touched += 1
-        total_changed += len(report["changed"])
-        print(f"{meta.get('title', meta_path.stem)[:52]:<54} "
-              f"{len(report['changed'])}/{report['claims']} claims re-attributed")
-        for row in report["changed"]:
-            print(f"    {str(row['from']):>6} -> {str(row['to']):<6}  {row['company']}")
-        if not args.dry_run:
+        after = json.dumps(meta, indent=2, ensure_ascii=False, sort_keys=True)
+        if report["changed"]:
+            touched += 1
+            total_changed += len(report["changed"])
+            print(f"{meta.get('title', meta_path.stem)[:52]:<54} "
+                  f"{len(report['changed'])}/{report['claims']} claims re-attributed")
+            for row in report["changed"]:
+                print(f"    {str(row['from']):>6} -> {str(row['to']):<6}  {row['company']}")
+        # Write on any difference, not only a re-attribution. `ticker_basis`
+        # records which rule placed each claim, and it is worth nothing if it
+        # exists only on the episodes that happened to need correcting -- the
+        # point of it is to make the next variant of this bug visible across the
+        # whole corpus without a hand audit.
+        if after != before and not args.dry_run:
             meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n",
                                  encoding="utf-8")
 

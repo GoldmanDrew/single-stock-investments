@@ -362,13 +362,24 @@ class TickerAttributionTests(unittest.TestCase):
         "gd culture group ltd": "GDC",
         "texas instruments": "TXN",
         "3m company": "MMM",
+        # Harvested rows: real companies nobody curated, and the trap for any
+        # rule that resolves a fragment. "Benchmark" the venture firm has no
+        # master row, so "benchmark electronics inc" is the only thing its name
+        # leads -- uniquely, which is exactly why uniqueness cannot be the test.
+        "benchmark electronics inc": "BHE",
+        "alpha pro tech ltd": "APT",
     }
+
+    # The curated book, ~830 of the master's 3,735 rows. The harvested tail
+    # (CMRE, APLE, GDC, BAC.WA, BHE, APT) is deliberately absent.
+    BOOK = frozenset({"COST", "CSGP", "IVZ", "CSU", "ELV", "GOOGL", "AAPL", "V",
+                      "F", "AMZN", "BAC", "GD", "TXN", "MMM"})
 
     def _validated(self, company, ticker):
         from analyze_podcast_episode import validate_tickers  # noqa: WPS433
 
         claims = [{"company": company, "ticker": ticker, "claim": "x"}]
-        validate_tickers(claims, dict(self.ALIASES))
+        validate_tickers(claims, dict(self.ALIASES), self.BOOK)
         return claims[0]
 
     def test_symbol_in_company_field_is_not_a_mismatch(self):
@@ -388,7 +399,7 @@ class TickerAttributionTests(unittest.TestCase):
         answer -- otherwise a claim about Apple lands on a hotel REIT."""
         from analyze_podcast_episode import _match_alias  # noqa: WPS433
 
-        self.assertIsNone(_match_alias("appl", dict(self.ALIASES)))
+        self.assertIsNone(_match_alias("appl", dict(self.ALIASES), self.BOOK))
         # Apple itself is unambiguous: it matches "Apple Inc." exactly.
         self.assertEqual(self._validated("Apple", "AAPL")["ticker"], "AAPL")
         self.assertEqual(self._validated("Apple Hospitality REIT", "APLE")["ticker"], "APLE")
@@ -463,8 +474,8 @@ class TickerAttributionTests(unittest.TestCase):
             with self.subTest(company=company):
                 a = [{"company": company, "ticker": ticker}]
                 b = [{"company": company, "ticker": ticker}]
-                validate_tickers(a, forward)
-                validate_tickers(b, reverse)
+                validate_tickers(a, forward, self.BOOK)
+                validate_tickers(b, reverse, self.BOOK)
                 self.assertEqual(a[0]["ticker"], b[0]["ticker"])
 
     def test_resolve_fills_a_missing_symbol_without_guessing(self):
@@ -475,10 +486,69 @@ class TickerAttributionTests(unittest.TestCase):
             {"company": "COST", "ticker": None},
             {"company": "Vanguard", "ticker": None},
         ]
-        resolve_tickers(claims, dict(self.ALIASES))
+        resolve_tickers(claims, dict(self.ALIASES), self.BOOK)
         self.assertEqual(claims[0]["ticker"], "ELV")
         self.assertIsNone(claims[1]["ticker"])
         self.assertIsNone(claims[2]["ticker"])
+
+    def test_unique_leading_word_is_not_enough_on_its_own(self):
+        """Fourth variant of the same bug. The ambiguity gate asks whether two
+        master rows compete for the stub; it cannot ask whether the company the
+        speaker meant is in the master at all. "Benchmark" -- the venture firm,
+        which has no row -- uniquely leads "Benchmark Electronics Inc", so it
+        won uncontested and carried a claim about a VC to a contract
+        manufacturer. Oaktree -> OCSL, Sears -> SCC.T and Tencent -> TME are the
+        same shape, 6 of 75 leading-word attributions in the live corpus."""
+        claim = self._validated("Benchmark", "BHE")
+        self.assertIsNone(claim["ticker"])
+        self.assertEqual(claim["ticker_rejected"], "BHE")
+        # ...while a leading-word run onto the book still resolves.
+        self.assertEqual(self._validated("Ford", "F")["ticker"], "F")
+
+    def test_self_naming_does_not_reach_the_harvested_tail(self):
+        """Self-naming contains no evidence at all -- neither field is a company
+        name -- so it may only land on a curated symbol. "APT" took a claim
+        about Applied Technology to Alpha Pro Tech on nothing but the model
+        spelling it the same way twice."""
+        claim = self._validated("APT", "APT")
+        self.assertIsNone(claim["ticker"])
+        self.assertEqual(claim["ticker_rejected"], "APT")
+
+    def test_every_attribution_records_the_rule_that_made_it(self):
+        """Each of the four variants was found by auditing live output, never by
+        a failing test. Recording the branch makes the fifth visible in the
+        corpus without a hand audit."""
+        for company, ticker, basis in (("Costco", "COST", "exact_name"),
+                                       ("Elevance Health", "ELV", "same_name"),
+                                       ("Ford", "F", "leading_word"),
+                                       ("COST", "COST", "self_named")):
+            with self.subTest(company=company):
+                self.assertEqual(self._validated(company, ticker)["ticker_basis"], basis)
+
+    def test_a_symbol_is_not_a_company_name(self):
+        """274 master rows, every one a foreign listing, are named only by their
+        own symbol: BA.L is called "ba.l". The model wrote company "BA" for
+        Boeing, which reduces to the same single token, so it matched by
+        *equality* -- the one path with no length floor -- and a Boeing claim
+        landed on BAE Systems in London."""
+        import whisper_vocab  # noqa: WPS433
+        from analyze_podcast_episode import build_aliases  # noqa: WPS433
+
+        rows = {"BA.L": {"name": "BA.L", "in_book": False},
+                "IBM": {"name": "IBM", "in_book": True},
+                "AAON": {"name": "AAON, Inc.", "in_book": True}}
+        original = whisper_vocab._securities
+        whisper_vocab._securities = lambda: rows
+        try:
+            aliases = build_aliases()
+        finally:
+            whisper_vocab._securities = original
+        self.assertNotIn("ba.l", aliases)
+        # The exchange suffix is the tell. A plain symbol that is also the
+        # company's name is a name: IBM, RH and UBER are the three, and
+        # dropping IBM on this rule cost 22 correct claims.
+        self.assertEqual(aliases.get("ibm"), "IBM")
+        self.assertEqual(aliases.get("aaon, inc."), "AAON")
 
     def test_scan_floor_excludes_short_names_from_window_matching(self):
         """Short names are unsafe to look for *inside* prose -- visa matches
