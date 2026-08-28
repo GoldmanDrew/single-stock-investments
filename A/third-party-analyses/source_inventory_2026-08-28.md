@@ -1,0 +1,15 @@
+# A — Third-party source inventory
+
+**Date:** 2026-08-28
+**Sources:** 6 total (5 approved, 1 pending, 0 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| apld_pf3_summary | Applied Digital / Marvin shop summary (PF3 PR) | `APLD/investor-documents/research-notes/2026-05-20_Polaris_Forge_3_lease_summary.md` | approved | **2026-05-28** (human: yes) |
+| apld_reiterate_buy | Research note (run-the-table bull case) | `APLD/investor-documents/research-notes/What Would A Run The Table Scenario Look Like_ Reiterate BUY.pdf` | approved | **2026-05-28** (human: yes — catalyst / bull framing; not sole IRR anchor) |
+| apld_oasis_13d | Oasis Management (SC 13D/A) | `APLD/third-party-analyses/activist_reports_index.json` | approved | **2026-07-01** (human: yes — activist governance context; SEC filings in `activi |
+| apld_wolfpack_short | Wolfpack Research short cache (Jul 2023) | `APLD/third-party-analyses/short_reports/wolfpack_2023-07.md` | approved | **2026-07-01** (human: yes — stale forensic short; context only, not base IRR) |
+| verdad_biotech_2026 | Verdad Capital — Biotech Investing (Obenshain, Rasmussen, Wi | `_system/reference/biotech-quant/papers/verdad_biotech_investing_2026.pdf` | approved | **2026-07-09** (context tier — specialist consensus, spend value, peer momentum; |
+| vic | 10-Build-A-Bear-Workshop | `A/third-party-analyses/vic/10-Build-A-Bear-Workshop.pdf` | pending | VIC local single-page intake; human approval required |
+
+Cross-check required: `A/research/cross_check_third_party_2026-08-28.md`

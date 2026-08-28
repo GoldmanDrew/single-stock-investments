@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-28
-**Rows:** 2723
+**Rows:** 1662
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -41,6 +41,21 @@
 | 2026-08-28 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-28 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-28 | ZBRA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-08-28 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Third Point Sends Letter to Board of Directors of CoStar Gro |
+| 2026-08-28 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | The D. E. Shaw Group Releases Open Letter and Presentation t |
+| 2026-08-28 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | D.E. Shaw Group Letter to CoStar Board: Reduced Transparency |
+| 2026-08-28 | CHTR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Advance Publications, Inc. — SC 13D/A |
+| 2026-08-28 | CHTR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Soroban Capital — SC 13D/A |
+| 2026-08-28 | DASH | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13G/A |
+| 2026-08-28 | CSGP | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 09-CoStar-Group |
+| 2026-08-28 | CSGP | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | VIC PDF intake - CSGP - CSGP VIC PDF |
+| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
+| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
+| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Mitani-Sekisan |
+| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-HLS-Therapeutics |
+| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 05-Onterris |
+| 2026-08-28 | CHTR | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 07-Charter-Communications |
+| 2026-08-28 | DASH | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-Yelp |
 | 2026-08-27 | ADSK | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Autodesk (ADSK) FY2027 Q2 Earnings Call: Guidance Raised Aft |
 | 2026-08-27 | ULTA | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Ulta Beauty Shares Dip 2.9% After Hours Even as Outlook Lift |
 | 2026-08-27 | HPQ | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | HP: Double Earnings Beat, Raised Guidance, But Near 50% Rall |
@@ -56,10 +71,6 @@
 | 2026-08-26 | SBUX | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Strategic Organizing Center — DEFC14A (proxy solicitation) |
 | 2026-08-26 | SBUX | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | DEFC14A (proxy solicitation) · SBUX · 2024-01-25 |
 | 2026-08-26 | SBUX | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Strategic (+7) — DFAN14A (proxy solicitation) |
-| 2026-08-26 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Third Point Sends Letter to Board of Directors of CoStar Gro |
-| 2026-08-26 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | The D. E. Shaw Group Releases Open Letter and Presentation t |
-| 2026-08-26 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | D.E. Shaw Group Letter to CoStar Board: Reduced Transparency |
-| 2026-08-26 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Third Point — DEFA14A |
 | 2026-08-26 | GDRZF | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | STEELHEAD PARTNERS, LLC — SC 13D/A |
 | 2026-08-26 | GDRZF | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Camac Partners — SC 13D/A |
 | 2026-08-26 | DLTR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Mantle Ridge — DEFA14A |
@@ -77,12 +88,6 @@
 | 2026-08-26 | CVNA | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Verde Investments, Inc. — SC 13D/A |
 | 2026-08-26 | DLTR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Starboard Value — DFAN14A (proxy solicitation) |
 | 2026-08-26 | CVNA | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Mar 1, 2019 |
-| 2026-08-26 | CSGP | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | VIC PDF intake - CSGP - CSGP VIC PDF |
-| 2026-08-26 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
-| 2026-08-26 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
-| 2026-08-26 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-HLS-Therapeutics |
-| 2026-08-26 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 05-Onterris |
-| 2026-08-26 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 06-Hikari-Tsushin |
 | 2026-08-25 | BR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 28, 2022 |
 | 2026-08-25 | BR | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 04-Broadridge |
 | 2026-08-22 | AXON | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Jun 19, 2019 |
@@ -161,8 +166,6 @@
 | 2026-08-02 | GNRC | third_party | context | 21 | rule_conflict, activist_cross_link, neutral_low_impact | Generac Power Systems, Inc. — SC 13D |
 | 2026-08-02 | QDEL | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre` |
 | 2026-08-02 | EQT | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | D.E. Shaw — DFAN14A (proxy solicitation) |
-| 2026-08-02 | CHTR | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | S Advance Publications, Inc. — SC 13D/A |
-| 2026-08-02 | CHTR | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Soroban Capital — SC 13D/A |
 | 2026-08-02 | CIFR | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Bitfury Group Limited — SC 13D/A |
 | 2026-08-02 | CCI | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Elliott Management — DFAN14A (proxy solicitation) |
 | 2026-08-02 | CCI | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | BOOTS PARALLEL 1, LP — DFAN14A (proxy solicitation) |
@@ -202,6 +205,3 @@
 | 2026-08-02 | BMY | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | I.R.S. IDENTIFICATION NOS. OF ABOVE PERSONS (... — SC 13D/A |
 | 2026-08-02 | GNRC | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Jun 22, 2022 |
 | 2026-08-02 | QDEL | third_party | context | 21 | rule_conflict, activist_cross_link, neutral_low_impact | McIntyre Partnerships |
-| 2026-08-02 | APLD | third_party | context | 21 | rule_conflict, activist_cross_link, neutral_low_impact | Applied Digital / Marvin shop summary (PF3 PR) |
-| 2026-08-02 | APLD | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Research note (run-the-table bull case) |
-| 2026-08-02 | APLD | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Oasis Management (SC 13D/A) |
