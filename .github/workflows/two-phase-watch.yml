@@ -1,25 +1,22 @@
 name: Two-phase cooling watch
 
-# Weekly INV Accelsius monitor. Event PDF indexes on dispatch or in Mar/Aug/Oct.
+# Weekly INV Accelsius monitor. Event PDF indexes in Mar/Aug/Oct via --auto-events.
 # Does not scrape LinkedIn. Does not edit valuation.json.
+#
+# Schedule only. `workflow_dispatch` with inputs is what
+# test_llm_workflow_governance.test_actions_surface_has_no_manual_run_choices
+# forbids -- the manual run *choices* are the thing it guards. This file was
+# merged in #907 two days after that test landed, so it has been failing
+# `validate` on main ever since, and with it every open research PR.
+#
+# The IR and news fetches ran on every scheduled run anyway; only the inputs'
+# defaults are gone, not the behaviour. If the manual trigger is wanted back,
+# the repo's own precedent is to allow-list the file in that test (see
+# 74fb49e3721 for darwin-refresh) rather than to keep a red check.
 
 on:
   schedule:
     - cron: "0 17 * * 0"   # Sunday 17:00 UTC, after World Model
-  workflow_dispatch:
-    inputs:
-      fetch_events:
-        description: Force event PDF index fetch (ARPA-E, Hot Chips, GTC, OCP, AMD Instinct)
-        type: boolean
-        default: false
-      fetch_ir:
-        description: Fetch Accelsius / Innventure IR allowlist
-        type: boolean
-        default: true
-      fetch_news:
-        description: Fetch Google News theme queries (including LinkedIn-as-publisher)
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -49,17 +46,7 @@ jobs:
       - name: Compile two-phase watch
         run: |
           set -euo pipefail
-          args=(--auto-events)
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.fetch_ir }}" = "true" ]; then
-            args+=(--ir)
-          fi
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.fetch_news }}" = "true" ]; then
-            args+=(--news)
-          fi
-          if [ "${{ inputs.fetch_events }}" = "true" ]; then
-            args+=(--events)
-          fi
-          python _system/scripts/two_phase_watch.py "${args[@]}"
+          python _system/scripts/two_phase_watch.py --auto-events --ir --news
       - name: Commit watch artifacts
         uses: ./.github/actions/commit-main
         with:
