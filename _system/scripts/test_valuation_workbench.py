@@ -105,6 +105,81 @@ class ValuationWorkbenchTests(unittest.TestCase):
         self.assertEqual(view["profile_id"], "quality_reinvestment")
         self.assertIn("hohn", view["primary_personas"])
 
+    def test_generic_automated_owner_earnings_model_is_screening_grade(self):
+        valuation = {
+            "method": "proof_first_automated",
+            "valuation_methodology": {"automation": "source_locked_first_pass"},
+            "component_valuation_results": {
+                "additive_components": [{
+                    "id": "operating_business_and_net_assets",
+                    "method": "owner_earnings_reinvestment_dcf",
+                }],
+            },
+        }
+        contract = {
+            "status": "decision_grade",
+            "economic_ownership_map": [{
+                "component_id": "operating_business_and_net_assets",
+                "treatment": "additive",
+                "method": "owner_earnings_reinvestment_dcf",
+            }],
+            "component_coverage": {"unvalued_component_count": 0},
+        }
+        level, reason = workbench.valuation_model_level(
+            valuation,
+            contract,
+            {"open_count": 0, "critical_count": 0},
+            {"status": "not_started"},
+        )
+        self.assertTrue(workbench.is_automated_generic_screening_model(valuation, contract))
+        self.assertEqual(level, "screening_grade")
+        self.assertIn("triage", reason)
+
+    def test_custom_model_progresses_through_review_levels(self):
+        valuation = {
+            "method": "full",
+            "component_valuation_results": {"additive_components": [{"id": "core"}]},
+        }
+        contract = {
+            "status": "decision_grade",
+            "economic_ownership_map": [{"component_id": "core", "treatment": "additive"}],
+            "component_coverage": {"unvalued_component_count": 0},
+        }
+        evidence = {"open_count": 0, "critical_count": 0}
+        level, _ = workbench.valuation_model_level(valuation, contract, evidence, {})
+        self.assertEqual(level, "stock_specific")
+        level, _ = workbench.valuation_model_level(
+            valuation, contract, evidence, {"record_ref": "AAA/research/committee_2026-01-01.json"}
+        )
+        self.assertEqual(level, "committee_reviewed")
+        level, _ = workbench.valuation_model_level(
+            valuation,
+            contract,
+            evidence,
+            {"record_ref": "x", "owner_status": "decided", "owner_decision": "hold"},
+        )
+        self.assertEqual(level, "owner_approved")
+
+    def test_model_dates_and_margin_of_safety_are_distinct(self):
+        contract = {
+            "as_of": "2026-08-20",
+            "market": {"price_as_of": "2026-08-19"},
+            "source_lineage": [
+                {"as_of": "2025-12-31"},
+                {"as_of": "2026-06-30"},
+            ],
+        }
+        self.assertEqual(
+            workbench._model_dates({}, contract),
+            {
+                "model_as_of": "2026-08-20",
+                "latest_fact_as_of": "2026-06-30",
+                "oldest_fact_as_of": "2025-12-31",
+                "price_as_of": "2026-08-19",
+            },
+        )
+        self.assertEqual(workbench._margin_of_safety({"base": 125}, 100)["base"], 20.0)
+
 
 if __name__ == "__main__":
     unittest.main()

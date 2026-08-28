@@ -39,7 +39,7 @@ class DecisionAuthorityTests(unittest.TestCase):
             "valuation_contract.json",
             {
                 "status": "decision_grade",
-                "valuation": {"annualized_return_at_price_pct": {"low": 4, "base": 12, "high": 20}},
+                "valuation": {"forward_return_at_price_pct": {"low": 4, "base": 12, "high": 20}},
             },
         )
         self.write("human_decision.json", {"status": "decided", "decision": "hold", "sizing": "5%"})
@@ -47,7 +47,51 @@ class DecisionAuthorityTests(unittest.TestCase):
         self.assertTrue(authority["actionable"])
         self.assertEqual(authority["stance"], "hold")
         self.assertEqual(authority["sizing"], "5%")
-        self.assertEqual(contract_return_display(authority), "12% (contract base)")
+        self.assertEqual(authority["model_level"], "owner_approved")
+        self.assertEqual(contract_return_display(authority), "12% (forward return, contract base)")
+
+    def test_old_annualized_value_gap_is_audit_only(self):
+        valuation = {"ticker": "AAA", "method": "full"}
+        self.write("valuation.json", valuation)
+        self.write(
+            "valuation_contract.json",
+            {
+                "status": "decision_grade",
+                "valuation": {
+                    "annualized_return_at_price_pct": {"low": 4, "base": 99, "high": 120},
+                },
+            },
+        )
+        authority = resolve_authority(self.research, valuation)
+        self.assertEqual(authority["model_level"], "stock_specific")
+        self.assertEqual(authority["return_range_pct"], {"low": None, "base": None, "high": None})
+        self.assertFalse(authority["return_publishable"])
+        self.assertIsNone(contract_return_display(authority))
+
+    def test_screening_model_cannot_publish_even_canonical_forward_return(self):
+        valuation = {
+            "ticker": "AAA",
+            "method": "proof_first_automated",
+            "valuation_methodology": {"automation": "source_locked_first_pass"},
+            "component_valuation_results": {
+                "additive_components": [{
+                    "id": "operating_business_and_net_assets",
+                    "method": "owner_earnings_reinvestment_dcf",
+                }],
+            },
+        }
+        self.write("valuation.json", valuation)
+        self.write(
+            "valuation_contract.json",
+            {
+                "status": "decision_grade",
+                "valuation": {"forward_return_at_price_pct": {"base": 22}},
+            },
+        )
+        authority = resolve_authority(self.research, valuation)
+        self.assertEqual(authority["model_level"], "screening_grade")
+        self.assertIsNone(authority["return_range_pct"]["base"])
+        self.assertIsNone(contract_return_display(authority))
 
     def test_legacy_is_visible_but_never_actionable(self):
         self.write("valuation.json", {"ticker": "AAA", "approved_stance": "core", "implied_return": {"base_pct": 15}})

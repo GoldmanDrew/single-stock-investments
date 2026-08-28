@@ -113,20 +113,28 @@ def extract_shared_context(val: dict, registry_class: dict | None = None,
     if bull is None:
         bull = _num(implied.get("bull_pct"))
 
-    # Contract fallback: contract-first compilers (the scarce-asset and other
-    # routed methods) leave the legacy results/implied_return fields empty and
-    # write returns to valuation_contract.json instead; without this fallback
-    # every persona sits at 'pending' on exactly those tickers (WHK class).
-    # Fallback only -- explicit legacy numbers keep precedence.
-    return_source = "valuation"
+    # Explicit valuation.json returns are legacy persona inputs.  They may
+    # remain visible inside the lens artifact for audit, but only Contract-v3's
+    # canonical forward return can be labeled as a contract return.
+    return_source = "legacy_valuation" if base is not None or bear is not None or bull is not None else "missing"
     if base is None and bear is None and bull is None:
         contract_returns = ((contract or {}).get("valuation") or {}).get(
-            "annualized_return_at_price_pct") or {}
-        base = _num(contract_returns.get("base"))
-        bear = _num(contract_returns.get("low"))
-        bull = _num(contract_returns.get("high"))
-        if base is not None or bear is not None or bull is not None:
-            return_source = "contract"
+            "forward_return_at_price_pct") or {}
+        methodology = val.get("valuation_methodology") or {}
+        components = (val.get("component_valuation_results") or {}).get("additive_components") or []
+        generic_screen = bool(
+            methodology.get("automation") == "source_locked_first_pass"
+            and len(components) == 1
+            and (components[0].get("id") or components[0].get("component_id"))
+            == "operating_business_and_net_assets"
+            and components[0].get("method") == "owner_earnings_reinvestment_dcf"
+        )
+        if (contract or {}).get("status") == "decision_grade" and not generic_screen:
+            base = _num(contract_returns.get("base"))
+            bear = _num(contract_returns.get("low"))
+            bull = _num(contract_returns.get("high"))
+            if base is not None or bear is not None or bull is not None:
+                return_source = "contract_forward"
 
     synthesis_pct = _num(synthesis.get("total_synthesis_pct"))
     if synthesis_pct is None:
@@ -166,6 +174,7 @@ def extract_shared_context(val: dict, registry_class: dict | None = None,
 
     return {
         "return_source": return_source,
+        "return_actionable": return_source == "contract_forward",
         "archetype": str(resolved["archetype"] or "unknown").lower(),
         "moat": str(resolved["moat"] or "unproven").lower(),
         "dhando": str(resolved["dhando"] or "pending").lower(),

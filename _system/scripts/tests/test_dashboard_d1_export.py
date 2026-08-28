@@ -103,6 +103,74 @@ class DashboardD1ExportTests(unittest.TestCase):
             self.assertLessEqual(criticality[1], 100)
             self.assertIn(criticality[2], {"ready", "limited"})
 
+    def test_operational_return_uses_only_publishable_canonical_forward_return(self):
+        rows = [
+            {
+                "ticker": "CANON",
+                "company": "Canonical",
+                "classification": {},
+                "valuation_tier": {"tier": 1, "tier_id": "tier_1"},
+                "valuation_decision": {
+                    "status": "decision_grade",
+                    "model_level": "stock_specific",
+                    "return_publishable": True,
+                    "forward_return_at_price_pct": {"base": 12.5},
+                },
+            },
+            {
+                "ticker": "LEGACY",
+                "company": "Legacy",
+                "classification": {},
+                "valuation_decision": {
+                    "status": "decision_grade",
+                    "model_level": "stock_specific",
+                    "return_publishable": True,
+                    "annualized_return_at_price_pct": {"base": 88.0},
+                },
+            },
+            {
+                "ticker": "SCREEN",
+                "company": "Screen",
+                "classification": {},
+                "valuation_decision": {
+                    "status": "decision_grade",
+                    "model_level": "screening_grade",
+                    "return_publishable": True,
+                    "forward_return_at_price_pct": {"base": 33.0},
+                },
+            },
+        ]
+        core = {
+            "generated_at": "2026-08-28T12:00:00Z",
+            "summary": {"holdings": 3},
+            "valuation_queue": {"items": []},
+            "tickers": rows,
+        }
+        migration = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "dashboard" / "cloudflare" / "migrations").glob("*.sql"))
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
+            temp = Path(temp_dir)
+            core_path = temp / "core.json"
+            seed_path = temp / "seed.sql"
+            core_path.write_text(json.dumps(core), encoding="utf-8")
+            exporter.export(core_path, seed_path)
+            connection = sqlite3.connect(":memory:")
+            connection.executescript(migration)
+            connection.executescript(seed_path.read_text(encoding="utf-8"))
+            observed = dict(connection.execute(
+                "SELECT ticker, annualized_return_base_pct FROM valuation_current"
+            ).fetchall())
+            self.assertEqual(observed["CANON"], 12.5)
+            self.assertIsNone(observed["LEGACY"])
+            self.assertIsNone(observed["SCREEN"])
+            payload = json.loads(connection.execute(
+                "SELECT payload_json FROM valuation_current WHERE ticker = 'CANON'"
+            ).fetchone()[0])
+            self.assertEqual(payload["model_level"], "stock_specific")
+            self.assertEqual(payload["valuation_tier"]["tier_id"], "tier_1")
+
 
 if __name__ == "__main__":
     unittest.main()

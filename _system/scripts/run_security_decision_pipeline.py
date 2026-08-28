@@ -22,6 +22,11 @@ SCRIPTS = ROOT / "_system" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from build_power_zone_pricing import build_contract_pricing  # noqa: E402
+from build_valuation_universe_tiers import (  # noqa: E402
+    build_manifest as build_tier_manifest,
+    validate_manifest as validate_tier_manifest,
+    write_manifest as write_tier_manifest,
+)
 from build_valuation_workbench import write as write_workbench  # noqa: E402
 from falsifier_specs import (  # noqa: E402
     anchor_errors as falsifier_anchor_errors,
@@ -61,13 +66,19 @@ def read_json(path: Path, default=None):
         return {} if default is None else default
 
 
-def selected_tickers(scope: str, explicit: list[str] | None = None) -> list[str]:
+def selected_tickers(scope: str, explicit: list[str] | None = None,
+                     tier_manifest: dict | None = None) -> list[str]:
     if explicit:
         return sorted(set(t.upper() for t in explicit))
     entries = registry_entries()
     if scope == "valued":
         return sorted(t for t in entries if (ROOT / t / "research" / "valuation.json").exists())
     if scope == "priority":
+        if tier_manifest is not None:
+            return sorted(
+                ticker for ticker, row in (tier_manifest.get("assignments") or {}).items()
+                if row.get("tier") in {1, 2}
+            )
         followups = read_json(ROOT / "_system" / "reference" / "valuation_followups.json")
         followup_names = set((followups.get("tickers") or {})) & set(entries)
         portfolio_names = {
@@ -78,6 +89,34 @@ def selected_tickers(scope: str, explicit: list[str] | None = None) -> list[str]
         }
         return sorted(followup_names | portfolio_names)
     return sorted(entries)
+
+
+def stage_universe_tiers(as_of: str, dry_run: bool) -> tuple[dict, dict]:
+    """Build research priorities before any automated decision progression."""
+    try:
+        manifest = build_tier_manifest(ROOT, as_of)
+        errors = validate_tier_manifest(manifest)
+        errors.extend(manifest.get("source_errors") or [])
+        if not dry_run:
+            write_tier_manifest(
+                manifest,
+                ROOT / "_system" / "data" / "valuation_universe_tiers.json",
+            )
+        return ({
+            "status": "valid" if not errors else "degraded",
+            "artifact": "_system/data/valuation_universe_tiers.json",
+            "tier_counts": (manifest.get("summary") or {}).get("tier_counts") or {},
+            "universe_count": (manifest.get("summary") or {}).get("universe_count") or 0,
+            "errors": sorted(set(errors)),
+        }, manifest)
+    except Exception as exc:
+        return ({
+            "status": "failed",
+            "artifact": "_system/data/valuation_universe_tiers.json",
+            "tier_counts": {},
+            "universe_count": 0,
+            "errors": [f"{type(exc).__name__}: {exc}"],
+        }, {})
 
 
 def curated_evidence_blockers(ticker: str) -> list[str]:
@@ -326,7 +365,8 @@ def stage_pricing(tickers: list[str], as_of: str, dry_run: bool) -> dict:
     return {"priced": priced, "skipped": skipped, "errors": errors}
 
 
-def decision_triggers(ticker: str, holding: dict) -> list[str]:
+def decision_triggers(ticker: str, holding: dict,
+                      tier_assignment: dict | None = None) -> list[str]:
     research = ROOT / ticker / "research"
     triggers = []
     stance = str(((holding or {}).get("classification") or {}).get("stance") or "").lower()
@@ -345,12 +385,26 @@ def decision_triggers(ticker: str, holding: dict) -> list[str]:
     human = read_json(research / "human_decision.json")
     if human and str(human.get("status") or "").lower() == "expired":
         triggers.append("human decision expired")
+    if tier_assignment and tier_assignment.get("tier") == 1:
+        codes = sorted({
+            str(row.get("code")) for row in tier_assignment.get("assignment_reasons") or []
+            if isinstance(row, dict) and row.get("code")
+        })
+        triggers.append("Tier 1 research priority: " + ", ".join(codes or ["explicit owner priority"]))
     return triggers
 
 
-def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
+def stage_committees(tickers: list[str], as_of: str, dry_run: bool,
+                     tier_manifest: dict | None = None) -> dict:
     entries = registry_entries()
     initiated, active, blocked, evidence_tasks, resting = [], [], [], [], []
+    tier_blocked, model_level_blocked = [], []
+    enforce_tiers = tier_manifest is not None
+    assignments = (tier_manifest or {}).get("assignments") or {}
+    allowed_model_levels = set(
+        ((tier_manifest or {}).get("policy") or {}).get("committee_eligible_model_levels")
+        or {"stock_specific", "committee_reviewed", "owner_approved"}
+    )
     for ticker in tickers:
         existing_manifest = read_json(ROOT / ticker / "research" / "committee_work" / as_of / "manifest.json")
         # Any manifest at this exact date, whatever stage it reached, means the
@@ -364,11 +418,43 @@ def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
             })
             continue
         decision, committee = workbench_status(ticker)
-        triggers = decision_triggers(ticker, entries.get(ticker) or {})
+        tier_assignment = assignments.get(ticker) if enforce_tiers else None
+        if enforce_tiers and tier_assignment is None:
+            tier_assignment = {
+                "tier": 3,
+                "tier_id": "unassigned_fail_closed",
+                "assignment_reasons": [],
+                "workflow_policy": {"committee_auto_start_allowed": False},
+            }
+        triggers = decision_triggers(ticker, entries.get(ticker) or {}, tier_assignment)
+        if enforce_tiers and (
+            tier_assignment.get("tier") != 1
+            or not ((tier_assignment.get("workflow_policy") or {}).get("committee_auto_start_allowed"))
+        ):
+            if triggers:
+                tier_blocked.append({
+                    "ticker": ticker,
+                    "tier_id": tier_assignment.get("tier_id"),
+                    "reason": "Only Tier 1 may auto-start an investment committee.",
+                    "triggers": triggers,
+                })
+            continue
         if decision != "decision_grade":
             if triggers:
                 evidence_tasks.append({"ticker": ticker, "decision": decision, "triggers": triggers})
             continue
+        if enforce_tiers:
+            workbench = read_json(ROOT / ticker / "research" / "valuation_workbench.json")
+            model_level = str(((workbench.get("decision") or {}).get("model_level")) or "missing")
+            if model_level not in allowed_model_levels:
+                model_level_blocked.append({
+                    "ticker": ticker,
+                    "model_level": model_level,
+                    "allowed_model_levels": sorted(allowed_model_levels),
+                    "reason": "Committee requires a stock-specific or human-reviewed model level.",
+                    "triggers": triggers,
+                })
+                continue
         if not triggers:
             resting.append(ticker)
             continue
@@ -389,6 +475,8 @@ def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
         "blocked": blocked,
         "triggered_evidence_tasks": evidence_tasks,
         "decision_grade_resting": resting,
+        "tier_blocked": tier_blocked,
+        "model_level_blocked": model_level_blocked,
     }
 
 
@@ -444,11 +532,18 @@ def main() -> int:
     parser.add_argument("--skip-dashboard", action="store_true")
     args = parser.parse_args()
     as_of = args.date[:10]
-    tickers = selected_tickers(args.scope, args.tickers)
+    tier_stage, tier_manifest = stage_universe_tiers(as_of, args.dry_run)
+    counts = tier_stage.get("tier_counts") or {}
+    print(
+        "[0/7] tiers: "
+        f"{counts.get('tier_1', 0)} Tier 1, {counts.get('tier_2', 0)} Tier 2, "
+        f"{counts.get('tier_3', 0)} Tier 3, {len(tier_stage['errors'])} errors"
+    )
+    tickers = selected_tickers(args.scope, args.tickers, tier_manifest)
     print(f"universe: scope={args.scope} tickers={len(tickers)}")
 
     routes = stage_routes(tickers, as_of, args.dry_run)
-    print(f"[1/6] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
+    print(f"[1/7] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
     power_zones = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
     if not args.dry_run and not args.tickers:
         power_zones = run_script("_system/scripts/build_power_zones.py")
@@ -456,19 +551,24 @@ def main() -> int:
         power_zones["status"] = "targeted_route_only"
 
     contracts = stage_contracts(tickers, args.dry_run, as_of)
-    print(f"[2/6] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
+    print(f"[2/7] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
 
     contract_tickers = [row["ticker"] for row in contracts["written"]]
     workbenches = stage_workbenches(contract_tickers, as_of, args.dry_run)
-    print(f"[3/6] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
+    print(f"[3/7] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
 
     pricing = stage_pricing(workbenches["written"], as_of, args.dry_run)
-    print(f"[4/6] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
+    print(f"[4/7] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
     for row in pricing.get("errors") or []:
         print(f"  pricing error {row.get('ticker')}: {row.get('error')}")
 
-    committees = stage_committees(workbenches["written"], as_of, args.dry_run)
-    print(f"[5/6] committees: {len(committees['initiated'])} initialized, {len(committees['blocked'])} blocked, {len(committees['triggered_evidence_tasks'])} evidence tasks")
+    committees = stage_committees(workbenches["written"], as_of, args.dry_run, tier_manifest)
+    print(
+        f"[5/7] committees: {len(committees['initiated'])} initialized, "
+        f"{len(committees['blocked'])} busy/failed, {len(committees['tier_blocked'])} tier-blocked, "
+        f"{len(committees['model_level_blocked'])} model-level-blocked, "
+        f"{len(committees['triggered_evidence_tasks'])} evidence tasks"
+    )
 
     dashboard = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
     if not args.skip_dashboard and not args.dry_run:
@@ -476,9 +576,10 @@ def main() -> int:
             dashboard = run_script("_system/scripts/refresh_valuation_dashboard_rows.py", "--tickers", *tickers)
         else:
             dashboard = run_script("_system/scripts/build_dashboard_data.py")
-    print(f"[6/6] dashboard: {dashboard['status']}")
+    print(f"[6/7] dashboard: {dashboard['status']}")
 
     stages = {
+        "universe_tiers": tier_stage,
         "routes": routes,
         "power_zones": power_zones,
         "contracts": contracts,
@@ -490,7 +591,7 @@ def main() -> int:
     summary = write_summary(as_of, args.scope, tickers, stages, args.dry_run, explicit=bool(args.tickers))
     if summary:
         print(f"summary: {summary.relative_to(ROOT).as_posix()}")
-    errors = sum(len(stage.get("errors") or []) for stage in (routes, contracts, workbenches, pricing))
+    errors = sum(len(stage.get("errors") or []) for stage in (tier_stage, routes, contracts, workbenches, pricing))
     errors += int(power_zones["returncode"] != 0) + int(dashboard["returncode"] != 0)
     return 1 if errors else 0
 

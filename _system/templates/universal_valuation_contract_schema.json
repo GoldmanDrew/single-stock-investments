@@ -1,25 +1,61 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "universal_valuation_contract_v2",
+  "$id": "universal_valuation_contract_v3",
   "title": "Proof-first universal security valuation and decision contract",
   "type": "object",
   "required": [
-    "schema_version", "status", "ticker", "economic_ownership_map", "component_coverage",
+    "schema_version", "status", "proof_status", "model_level", "decision_eligibility",
+    "ticker", "dates", "legacy_audit", "economic_ownership_map", "component_coverage",
     "input_classification", "method_route", "market", "valuation", "scenario_contract",
     "calculation_proof_summary", "source_lineage", "model_checks", "evidence", "monitoring",
     "change_control", "decision_rule"
   ],
   "properties": {
-    "schema_version": {"const": "2.0"},
+    "schema_version": {"const": "3.0"},
     "status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "proof_status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "model_level": {
+      "enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]
+    },
+    "decision_eligibility": {
+      "type": "object",
+      "required": ["eligible_for_committee_review", "eligible_for_owner_decision", "actionable", "reason"],
+      "properties": {
+        "eligible_for_committee_review": {"type": "boolean"},
+        "eligible_for_owner_decision": {"type": "boolean"},
+        "actionable": {"const": false},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
     "ticker": {"type": ["string", "null"]},
+    "dates": {
+      "type": "object",
+      "required": ["model_as_of", "price_as_of", "fact_as_of", "oldest_fact_as_of", "latest_fact_as_of"],
+      "properties": {
+        "model_as_of": {"type": ["string", "null"]},
+        "price_as_of": {"type": ["string", "null"]},
+        "fact_as_of": {"type": ["string", "null"]},
+        "oldest_fact_as_of": {"type": ["string", "null"]},
+        "latest_fact_as_of": {"type": ["string", "null"]}
+      }
+    },
+    "legacy_audit": {
+      "type": "object",
+      "required": ["actionable", "status", "note"],
+      "properties": {
+        "actionable": {"const": false},
+        "status": {"const": "audit_only"},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
     "economic_ownership_map": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["component_id", "treatment", "valuation_status", "range_per_share", "overlap_key"],
+        "required": ["component_id", "treatment", "valuation_status", "range_per_share", "overlap_key", "output_basis"],
         "properties": {
           "valuation_status": {"enum": ["calculated", "bounded_estimate", "unpriced", "legacy_sensitivity"]},
+          "output_basis": {"enum": ["present_value_today", "future_payoff", "forward_cashflow_schedule"]},
           "range_per_share": {
             "type": "object",
             "required": ["low", "base", "high"],
@@ -51,7 +87,50 @@
     "market": {"type": "object"},
     "valuation": {
       "type": "object",
-      "required": ["value_per_share", "priced_components_per_share", "annualized_return_at_price_pct", "downside_to_low_pct"]
+      "required": [
+        "output_basis", "output_basis_status", "output_range_per_share", "value_per_share",
+        "present_value_today_per_share", "future_payoff_per_share", "forward_cashflow_schedule",
+        "forward_return_at_price_pct", "forward_return_status", "required_return_pct",
+        "margin_of_safety_pct", "margin_of_safety_definition", "upside_to_value_pct",
+        "priced_components_per_share", "annualized_return_at_price_pct", "downside_to_low_pct",
+        "model_as_of", "fact_as_of", "price_as_of"
+      ],
+      "properties": {
+        "output_basis": {"enum": ["present_value_today", "future_payoff", "forward_cashflow_schedule"]},
+        "output_basis_status": {
+          "enum": ["declared", "inferred_from_components", "defaulted_for_legacy_safety", "invalid_defaulted_to_present_value"]
+        },
+        "output_range_per_share": {"$ref": "#/$defs/caseRange"},
+        "value_per_share": {"$ref": "#/$defs/caseRange"},
+        "present_value_today_per_share": {"$ref": "#/$defs/caseRange"},
+        "future_payoff_per_share": {"$ref": "#/$defs/caseRange"},
+        "future_payoff_date": {"type": ["string", "null"]},
+        "future_payoff_horizon_years": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "forward_cashflow_schedule": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["low", "base", "high"],
+              "properties": {
+                "low": {"$ref": "#/$defs/cashflowRows"},
+                "base": {"$ref": "#/$defs/cashflowRows"},
+                "high": {"$ref": "#/$defs/cashflowRows"}
+              }
+            }
+          ]
+        },
+        "forward_return_at_price_pct": {"$ref": "#/$defs/caseRange"},
+        "forward_return_status": {"enum": ["available", "withheld"]},
+        "required_return_pct": {"type": ["number", "null"], "minimum": 0},
+        "margin_of_safety_pct": {"$ref": "#/$defs/caseRange"},
+        "margin_of_safety_definition": {"type": "string", "minLength": 1},
+        "upside_to_value_pct": {"$ref": "#/$defs/caseRange"},
+        "annualized_return_at_price_pct": {"$ref": "#/$defs/caseRange"},
+        "model_as_of": {"type": ["string", "null"]},
+        "fact_as_of": {"type": ["string", "null"]},
+        "price_as_of": {"type": ["string", "null"]}
+      }
     },
     "scenario_contract": {"type": "object"},
     "calculation_proof_summary": {
@@ -61,12 +140,36 @@
     "source_lineage": {"type": "array"},
     "model_checks": {
       "type": "object",
-      "required": ["calculation_graphs_valid", "component_sum_reconciles", "no_double_counting", "all_material_components_priced", "low_base_high_ordered"]
+      "required": ["calculation_graphs_valid", "component_sum_reconciles", "no_double_counting", "all_material_components_priced", "low_base_high_ordered", "output_basis_valid", "dated_forward_economics_valid"]
     },
     "evidence": {"type": "object", "required": ["unresolved_count", "blockers"]},
     "monitoring": {"type": "object", "required": ["falsifiers", "required_refresh_triggers"]},
     "change_control": {"type": "object", "required": ["model_hash", "method_versions", "change_log", "rule"]},
     "decision_rule": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "caseRange": {
+      "type": "object",
+      "required": ["low", "base", "high"],
+      "properties": {
+        "low": {"type": ["number", "null"]},
+        "base": {"type": ["number", "null"]},
+        "high": {"type": ["number", "null"]}
+      }
+    },
+    "cashflowRows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["year_fraction", "amount_per_share"],
+        "properties": {
+          "year_fraction": {"type": "number", "exclusiveMinimum": 0},
+          "amount_per_share": {"type": "number", "minimum": 0},
+          "date": {"type": "string"},
+          "cashflow_type": {"type": "string"}
+        }
+      }
+    }
   },
   "additionalProperties": true
 }

@@ -110,13 +110,91 @@ class GeneralizedValuationSystemTests(unittest.TestCase):
 
     def test_extreme_return_requires_independent_validation(self):
         fixture = component_fixture()
-        fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]["inputs"][0]["values"] = {
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["output_basis"] = "future_payoff"
+        proof["inputs"][0]["values"] = {
             "low": 200, "base": 300, "high": 400,
         }
         contract = compute_valuation(fixture)["universal_valuation_contract"]
         self.assertEqual(contract["status"], "evidence_blocked")
         self.assertTrue(contract["model_checks"]["extreme_return_validated"] is False)
         self.assertTrue(any("independent validation" in row.lower() for row in contract["evidence"]["blockers"]))
+
+    def test_present_value_is_not_annualized_or_discounted_again(self):
+        contract = compute_valuation(component_fixture())["universal_valuation_contract"]
+        valuation = contract["valuation"]
+        self.assertEqual(contract["schema_version"], "3.0")
+        self.assertEqual(valuation["output_basis"], "present_value_today")
+        self.assertEqual(valuation["present_value_today_per_share"]["base"], 60)
+        self.assertEqual(valuation["forward_return_status"], "withheld")
+        self.assertEqual(valuation["forward_return_at_price_pct"], {
+            "low": None, "base": None, "high": None,
+        })
+        self.assertEqual(valuation["annualized_return_at_price_pct"], {
+            "low": None, "base": None, "high": None,
+        })
+        self.assertEqual(valuation["margin_of_safety_pct"]["base"], 16.67)
+        self.assertEqual(valuation["upside_to_value_pct"]["base"], 20.0)
+
+    def test_dated_future_payoff_supports_a_real_forward_return(self):
+        fixture = component_fixture()
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["output_basis"] = "future_payoff"
+        proof["inputs"][0]["values"] = {"low": 55, "base": 60.5, "high": 66.55}
+        fixture["valuation_methodology"] = {"future_payoff_horizon_years": 2}
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        valuation = contract["valuation"]
+        self.assertEqual(valuation["output_basis"], "future_payoff")
+        self.assertEqual(valuation["future_payoff_horizon_years"], 2.0)
+        self.assertEqual(valuation["forward_return_status"], "available")
+        self.assertEqual(valuation["forward_return_at_price_pct"]["base"], 10.0)
+        self.assertEqual(valuation["margin_of_safety_pct"]["base"], None)
+
+    def test_dated_cashflow_schedule_supports_irr(self):
+        fixture = component_fixture()
+        proof = fixture["component_valuation"]["components"][0]["valuation"]["calculation_proof"]
+        proof["output_basis"] = "forward_cashflow_schedule"
+        fixture["valuation_methodology"] = {
+            "output_basis": {
+                "type": "forward_cashflow_schedule",
+                "cashflows_per_share": {
+                    "low": [{"year": 1, "amount_per_share": 45}],
+                    "base": [{"year": 1, "amount_per_share": 55}],
+                    "high": [{"year": 1, "amount_per_share": 65}],
+                },
+            },
+        }
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        valuation = contract["valuation"]
+        self.assertEqual(contract["status"], "decision_grade")
+        self.assertEqual(valuation["output_basis"], "forward_cashflow_schedule")
+        self.assertEqual(valuation["forward_return_status"], "available")
+        self.assertEqual(valuation["forward_return_at_price_pct"], {
+            "low": -10.0, "base": 10.0, "high": 30.0,
+        })
+
+    def test_generic_first_pass_is_screening_not_decision_eligible(self):
+        fixture = component_fixture()
+        fixture["valuation_methodology"] = {"automation": "source_locked_first_pass"}
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["status"], "decision_grade")
+        self.assertEqual(contract["proof_status"], "decision_grade")
+        self.assertEqual(contract["model_level"], "screening_grade")
+        self.assertFalse(contract["decision_eligibility"]["eligible_for_committee_review"])
+        self.assertFalse(contract["decision_eligibility"]["actionable"])
+
+    def test_v2_metric_is_preserved_only_in_non_actionable_legacy_audit(self):
+        fixture = component_fixture()
+        fixture["universal_valuation_contract"] = {
+            "schema_version": "2.0",
+            "valuation": {"annualized_return_at_price_pct": {"low": -3, "base": 4, "high": 9}},
+        }
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(
+            contract["legacy_audit"]["annualized_return_at_price_pct"]["base"], 4
+        )
+        self.assertFalse(contract["legacy_audit"]["actionable"])
+        self.assertEqual(contract["valuation"]["forward_return_at_price_pct"]["base"], None)
 
     def test_specialized_calculators_are_ordered_and_auditable(self):
         specs = {
