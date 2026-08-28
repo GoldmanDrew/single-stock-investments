@@ -1,0 +1,13 @@
+[Unit]
+Description=Read the Gateway connection-event receipt daily
+
+[Timer]
+# Every day, not just weekdays. A reconnect storm over a weekend -- which is
+# when ibc.service is down and every connect fails -- is exactly the case the
+# collector demonstrated, and a weekday-only receipt would have missed it.
+OnCalendar=*-*-* 17:30:00 America/New_York
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

@@ -299,6 +299,10 @@ HOLDING_OVERRIDES: dict[str, dict] = {
         "polygon_ticker": "BN",
     },
     "CSU": {"search_names": ["Constellation Software"], "polygon_ticker": "CSU"},
+    "INV": {
+        "search_names": ["Innventure", "Accelsius", "NeuCool"],
+        "polygon_ticker": "INV",
+    },
     "8697.T": {
         "search_names": ["Japan Exchange Group", "JPX"],
         "google_locale": {"hl": "ja", "gl": "JP", "ceid": "JP:ja"},

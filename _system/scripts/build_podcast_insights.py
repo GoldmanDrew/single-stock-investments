@@ -122,8 +122,21 @@ def build_episode_record(
         seen.add(t)
         positions.append({"ticker": t, "action": "discussed", "commentary": None, "tier": "resolver"})
 
+    # Local-model analysis, when this episode has been through it. Written by
+    # analyze_podcast_batch.py into the vault meta; before this it was read by
+    # nothing, so 115 verified claims sat in the corpus while the dashboard
+    # showed keyword themes and "discussed" against every ticker.
+    analysis = meta.get("llm_analysis")
+    analysis = analysis if isinstance(analysis, dict) else {}
+    if analysis:
+        analysis_positions(analysis, positions, seen)
+
     guests = resolved.get("guests") or []
     return {
+        "analysis": analysis_summary(analysis),
+        "claims": [c for c in (analysis.get("claims") or []) if isinstance(c, dict)],
+        "numbers": [n for n in (analysis.get("numbers") or []) if isinstance(n, dict)],
+        "thesis": (analysis.get("thesis") or "").strip() or None,
         "episode_id": meta.get("episode_id"),
         "show_id": meta.get("show_id"),
         "show_title": meta.get("show_title"),
@@ -138,7 +151,7 @@ def build_episode_record(
         "companies": resolved.get("companies") or [],
         "tickers": [p["ticker"] for p in positions],
         "positions": positions,
-        "themes": theme_hits(text or (meta.get("description") or "")),
+        "themes": analysis_themes(analysis, theme_hits(text or (meta.get("description") or ""))),
         "highlights": meta.get("highlights") or [],
         "summary": meta.get("summary") or None,
         "in_book": any(bool(c.get("in_book")) for c in (resolved.get("companies") or []))
@@ -154,6 +167,91 @@ def build_episode_record(
     }
 
 
+def analysis_summary(analysis: dict) -> dict | None:
+    """What the reader needs to judge the analysis, without the working notes.
+
+    Coverage and the verified rate travel with the claims because they qualify
+    them: an episode analysed at 0.50 had half its claims discarded, and that is
+    a fact about the episode, not a debugging statistic.
+    """
+    if not analysis:
+        return None
+    claims = analysis.get("claims") or []
+    return {
+        "method": analysis.get("method"),
+        "analyzed_at": analysis.get("analyzed_at"),
+        "chunks_analyzed": analysis.get("chunks_analyzed"),
+        "chunks_total": analysis.get("chunks_total"),
+        "quote_verified_rate": analysis.get("quote_verified_rate"),
+        "claim_count": len(claims),
+        "claims_with_ticker": sum(1 for c in claims if isinstance(c, dict) and c.get("ticker")),
+        "number_count": len(analysis.get("numbers") or []),
+    }
+
+
+# A claim's stance, in the vocabulary the insights fan-out already speaks.
+_STANCE_DIRECTION = {"bullish": "constructive", "bearish": "cautious", "mixed": "neutral"}
+
+
+def analysis_positions(analysis: dict, positions: list[dict], seen: set[str]) -> list[dict]:
+    """Fold local-model claims into the episode's positions.
+
+    The resolver answers "was this company named", which is why every podcast
+    position carried `action: discussed` and `commentary: None`. A verified
+    claim answers "what was said about it, and where in the transcript" -- so a
+    claim upgrades the row the resolver already produced rather than adding a
+    second one for the same ticker.
+
+    Claims with no ticker are kept out on purpose. The validator nulls a symbol
+    it cannot corroborate, and a fan-out row needs a ticker to attach to; the
+    claim still reaches the reader through the episode detail payload.
+    """
+    by_ticker = {p["ticker"]: p for p in positions if p.get("ticker")}
+    for claim in (analysis.get("claims") or []):
+        ticker = claim.get("ticker")
+        if not ticker:
+            continue
+        text = (claim.get("claim") or "").strip()
+        stance = (claim.get("stance") or "neutral").strip().lower()
+        row = by_ticker.get(ticker)
+        if row is None:
+            row = {"ticker": ticker, "action": "discussed"}
+            by_ticker[ticker] = row
+            positions.append(row)
+            seen.add(ticker)
+        # The claim is the better commentary: it is a sentence about the
+        # company, where the resolver's evidence is the span that matched.
+        if text:
+            row["commentary"] = text[:240]
+        row["tier"] = "llm_claim"
+        row["stance"] = stance
+        if claim.get("quote"):
+            row["quote"] = (claim.get("quote") or "")[:400]
+            row["quote_verified"] = bool(claim.get("quote_verified"))
+    return positions
+
+
+def analysis_themes(analysis: dict, fallback: list[dict]) -> list[dict]:
+    """Model themes when the episode has them, keyword themes otherwise.
+
+    `theme_hits` matches a fixed vocabulary against the transcript, so it says
+    an episode touched "Capital Allocation" but not what was concluded. The
+    model returns a stance with each theme, which is what the fan-out's
+    direction field wanted all along.
+    """
+    themes = []
+    for th in (analysis.get("themes") or []):
+        if not isinstance(th, dict) or not th.get("theme"):
+            continue
+        stance = str(th.get("stance") or "neutral").strip().lower()
+        themes.append({
+            "theme": th.get("theme"),
+            "stance": _STANCE_DIRECTION.get(stance, stance or "neutral"),
+            "source": "llm",
+        })
+    return themes or list(fallback or [])
+
+
 def index_row_from_episode(ep: dict) -> dict:
     """Thin projection for CI mirror and dashboard podcast_index."""
     try:
@@ -161,6 +259,7 @@ def index_row_from_episode(ep: dict) -> dict:
     except Exception:
         filter_highlights = lambda hs: list(hs or [])  # type: ignore
     highlights = filter_highlights(ep.get("highlights") or [])
+    analysis = ep.get("analysis") if isinstance(ep.get("analysis"), dict) else None
     guests = ep.get("guests") or []
     guest_labels = []
     for g in guests:
@@ -182,7 +281,7 @@ def index_row_from_episode(ep: dict) -> dict:
             text = str(h)[:220]
         if text:
             previews.append(text)
-    return {
+    row = {
         "episode_id": ep.get("episode_id"),
         "show_id": ep.get("show_id"),
         "show_title": ep.get("show_title"),
@@ -202,6 +301,20 @@ def index_row_from_episode(ep: dict) -> dict:
         "source_document": ep.get("source_document"),
         "link": ep.get("link"),
     }
+    # One thesis line and two counts. The claims themselves stay in the
+    # per-episode detail shard: this index is a single file the SPA loads at
+    # boot, and 593 analysed episodes of claim arrays would go into it.
+    #
+    # Present only when there is an analysis. Emitting them unconditionally put
+    # 346 KB of nulls and zeros into a 4.5 MB index to say "no analysis" 3,742
+    # times -- a tenth of the boot payload spent on absence. Absent reads the
+    # same as false to the SPA.
+    if analysis:
+        row["thesis_preview"] = (ep.get("thesis") or "")[:280] or None
+        row["claim_count"] = analysis.get("claim_count") or 0
+        row["quote_verified_rate"] = analysis.get("quote_verified_rate")
+        row["has_analysis"] = True
+    return row
 
 
 INDEX_MIRROR_PATH = ROOT / "_system" / "reference" / "podcasts" / "insights_index_mirror.json"
@@ -240,6 +353,30 @@ def episode_detail_payload(ep: dict) -> dict:
     except Exception:
         filter_highlights = lambda hs: [h for h in (hs or []) if isinstance(h, dict)]  # type: ignore
     highlights = filter_highlights(list(ep.get("highlights") or []))
+    # A claim carries its own quote, so the reader can check it against the
+    # transcript without the payload growing an evidence section of its own.
+    claims = []
+    for c in (ep.get("claims") or [])[:40]:
+        if not isinstance(c, dict) or not (c.get("claim") or "").strip():
+            continue
+        claims.append({
+            "company": c.get("company"),
+            "ticker": c.get("ticker"),
+            "stance": c.get("stance") or "neutral",
+            "claim": (c.get("claim") or "")[:400],
+            "quote": (c.get("quote") or "")[:400] or None,
+            "quote_verified": bool(c.get("quote_verified")),
+        })
+    numbers = []
+    for n in (ep.get("numbers") or [])[:40]:
+        if not isinstance(n, dict) or not (n.get("value") or "").strip():
+            continue
+        numbers.append({
+            "what": (n.get("what") or "")[:160],
+            "value": (n.get("value") or "")[:80],
+            "quote": (n.get("quote") or "")[:300] or None,
+            "quote_verified": bool(n.get("quote_verified")),
+        })
     positions = []
     for p in (ep.get("positions") or [])[:20]:
         if not isinstance(p, dict) or not p.get("ticker"):
@@ -267,7 +404,7 @@ def episode_detail_payload(ep: dict) -> dict:
     for th in (ep.get("themes") or [])[:8]:
         if isinstance(th, dict) and th.get("theme"):
             themes.append({"theme": th.get("theme"), "stance": th.get("stance") or "neutral"})
-    return {
+    detail = {
         "episode_id": ep.get("episode_id"),
         "show_id": ep.get("show_id"),
         "show_title": ep.get("show_title"),
@@ -288,6 +425,13 @@ def episode_detail_payload(ep: dict) -> dict:
         "link": ep.get("link"),
         "highlight_count": len(highlights),
     }
+    analysis = ep.get("analysis") if isinstance(ep.get("analysis"), dict) else None
+    if analysis or claims:
+        detail["thesis"] = (ep.get("thesis") or "").strip() or None
+        detail["claims"] = claims
+        detail["numbers"] = numbers
+        detail["analysis"] = analysis
+    return detail
 
 
 def emit_episode_detail_shards(payload: dict | None = None) -> int:

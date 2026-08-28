@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .ledger import PortfolioLedger
-from .broker import BrokerProfile, IBAsyncCollector
 from .publisher import publish_payload
 from .adapters import normalize_ls_bucket5_live, normalize_ls_bucket5_product, normalize_ls_snapshot, normalize_spx_status
 from .bootstrap import apply_approved_bootstrap, build_bootstrap_plan
@@ -21,7 +20,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", type=Path, default=Path("_private/portfolio-hub/portfolio.db"))
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init")
-    collect = commands.add_parser("collect"); collect.add_argument("--once", action="store_true"); collect.add_argument("--interval", type=int, default=30)
+    # There is no `collect` command. Polling IB Gateway from this repo is
+    # prohibited -- see CLAUDE.md rule 9. Broker truth arrives via Flex.
+    flex_publish = commands.add_parser("flex-publish", help="Publish broker truth from IBKR Flex XML (no Gateway)")
+    flex_publish.add_argument("--positions", type=Path, required=True)
+    flex_publish.add_argument("--cash", type=Path)
+    flex_publish.add_argument("--trades", type=Path)
+    flex_publish.add_argument("--account", required=True)
+    flex_publish.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
+    flex_publish.add_argument("--stale-hours", type=int, default=30)
+    flex_publish.add_argument("--dry-run", action="store_true")
     ingest = commands.add_parser("ingest-snapshot"); ingest.add_argument("payload", type=Path)
     ingest_flex = commands.add_parser("ingest-flex"); ingest_flex.add_argument("payload", type=Path)
     allocate = commands.add_parser("allocate")
@@ -37,6 +45,14 @@ def main(argv: list[str] | None = None) -> int:
     project = commands.add_parser("export-projection"); project.add_argument("--account", required=True); project.add_argument("--output", type=Path, required=True)
     publish = commands.add_parser("publish-latest"); publish.add_argument("--account", required=True); publish.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
     health = commands.add_parser("health"); health.add_argument("--account", required=True); health.add_argument("--max-age", type=int, default=120); health.add_argument("--max-outbox-age", type=int, default=300)
+    receipt = commands.add_parser("gateway-receipt",
+                                  help="Count Gateway connection EVENTS over the last day and flag a loop forming")
+    # Well under the budget's own 60/day hard cap. A receipt that only fires at
+    # the cap tells you nothing the brake did not already enforce; this is meant
+    # to be read on a day the brake never engaged. A human placing orders touches
+    # the Gateway a handful of times; twenty is a loop taking shape.
+    receipt.add_argument("--warn-per-day", type=int, default=20)
+    receipt.add_argument("--warn-per-hour", type=int, default=8)
     backup = commands.add_parser("backup"); backup.add_argument("--output-dir", type=Path, required=True)
     for name in ("adapt-spx", "adapt-ls", "adapt-b5-live", "adapt-b5-product"):
         adapter = commands.add_parser(name); adapter.add_argument("input", type=Path); adapter.add_argument("output", type=Path)
@@ -72,33 +88,48 @@ def main(argv: list[str] | None = None) -> int:
     try:
         ledger.migrate()
         if args.command == "init": print(args.db.resolve())
-        elif args.command == "collect":
-            profile = BrokerProfile.from_env(); collector = IBAsyncCollector(profile)
-            while True:
-                payload = asyncio.run(collector.collect())
-                print(ledger.ingest_account_snapshot(payload), flush=True)
-                if args.once: break
-                time.sleep(max(5, args.interval))
+        elif args.command == "flex-publish":
+            from .flex_ingest import publish_flex_snapshot
+
+            print(json.dumps(publish_flex_snapshot(
+                ledger,
+                positions=args.positions, cash=args.cash, trades=args.trades,
+                account_alias=args.account, url=args.url,
+                stale_hours=args.stale_hours, dry_run=args.dry_run,
+            ), indent=2))
         elif args.command == "order-bridge":
             # Everything that can transmit is constructed here and nowhere else:
             # the approval secret, the broker socket, and the live interlock all
             # stay in this process on the trusted host.
             from .command_poller import ChannelConfig, OrderCommandChannel, OrderCommandLoop
-            from .ib_bridge import BridgeProfile, IbOrderBridge
+            from .gateway_budget import BudgetLimits, ConnectionBudget
+            from .gateway_session import build_live_session_factory
             from .orders import GuardedOrderService
+            from .paper import PaperOrderBroker
 
             secret = os.environ.get("PORTFOLIO_APPROVAL_SECRET", "")
             if len(secret) < 32:
                 raise SystemExit("PORTFOLIO_APPROVAL_SECRET must be at least 32 characters")
-            gateway = IbOrderBridge(BridgeProfile.from_env())
-            gateway.connect()  # refuses to serve until ownership recovery passes
-            if args.route == "live":
-                broker = gateway
-            else:
-                from .paper import PaperOrderBroker, PaperRoutedBroker
 
-                broker = PaperRoutedBroker(gateway, PaperOrderBroker(gateway.quote))
-            print(json.dumps({"route": args.route, "transmits": broker.transmits}), flush=True)
+            # Nothing here connects. The factory is inert until a claimed ticket
+            # needs the broker, so this process can run all day on an idle desk
+            # having made zero Gateway contact (CLAUDE.md rule 10).
+            budget = ConnectionBudget(limits=BudgetLimits(
+                max_per_hour=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_HOUR", "12")),
+                max_per_day=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_DAY", "60")),
+            ), store=ledger.budget_store())
+            sessions = build_live_session_factory(
+                route=args.route, budget=budget,
+                on_event=lambda event: print(json.dumps(event), flush=True),
+            )
+            # The service needs *a* broker to satisfy its constructor; the loop
+            # swaps in the session's broker for the duration of each tick. This
+            # placeholder can neither transmit nor reach IBKR.
+            broker = PaperOrderBroker(lambda conid: {})
+            print(json.dumps({
+                "route": args.route, "standing_gateway_connection": False,
+                "budget": budget.state(),
+            }), flush=True)
             service = GuardedOrderService(
                 ledger, broker, secret,
                 live_enabled=os.environ.get("PORTFOLIO_LIVE_ENABLED", "0") == "1",
@@ -110,19 +141,19 @@ def main(argv: list[str] | None = None) -> int:
             ))
             loop = OrderCommandLoop(service, channel, account_alias=args.account,
                                     live_enabled=service.live_enabled,
-                                    options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1")
-            try:
-                if args.once:
-                    print(json.dumps({"desk_open": loop.tick(), "route": args.route}))
-                else:
-                    loop.run_forever()
-            finally:
-                # The gateway owns the socket, not whatever is wrapping it. Under
-                # the paper route `broker` is the wrapper and has no disconnect,
-                # so releasing client 91 has to go through the gateway itself --
-                # leaking that connection would hold one of the ~32 API slots
-                # this Gateway shares with SPX.
-                gateway.disconnect()
+                                    options_enabled=os.environ.get("PORTFOLIO_OPTIONS_ENABLED", "0") == "1",
+                                    sessions=sessions)
+            # No teardown block: there is nothing held open between ticks. Each
+            # session disconnects in its own `finally` inside GatewaySessionFactory,
+            # so killing this process can never leak a client-91 socket.
+            if args.once:
+                print(json.dumps({
+                    "desk_open": loop.tick(), "route": args.route,
+                    "sessions_opened": sessions.sessions_opened,
+                    "budget": budget.state(),
+                }))
+            else:
+                loop.run_forever()
         elif args.command == "ingest-snapshot": print(ledger.ingest_account_snapshot(json.loads(args.payload.read_text(encoding="utf-8"))))
         elif args.command == "ingest-flex": print(json.dumps(ledger.ingest_flex_eod(json.loads(args.payload.read_text(encoding="utf-8"))), indent=2))
         elif args.command == "allocate": print(ledger.add_allocation(account_alias=args.account, conid=args.conid, model_code=args.model, owner=args.owner, strategy=args.strategy, bucket=args.bucket, quantity=args.quantity, effective_at=args.effective_at, note=args.note))
@@ -150,6 +181,48 @@ def main(argv: list[str] | None = None) -> int:
             outbox_age = (now - datetime.fromisoformat(oldest["created_at"].replace("Z", "+00:00"))).total_seconds() if oldest else 0
             if snapshot_age > args.max_age or outbox_age > args.max_outbox_age: raise RuntimeError(f"unhealthy snapshot_age={snapshot_age:.0f}s outbox_age={outbox_age:.0f}s")
             print(json.dumps({"status": "healthy", "snapshot_age_seconds": round(snapshot_age), "outbox_age_seconds": round(outbox_age)}))
+        elif args.command == "gateway-receipt":
+            # Reads the same rows the brake reads. The collector's lesson was not
+            # that nobody looked -- it was that what got counted (concurrent
+            # sockets) was not what did the harm, so it read healthy for months
+            # while storming. This counts connection events, which is the thing.
+            now = time.time()
+            rows = ledger.connection.execute(
+                "SELECT attempted_at, attempted_at_iso, purpose FROM gateway_connection_attempts "
+                "WHERE attempted_at >= ? ORDER BY attempted_at", (now - 86_400,),
+            ).fetchall()
+            breaker = ledger.connection.execute(
+                "SELECT consecutive_failures, tripped_until, updated_at FROM gateway_breaker_state WHERE id=1"
+            ).fetchone()
+            tripped_until = None if breaker is None or breaker["tripped_until"] is None else float(breaker["tripped_until"])
+            last_hour = sum(1 for row in rows if float(row["attempted_at"]) >= now - 3600)
+            by_purpose: dict[str, int] = {}
+            for row in rows:
+                by_purpose[row["purpose"] or "unattributed"] = by_purpose.get(row["purpose"] or "unattributed", 0) + 1
+            breaker_open = tripped_until is not None and now < tripped_until
+            alarms = []
+            if len(rows) >= args.warn_per_day:
+                alarms.append(f"{len(rows)} gateway connection events in 24h (warn at {args.warn_per_day})")
+            if last_hour >= args.warn_per_hour:
+                alarms.append(f"{last_hour} gateway connection events in the last hour (warn at {args.warn_per_hour})")
+            if breaker_open:
+                alarms.append(f"circuit breaker open, {int(tripped_until - now)}s remaining")
+            print(json.dumps({
+                "status": "alarm" if alarms else "quiet",
+                "connection_events_last_day": len(rows),
+                "connection_events_last_hour": last_hour,
+                "by_purpose": by_purpose,
+                "newest_event": rows[-1]["attempted_at_iso"] if rows else None,
+                "breaker_open": breaker_open,
+                "consecutive_failures": 0 if breaker is None else int(breaker["consecutive_failures"]),
+                "breaker_updated_at": None if breaker is None else breaker["updated_at"],
+                "alarms": alarms,
+                # Zero is the expected healthy reading on a desk nobody traded,
+                # and must never be reported as a fault.
+                "note": "an idle desk makes zero gateway contact; 0 is healthy",
+            }, indent=2))
+            if alarms:
+                raise SystemExit(1)
         elif args.command == "backup":
             stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             print(ledger.backup(args.output_dir / f"portfolio-{stamp}.db"))

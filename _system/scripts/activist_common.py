@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date, datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,17 +13,58 @@ PORTFOLIO_REGISTRY = ROOT / "_system" / "portfolio" / "registry.json"
 US_TICKER_CONFIG = Path(__file__).resolve().parent / "us_ticker_config.json"
 GLOBAL_SCAN_PATH = ROOT / "_system" / "data" / "activist_scan_latest.json"
 SCAN_LOG_PATH = ROOT / "_system" / "data" / "activist_scan_log.json"
+# EDGAR renamed the beneficial-ownership submission types when Schedules 13D/G
+# moved to structured XML on 2024-12-18: data.sec.gov now reports "SCHEDULE 13D"
+# where it used to report "SC 13D". Both spellings must pass the form filter —
+# the filter runs on the raw EDGAR label, before normalization — and
+# sec_filer_parse.normalize_form() collapses them to the canonical left-hand
+# name for everything downstream.
+FORM_ALIASES = {
+    "SCHEDULE 13D": "SC 13D",
+    "SCHEDULE 13D/A": "SC 13D/A",
+    "SCHEDULE 13G": "SC 13G",
+    "SCHEDULE 13G/A": "SC 13G/A",
+    "SCHEDULE13D": "SC 13D",
+    "SCHEDULE13G": "SC 13G",
+}
+
 ACTIVIST_FORMS = frozenset(
     {
+        # Beneficial ownership (both the legacy and post-2024 EDGAR spellings)
         "SC 13D",
         "SC 13D/A",
         "SC 13G",
         "SC 13G/A",
+        *FORM_ALIASES,
+        # Contested proxy solicitations (management-side numbering)
         "DEFC14A",
         "PREC14A",
         "DFAN14A",
+        # Non-management proxy statements — the dissident's own solicitation.
+        # DEFC/PREC only cover contests the registrant files under; a dissident
+        # running its own slate files DEFN14A/PREN14A and was invisible before.
+        "DEFN14A",
+        "PREN14A",
+        # Notice of exempt solicitation (Rule 14a-6(g)) — the low-cost lever
+        # activists and shareholder proponents use instead of a full contest.
+        "PX14A6G",
+        # The company's answer. Without it a campaign reads as a one-sided claim.
+        "DEFA14A",
+        # Hostile tender offer and the board's response. Rare per issuer.
+        "SC TO-T",
+        "SC TO-C",
+        "SC 14D9",
+        # Rule 14a-11 proxy access nominations. Rarer still.
+        "SC 14N",
+        "SC 14N-S",
     }
 )
+
+# Forms too voluminous to pull unconditionally. An 8-K names a campaign outcome
+# only under Item 5.02, and every issuer files many for unrelated reasons, so
+# these are fetched only for a ticker that already has a live campaign.
+CONDITIONAL_FORMS = frozenset({"8-K"})
+CONDITIONAL_FORM_CAP = 25
 
 # Publisher / wire rows share the same body-verification + false-positive gates.
 PUBLISHER_SOURCES = frozenset({"publisher_site", "local", "press_wire"})
@@ -87,30 +129,104 @@ def firms_for_ingest(method: str, *, side: str | None = None) -> list[dict]:
     return out
 
 
-def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
-    matchers: list[tuple[str, re.Pattern[str]]] = []
+def _boundary_pattern(term: str) -> re.Pattern[str]:
+    """Compile a firm term so it only matches on word boundaries.
+
+    Without \\b an alias like "amber" matches inside "chamber" and "tci" inside
+    unrelated prose. Only anchor the side that starts/ends alphanumeric, so a
+    term such as "3d investment partners" or "l.p." still matches.
+    """
+    body = re.escape(term)
+    left = r"\b" if term[:1].isalnum() else ""
+    right = r"\b" if term[-1:].isalnum() else ""
+    return re.compile(f"{left}{body}{right}", re.I)
+
+
+@lru_cache(maxsize=1)
+def _firm_terms_cached(registry_stamp: tuple) -> tuple[tuple[str, str], ...]:
+    """(firm_id, lowercase term) pairs, most specific term first."""
+    terms_by_firm: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for firm in load_firm_registry().get("firms") or []:
         fid = firm.get("id") or ""
         terms = [firm.get("name", "")]
         terms.extend(firm.get("aliases") or [])
         terms.extend(firm.get("sec_filer_patterns") or [])
-        seen: set[str] = set()
         for term in terms:
             key = str(term or "").strip().lower()
             if not key or key in seen:
                 continue
             seen.add(key)
-            matchers.append((fid, re.compile(re.escape(key), re.I)))
-    return matchers
+            terms_by_firm.append((fid, key))
+    # Longest term first: a filing naming both "Engine Capital Management" and a
+    # shorter generic alias should resolve to the most specific firm, not to
+    # whichever happens to sit earlier in the registry file.
+    terms_by_firm.sort(key=lambda pair: (-len(pair[1]), pair[0]))
+    return tuple(terms_by_firm)
+
+
+@lru_cache(maxsize=1)
+def _firm_matchers_cached(registry_stamp: tuple) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    return tuple(
+        (fid, _boundary_pattern(term)) for fid, term in _firm_terms_cached(registry_stamp)
+    )
+
+
+@lru_cache(maxsize=1)
+def _combined_firm_matcher(registry_stamp: tuple) -> tuple[re.Pattern[str], dict[str, str]]:
+    """One alternation over every firm term, plus a term -> firm_id lookup.
+
+    Scanning 325 separate patterns across a 250KB filing took ~2 seconds, and
+    the pipeline calls this up to three times per filing — a full reindex of
+    the 15.5k local filings would have taken about a day. The terms are literal
+    strings, so a single alternation finds them all in one pass and the matched
+    text maps straight back to its firm.
+    """
+    terms = _firm_terms_cached(registry_stamp)
+    lookup = {term: fid for fid, term in terms}
+    if not terms:
+        # Never matches; keeps callers branch-free.
+        return re.compile(r"(?!x)x"), lookup
+    alternation = "|".join(
+        f"{r'\b' if term[:1].isalnum() else ''}{re.escape(term)}"
+        f"{r'\b' if term[-1:].isalnum() else ''}"
+        for _fid, term in terms
+    )
+    return re.compile(alternation, re.I), lookup
+
+
+def _registry_stamp() -> tuple:
+    try:
+        stat = REGISTRY_PATH.stat()
+    except OSError:
+        return (0, 0)
+    return (stat.st_mtime_ns, stat.st_size)
+
+
+def firm_matchers() -> list[tuple[str, re.Pattern[str]]]:
+    return list(_firm_matchers_cached(_registry_stamp()))
 
 
 def match_firm_id(text: str) -> str | None:
+    """Resolve text to a registry firm, preferring the most specific term found.
+
+    One pass over the whole text collecting every term that appears, then the
+    longest wins — so "Engine Capital Management" beats a shorter alias no
+    matter where each sits in the document.
+    """
     if not text:
         return None
-    for fid, pattern in firm_matchers():
-        if pattern.search(text):
-            return fid
-    return None
+    pattern, lookup = _combined_firm_matcher(_registry_stamp())
+    best_term = ""
+    best_fid = None
+    for match in pattern.finditer(text):
+        term = match.group(0).lower()
+        if len(term) <= len(best_term):
+            continue
+        fid = lookup.get(term)
+        if fid:
+            best_term, best_fid = term, fid
+    return best_fid
 
 
 def portfolio_tickers() -> list[str]:
@@ -244,7 +360,18 @@ def _distinctive_aliases(company: str, ticker: str) -> set[str]:
     return aliases
 
 
+@lru_cache(maxsize=4096)
+def _ticker_meta_cached(ticker: str, registry_stamp: tuple) -> dict:
+    return _build_ticker_meta(ticker)
+
+
 def ticker_meta(ticker: str) -> dict:
+    """Cached: this re-read and re-parsed two JSON files on every call, and
+    the reindex calls it once per filing across 15k filings."""
+    return _ticker_meta_cached(ticker.upper(), _registry_stamp())
+
+
+def _build_ticker_meta(ticker: str) -> dict:
     ticker = ticker.upper()
     reg = load_json(PORTFOLIO_REGISTRY, {})
     holding = (reg.get("holdings") or {}).get(ticker) or {}

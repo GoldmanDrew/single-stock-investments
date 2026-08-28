@@ -2697,6 +2697,14 @@ def build_ticker_row(
     if row["fund_nav"] and classification.get("fund_edge") in ("—", "-", None, ""):
         classification["fund_edge"] = row["fund_nav"].get("edge") or "—"
     row["cvr"] = cvr_summary(ticker, ticker_dir)
+    try:
+        from two_phase_watch import compact_for_dashboard as _two_phase_compact
+    except ImportError:
+        _two_phase_compact = None
+    if _two_phase_compact is not None:
+        watch = _two_phase_compact(ticker)
+        if watch:
+            row["two_phase_watch"] = watch
     if row["cvr"] and classification.get("investment_sleeve") in ("—", "-", "pending", None, ""):
         classification["investment_sleeve"] = "cvr_contingent"
         classification["investment_sleeve_label"] = _INVESTMENT_SLEEVE_LABELS.get(
