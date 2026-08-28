@@ -1,0 +1,11 @@
+# AOS — Third-party source inventory
+
+**Date:** 2026-08-26
+**Sources:** 2 total (0 approved, 0 pending, 2 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| activist_short | May 16, 2019 | `_system/reference/activist-reports/spruce_point/spruce_point_2019-05-16_a-o-smith-corp.html` | context | activist/short — publisher_site |
+| activist_long | Smith Family Voting Trust 26-6901000 — SC 13D/A | `AOS/third-party-analyses/activist_reports/long/SC-13D/A_20190225_acc0001193125_19_049949.htm` | context | activist/long — sec_edgar |
+
+Cross-check required: `AOS/research/cross_check_third_party_2026-08-26.md`
