@@ -14,6 +14,8 @@ from sec_filer_parse import (
     analyze_sec_filing,
     form_from_filing_path,
     is_sec_filing_relpath,
+    normalize_form,
+    parse_schedule_13_xml,
     parse_stake_percent,
     strip_html,
 )
@@ -47,6 +49,24 @@ def fetch_sec_text(source_url: str, *, accession: str | None = None) -> str:
         cache.write_text(text, encoding="utf-8")
     time.sleep(SLEEP_SEC)
     return text
+
+
+SCHEDULE_13_FORMS = frozenset({"SC 13D", "SC 13D/A", "SC 13G", "SC 13G/A"})
+
+
+def _fetch_schedule_13_xml(report: dict) -> dict:
+    """Structured cover page for one report, or {} when absent (pre-2024 filings)."""
+    accession = report.get("accession")
+    source_url = report.get("source_url") or ""
+    if not accession or "/edgar/data/" not in source_url:
+        return {}
+    cik = source_url.split("/edgar/data/", 1)[1].split("/", 1)[0]
+    nodash = accession.replace("-", "")
+    url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{nodash}/primary_doc.xml"
+    try:
+        return parse_schedule_13_xml(fetch_sec_text(url, accession=f"{accession}-xml"))
+    except Exception:
+        return {}
 
 
 def filing_form(report: dict) -> str:
@@ -88,12 +108,26 @@ def enrich_report(report: dict, *, fetch: bool = True) -> dict:
         return out
 
     form = filing_form(out)
-    analysis = analyze_sec_filing(form, text)
-    stake = parse_stake_percent(text)
+    # Prefer the filer's own structured cover page when one exists (mandatory
+    # for Schedules 13D/G since 2024-12-18); fall back to the HTML regexes.
+    xml_facts = {}
+    if fetch and normalize_form(form) in SCHEDULE_13_FORMS:
+        xml_facts = _fetch_schedule_13_xml(out)
+    analysis = analyze_sec_filing(form, text, xml_facts=xml_facts)
+    if xml_facts.get("stake_percent") is not None:
+        out["stake_percent"] = xml_facts["stake_percent"]
+    if xml_facts.get("reporting_person_ciks"):
+        out["reporting_person_ciks"] = xml_facts["reporting_person_ciks"]
+    if analysis.get("filer_class"):
+        out["filer_class"] = analysis["filer_class"]
     intent = ACTIVIST_INTENT_RE.search(strip_html(text[:120_000]))
 
-    if stake is not None:
-        out["stake_percent"] = stake
+    # Only fall back to the cover-page regex when the structured filing did not
+    # already give us percent-of-class -- the XML is the filer's own number.
+    if out.get("stake_percent") is None:
+        stake = parse_stake_percent(text)
+        if stake is not None:
+            out["stake_percent"] = stake
     if intent:
         out["activist_intent"] = True
         out["intent_phrases"] = [intent.group(0).strip()]

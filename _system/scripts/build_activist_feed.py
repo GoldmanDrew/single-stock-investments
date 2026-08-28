@@ -29,8 +29,10 @@ from activist_date_parse import normalize_partial_date, parse_date_from_stem
 from activist_link_health import check_links
 from activist_materiality import materiality_score, materiality_tier
 from sec_filer_parse import (
+    FILER_CLASSES,
     UNRESOLVED_FIRM_ID,
     analyze_sec_filing,
+    classify_filer_type,
     build_activist_title,
     form_from_filing_path,
     is_sec_filing_relpath,
@@ -40,7 +42,9 @@ from sec_filer_parse import (
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "dashboard" / "data" / "activist_feed.json"
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY", "magis-capital-partners/single-stock-investments")
-PROXY_DEDUP_FORMS = frozenset({"DFAN14A", "DEFC14A", "PREC14A"})
+PROXY_DEDUP_FORMS = frozenset(
+    {"DFAN14A", "DEFC14A", "PREC14A", "DEFN14A", "PREN14A", "PX14A6G", "DEFA14A"}
+)
 DEDUP_WINDOW_DAYS = 7
 WEAK_MATCH_TICKER_THRESHOLD = 5
 
@@ -89,6 +93,14 @@ def publisher_target_verdict(report: dict, *, ticker: str) -> tuple[bool, float,
 def report_kind(row: dict) -> str:
     if row.get("side") == "short":
         return "short_report"
+    if row.get("filing_class") == "proxy_access":
+        return "proxy_access_nomination"
+    if row.get("filing_class") == "tender_offer":
+        return "tender_offer"
+    if row.get("filing_class") == "campaign_outcome":
+        return "board_settlement"
+    if row.get("filing_class") == "insider_accumulation":
+        return "insider_accumulation"
     if row.get("filing_class") == "activist_proxy" or (row.get("form") or "").upper() in PROXY_DEDUP_FORMS:
         return "proxy_campaign"
     if row.get("filing_class") in {"activist_13d", "activist_13g", "registry_13g"}:
@@ -470,6 +482,11 @@ def build_feed(*, prune_indexes: bool = True, link_check: bool | None = None) ->
                 "stake_percent": stake_percent,
                 "form": report.get("form"),
                 "filing_class": report.get("filing_class"),
+                "filer_class": report.get("filer_class") or classify_filer_type(
+                    report.get("reporting_persons") or [report.get("firm_name") or ""],
+                    firm_id=report.get("firm_id"),
+                    issuer_name=(ticker_meta(ticker) or {}).get("company"),
+                ),
                 "milly_verdict": report.get("milly_verdict"),
                 "date_source": report.get("date_source"),
                 "date_precision": report.get("date_precision"),
@@ -575,6 +592,27 @@ def build_feed(*, prune_indexes: bool = True, link_check: bool | None = None) ->
             info["signal_count"] += 1
         info["max_materiality"] = max(info["max_materiality"], row.get("materiality") or 0)
 
+    registry_firm_ids = {
+        r.get("firm_id")
+        for r in feed_rows
+        if r.get("firm_id") and not str(r["firm_id"]).startswith("sec_filer:")
+    }
+    placeholder_firm_ids = {
+        r.get("firm_id")
+        for r in feed_rows
+        if str(r.get("firm_id") or "").startswith("sec_filer:")
+    }
+    summary["filer_class_counts"] = {
+        cls: sum(1 for r in feed_rows if (r.get("filer_class") or "unknown") == cls)
+        for cls in FILER_CLASSES
+    }
+    summary["activist_row_count"] = summary["filer_class_counts"].get("activist", 0)
+    summary["attribution_rate"] = (
+        round(len([r for r in feed_rows if not str(r.get("firm_id") or "").startswith("sec_filer:")])
+              / len(feed_rows), 3)
+        if feed_rows else 0.0
+    )
+
     global_scan = load_global_scan()
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -584,7 +622,12 @@ def build_feed(*, prune_indexes: bool = True, link_check: bool | None = None) ->
         "by_ticker": per_ticker,
         "feed": feed_rows,
         "review_queue": review_queue,
-        "firms_active": len({r.get("firm_id") for r in feed_rows if r.get("firm_id")}),
+        # Registry firms only. The old metric counted every "sec_filer:"
+        # placeholder too, so it rose whenever attribution FAILED -- it read 136
+        # while just 29 tracked firms appeared. Unattributed filers are now
+        # reported separately, where they read as the gap they are.
+        "firms_active": len(registry_firm_ids),
+        "unattributed_filer_count": len(placeholder_firm_ids),
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

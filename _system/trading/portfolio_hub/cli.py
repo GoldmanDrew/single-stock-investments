@@ -45,6 +45,14 @@ def main(argv: list[str] | None = None) -> int:
     project = commands.add_parser("export-projection"); project.add_argument("--account", required=True); project.add_argument("--output", type=Path, required=True)
     publish = commands.add_parser("publish-latest"); publish.add_argument("--account", required=True); publish.add_argument("--url", default=os.environ.get("PORTFOLIO_INGEST_URL", ""))
     health = commands.add_parser("health"); health.add_argument("--account", required=True); health.add_argument("--max-age", type=int, default=120); health.add_argument("--max-outbox-age", type=int, default=300)
+    receipt = commands.add_parser("gateway-receipt",
+                                  help="Count Gateway connection EVENTS over the last day and flag a loop forming")
+    # Well under the budget's own 60/day hard cap. A receipt that only fires at
+    # the cap tells you nothing the brake did not already enforce; this is meant
+    # to be read on a day the brake never engaged. A human placing orders touches
+    # the Gateway a handful of times; twenty is a loop taking shape.
+    receipt.add_argument("--warn-per-day", type=int, default=20)
+    receipt.add_argument("--warn-per-hour", type=int, default=8)
     backup = commands.add_parser("backup"); backup.add_argument("--output-dir", type=Path, required=True)
     for name in ("adapt-spx", "adapt-ls", "adapt-b5-live", "adapt-b5-product"):
         adapter = commands.add_parser(name); adapter.add_argument("input", type=Path); adapter.add_argument("output", type=Path)
@@ -109,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
             budget = ConnectionBudget(limits=BudgetLimits(
                 max_per_hour=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_HOUR", "12")),
                 max_per_day=int(os.environ.get("PORTFOLIO_GATEWAY_MAX_PER_DAY", "60")),
-            ))
+            ), store=ledger.budget_store())
             sessions = build_live_session_factory(
                 route=args.route, budget=budget,
                 on_event=lambda event: print(json.dumps(event), flush=True),
@@ -173,6 +181,48 @@ def main(argv: list[str] | None = None) -> int:
             outbox_age = (now - datetime.fromisoformat(oldest["created_at"].replace("Z", "+00:00"))).total_seconds() if oldest else 0
             if snapshot_age > args.max_age or outbox_age > args.max_outbox_age: raise RuntimeError(f"unhealthy snapshot_age={snapshot_age:.0f}s outbox_age={outbox_age:.0f}s")
             print(json.dumps({"status": "healthy", "snapshot_age_seconds": round(snapshot_age), "outbox_age_seconds": round(outbox_age)}))
+        elif args.command == "gateway-receipt":
+            # Reads the same rows the brake reads. The collector's lesson was not
+            # that nobody looked -- it was that what got counted (concurrent
+            # sockets) was not what did the harm, so it read healthy for months
+            # while storming. This counts connection events, which is the thing.
+            now = time.time()
+            rows = ledger.connection.execute(
+                "SELECT attempted_at, attempted_at_iso, purpose FROM gateway_connection_attempts "
+                "WHERE attempted_at >= ? ORDER BY attempted_at", (now - 86_400,),
+            ).fetchall()
+            breaker = ledger.connection.execute(
+                "SELECT consecutive_failures, tripped_until, updated_at FROM gateway_breaker_state WHERE id=1"
+            ).fetchone()
+            tripped_until = None if breaker is None or breaker["tripped_until"] is None else float(breaker["tripped_until"])
+            last_hour = sum(1 for row in rows if float(row["attempted_at"]) >= now - 3600)
+            by_purpose: dict[str, int] = {}
+            for row in rows:
+                by_purpose[row["purpose"] or "unattributed"] = by_purpose.get(row["purpose"] or "unattributed", 0) + 1
+            breaker_open = tripped_until is not None and now < tripped_until
+            alarms = []
+            if len(rows) >= args.warn_per_day:
+                alarms.append(f"{len(rows)} gateway connection events in 24h (warn at {args.warn_per_day})")
+            if last_hour >= args.warn_per_hour:
+                alarms.append(f"{last_hour} gateway connection events in the last hour (warn at {args.warn_per_hour})")
+            if breaker_open:
+                alarms.append(f"circuit breaker open, {int(tripped_until - now)}s remaining")
+            print(json.dumps({
+                "status": "alarm" if alarms else "quiet",
+                "connection_events_last_day": len(rows),
+                "connection_events_last_hour": last_hour,
+                "by_purpose": by_purpose,
+                "newest_event": rows[-1]["attempted_at_iso"] if rows else None,
+                "breaker_open": breaker_open,
+                "consecutive_failures": 0 if breaker is None else int(breaker["consecutive_failures"]),
+                "breaker_updated_at": None if breaker is None else breaker["updated_at"],
+                "alarms": alarms,
+                # Zero is the expected healthy reading on a desk nobody traded,
+                # and must never be reported as a fault.
+                "note": "an idle desk makes zero gateway contact; 0 is healthy",
+            }, indent=2))
+            if alarms:
+                raise SystemExit(1)
         elif args.command == "backup":
             stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             print(ledger.backup(args.output_dir / f"portfolio-{stamp}.db"))

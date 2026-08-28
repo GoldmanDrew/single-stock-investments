@@ -14,6 +14,15 @@
 Description=Magis portfolio hub order bridge (IBKR client 91, sole transmitter)
 After=network-online.target
 
+# These two belong in [Unit]. They spent their whole life in [Service], where
+# systemd ignores them and says so on every start:
+#   Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+# So the burst cap that is supposed to stop a restart storm -- the exact fault
+# that masked the collector -- was not in force at all, and the only thing
+# standing between a crash loop and the Gateway was RestartSec.
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
 [Service]
 Type=simple
 WorkingDirectory=/home/spx/single-stock-investments
@@ -43,8 +52,8 @@ ExecStart=/home/spx/portfolio-hub-venv/bin/python -m _system.trading.portfolio_h
 # purpose (CLAUDE.md rule 7/8).
 Restart=on-failure
 RestartSec=60
-StartLimitIntervalSec=600
-StartLimitBurst=10
+# StartLimitIntervalSec / StartLimitBurst are in [Unit] above, where systemd
+# reads them. Do not move them back here.
 
 StandardOutput=journal
 StandardError=journal

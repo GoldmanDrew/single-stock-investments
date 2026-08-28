@@ -25,6 +25,14 @@ Three independent brakes, any of which refuses on its own:
     the brake the collector did not have: its failures fed straight back into
     retries.
 
+All three are durable when a store is supplied. They used to live only in
+memory on a `time.monotonic` basis, which meant a process restart cleared the
+hourly cap, the daily cap and the breaker together -- and a restart is precisely
+what a reconnect storm is made of. Each brake was defensible; the composition
+handed the storm a clean slate every 60 seconds. The counts now go through
+`BudgetStore` to the ledger, and the clock is wall clock so the windows still
+mean something on the other side of a restart.
+
 Every refusal is explicit and carries a reason, because a silent refusal in an
 order path is indistinguishable from an order that quietly did not happen.
 """
@@ -32,11 +40,30 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Protocol
 
 
 class GatewayBudgetExceeded(RuntimeError):
     """Refused: connecting now would breach the coexistence budget."""
+
+
+class BudgetStore(Protocol):
+    """Where the brakes persist. Deliberately a protocol, not a database.
+
+    Keeping this an interface is what lets the limit stay free of storage
+    machinery, the same way it stays free of connection machinery. The concrete
+    SQLite implementation lives with the ledger; this module never learns what
+    a table is.
+    """
+
+    def load(self) -> tuple[list[float], int, float | None]:
+        """Return (attempt timestamps, consecutive failures, tripped_until)."""
+
+    def record_attempt(self, when: float, purpose: str | None = None) -> None: ...
+
+    def save_breaker(self, consecutive_failures: int, tripped_until: float | None) -> None: ...
+
+    def forget_before(self, cutoff: float) -> None: ...
 
 
 @dataclass
@@ -59,16 +86,30 @@ class ConnectionBudget:
 
     limits: BudgetLimits = field(default_factory=BudgetLimits)
     clock: Callable[[], float] = field(default=None)  # type: ignore[assignment]
+    # Optional so the tests, the drills and `--once` runs need no database. When
+    # absent the budget behaves exactly as it always did: correct, and volatile.
+    store: BudgetStore | None = None
 
     def __post_init__(self) -> None:
         if self.clock is None:
             import time
 
-            self.clock = time.monotonic
+            # Wall clock, not monotonic. Monotonic is the better choice for a
+            # duration measured inside one process and the wrong one for a
+            # window that has to survive the process: two runs of this program
+            # share no monotonic origin, so a restart would silently reset every
+            # count to zero. A backwards NTP step holds the breaker open longer
+            # than asked, which fails closed; a forward step rolls a window
+            # early, and on an NTP-disciplined host is sub-second.
+            self.clock = time.time
         self._attempts: list[float] = []
         self._consecutive_failures = 0
         self._tripped_until: float | None = None
         self._lock = threading.RLock()
+        if self.store is not None:
+            # Adopt whatever the last process left behind, including an open
+            # breaker. Starting clean here is the bug this parameter exists for.
+            self._attempts, self._consecutive_failures, self._tripped_until = self.store.load()
 
     # ------------------------------------------------------------- inspection
 
@@ -115,7 +156,7 @@ class ConnectionBudget:
 
     # -------------------------------------------------------------- recording
 
-    def reserve(self) -> None:
+    def reserve(self, purpose: str | None = None) -> None:
         """Claim one connection, or raise.
 
         The attempt is recorded *before* the connection is made, not after. A
@@ -127,12 +168,19 @@ class ConnectionBudget:
             reason = self.refusal_reason()
             if reason:
                 raise GatewayBudgetExceeded(reason)
-            self._attempts.append(self.clock())
+            when = self.clock()
+            self._attempts.append(when)
+            if self.store is not None:
+                # Written before the socket is opened, in the same order as the
+                # in-memory list. A crash between this line and the connect must
+                # still leave the attempt charged.
+                self.store.record_attempt(when, purpose)
 
     def record_success(self) -> None:
         with self._lock:
             self._consecutive_failures = 0
             self._tripped_until = None
+            self._persist_breaker()
 
     def record_failure(self) -> None:
         """A failed connection. Enough of these in a row opens the breaker."""
@@ -140,14 +188,20 @@ class ConnectionBudget:
             self._consecutive_failures += 1
             if self._consecutive_failures >= self.limits.trip_after_failures:
                 self._tripped_until = self.clock() + self.limits.trip_seconds
+            self._persist_breaker()
 
     def reset(self) -> None:
         """Manual re-arm. Deliberately not called by any automatic path."""
         with self._lock:
             self._consecutive_failures = 0
             self._tripped_until = None
+            self._persist_breaker()
 
     # ---------------------------------------------------------------- helpers
+
+    def _persist_breaker(self) -> None:
+        if self.store is not None:
+            self.store.save_breaker(self._consecutive_failures, self._tripped_until)
 
     def _count_since(self, cutoff: float) -> int:
         return sum(1 for stamp in self._attempts if stamp >= cutoff)
@@ -156,3 +210,7 @@ class ConnectionBudget:
         horizon = now - 86_400
         if self._attempts and self._attempts[0] < horizon:
             self._attempts = [stamp for stamp in self._attempts if stamp >= horizon]
+            if self.store is not None:
+                # Only when memory actually dropped something, so a quiet desk
+                # is not issuing a DELETE on every state() call.
+                self.store.forget_before(horizon)

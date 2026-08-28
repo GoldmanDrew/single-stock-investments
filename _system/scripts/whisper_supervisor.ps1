@@ -36,7 +36,12 @@
 param(
     [string] $Model      = 'distil-large-v3',
     [int]    $Threads    = 12,
-    [int]    $Chunk      = 8,
+    # The daemon evaluates its push interval at chunk boundaries, not per
+    # episode, so the chunk size -- not PushMins -- is what really governs how
+    # often finished work reaches the vault. At 8 with the machine busy, three
+    # completed transcripts sat unpushed for five hours. Three keeps a
+    # checkpoint roughly hourly even when transcription is slow.
+    [int]    $Chunk      = 3,
     [int]    $PushMins   = 15,
     [int]    $MinBackoff = 120,
     [int]    $MaxBackoff = 1800,
@@ -107,8 +112,15 @@ try {
 
         Write-Log "starting daemon ($pending pending)"
         $started = Get-Date
+        # Not Tee-Object: on Windows PowerShell 5.1 its -FilePath has no
+        # encoding parameter and writes UTF-16LE, which interleaves with the
+        # UTF-8 lines Write-Log appends and leaves the log unreadable -- every
+        # character separated by a NUL. Echo and append explicitly instead.
         & $python '-u' $daemon '--until-empty' '--chunk' "$Chunk" '--push-every-minutes' "$PushMins" 2>&1 |
-            Tee-Object -FilePath $log -Append
+            ForEach-Object {
+                Write-Host $_
+                Add-Content -Path $log -Value $_ -Encoding utf8
+            }
         $code = $LASTEXITCODE
         $ran  = [int]((Get-Date) - $started).TotalSeconds
         Write-Log "daemon exited code=$code after ${ran}s"

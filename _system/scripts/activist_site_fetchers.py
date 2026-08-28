@@ -87,6 +87,38 @@ def parse_html_links(base_url: str, html: str) -> list[dict]:
     return out
 
 
+NAV_CHROME = frozenset(
+    {
+        "who-we-are", "what-we-do", "overview", "biographies", "biography", "leadership",
+        "strategy", "values", "offices", "office", "terms-of-use", "terms", "disclaimer",
+        "legal", "legal-disclaimer", "giving-back", "team", "people", "founder",
+        "core-principles", "our-firm", "firm", "approach", "philosophy", "history",
+        "search", "home", "index", "sitemap", "accessibility", "diversity", "esg",
+        "responsible-investment", "investment-strategy", "investor-relations",
+        "media-enquiries", "press-enquiries", "disclosures", "regulatory",
+    }
+)
+# Parked / expired firm domains that still answer 200 with a sales page.
+PARKED_HOSTS = ("hugedomains.com", "sedoparking.com", "afternic.com", "dan.com")
+REPORT_KEYWORDS = (
+    "report",
+    "research",
+    "short",
+    "investigation",
+    "analysis",
+    "letter",
+    "open-letter",
+    "open letter",
+    "presentation",
+    "nomination",
+    "proxy",
+    "white-paper",
+    "white paper",
+    "campaign",
+    "statement",
+)
+
+
 def likely_report(url: str, title: str, domain: str) -> bool:
     lower = f"{url} {title}".lower()
     if any(
@@ -105,39 +137,30 @@ def likely_report(url: str, title: str, domain: str) -> bool:
         )
     ):
         return False
+    host = urlparse(url).netloc.lower()
+    if any(parked in host for parked in PARKED_HOSTS):
+        return False
     if url.lower().endswith(".pdf"):
         return True
-    host = urlparse(url).netloc.lower()
     if domain and domain not in host and not host.endswith(domain):
         return False
     path = urlparse(url).path.strip("/")
     if not path or path in {"feed", "comments", "wp-json"}:
         return False
-    if any(
-        x in lower
-        for x in (
-            "report",
-            "research",
-            "short",
-            "investigation",
-            "analysis",
-            "letter",
-            "open-letter",
-            "open letter",
-            "presentation",
-            "nomination",
-            "proxy",
-            "white-paper",
-            "white paper",
-            "board",
-            "shareholder",
-        )
-    ):
+    # Reject site furniture by slug. Every segment is checked so
+    # "/who-we-are/leadership" is rejected on either half.
+    segments = [seg for seg in path.split("/") if seg]
+    if any(seg in NAV_CHROME for seg in segments):
+        return False
+    if any(x in lower for x in REPORT_KEYWORDS):
         return True
-    if re.search(r"/20\d{2}/", url):
+    # A date in the path is the other reliable marker of a dated publication.
+    if re.search(r"/20\d{2}[/-]", url):
         return True
-    if path.count("/") <= 1 and len(path) >= 4 and path not in {"research", "reports", "blog", "news", "media", "newsroom"}:
-        return True
+    # Deliberately no generic "any short path" fallback. It matched essentially
+    # every navigation link on a firm's homepage, so the crawler reported
+    # hundreds of "reports" that were really nav chrome — the publisher lane
+    # looked productive while yielding nothing usable.
     return False
 
 
@@ -182,10 +205,12 @@ def fetch_long_newsroom(firm: dict) -> list[dict]:
                     break
             except Exception:
                 continue
+        domain_reachable = False
         for path in paths:
             try:
                 page = f"https://{domain}{path}"
                 links = parse_html_links(page, fetch_text(page))
+                domain_reachable = True
                 for item in links:
                     if item["url"] in seen:
                         continue
@@ -196,7 +221,11 @@ def fetch_long_newsroom(firm: dict) -> list[dict]:
                 append_scan_log(
                     {"firm_id": firm.get("id"), "status": "newsroom_fail", "url": f"https://{domain}{path}", "error": str(exc)}
                 )
-        if out:
+        # Do not stop at the first domain that yielded anything. Icahn lists
+        # ielp.com before carlicahn.com; ielp.com answers but carries no
+        # reports, and breaking there meant the domain that actually publishes
+        # the open letters was never fetched.
+        if domain_reachable and len(out) >= 5:
             break
     return out
 
