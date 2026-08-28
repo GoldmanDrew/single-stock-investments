@@ -119,3 +119,21 @@ test("B5 product snapshots cannot broker-reconcile", () => {
   payload.rows[0].conid = 12;
   assert.throws(() => validateStrategySnapshot(payload), /cannot broker-reconcile/);
 });
+
+test("a snapshot is dated so a stopped feed cannot read as a live one", async () => {
+  const { snapshotAge, STALE_AFTER_SECONDS } = await import("../functions/_lib/portfolio.js");
+  const now = Date.parse("2026-08-25T16:00:00Z");
+
+  const fresh = snapshotAge({ as_of: "2026-08-25T15:59:00Z" }, now);
+  assert.equal(fresh.stale, false);
+  assert.equal(fresh.age_seconds, 60);
+
+  // The collector was disabled 2026-08-25; this query keeps returning the same
+  // run indefinitely, so age is the only thing separating it from live data.
+  const old = snapshotAge({ as_of: "2026-08-22T15:00:00Z" }, now);
+  assert.equal(old.stale, true);
+  assert.ok(old.age_seconds > STALE_AFTER_SECONDS);
+
+  // An unparseable stamp is unknown, never assumed fresh.
+  assert.deepEqual(snapshotAge({ as_of: "" }, now), { age_seconds: null, stale: null });
+});

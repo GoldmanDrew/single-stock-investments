@@ -17,10 +17,35 @@ built and dormant because nothing polls it.
 
 ## What this is not
 
-Starting this unit is not a deploy chore. It connects IBKR **client 91**, the
-hub's sole transmitter, to the Gateway that also carries the live SPX 0DTE
-executor. Read CLAUDE.md's coexistence contract before touching it, and never
-start, stop or restart it inside 09:30–16:00 ET on a market day.
+Starting this unit is not a deploy chore. It is the only thing in this repo
+permitted to reach IB Gateway at all. Read CLAUDE.md rules 9 and 10 before
+touching it, and never start, stop or restart it inside 09:30–16:00 ET on a
+market day.
+
+## It holds no connection
+
+The collector was deleted on 2026-08-25 for reconnect-storming the Gateway. This
+process is built so it cannot repeat that, structurally rather than by tuning:
+
+* **It polls D1 over HTTPS, never IB.** On an idle desk — which is nearly always
+  — it runs all day having made zero Gateway contact. There is a test asserting
+  that 50 idle ticks produce zero connections.
+* **A connection follows a human action, not a timer.** A session opens only
+  when a claimed ticket needs the broker, covers all of that tick's work in one
+  connection, and closes in a `finally`. Killing the process cannot leak a
+  client-91 socket because nothing is held between ticks.
+* **A failed connect produces a rejected ticket, not a retry.** `gateway_session`
+  contains no loop and no sleep, asserted against its AST. The person who asked
+  gets told why; asking again is the retry mechanism.
+* **Three independent brakes.** `gateway_budget.py` caps connections per hour
+  (12) and per day (60), and opens a circuit breaker after 3 consecutive
+  failures for 15 minutes. It contains no connection code at all, so the limit
+  cannot be bypassed by editing the thing it limits. Against a dead Gateway it
+  stops after 3 attempts — the collector managed 213 in one session.
+
+Both caps are env-tunable (`PORTFOLIO_GATEWAY_MAX_PER_HOUR`,
+`PORTFOLIO_GATEWAY_MAX_PER_DAY`). Raising them is a decision to argue for, not a
+knob to turn when something is refused.
 
 ## Why it starts on `--route paper`
 
@@ -93,7 +118,13 @@ ssh spx-ny4-spx 'cd /home/spx/single-stock-investments && set -a
   /home/spx/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub \
     --db /home/spx/portfolio-hub/portfolio.db order-bridge \
     --account "$IBKR_ACCOUNT_ALIAS" --route paper --once'
-# Expect: {"route": "paper", "transmits": false} then {"desk_open": ..., "route": "paper"}.
+# Expect: {"route": "paper", "standing_gateway_connection": false, "budget": {...}}
+# then {"desk_open": ..., "sessions_opened": N, "budget": {...}}.
+#
+# sessions_opened tells you what actually happened. On a quiet desk it is 0 and
+# NO CONNECTION WAS MADE -- that is a successful dry run, not a failure to
+# connect. It is only non-zero if a ticket was genuinely waiting.
+#
 # Any OrderOwnershipError means a MAGIS orderRef is held by a foreign client id.
 # Stop and investigate -- do not install over it.
 

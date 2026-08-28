@@ -40,7 +40,7 @@ from activist_common import (
     upsert_report,
     write_json,
 )
-from activist_site_fetchers import fetch_bytes
+from activist_site_fetchers import fetch_bytes, parse_rss
 
 ROOT = Path(__file__).resolve().parents[2]
 SEEDS_PATH = ROOT / "_system" / "data" / "activist_press_seeds.json"
@@ -292,12 +292,125 @@ def write_digest_markdown(rows: list[dict], scan_date: str) -> Path:
     return out
 
 
+
+# --- live wire polling ------------------------------------------------------
+#
+# The lane was three hand-typed seeds for two firms and polled nothing, so an
+# open letter that never became an SEC filing was only ever caught by someone
+# noticing it. These two wires answer a plain RSS request; GlobeNewswire does
+# not (verified 2026-08-26: timeout / connection reset), so it is deliberately
+# absent rather than silently failing every run.
+WIRE_FEEDS = (
+    ("prnewswire", "https://www.prnewswire.com/rss/financial-services-latest-news/financial-services-latest-news-list.rss"),
+    ("prnewswire", "https://www.prnewswire.com/rss/acquisitions-mergers-and-takeovers-list.rss"),
+    ("businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGVtRVQ=="),
+)
+WIRE_LOOKBACK_DAYS = 14
+
+# Spelled out because a mangled "\b" silently becomes a backspace character,
+# which matches nothing and turns the whole lane into a permanent zero.
+WORD_BOUNDARY = r"\b"
+
+
+def _firm_alias_matchers() -> list[tuple[str, re.Pattern[str]]]:
+    """Registry firms that opted into press_wire, by the names they appear under."""
+    out: list[tuple[str, re.Pattern[str]]] = []
+    for firm in active_firms():
+        if not firm_has_ingest(firm, "press_wire"):
+            continue
+        fid = firm.get("id") or ""
+        aliases = firm.get("press_aliases") or firm.get("aliases") or []
+        names = [firm.get("name") or "", *aliases]
+        seen: set[str] = set()
+        for name in names:
+            key = str(name or "").strip()
+            if len(key) < 5 or key.lower() in seen:
+                continue
+            seen.add(key.lower())
+            out.append((fid, re.compile(WORD_BOUNDARY + re.escape(key) + WORD_BOUNDARY, re.I)))
+    return out
+
+
+def poll_wire_feeds(
+    ticker_set: set[str],
+    *,
+    lookback_days: int = WIRE_LOOKBACK_DAYS,
+    feeds: tuple[tuple[str, str], ...] = WIRE_FEEDS,
+) -> list[dict]:
+    """Return seed-shaped rows for wire items naming a tracked activist.
+
+    Two gates, both required: a registry firm must be named, and the item must
+    read as a campaign. Everything else on these feeds is ordinary corporate PR.
+    """
+    matchers = _firm_alias_matchers()
+    if not matchers:
+        return []
+    cutoff = (datetime.now(timezone.utc).date() - timedelta(days=lookback_days)).isoformat()
+    found: list[dict] = []
+    seen_urls: set[str] = set()
+
+    for wire, url in feeds:
+        try:
+            items = parse_rss(fetch_bytes(url, cache_hours=2).decode("utf-8", errors="ignore"), url)
+        except Exception as exc:
+            append_scan_log({"source": "press_wire", "status": "wire_fail", "url": url, "error": str(exc)[:200]})
+            continue
+        for item in items:
+            link = item.get("url") or ""
+            title = item.get("title") or ""
+            if not link or link in seen_urls:
+                continue
+            firm_id = next((fid for fid, pattern in matchers if pattern.search(title)), None)
+            if not firm_id:
+                continue
+            if not classify_press_item(title):
+                continue
+            report_date = (item.get("date") or "")[:10]
+            if report_date and report_date < cutoff:
+                continue
+            ticker = _ticker_from_headline(title, ticker_set)
+            if not ticker:
+                continue
+            seen_urls.add(link)
+            found.append(
+                {
+                    "firm_id": firm_id,
+                    "ticker": ticker,
+                    "title": title,
+                    "report_date": report_date or date.today().isoformat(),
+                    "source_url": link,
+                    "document_url": link,
+                    "filing_class": "press_campaign",
+                    "wire": wire,
+                    "discovered_by": "wire_poll",
+                }
+            )
+    return found
+
+
+TICKER_IN_HEADLINE_RE = re.compile(r"\((?:NYSE|NASDAQ|NYSE American|AMEX|OTC[A-Z]*)\s*:\s*([A-Z.\-]{1,8})\)", re.I)
+
+
+def _ticker_from_headline(title: str, ticker_set: set[str]) -> str | None:
+    """Only accept an exchange-qualified ticker, e.g. "(NASDAQ: CSGP)".
+
+    A bare uppercase word in a headline matches far too much ordinary prose --
+    the same false-positive class the feed's target verification already guards.
+    """
+    for match in TICKER_IN_HEADLINE_RE.finditer(title):
+        candidate = match.group(1).upper().strip(".")
+        if candidate in ticker_set:
+            return candidate
+    return None
+
+
 def scan_press_wires(
     tickers: list[str] | None = None,
     *,
     dry_run: bool = False,
     backfill_days: int | None = None,
     scan_date: str | None = None,
+    poll_wires: bool = True,
 ) -> dict:
     tickers = [t.upper() for t in (tickers or portfolio_tickers())]
     ticker_set = set(tickers)
@@ -310,7 +423,12 @@ def scan_press_wires(
     all_hits: list[dict] = []
     skipped = 0
 
-    for seed in _load_seeds():
+    seeds = list(_load_seeds())
+    if poll_wires:
+        polled = poll_wire_feeds(ticker_set)
+        seeds.extend(polled)
+
+    for seed in seeds:
         firm_id = seed.get("firm_id")
         ticker = (seed.get("ticker") or "").upper()
         if firm_id not in wire_firms and firm_id:
@@ -340,6 +458,7 @@ def scan_press_wires(
         "scan_date": scan_date,
         "ticker_count": len(tickers),
         "hit_count": len(all_hits),
+        "polled_count": sum(1 for h in all_hits if h.get("discovered_by") == "wire_poll"),
         "skipped_count": skipped,
         "hits": all_hits,
     }

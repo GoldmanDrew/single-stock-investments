@@ -335,5 +335,310 @@ class PodcastHarvestTests(unittest.TestCase):
         self.assertTrue(detail["guests"][0]["display"])
 
 
+class TickerAttributionTests(unittest.TestCase):
+    """A claim filed under the wrong company is the one error quote
+    verification cannot catch, because the quote is genuine."""
+
+    ALIASES = {
+        "costamare inc.": "CMRE",
+        "costco": "COST",
+        "costar group": "CSGP",
+        "invesco": "IVZ",
+        "constellation software": "CSU",
+        "elevance health inc": "ELV",
+        "alphabet inc.": "GOOGL",
+        "google": "GOOGL",
+        "apple inc.": "AAPL",
+        "apple hospitality reit": "APLE",
+        "visa inc.": "V",
+        "ford motor company": "F",
+        "amazon.com": "AMZN",
+        # Rows that made the model's own abbreviations dangerous: each is a
+        # real master entry whose name leads with a two- or three-letter symbol
+        # the model writes into the company field.
+        "bank of america": "BAC",
+        "bac.wa": "BAC.WA",
+        "general dynamics": "GD",
+        "gd culture group ltd": "GDC",
+        "texas instruments": "TXN",
+        "3m company": "MMM",
+        # Harvested rows: real companies nobody curated, and the trap for any
+        # rule that resolves a fragment. "Benchmark" the venture firm has no
+        # master row, so "benchmark electronics inc" is the only thing its name
+        # leads -- uniquely, which is exactly why uniqueness cannot be the test.
+        "benchmark electronics inc": "BHE",
+        "alpha pro tech ltd": "APT",
+    }
+
+    # The curated book, ~830 of the master's 3,735 rows. The harvested tail
+    # (CMRE, APLE, GDC, BAC.WA, BHE, APT) is deliberately absent.
+    BOOK = frozenset({"COST", "CSGP", "IVZ", "CSU", "ELV", "GOOGL", "AAPL", "V",
+                      "F", "AMZN", "BAC", "GD", "TXN", "MMM"})
+
+    def _validated(self, company, ticker):
+        from analyze_podcast_episode import validate_tickers  # noqa: WPS433
+
+        claims = [{"company": company, "ticker": ticker, "claim": "x"}]
+        validate_tickers(claims, dict(self.ALIASES), self.BOOK)
+        return claims[0]
+
+    def test_symbol_in_company_field_is_not_a_mismatch(self):
+        """The model writes company=COST for Costco. Character matching sent
+        that to "costamare inc." -> CMRE and rewrote four real Costco claims
+        onto a Greek containership lessor."""
+        self.assertEqual(self._validated("COST", "COST")["ticker"], "COST")
+
+    def test_stub_never_captures_a_longer_name(self):
+        for company in ("COST", "COSTA"):
+            with self.subTest(company=company):
+                self.assertNotEqual(self._validated(company, company)["ticker"], "CMRE")
+
+    def test_ambiguous_leading_word_resolves_to_nothing(self):
+        """Apple leads both "Apple Inc." and "Apple Hospitality REIT". A
+        leading-word run is only an attribution when the master agrees on one
+        answer -- otherwise a claim about Apple lands on a hotel REIT."""
+        from analyze_podcast_episode import _match_alias  # noqa: WPS433
+
+        self.assertIsNone(_match_alias("appl", dict(self.ALIASES), self.BOOK))
+        # Apple itself is unambiguous: it matches "Apple Inc." exactly.
+        self.assertEqual(self._validated("Apple", "AAPL")["ticker"], "AAPL")
+        self.assertEqual(self._validated("Apple Hospitality REIT", "APLE")["ticker"], "APLE")
+
+    def test_unambiguous_leading_word_resolves(self):
+        """Ford is not "Ford Motor Company" exactly, but nothing else in the
+        master leads with it."""
+        self.assertEqual(self._validated("Ford", "F")["ticker"], "F")
+
+    def test_short_names_survive(self):
+        """The alias index used to drop everything under five characters, which
+        deleted Visa and Ford from attribution entirely. That floor belongs to
+        the substring scanners, not here."""
+        self.assertEqual(self._validated("Visa", "V")["ticker"], "V")
+
+    def test_self_naming_does_not_outrank_existence(self):
+        """The model spelling company and ticker the same way is not evidence.
+        "TSMC" is not a symbol -- the master carries TSM -- and "TI" is Telecom
+        Italia, not Texas Instruments, which is TXN. Both walked through on 10
+        and 7 claims because the self-naming case was tested before the master
+        was consulted at all."""
+        for symbol in ("TSMC", "TI"):
+            with self.subTest(symbol=symbol):
+                claim = self._validated(symbol, symbol)
+                self.assertIsNone(claim["ticker"])
+                self.assertEqual(claim["ticker_rejected"], symbol)
+
+    def test_self_naming_still_holds_for_a_symbol_the_master_carries(self):
+        for company, ticker in (("COST", "COST"), ("BAC", "BAC"), ("GD", "GD")):
+            with self.subTest(company=company):
+                self.assertEqual(self._validated(company, ticker)["ticker"], ticker)
+
+    def test_short_symbol_never_leads_a_longer_name(self):
+        """A leading-word run is not a licence for a stub. "BAC" leads
+        "BAC.WA" and took a Bank of America claim to a Warsaw listing; "GD"
+        leads "GD Culture Group Ltd" and took a General Dynamics claim to GDC.
+        Equality needs no floor, but this branch does."""
+        self.assertEqual(self._validated("BAC", "BAC")["ticker"], "BAC")
+        self.assertEqual(self._validated("GD", "GD")["ticker"], "GD")
+
+    def test_two_character_name_still_matches_exactly(self):
+        """The prefix floor must not cost the exact path: 3M is two characters
+        and matches "3M Company" outright."""
+        self.assertEqual(self._validated("3M", "MMM")["ticker"], "MMM")
+
+    def test_real_symbol_for_the_wrong_company_is_dropped(self):
+        """IVZ is a perfectly real symbol. It is not Vanguard, which the master
+        does not carry at all -- so the symbol is unverifiable and must go."""
+        claim = self._validated("Vanguard", "IVZ")
+        self.assertIsNone(claim["ticker"])
+        self.assertEqual(claim["ticker_rejected"], "IVZ")
+
+    def test_contradicted_symbol_is_corrected(self):
+        claim = self._validated("Constellation Software", "CSCO")
+        self.assertEqual(claim["ticker"], "CSU")
+        self.assertEqual(claim["ticker_corrected_from"], "CSCO")
+
+    def test_corporate_suffix_is_not_a_difference(self):
+        self.assertEqual(self._validated("Elevance Health", "ELV")["ticker"], "ELV")
+        self.assertEqual(self._validated("Alphabet", "GOOGL")["ticker"], "GOOGL")
+        self.assertEqual(self._validated("Amazon", "AMZN")["ticker"], "AMZN")
+
+    def test_match_does_not_depend_on_alias_insertion_order(self):
+        """The Costco/Costamare bug was decided by which key the master happened
+        to store first. Order must not be able to change an attribution."""
+        from analyze_podcast_episode import validate_tickers  # noqa: WPS433
+
+        forward = dict(self.ALIASES)
+        reverse = dict(reversed(list(self.ALIASES.items())))
+        for company, ticker in (("Costco", "COST"), ("COST", "COST"),
+                                ("Vanguard", "IVZ"), ("Apple", "AAPL"), ("Ford", "F")):
+            with self.subTest(company=company):
+                a = [{"company": company, "ticker": ticker}]
+                b = [{"company": company, "ticker": ticker}]
+                validate_tickers(a, forward, self.BOOK)
+                validate_tickers(b, reverse, self.BOOK)
+                self.assertEqual(a[0]["ticker"], b[0]["ticker"])
+
+    def test_resolve_fills_a_missing_symbol_without_guessing(self):
+        from analyze_podcast_episode import resolve_tickers  # noqa: WPS433
+
+        claims = [
+            {"company": "Elevance Health", "ticker": None},
+            {"company": "COST", "ticker": None},
+            {"company": "Vanguard", "ticker": None},
+        ]
+        resolve_tickers(claims, dict(self.ALIASES), self.BOOK)
+        self.assertEqual(claims[0]["ticker"], "ELV")
+        self.assertIsNone(claims[1]["ticker"])
+        self.assertIsNone(claims[2]["ticker"])
+
+    def test_unique_leading_word_is_not_enough_on_its_own(self):
+        """Fourth variant of the same bug. The ambiguity gate asks whether two
+        master rows compete for the stub; it cannot ask whether the company the
+        speaker meant is in the master at all. "Benchmark" -- the venture firm,
+        which has no row -- uniquely leads "Benchmark Electronics Inc", so it
+        won uncontested and carried a claim about a VC to a contract
+        manufacturer. Oaktree -> OCSL, Sears -> SCC.T and Tencent -> TME are the
+        same shape, 6 of 75 leading-word attributions in the live corpus."""
+        claim = self._validated("Benchmark", "BHE")
+        self.assertIsNone(claim["ticker"])
+        self.assertEqual(claim["ticker_rejected"], "BHE")
+        # ...while a leading-word run onto the book still resolves.
+        self.assertEqual(self._validated("Ford", "F")["ticker"], "F")
+
+    def test_self_naming_does_not_reach_the_harvested_tail(self):
+        """Self-naming contains no evidence at all -- neither field is a company
+        name -- so it may only land on a curated symbol. "APT" took a claim
+        about Applied Technology to Alpha Pro Tech on nothing but the model
+        spelling it the same way twice."""
+        claim = self._validated("APT", "APT")
+        self.assertIsNone(claim["ticker"])
+        self.assertEqual(claim["ticker_rejected"], "APT")
+
+    def test_every_attribution_records_the_rule_that_made_it(self):
+        """Each of the four variants was found by auditing live output, never by
+        a failing test. Recording the branch makes the fifth visible in the
+        corpus without a hand audit."""
+        for company, ticker, basis in (("Costco", "COST", "exact_name"),
+                                       ("Elevance Health", "ELV", "same_name"),
+                                       ("Ford", "F", "leading_word"),
+                                       ("COST", "COST", "self_named")):
+            with self.subTest(company=company):
+                self.assertEqual(self._validated(company, ticker)["ticker_basis"], basis)
+
+    def test_a_symbol_is_not_a_company_name(self):
+        """274 master rows, every one a foreign listing, are named only by their
+        own symbol: BA.L is called "ba.l". The model wrote company "BA" for
+        Boeing, which reduces to the same single token, so it matched by
+        *equality* -- the one path with no length floor -- and a Boeing claim
+        landed on BAE Systems in London."""
+        import whisper_vocab  # noqa: WPS433
+        from analyze_podcast_episode import build_aliases  # noqa: WPS433
+
+        rows = {"BA.L": {"name": "BA.L", "in_book": False},
+                "IBM": {"name": "IBM", "in_book": True},
+                "AAON": {"name": "AAON, Inc.", "in_book": True}}
+        original = whisper_vocab._securities
+        whisper_vocab._securities = lambda: rows
+        try:
+            aliases = build_aliases()
+        finally:
+            whisper_vocab._securities = original
+        self.assertNotIn("ba.l", aliases)
+        # The exchange suffix is the tell. A plain symbol that is also the
+        # company's name is a name: IBM, RH and UBER are the three, and
+        # dropping IBM on this rule cost 22 correct claims.
+        self.assertEqual(aliases.get("ibm"), "IBM")
+        self.assertEqual(aliases.get("aaon, inc."), "AAON")
+
+    def test_scan_floor_excludes_short_names_from_window_matching(self):
+        """Short names are unsafe to look for *inside* prose -- visa matches
+        "visa requirements". The floor still applies there."""
+        from analyze_podcast_episode import scan_aliases  # noqa: WPS433
+
+        scan = scan_aliases(dict(self.ALIASES))
+        self.assertNotIn("visa", scan)
+        self.assertIn("costamare inc.", scan)
+
+
+class AnalysisOverlayTests(unittest.TestCase):
+    """The analysis reached the dashboard through nothing at all until it was
+    folded into positions and themes here."""
+
+    ANALYSIS = {
+        "thesis": "Costco curation is the moat.",
+        "themes": [{"theme": "Retail Moats", "stance": "bullish"}],
+        "claims": [
+            {"company": "Costco", "ticker": "COST", "stance": "bullish",
+             "claim": "Costco sells fewer items on purpose.",
+             "quote": "In Costco, you have very few things", "quote_verified": True},
+            {"company": "Vanguard", "ticker": None, "stance": "neutral",
+             "claim": "A claim whose symbol could not be corroborated."},
+        ],
+        "numbers": [{"what": "revenue", "value": "$440 million", "quote_verified": True}],
+        "method": "local_llm", "quote_verified_rate": 1.0,
+        "chunks_analyzed": 8, "chunks_total": 20,
+    }
+
+    def test_claim_upgrades_the_resolver_row_rather_than_duplicating_it(self):
+        from build_podcast_insights import analysis_positions  # noqa: WPS433
+
+        positions = [{"ticker": "COST", "action": "discussed",
+                      "commentary": None, "tier": "resolver"}]
+        analysis_positions(self.ANALYSIS, positions, {"COST"})
+        self.assertEqual(len(positions), 1)
+        self.assertEqual(positions[0]["tier"], "llm_claim")
+        self.assertEqual(positions[0]["stance"], "bullish")
+        self.assertIn("fewer items", positions[0]["commentary"])
+
+    def test_claim_without_a_ticker_creates_no_position(self):
+        """The validator nulls a symbol it cannot corroborate. A fan-out row
+        with no ticker has nothing to attach to."""
+        from build_podcast_insights import analysis_positions  # noqa: WPS433
+
+        positions: list = []
+        analysis_positions(self.ANALYSIS, positions, set())
+        self.assertEqual([p["ticker"] for p in positions], ["COST"])
+
+    def test_model_themes_replace_keyword_themes(self):
+        from build_podcast_insights import analysis_themes  # noqa: WPS433
+
+        fallback = [{"theme": "Capital Allocation", "stance": "neutral"}]
+        themes = analysis_themes(self.ANALYSIS, fallback)
+        self.assertEqual(themes[0]["theme"], "Retail Moats")
+        # Stance is translated into the vocabulary the fan-out already speaks.
+        self.assertEqual(themes[0]["stance"], "constructive")
+        self.assertEqual(analysis_themes({}, fallback), fallback)
+
+    def test_index_row_carries_counts_not_claim_arrays(self):
+        """podcast_index is one file the SPA loads at boot. Claims belong in the
+        per-episode detail shard."""
+        from build_podcast_insights import analysis_summary, index_row_from_episode  # noqa: WPS433
+
+        row = index_row_from_episode({
+            "episode_id": "e1", "title": "t", "tickers": ["COST"],
+            "analysis": analysis_summary(self.ANALYSIS),
+            "thesis": self.ANALYSIS["thesis"], "claims": self.ANALYSIS["claims"],
+        })
+        self.assertTrue(row["has_analysis"])
+        self.assertEqual(row["claim_count"], 2)
+        self.assertEqual(row["quote_verified_rate"], 1.0)
+        self.assertIn("moat", row["thesis_preview"])
+        self.assertNotIn("claims", row)
+
+    def test_detail_payload_carries_claims_with_their_quotes(self):
+        from build_podcast_insights import episode_detail_payload  # noqa: WPS433
+
+        detail = episode_detail_payload({
+            "episode_id": "e1", "title": "t",
+            "thesis": self.ANALYSIS["thesis"], "claims": self.ANALYSIS["claims"],
+            "numbers": self.ANALYSIS["numbers"],
+        })
+        self.assertEqual(len(detail["claims"]), 2)
+        self.assertTrue(detail["claims"][0]["quote_verified"])
+        self.assertEqual(detail["claims"][0]["ticker"], "COST")
+        self.assertEqual(len(detail["numbers"]), 1)
+        self.assertIn("moat", detail["thesis"])
+
+
 if __name__ == "__main__":
     unittest.main()
