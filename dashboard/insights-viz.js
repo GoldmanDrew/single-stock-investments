@@ -660,6 +660,20 @@
       : '';
     const episodeLink = merged.link ? linkHtml(merged.link, 'Episode', 'source-open-link') : '';
     const positions = (merged.positions || []).filter(p => p && p.ticker).slice(0, 12);
+    // Local-model analysis. Absent on every episode that has not been through
+    // analyze_podcast_batch.py, which is most of them.
+    const thesis = (merged.thesis || '').trim();
+    const claims = (Array.isArray(merged.claims) ? merged.claims : [])
+      .filter(c => c && String(c.claim || '').trim());
+    const analysis = merged.analysis || null;
+    const verifiedRate = analysis && typeof analysis.quote_verified_rate === 'number'
+      ? Math.round(analysis.quote_verified_rate * 100)
+      : null;
+    const stanceBadge = st => {
+      const s = String(st || 'neutral').toLowerCase();
+      const cls = s === 'bullish' ? 'badge-ok' : (s === 'bearish' ? 'badge-bad' : '');
+      return `<span class="badge${cls ? ' ' + cls : ''}">${escapeHtml(s)}</span>`;
+    };
     return `
       <div class="detail-section fund-detail" id="podcast-episode-detail">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
@@ -683,6 +697,20 @@
         ${positions.length ? `
         <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">TICKER COMMENTARY</h4>
         <ul class="dev-list">${positions.map(p => `<li style="font-size:12px"><span class="mono">${escapeHtml(p.ticker)}</span>${p.commentary ? ` — ${escapeHtml(String(p.commentary).slice(0, 200))}` : ''}</li>`).join('')}</ul>
+        ` : ''}
+        ${thesis ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">THESIS</h4>
+        <p style="font-size:13px;line-height:1.5;margin:6px 0">${escapeHtml(thesis)}</p>
+        ` : ''}
+        ${claims.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">CLAIMS${
+          verifiedRate === null ? '' : ` · ${verifiedRate}% QUOTE-VERIFIED`}</h4>
+        <ul class="dev-list">${claims.map(c => `
+          <li style="font-size:12px;line-height:1.45;margin-bottom:8px">
+            ${c.ticker ? `<button type="button" class="filter-btn source-pill mono" data-select-ticker="${escapeHtml(c.ticker)}">${escapeHtml(c.ticker)}</button> ` : ''}${stanceBadge(c.stance)}
+            <div style="margin-top:3px">${escapeHtml(String(c.claim).slice(0, 400))}</div>
+            ${c.quote && c.quote_verified ? `<div class="tier-sub" style="margin-top:3px;font-style:italic">&ldquo;${escapeHtml(String(c.quote).slice(0, 300))}&rdquo;</div>` : ''}
+          </li>`).join('')}</ul>
         ` : ''}
         ${highlights.length ? `
         <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">HIGHLIGHTS</h4>

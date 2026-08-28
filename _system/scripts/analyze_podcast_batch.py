@@ -47,7 +47,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 
-from analyze_podcast_episode import analyze, build_aliases  # noqa: E402
+from analyze_podcast_episode import analyze, build_aliases, scan_aliases  # noqa: E402
 from llm_local import LocalLLMUnavailable  # noqa: E402
 from vault_paths import podcasts_root  # noqa: E402
 
@@ -62,8 +62,23 @@ MIN_TRANSCRIPT_BYTES = 25000
 MIN_AVAILABLE_MB = int(os.environ.get("ANALYZE_MIN_AVAIL_MB", "600"))
 MEMORY_WAIT_SECONDS = 120
 DEFAULT_PUSH_MINUTES = 20
+# The Whisper backfill owns this box for weeks at a time and is the job that
+# actually feeds the dashboard. Running both at once cost it 5.5x: transcription
+# ran at 3.0 episodes/hour up to the 16:44Z checkpoint on 2026-08-26 and 0.55/hour
+# across the next five and a half hours, llama-server having started at 17:17Z.
+# Sequentially the two take 4 days and 17 days; concurrently the pair takes 91.
+WHISPER_PROCESS_HINT = "whisper_backfill_daemon.py"
+# Cores. Whisper transcribes on 12 threads, so "working" is unambiguous and a
+# low bar separates it from a daemon sitting in its between-batch sleep.
+WHISPER_BUSY_CORES = float(os.environ.get("ANALYZE_WHISPER_BUSY_CORES", "0.5"))
+WHISPER_SAMPLE_SECONDS = 3.0
+WHISPER_POLL_SECONDS = 60
+DEFAULT_MAX_WAIT_MINUTES = 30
 # Outside podcasts/ so `git add -A podcasts` never stages it; the first run
-# committed the lock and then recorded its own deletion.
+# committed the lock and then recorded its own deletion. It went on doing that:
+# the lock was still being created inside podcasts/ and was a tracked file in
+# the vault until 2026-08-26. `podcasts_root().parent` is what the comment
+# always meant.
 LOCK_NAME = ".analyze_podcast_batch.lock"
 
 _stop = False
@@ -136,6 +151,68 @@ def wait_for_memory() -> None:
         print(f"[{_stamp()}] only {free} MB available (floor {MIN_AVAILABLE_MB}); "
               f"waiting {MEMORY_WAIT_SECONDS}s", flush=True)
         time.sleep(MEMORY_WAIT_SECONDS)
+
+
+def whisper_cores(sample_seconds: float = WHISPER_SAMPLE_SECONDS) -> float | None:
+    """Cores the Whisper backfill is using right now, or None if unknowable.
+
+    Measured rather than inferred. "Is the daemon running" is the wrong
+    question -- it runs `--until-empty` for weeks, so it is always running and a
+    gate on that would starve this batch permanently. What matters is whether it
+    is transcribing at this moment or sitting in its between-batch sleep, and
+    CPU time is the direct evidence of that.
+    """
+    try:
+        import psutil  # noqa: WPS433
+    except ImportError:
+        return None
+    try:
+        procs = []
+        for proc in psutil.process_iter(["pid", "cmdline"]):
+            cmdline = " ".join(proc.info.get("cmdline") or [])
+            if WHISPER_PROCESS_HINT in cmdline:
+                procs.append(proc)
+        if not procs:
+            return 0.0
+        first = [(p, p.cpu_times()) for p in procs]
+        time.sleep(sample_seconds)
+        used = 0.0
+        for proc, before in first:
+            try:
+                after = proc.cpu_times()
+            except psutil.Error:
+                continue
+            used += (after.user - before.user) + (after.system - before.system)
+        return used / sample_seconds
+    except Exception:
+        return None
+
+
+def wait_for_whisper(max_wait_minutes: int) -> None:
+    """Yield the box to the transcription backfill, but never indefinitely.
+
+    A pure gate would never release: the backlog is 1,206 episodes and drains
+    over weeks. So this waits out the busy stretches and, once the wait budget
+    is spent, takes one episode anyway before yielding again -- whisper keeps
+    the box most of the time and this batch still finishes.
+    """
+    deadline = time.time() + max_wait_minutes * 60
+    announced = False
+    while not _stop:
+        cores = whisper_cores()
+        if cores is None or cores < WHISPER_BUSY_CORES:
+            if announced:
+                print(f"[{_stamp()}] whisper idle; resuming", flush=True)
+            return
+        if time.time() >= deadline:
+            print(f"[{_stamp()}] waited {max_wait_minutes}m for whisper "
+                  f"({cores:.1f} cores busy); taking one episode anyway", flush=True)
+            return
+        if not announced:
+            print(f"[{_stamp()}] whisper busy ({cores:.1f} cores); "
+                  f"yielding, up to {max_wait_minutes}m", flush=True)
+            announced = True
+        time.sleep(WHISPER_POLL_SECONDS)
 
 
 def sha1_text(path: Path) -> str:
@@ -212,7 +289,8 @@ def candidates(root: Path) -> list[tuple[Path, Path, dict]]:
     # date alone were Whatnot and Stripe: 324s and 438s spent, zero tickers
     # between them. Ranking by in-book mentions puts the ownable episodes first,
     # so a run stopped early has done the work that mattered.
-    book = build_aliases(limit_in_book=True)
+    # Scanned against running text, so short names are excluded here.
+    book = scan_aliases(build_aliases(limit_in_book=True))
 
     def book_hits(path: Path) -> int:
         try:
@@ -277,9 +355,10 @@ def vault_push(message: str) -> bool:
 
 
 def run(*, limit: int | None, model: str | None, push: bool,
-        push_minutes: int, hours: float | None) -> dict:
+        push_minutes: int, hours: float | None,
+        max_wait_minutes: int | None) -> dict:
     root = podcasts_root(create=True)
-    lock = root / LOCK_NAME
+    lock = root.parent / LOCK_NAME
     if lock.exists():
         age = time.time() - lock.stat().st_mtime
         if age < 3600:
@@ -311,6 +390,8 @@ def run(*, limit: int | None, model: str | None, push: bool,
                 continue
 
             wait_for_memory()
+            if max_wait_minutes is not None:
+                wait_for_whisper(max_wait_minutes)
             if _stop:
                 break
 
@@ -369,6 +450,12 @@ def main() -> int:
     p.add_argument("--no-push", action="store_true", help="Do not commit/push the vault.")
     p.add_argument("--push-every-minutes", type=int, default=DEFAULT_PUSH_MINUTES)
     p.add_argument("--status", action="store_true", help="Report coverage and exit.")
+    p.add_argument("--share-with-whisper", action="store_true",
+                   help="Run alongside the Whisper backfill instead of yielding to it. "
+                        "Measured cost of doing so: transcription drops ~5.5x.")
+    p.add_argument("--max-wait-minutes", type=int, default=DEFAULT_MAX_WAIT_MINUTES,
+                   help="Longest to wait for whisper to go idle before taking an "
+                        "episode anyway (default %(default)s).")
     args = p.parse_args()
 
     root = podcasts_root(create=True)
@@ -381,7 +468,9 @@ def main() -> int:
 
     _install_stop_handlers()
     print(json.dumps(run(limit=args.limit, model=args.model, push=not args.no_push,
-                         push_minutes=args.push_every_minutes, hours=args.hours), indent=2))
+                         push_minutes=args.push_every_minutes, hours=args.hours,
+                         max_wait_minutes=None if args.share_with_whisper
+                         else args.max_wait_minutes), indent=2))
     return 0
 
 

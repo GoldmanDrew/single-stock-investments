@@ -157,9 +157,10 @@ def relevant_chunks(chunks: list[str], aliases: dict[str, str]) -> list[tuple[in
     sends two or three windows instead of twenty-two.
     """
     scored: list[tuple[int, int, str]] = []
+    scan = scan_aliases(aliases)
     for i, chunk in enumerate(chunks):
         low = chunk.lower()
-        hits = sum(1 for alias in aliases if alias in low)
+        hits = sum(1 for alias in scan if alias in low)
         if hits:
             scored.append((hits, i, chunk))
     scored.sort(key=lambda row: (-row[0], row[1]))
@@ -180,11 +181,58 @@ def build_aliases(limit_in_book: bool = False) -> dict[str, str]:
             continue
         for alias in [row.get("name") or "", *(row.get("aliases") or [])]:
             alias = (alias or "").strip().lower()
-            # Same 5-character floor as the hotword index: shorter aliases match
-            # inside ordinary prose and would pull in irrelevant windows.
-            if len(alias) >= 5:
+            # 271 master rows carry no name at all -- BA.L is called "ba.l",
+            # AAL.L is called "aal.l" -- and every one is a foreign listing. A
+            # symbol is not a name, and an index entry like that can only ever
+            # match by coincidence. It did: the model wrote company "BA" for
+            # Boeing, which is two characters and so can never reach the
+            # leading-word floor, but "ba" and "ba.l" reduce to the same single
+            # token, so it matched *exactly* -- the one path with no floor on
+            # it -- and carried a Boeing claim to BAE Systems in London.
+            #
+            # The exchange suffix is what makes it a symbol rather than a name.
+            # Exactly three rows are named by a plain symbol (IBM, RH, UBER) and
+            # those are real names: dropping them on the same rule deleted IBM
+            # from attribution entirely, taking 22 correct claims with it.
+            if alias and not (alias == ticker.strip().lower() and "." in ticker):
                 out.setdefault(alias, ticker)
     return out
+
+
+def book_tickers() -> frozenset[str]:
+    """The symbols the book actually carries, as curated names.
+
+    The master is 3,735 rows, of which ~830 are the book and the rest are a
+    harvested long tail nobody curated. That tail is harmless when a full
+    company name matches it and dangerous when a fragment does, so it is the
+    two guessing branches -- a leading-word run and the model naming a symbol
+    after itself -- that are restricted to the book. See `_match_alias`.
+    """
+    try:
+        from whisper_vocab import _securities
+    except ImportError:
+        return frozenset()
+    return frozenset(
+        ticker for ticker, row in _securities().items()
+        if isinstance(row, dict) and row.get("in_book")
+    )
+
+
+# Short names match inside ordinary prose -- "visa" in "visa requirements", "v"
+# in anything -- so the window scanners drop them. Attribution must not: it
+# compares whole names for equality, never substrings, and a floor there simply
+# deletes Visa, Ford and every other short name from the master. Applying it at
+# the two scan sites instead of inside build_aliases is what keeps a claim about
+# Visa attributable to V.
+SCAN_MIN_ALIAS = 5
+# Floor for the leading-word-run branch only. Equality needs no floor -- Visa
+# matches "Visa Inc." exactly, and ("cost",) simply is not ("costco",).
+PREFIX_MIN_CHARS = 4
+
+
+def scan_aliases(aliases: dict[str, str]) -> dict[str, str]:
+    """The subset of the name index safe to look for inside running text."""
+    return {a: t for a, t in aliases.items() if len(a) >= SCAN_MIN_ALIAS}
 
 
 # Models emit these as strings where the schema asked for JSON null.
@@ -196,7 +244,179 @@ def _clean_ticker(value) -> str | None:
     return None if text.lower() in _NULLISH else text
 
 
-def validate_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
+# Dropped before comparing two company names. "Elevance Health" and "Elevance
+# Health Inc" are one company; "Vanguard" and "Vanguard Group" are one company.
+_NAME_NOISE = {
+    "inc", "incorporated", "corp", "corporation", "co", "company", "companies",
+    "ltd", "limited", "plc", "llc", "lp", "nv", "sa", "ag", "spa", "ab", "as",
+    "holdings", "holding", "group", "groupe", "the", "and", "class", "cl",
+    "ordinary", "shares", "share", "common", "stock", "adr", "ads",
+    # "Amazon" against a master row of "Amazon.com".
+    "com", "net", "org",
+}
+
+def _name_tokens(text: str) -> tuple[str, ...]:
+    """A company name reduced to the words that actually name it."""
+    words = re.findall(r"[a-z0-9]+", str(text or "").lower())
+    kept = [w for w in words if w not in _NAME_NOISE and len(w) > 1]
+    return tuple(kept)
+
+
+def _same_company(left: str, right: str) -> bool:
+    """Whether two company names are the same name, once the corporate
+    furniture is stripped. "Elevance Health" and "Elevance Health Inc"; "Visa"
+    and "Visa Inc."."""
+    a, b = _name_tokens(left), _name_tokens(right)
+    return bool(a) and a == b
+
+
+def _name_prefix_of(short: str, long: str) -> bool:
+    """Whether `short` is the leading whole-word run of `long`.
+
+    "Ford" of "Ford Motor Company". Whole tokens, never characters: the
+    character version is what matched "COST" against "costamare inc." and filed
+    four Costco claims under a Greek containership lessor.
+
+    A prefix on its own is still not enough to attribute a claim -- ("apple",)
+    leads both "Apple Inc." and "Apple Hospitality REIT". `_match_alias` is what
+    refuses the ambiguous ones.
+    """
+    a, b = _name_tokens(short), _name_tokens(long)
+    if not a or not b or len(a) >= len(b):
+        return False
+    # A stub is not a leading word. Unlike equality, which is self-protecting,
+    # this branch lets a short string capture any longer name that begins with
+    # it -- and the model writes ticker abbreviations into the company field, so
+    # the short strings arriving here are things like "BAC" and "GD". Both were
+    # mis-resolved: "BAC" led "BAC.WA" and took a Bank of America claim to a
+    # Warsaw listing; "GD" led "GD Culture Group Ltd" and took a General
+    # Dynamics claim to GDC. Four characters keeps Ford ("Ford Motor Company")
+    # while refusing every two- and three-letter symbol.
+    if len("".join(a)) < PREFIX_MIN_CHARS:
+        return False
+    return b[:len(a)] == a
+
+
+def _match_alias(company: str, aliases: dict[str, str],
+                 book: frozenset[str] | None = None) -> str | None:
+    """The security master's symbol for a company name, or None."""
+    return _match_basis(company, aliases, book)[0]
+
+
+def _match_basis(company: str, aliases: dict[str, str],
+                 book: frozenset[str] | None = None) -> tuple[str | None, str | None]:
+    """The master's symbol for a company name, and which rule found it.
+
+    Exact name first, then a leading-word run -- but only when the whole master
+    agrees on the answer. "Ford" leads exactly one row, "Ford Motor Company", so
+    it resolves; "Apple" leads both "Apple Inc." and "Apple Hospitality REIT",
+    so on its own it resolves to nothing and the caller drops the symbol rather
+    than picking whichever row the dictionary happened to store first. (Apple
+    itself never reaches that branch -- "Apple" matches "Apple Inc." exactly.)
+
+    Refusing ambiguity is the whole repair. The old code took the first
+    character-wise hit it found, which made dictionary insertion order the
+    arbiter of which company a claim belonged to.
+
+    **Uniqueness inside the master is not corroboration.** That gate only asks
+    whether two master rows compete for the stub; it cannot ask whether the
+    company the speaker meant is in the master at all, and when it is not, the
+    one row that happens to begin with the same word wins uncontested. Measured
+    over the first 86 analysed episodes, that is 6 of 75 leading-word
+    attributions: "Benchmark" (the venture firm) -> BHE, Benchmark Electronics;
+    "Oaktree" -> OCSL, its own BDC rather than Oaktree Capital; "Sears" ->
+    SCC.T, Sears Canada; "Tencent" -> TME, Tencent Music. Every one is a real
+    company with no master row being captured by an unrelated one.
+
+    So a leading-word run may only land on a row the *book* carries. The book
+    is curated and about 830 rows; the other ~2,900 are a harvested tail whose
+    names nobody checked, and a fragment landing there is a coincidence. This
+    keeps 65 of the 69 correct attributions (Ford, Meta, Dell, Jack Henry,
+    Cadence, Honeywell...) and drops all 6 wrong ones. The four it costs --
+    JetBlue, Peloton, Riot, Restaurant Brands -- are passing mentions of
+    companies the book does not hold, which is the cheapest thing here to lose.
+
+    Returns (ticker, basis) where basis names the rule, so a future variant of
+    this bug is visible in the corpus instead of needing a hand audit: every
+    one of the four found so far was a short string capturing a longer name it
+    merely begins, and each passed the tests written for the one before it.
+    """
+    name = str(company or "").strip().lower()
+    if not name:
+        return None, None
+    hit = aliases.get(name)
+    if hit:
+        return hit, "exact_name"
+    exact = {aliases[a] for a in aliases if _same_company(name, a)}
+    if len(exact) == 1:
+        return exact.pop(), "same_name"
+    if exact:
+        return None, None
+    if book is None:
+        book = book_tickers()
+    led = {aliases[a] for a in aliases if _name_prefix_of(name, a)}
+    # Ambiguity is settled against the whole master first -- a second row that
+    # competes for the stub still disqualifies it, whether or not the book
+    # holds either one -- and only the survivor is asked to be in the book.
+    # This branch can therefore only ever subtract from what it used to accept.
+    if len(led) != 1:
+        return None, None
+    ticker = led.pop()
+    return (ticker, "leading_word") if ticker in book else (None, None)
+
+
+def _names_by_ticker(aliases: dict[str, str]) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for alias, ticker in aliases.items():
+        out.setdefault(ticker, []).append(alias)
+    return out
+
+
+def _corroborates(ticker: str, company: str, by_ticker: dict[str, list[str]],
+                  book: frozenset[str] | None = None) -> str | None:
+    """How the master's own name for `ticker` agrees it is `company`, or None.
+
+    Scoped to one symbol, so ambiguity across the rest of the master does not
+    apply: the question here is only whether these two names describe the same
+    company.
+    """
+    names = by_ticker.get(ticker)
+    if not names:
+        # A symbol the master does not carry at all is an unverifiable guess,
+        # and that has to be tested BEFORE the self-naming case below. Ordered
+        # the other way it accepted anything the model spelled the same way
+        # twice: "TSMC" (the master carries TSM) and "TI" for Texas Instruments
+        # (TXN) both walked through on 10 and 7 claims respectively, each
+        # because company and ticker matched each other rather than the master.
+        return None
+    if book is None:
+        book = book_tickers()
+    if any(_same_company(company, n) for n in names):
+        return "master_name"
+    # A leading-word run scoped to one symbol is still a leading-word run, and
+    # it reaches the same wrong answers by a different door: with "Benchmark"
+    # refused upstream the claim arrives here carrying BHE, whose master name
+    # it leads, and is waved through. Same rule as `_match_basis`, or the gate
+    # there is decorative.
+    if any(_name_prefix_of(company, n) for n in names):
+        return "leading_word" if ticker.strip().upper() in book else None
+    # The model routinely puts the symbol in the company field -- "COST" for
+    # Costco, "BAC" for Bank of America. A symbol the master carries, naming
+    # itself, is not a mismatch. But nothing here reads as a company name, so
+    # this branch has no evidence in it at all: it accepts the model's unaided
+    # recall on the model's own say-so, which is the IVZ question ("does the
+    # symbol exist") wearing a different hat. It is restricted to the book for
+    # the same reason as the leading-word run -- across 235 self-named claims
+    # it is what let "APT" carry an Applied Technology claim to Alpha Pro Tech,
+    # a harvested row. Confining it to curated symbols costs four out-of-book
+    # BYD claims and keeps 230.
+    if company.strip().upper() == ticker.strip().upper():
+        return "self_named" if ticker.strip().upper() in book else None
+    return None
+
+
+def validate_tickers(claims: list[dict], aliases: dict[str, str],
+                     book: frozenset[str] | None = None) -> int:
     """Drop tickers that do not belong to the company the claim is about.
 
     The model recalls symbols badly and confidently. On the Epic Systems episode
@@ -207,34 +427,71 @@ def validate_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
     the model read off the page and gets right; the symbol is what it guesses.
     So the master decides, and a symbol that contradicts the name is discarded.
 
+    This function spent its first eight episodes doing the opposite of that, in
+    both directions:
+
+    * It **manufactured** mismatches. The old fallback compared raw characters,
+      so `company` = "COST" matched the alias "costamare inc." and the function
+      helpfully "corrected" four Costco claims onto CMRE, a Greek containership
+      lessor. "costco" was in the master the whole time, later in the dict.
+      Matching is now whole-token, and the scan is sorted so a tie cannot
+      resolve differently between runs.
+
+    * It **waved through** real mismatches. The old rejection test asked whether
+      the symbol existed (`ticker not in aliases.values()`), which is the wrong
+      question -- IVZ exists and belongs to Invesco, which is how a Vanguard
+      claim was filed under a competitor. It now asks whether the master's own
+      name for that symbol agrees with the company, and drops it when it does
+      not.
+
+    Both of those repairs still trusted two branches that contain no evidence:
+    a leading-word run that is merely unique, and the model naming a symbol
+    after itself. Neither can be corroborated by a name, so both are now
+    confined to the book -- see `_match_basis` and `_corroborates`. Each claim
+    records `ticker_basis`, the rule that placed it, because the same bug has
+    now been found four times and every time by auditing live output rather
+    than by a failing test.
+
     Returns the number of tickers rejected.
     """
+    by_ticker = _names_by_ticker(aliases)
+    book = book_tickers() if book is None else book
     rejected = 0
     for claim in claims or []:
         ticker = _clean_ticker(claim.get("ticker"))
         claim["ticker"] = ticker
-        company = str(claim.get("company") or "").strip().lower()
+        claim.pop("ticker_basis", None)
+        company = str(claim.get("company") or "").strip()
         if not ticker or not company:
             continue
-        expected = aliases.get(company)
-        if expected is None:
-            for alias, sym in aliases.items():
-                if len(alias) >= 5 and (alias.startswith(company) or company.startswith(alias)):
-                    expected = sym
-                    break
+        expected, basis = _match_basis(company, aliases, book)
         if expected and expected != ticker:
             claim["ticker"] = expected
+            claim["ticker_basis"] = basis
             claim["ticker_corrected_from"] = ticker
             rejected += 1
-        elif expected is None and ticker not in aliases.values():
-            # The model named a symbol for a company the master does not carry.
+            continue
+        if expected:
+            claim["ticker_basis"] = basis
+            continue
+        corroboration = _corroborates(ticker, company, by_ticker, book)
+        if corroboration:
+            claim["ticker_basis"] = corroboration
+        else:
+            # The master cannot place this company, so the symbol is the model's
+            # unaided recall. Testing "is the symbol real" was the wrong
+            # question: IVZ is entirely real and belongs to Invesco, which is
+            # how a Vanguard claim ended up filed under a competitor. Ask
+            # instead whether the master's name for the symbol agrees with the
+            # company, and drop it when it does not.
             claim["ticker"] = None
             claim["ticker_rejected"] = ticker
             rejected += 1
     return rejected
 
 
-def resolve_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
+def resolve_tickers(claims: list[dict], aliases: dict[str, str],
+                    book: frozenset[str] | None = None) -> int:
     """Fill in tickers the model named a company for but did not symbol.
 
     Measured on the UnitedHealth episode: 3 of 21 verified claims came back with
@@ -244,19 +501,16 @@ def resolve_tickers(claims: list[dict], aliases: dict[str, str]) -> int:
     rather than asking the model to memorise 3,711 names.
     """
     filled = 0
+    book = book_tickers() if book is None else book
     for claim in claims or []:
         if claim.get("ticker") or not claim.get("company"):
             continue
-        name = str(claim["company"]).strip().lower()
-        ticker = aliases.get(name)
-        if not ticker:
-            # "Elevance Health" against an alias of "Elevance Health Inc".
-            for alias, sym in aliases.items():
-                if len(alias) >= 5 and (alias.startswith(name) or name.startswith(alias)):
-                    ticker = sym
-                    break
+        # "Elevance Health" against an alias of "Elevance Health Inc" -- but by
+        # whole tokens, so a stub cannot claim a longer name it resembles.
+        ticker, basis = _match_basis(claim["company"], aliases, book)
         if ticker:
             claim["ticker"] = ticker
+            claim["ticker_basis"] = basis
             filled += 1
     return filled
 
