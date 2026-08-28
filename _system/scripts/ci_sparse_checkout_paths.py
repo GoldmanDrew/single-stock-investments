@@ -4,6 +4,7 @@
 Profiles:
   news         — portfolio news ingest (holdings news JSON only)
   marvin-pick  — marvin_pick_ticker metadata (holdings research md/json)
+  two-phase-watch — INV Accelsius cooling watch (eight ticker trees + INV shard)
   darwin       — Darwin refresh: no per-ticker trees (base paths only)
   dashboard    — deploy rebuild checkout (base paths only; alias of darwin)
 
@@ -55,6 +56,19 @@ def paths_for_profile(profile: str) -> list[str]:
                 ]
             )
         return paths
+
+    if profile == "two-phase-watch":
+        tickers = ["NVDA", "AMD", "VRT", "JCI", "SMCI", "DELL", "HPE", "INV"]
+        extra: list[str] = []
+        for ticker in tickers:
+            extra.extend(
+                [
+                    f"{ticker}/research",
+                    f"{ticker}/investor-documents",
+                ]
+            )
+        extra.append("dashboard/data/tickers/INV.json")
+        return extra
 
     if profile == "marvin-forecast":
         ticker = os.environ.get("CI_FORECAST_TICKER", "").strip().upper()

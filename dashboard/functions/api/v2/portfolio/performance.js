@@ -1,6 +1,7 @@
 import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js";
 import { requirePortfolioViewer } from "../../../_lib/auth.js";
 import { ownerScope } from "../../../_lib/portfolio.js";
+import { ROLLING_WINDOWS, dailyCloses, rollingStats } from "../../../_lib/performance.js";
 
 export async function onRequestGet(context) {
   const id = requestId(context.request);
@@ -23,23 +24,40 @@ export async function onRequestGet(context) {
       if (drawdown != null) maxDrawdown = Math.min(maxDrawdown, drawdown);
       return { ...row, drawdown };
     });
+    const daily = dailyCloses(series);
+    const windows = ROLLING_WINDOWS.map((window) => rollingStats(daily, window));
     return json({
       schema_version: "portfolio_performance.v1", scope: owner,
       nav_series: owner === "all" ? series : [], max_drawdown: owner === "all" && series.length ? maxDrawdown : null,
       twr: null,
+      // Rolling performance. Every window is returned whether or not it has the
+      // history to be computed, each carrying its own reason -- a window that is
+      // simply missing reads as an oversight, while one that says "needs 359 more
+      // days" tells you when to look again.
+      rolling: owner === "all" ? windows : ROLLING_WINDOWS.map((window) => ({
+        label: window.label, years: window.years, available: false,
+        null_reason: "owner NAV requires complete allocation and cash history",
+      })),
+      nav_daily_observations: daily.length,
+      nav_first_at: daily.length ? daily[0].date : null,
+      nav_last_at: daily.length ? daily[daily.length - 1].date : null,
       null_reason: owner === "all" ? "external cash-flow coverage is not complete" : "owner NAV requires complete allocation and cash history",
       pnl_series: { intraday: "ibkr_pnl", completed_session: "flex_immutable", restatements: "separate" },
       completed_sessions: flex.results || [],
-      benchmark: {
-        symbol: "SPY",
-        series: [],
-        null_reason: "benchmark series is withheld until a complete cash-flow-aware NAV history exists",
-      },
+      // No benchmark. Comparing this book to an index was never the question
+      // being asked of it, and a withheld SPY series occupied the panel that
+      // rolling own-performance should have.
       lineage: {
         nav: { source: "IBKR account summary", tag: "NetLiquidation", value_kind: "broker_reported" },
         sessions: { source: "IBKR Flex EOD", value_kind: "completed_session" },
         twr: { source: null, null_reason: owner === "all" ? "external cash-flow coverage is not complete" : "owner NAV requires complete allocation and cash history" },
-        benchmark: { source: null, symbol: "SPY", null_reason: "benchmark series has not been published" },
+        rolling: {
+          source: "IBKR account summary",
+          tag: "NetLiquidation",
+          value_kind: "broker_reported",
+          basis: "last complete observation per calendar day",
+          note: "NAV is broker-reported and not cash-flow adjusted, so these are NAV growth rates, not investor returns.",
+        },
       },
       request_id: id,
     }, 200, { "cache-control": "private, no-store" });

@@ -7,12 +7,14 @@ const OWNERS = new Set(["all", "drew", "michael", "unallocated"]);
 // new source cannot arrive unreviewed.
 //
 //   identity                   same-currency row, rate 1
-//   ibkr_exchange_rate         the rate IBKR states for the currency; preferred
+//   ibkr_flex_rate             fxRateToBase, stated per row by Flex; preferred,
+//                              and the only source once the collector is gone
+//   ibkr_exchange_rate         the rate IBKR states for the currency (Gateway)
 //   ibkr_portfolio_translation inferred from marketValue / (position x price),
 //                              usable only when that ratio is not ~1
 //   fx_unavailable             an honest failure: null rate, degraded quality
 const FX_SOURCES = new Set([
-  "identity", "ibkr_exchange_rate", "ibkr_portfolio_translation", "fx_unavailable",
+  "identity", "ibkr_flex_rate", "ibkr_exchange_rate", "ibkr_portfolio_translation", "fx_unavailable",
 ]);
 const DEGRADED_QUALITY = new Set(["estimated", "unknown"]);
 
@@ -340,7 +342,13 @@ export async function loadPortfolio(env, owner = "all") {
   const allocationCount = Number(allocationRow?.allocation_count || 0);
   const allocationState = brokerPositionCount === 0 ? "not_applicable" : allocationCount > 0 ? "complete" : "upstream_absent";
   return {
-    schema_version: "portfolio_read_model.v1", status: "complete", scope: owner, snapshot: run,
+    schema_version: "portfolio_read_model.v1",
+    // "complete" describes the snapshot's contents, not its age. With the
+    // collector disabled (2026-08-25) nothing writes new snapshots, so this
+    // query keeps returning the same run forever and every figure on the page
+    // would present as current. Age is stated so the page can say otherwise --
+    // a feed that has stopped must not look identical to one that is live.
+    status: "complete", scope: owner, snapshot: { ...run, ...snapshotAge(run) },
     account_values: values.results || [], positions, cash_events: cash.results || [],
     broker_position_count: brokerPositionCount, owner_position_count: positions.length,
     allocation_status: allocationState,
@@ -349,3 +357,50 @@ export async function loadPortfolio(env, owner = "all") {
     broker_open_order_count: Number(openOrders.results?.[0]?.count || 0), reconciliation_breaks: breaks.results || [],
   };
 }
+
+// Sources whose rate is inferred rather than stated by IBKR. Mirrors INFERRED_FX
+// in portfolio-viz.js; both exist because the same rule has to hold whether a
+// number is being rendered or being summed into an exposure total.
+const INFERRED_FX_SOURCES = new Set(["ibkr_portfolio_translation"]);
+
+/**
+ * The position's market value in account base currency, or null when it cannot
+ * honestly be stated in base.
+ *
+ * Never falls back across currencies. A foreign row without a usable rate means
+ * "unknown in base", not "same as native" -- reading the native figure as base
+ * is what put a JPY 4,842,000 position into a USD gross-exposure total at
+ * $4,842,000 and gave it 30% of the book's concentration weight.
+ *
+ * An inferred rate within 0.01% of parity is treated as no rate at all: it means
+ * the collector divided a figure by itself because IBKR returned marketValue in
+ * the contract currency. A *stated* rate near parity is fine -- EUR and CHF
+ * legitimately trade there.
+ */
+export function baseMarketValue(row, baseCurrency) {
+  const native = row?.native_currency || row?.currency || baseCurrency;
+  const value = Number(row?.market_value_base_decimal ?? row?.market_value_decimal);
+  if (!Number.isFinite(value)) return null;
+  if (native === baseCurrency) return value;
+  if (!row?.fx_source || row.fx_source === "fx_unavailable") return null;
+  if (INFERRED_FX_SOURCES.has(row.fx_source)) {
+    const rate = Number(row.fx_rate_to_base_decimal);
+    if (!Number.isFinite(rate) || Math.abs(rate - 1) < 0.0001) return null;
+  }
+  return Number.isFinite(Number(row?.market_value_base_decimal)) ? Number(row.market_value_base_decimal) : null;
+}
+
+
+// A snapshot older than this is presented as stale rather than as current. Two
+// hours is generous for a 30-second publisher and short enough that a feed which
+// died overnight is obvious the next morning.
+const STALE_AFTER_SECONDS = 7200;
+
+function snapshotAge(run, now = Date.now()) {
+  const asOf = Date.parse(run?.as_of || "");
+  if (!Number.isFinite(asOf)) return { age_seconds: null, stale: null };
+  const age = Math.max(0, Math.round((now - asOf) / 1000));
+  return { age_seconds: age, stale: age > STALE_AFTER_SECONDS };
+}
+
+export { snapshotAge, STALE_AFTER_SECONDS };

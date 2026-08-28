@@ -15,7 +15,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/ci_resolve_checkout_ref.sh"
 
-PROFILE="${1:?profile required: full|history|news|marvin-pick|marvin-forecast|minimal|marvin-agent|darwin|dashboard|pages}"
+PROFILE="${1:?profile required: full|history|news|marvin-pick|marvin-forecast|minimal|marvin-agent|darwin|dashboard|pages|two-phase-watch}"
 REF_INPUT="${2:-}"
 FETCH_DEPTH="${3:-}"
 
@@ -81,7 +81,7 @@ case "$PROFILE" in
     git fetch --depth="$FETCH_DEPTH" --filter=blob:none origin "$REF"
     checkout_ref
     ;;
-  news|marvin-pick|marvin-forecast|darwin|dashboard)
+  news|marvin-pick|marvin-forecast|darwin|dashboard|two-phase-watch)
     git sparse-checkout init --no-cone
     # Seed with base dirs so fetch can resolve scripts before path list runs.
     git sparse-checkout set _system .github dashboard Makefile

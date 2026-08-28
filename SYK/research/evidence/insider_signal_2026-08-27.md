@@ -1,0 +1,28 @@
+# SYK — Insider conviction (2026-08-27)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| Lobo Kevin | 2026-02-06 | 206955 | $96.64 | $20000131.2 | 1.979 |
+| STRYKER RONDA E | 2026-01-14 | 4570 | $96.64 | $441644.8 | 1.721 |
+| Berry William E Jr | 2025-11-14 | 4925 | $154.14 | $759139.5 | 1.549 |
+| Silvernail Andrew K | 2026-01-15 | 4570 | $96.64 | $441644.8 | 1.536 |
+| Fink M Kathryn | 2026-05-08 | 9732 | $154.14 | $1500090.48 | 1.506 |
+
+**Routine / planned sales (context):**
+
+- Lobo Kevin: 26492 @ $335.67 on 2026-03-21
+- Lobo Kevin: 132410 @ $362.42 on 2026-02-06
+- STRYKER RONDA E: 21807 @ $310.77 on 2026-05-26
+
+Source: `_system/reference/market-data/insider/SYK_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).

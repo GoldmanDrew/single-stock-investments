@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from activist_common import (
@@ -24,6 +24,7 @@ from activist_common import (
     save_global_scan,
     save_ticker_index,
     upsert_report,
+    write_json,
 )
 from activist_date_parse import parse_local_report_metadata
 from sec_filer_parse import is_sec_filing_relpath
@@ -33,6 +34,8 @@ from milly_activist_reconcile import reconcile_ticker
 from activist_triage import triage_portfolio
 from activist_short_md import collect_short_markdown_reports
 from press_activist_digest import scan_press_wires
+from sec_filer_discovery import OUTPUT_PATH as DISCOVERY_OUTPUT
+from sec_filer_discovery import discover as discover_filers
 from sec_activist_scan import scan_portfolio_sec
 from site_activist_scan import scan_publisher_sites
 from third_party_inventory import write_inventory
@@ -137,6 +140,11 @@ def main() -> int:
     parser.add_argument("--skip-site", action="store_true", help="Skip publisher site scrape")
     parser.add_argument("--include-passive", action="store_true", help="Index passive SC 13G filings")
     parser.add_argument("--reindex-local", action="store_true", help="Re-parse local SEC files without re-download")
+    parser.add_argument(
+        "--reindex-fetch-xml",
+        action="store_true",
+        help="During --reindex-local, also pull primary_doc.xml for post-2024-12-18 Schedules",
+    )
     parser.add_argument("--reconcile", action="store_true", help="Run Milly activist mechanical reconcile after scan")
     parser.add_argument(
         "--backfill-days",
@@ -148,6 +156,16 @@ def main() -> int:
         "--fetch-sec",
         action="store_true",
         help="Fetch SEC metadata during triage when local file missing",
+    )
+    parser.add_argument(
+        "--discover-filers",
+        action="store_true",
+        help="Also run filer-driven discovery (what registry firms filed, anywhere)",
+    )
+    parser.add_argument(
+        "--discover-min-date",
+        default=None,
+        help="Earliest filing date for filer-driven discovery (default: last 18 months)",
     )
     args = parser.parse_args()
 
@@ -163,12 +181,33 @@ def main() -> int:
             dry_run=args.dry_run,
             include_passive=args.include_passive,
             reindex_local=args.reindex_local,
+            fetch_xml=args.reindex_fetch_xml,
         )
         all_hits.extend(sec.get("hits") or [])
 
     if run_site:
         site = scan_publisher_sites(tickers, dry_run=args.dry_run)
         all_hits.extend(site.get("hits") or [])
+
+    if args.discover_filers:
+        # Filer-driven, deliberately separate from the issuer-driven lanes: it
+        # surfaces campaigns at companies we do not hold, so its rows never
+        # enter a ticker index. They land in activist_filer_discovery.json for
+        # review.
+        min_date = args.discover_min_date or (
+            date.fromisoformat(args.date) - timedelta(days=548)
+        ).isoformat()
+        try:
+            found = discover_filers(min_date=min_date, write_registry_ciks=not args.dry_run)
+            if not args.dry_run:
+                write_json(DISCOVERY_OUTPUT, found)
+            print(
+                f"filer discovery: {found['row_count']} filings from "
+                f"{found['resolved_firm_count']}/{found['firm_count']} firms "
+                f"({found['off_book_count']} outside the book)"
+            )
+        except Exception as exc:  # never let discovery break the main scan
+            print(f"filer discovery skipped: {type(exc).__name__}: {exc}")
 
     if run_wire:
         wire = scan_press_wires(
