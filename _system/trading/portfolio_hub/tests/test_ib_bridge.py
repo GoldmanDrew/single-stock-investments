@@ -357,3 +357,39 @@ def test_bridge_never_binds_orders_created_by_other_clients():
     from _system.trading.portfolio_hub import ib_bridge
 
     assert not re.search(r"\.reqAutoOpenOrders\s*\(", inspect.getsource(ib_bridge))
+
+
+def test_start_limit_keys_live_in_the_unit_section_where_systemd_reads_them():
+    """A restart brake in the wrong section is not a brake, and says so quietly.
+
+    systemd logged `Unknown key name 'StartLimitIntervalSec' in section
+    'Service', ignoring` on every start of the bridge, so the burst cap meant to
+    stop a restart storm -- the fault that masked the collector -- was never in
+    force. The warning was in the journal the whole time and nobody was reading
+    the journal for warnings, which is why this is a test.
+    """
+    import configparser
+    from pathlib import Path
+
+    deploy = Path(__file__).resolve().parents[1] / "deploy"
+    units = sorted(deploy.rglob("*.service"))
+    assert units, "no unit files found to check"
+
+    for unit in units:
+        parser = configparser.ConfigParser(strict=False, allow_no_value=True)
+        parser.optionxform = str
+        parser.read(unit, encoding="utf-8")
+        for key in ("StartLimitIntervalSec", "StartLimitBurst"):
+            assert not parser.has_option("Service", key), (
+                f"{unit.name} puts {key} in [Service], where systemd ignores it; "
+                "it belongs in [Unit]"
+            )
+
+    bridge = deploy / "user" / "portfolio-hub-bridge.service"
+    parser = configparser.ConfigParser(strict=False, allow_no_value=True)
+    parser.optionxform = str
+    parser.read(bridge, encoding="utf-8")
+    assert parser.has_option("Unit", "StartLimitBurst"), \
+        "the deployed bridge unit must actually carry a burst cap, not merely not misplace one"
+    assert parser.has_option("Service", "Restart"), \
+        "a burst cap is only meaningful against a Restart= policy"

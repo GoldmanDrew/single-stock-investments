@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -24,6 +26,43 @@ def _private_static_path(relative: str) -> bool:
     return relative in PRIVATE_STATIC_PATHS or (
         relative.startswith("data/sleeves_") and relative.endswith(".json")
     ) or relative.startswith(PRIVATE_STATIC_PREFIXES)
+
+
+ASSET_QUERY_RE = re.compile(
+    r'(?P<attr>(?:src|href)=")(?P<file>[A-Za-z0-9._/-]+\.(?:js|css))\?v=(?P<ver>[^"]*)"'
+)
+
+
+def stamp_asset_versions(output: Path) -> int:
+    """Rewrite ``?v=`` on local js/css to a hash of each file's own contents.
+
+    The versions were hand-written, so they only changed when someone
+    remembered. A fix to insights-viz.js shipped under a stamp last touched a
+    week earlier, and because browsers cache on the full URL including the
+    query, returning visitors kept the old file and the fix looked broken.
+    Hashing the file means the stamp changes exactly when the asset does — and
+    never when it doesn't, so caching still works.
+    """
+    index = output / "index.html"
+    if not index.is_file():
+        return 0
+    html = index.read_text(encoding="utf-8")
+    stamped = 0
+
+    def replace(match: re.Match) -> str:
+        nonlocal stamped
+        asset = output / match.group("file")
+        if not asset.is_file():
+            # Leave unknown/remote assets exactly as they were.
+            return match.group(0)
+        digest = hashlib.sha256(asset.read_bytes()).hexdigest()[:12]
+        stamped += 1
+        return f'{match.group("attr")}{match.group("file")}?v={digest}"'
+
+    updated = ASSET_QUERY_RE.sub(replace, html)
+    if updated != html:
+        index.write_text(updated, encoding="utf-8")
+    return stamped
 
 
 def _inside_workspace(path: Path) -> bool:
@@ -75,6 +114,8 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
         shutil.copy2(path, target)
         included.append(rel_posix)
 
+    stamped = stamp_asset_versions(output)
+
     core_path = output / "data" / "core.json"
     manifest_path = output / "data" / "insights" / "manifest.json"
     if not core_path.is_file():
@@ -108,6 +149,7 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
         "ticker_shard_count": shard_count,
         "included_file_count": len(included),
         "excluded_file_count": len(excluded),
+        "asset_versions_stamped": stamped,
         "private_static_paths": sorted(PRIVATE_STATIC_PATHS),
         "excluded": excluded,
     }
@@ -117,7 +159,8 @@ def build(source: Path, output: Path, max_file_bytes: int = MAX_FILE_BYTES) -> d
     )
     print(
         f"Cloudflare Pages artifact: {len(included)} files, "
-        f"{ticker_count} tickers, {len(excluded)} oversized/control files omitted"
+        f"{ticker_count} tickers, {len(excluded)} oversized/control files omitted, "
+        f"{stamped} asset versions content-stamped"
     )
     return report
 

@@ -19,6 +19,19 @@ def _rows(root: ET.Element, tag: str) -> list[dict[str, str]]:
     return [dict(element.attrib) for element in root.iter(tag)]
 
 
+# Flex reports an asset *category*; the rest of the hub speaks IB secType. STK
+# covers ETFs at IBKR, which is why there is no ETF row here and why a ticket
+# carrying "ETF" is refused everywhere else in this repo.
+_SEC_TYPES = {
+    "STK": "STK", "OPT": "OPT", "FUT": "FUT", "FOP": "FOP", "CASH": "CASH",
+    "BOND": "BOND", "WAR": "WAR", "FUND": "FUND", "CMDTY": "CMDTY", "CRYPTO": "CRYPTO",
+}
+
+
+def _sec_type(category: str | None) -> str:
+    return _SEC_TYPES.get(str(category or "").upper(), str(category or "STK").upper())
+
+
 def parse_flex_xml(xml: bytes | str, *, account_alias: str, source_run_id: str | None = None) -> dict[str, Any]:
     raw = xml.encode() if isinstance(xml, str) else xml
     root = ET.fromstring(raw)
@@ -40,6 +53,23 @@ def parse_flex_xml(xml: bytes | str, *, account_alias: str, source_run_id: str |
             "asset_category": row.get("assetCategory"), "currency": row.get("currency"), "quantity": _pick(row, "position", "quantity"),
             "cost_basis": _pick(row, "costBasisMoney", "costBasis"), "mark": _pick(row, "markPrice", "closePrice"),
             "market_value": _pick(row, "positionValue", "marketValue"), "unrealized_pnl": _pick(row, "fifoPnlUnrealized", "unrealizedPnl"),
+            # IBKR states the rate on every row. This is the single reason the
+            # Flex path has no FX problem: the collector had to infer a rate from
+            # marketValue / (position x price), which on this account was always
+            # ~1 because marketValue came back in the contract currency, so every
+            # foreign position was published at its native magnitude. Nothing is
+            # inferred here.
+            "fx_rate_to_base": _pick(row, "fxRateToBase"),
+            "local_symbol": _pick(row, "symbol"),
+            "description": row.get("description"),
+            "isin": _pick(row, "isin", "securityID"),
+            "sec_type": _sec_type(row.get("assetCategory")),
+            "multiplier": _pick(row, "multiplier"),
+            "strike": _pick(row, "strike"),
+            "expiry": _pick(row, "expiry", "lastTradeDateOrContractMonth"),
+            "right": _pick(row, "putCall"),
+            "exchange": _pick(row, "listingExchange", "exchange"),
+            "model_code": row.get("model") or "",
         })
     trades = []
     for row in _rows(root, "Trade"):

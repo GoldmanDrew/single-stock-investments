@@ -25,6 +25,56 @@ def decimal_text(value: Any) -> str:
     return format(Decimal(str(value)), "f")
 
 
+class SqliteBudgetStore:
+    """Durable backing for the Gateway connection budget.
+
+    The counting policy lives in gateway_budget.py and knows nothing about
+    storage; this knows about storage and nothing about policy. Every method is
+    small on purpose -- a brake whose persistence layer needs interpreting is a
+    brake nobody will trust when it fires.
+    """
+
+    def __init__(self, ledger: "PortfolioLedger"):
+        self.ledger = ledger
+
+    def load(self) -> tuple[list[Any], int, Any]:
+        rows = self.ledger.connection.execute(
+            "SELECT attempted_at FROM gateway_connection_attempts ORDER BY attempted_at"
+        ).fetchall()
+        attempts = [float(row["attempted_at"]) for row in rows]
+        state = self.ledger.connection.execute(
+            "SELECT consecutive_failures, tripped_until FROM gateway_breaker_state WHERE id=1"
+        ).fetchone()
+        if state is None:
+            return attempts, 0, None
+        tripped = state["tripped_until"]
+        return attempts, int(state["consecutive_failures"]), None if tripped is None else float(tripped)
+
+    def record_attempt(self, when: float, purpose: str | None = None) -> None:
+        iso = datetime.fromtimestamp(when, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+        with self.ledger.transaction() as db:
+            db.execute(
+                "INSERT INTO gateway_connection_attempts(attempted_at, attempted_at_iso, purpose) VALUES (?,?,?)",
+                (float(when), iso, purpose),
+            )
+
+    def save_breaker(self, consecutive_failures: int, tripped_until: float | None) -> None:
+        with self.ledger.transaction() as db:
+            db.execute(
+                """INSERT INTO gateway_breaker_state(id, consecutive_failures, tripped_until, updated_at)
+                   VALUES (1,?,?,?)
+                   ON CONFLICT(id) DO UPDATE SET
+                     consecutive_failures=excluded.consecutive_failures,
+                     tripped_until=excluded.tripped_until,
+                     updated_at=excluded.updated_at""",
+                (int(consecutive_failures), None if tripped_until is None else float(tripped_until), utc_now()),
+            )
+
+    def forget_before(self, cutoff: float) -> None:
+        with self.ledger.transaction() as db:
+            db.execute("DELETE FROM gateway_connection_attempts WHERE attempted_at < ?", (float(cutoff),))
+
+
 class PortfolioLedger:
     """Transactional local ledger. Each state mutation and publish event commits together."""
 
@@ -67,6 +117,10 @@ class PortfolioLedger:
                     "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)",
                     (version, utc_now()),
                 )
+
+    def budget_store(self) -> SqliteBudgetStore:
+        """The Gateway budget's durable backing. Requires migrate() to have run."""
+        return SqliteBudgetStore(self)
 
     def _has_table(self, name: str) -> bool:
         return self.connection.execute(

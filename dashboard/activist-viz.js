@@ -118,17 +118,30 @@
       </div>`;
   }
 
+  // Schedule 13D covers any >5% holder with control intent, so a raw feed mixes
+  // founders, strategic buyers and PE sponsors in with activists. Default to
+  // activists; the rest stay one click away rather than being discarded.
+  const FILER_CLASS_TABS = [
+    { id: 'activist', label: 'Activists', title: 'Filers matched to the activist registry' },
+    { id: 'strategic', label: 'Strategic', title: 'Operating companies taking a stake' },
+    { id: 'sponsor', label: 'Sponsors', title: 'PE / holdco vehicles' },
+    { id: 'insider', label: 'Insiders', title: 'Founders and other natural persons' },
+    { id: 'all', label: 'All filers', title: 'No filer-type filter' },
+  ];
+
   function renderFilters(state) {
     const review = state.reviewFilter || '';
     const tier = state.tier || 'signal';
     const view = state.view || 'active';
     const sortMode = state.sortMode || 'materiality';
+    const filerClass = state.filerClass || 'activist';
     return `
       <div class="toolbar" style="margin:12px 0 0">
         <button type="button" class="filter-btn${view === 'active' ? ' active' : ''}" data-activist-view="active">Active campaigns</button>
         <button type="button" class="filter-btn${view === 'short' ? ' active' : ''}" data-activist-view="short">Short reports</button>
         <button type="button" class="filter-btn${view === 'ownership' ? ' active' : ''}" data-activist-view="ownership">Ownership filings</button>
         <button type="button" class="filter-btn${view === 'review' ? ' active' : ''}" data-activist-view="review">Review queue</button>
+        <button type="button" class="filter-btn${view === 'discovery' ? ' active' : ''}" data-activist-view="discovery" title="Campaigns by firms we track, at companies we do not hold">Off-book campaigns</button>
         <label class="tier-sub" for="activist-sort">Sort</label>
         <select id="activist-sort" class="search" style="max-width:150px;padding:6px 9px">
           <option value="materiality"${sortMode === 'materiality' ? ' selected' : ''}>Materiality</option>
@@ -146,6 +159,10 @@
         <button type="button" class="filter-btn${review === 'needs_filer_review' ? ' active' : ''}" data-activist-review="needs_filer_review">Needs filer review</button>
         <button type="button" class="filter-btn${review === 'missing_file' ? ' active' : ''}" data-activist-review="missing_file">Missing file</button>
         <button type="button" class="filter-btn${review === 'weak_match' ? ' active' : ''}" data-activist-review="weak_match">Weak match</button>
+      </div>
+      <div class="toolbar" style="margin:0 0 12px">
+        <span class="tier-sub">Filer</span>
+        ${FILER_CLASS_TABS.map(t => `<button type="button" class="filter-btn${filerClass === t.id ? ' active' : ''}" data-activist-filer="${t.id}" title="${state.escapeHtml(t.title)}">${t.label}</button>`).join('')}
       </div>`;
   }
 
@@ -251,6 +268,10 @@
         rows = rows.filter(r => r.side === state.side);
       }
     }
+    const filerClass = state.filerClass || 'activist';
+    if (filerClass !== 'all' && view !== 'review') {
+      rows = rows.filter(r => (r.filer_class || 'unknown') === filerClass);
+    }
     if (q) {
       rows = rows.filter(r =>
         [r.ticker, r.target_company, r.firm_name, r.firm_id, r.title, r.source, r.report_kind, r.target_match_evidence, ...(r.reporting_persons || [])]
@@ -261,6 +282,9 @@
     }
     rows = sortFeedRows(rows, state.sortMode || 'materiality');
     if (!rows.length) {
+      if (filerClass !== 'all' && !q) {
+        return `<div class="empty">No ${state.escapeHtml(filerClass)} filings match. Try <strong>All filers</strong> — 13D covers founders, strategic buyers and sponsors too.</div>`;
+      }
       return tier === 'signal' && !q && !state.reviewFilter
         ? '<div class="empty">No signal-tier activist reports right now. Switch to All to browse context and noise tiers.</div>'
         : '<div class="empty">No activist reports match your filters.</div>';
@@ -337,6 +361,48 @@
     return `<span class="mono">L${longN}/S${shortN}</span>${signal}${dot}`;
   }
 
+  function renderDiscovery(discovery, state) {
+    const esc = state.escapeHtml;
+    if (!discovery) {
+      return '<div class="empty">Filer discovery has not run yet. Run: <code>python _system/scripts/sec_filer_discovery.py</code></div>';
+    }
+    const rows = Array.isArray(discovery.rows) ? discovery.rows.slice() : [];
+    const q = (state.search || '').trim().toLowerCase();
+    let shown = rows.filter(r => r.issuer_name);
+    if (q) {
+      shown = shown.filter(r =>
+        [r.firm_name, r.firm_id, r.issuer_name, r.form, r.filing_date].join(' ').toLowerCase().includes(q)
+      );
+    }
+    shown.sort((a, b) => String(b.filing_date || '').localeCompare(String(a.filing_date || '')));
+    if (!shown.length) {
+      return '<div class="empty">No off-book campaigns match your filter.</div>';
+    }
+    const unresolved = (discovery.unresolved_firms || []).length;
+    return `
+      <p class="tier-sub" style="margin-bottom:10px">
+        What the firms we track filed anywhere &mdash; not just on names we hold.
+        ${discovery.row_count || 0} filings from ${discovery.resolved_firm_count || 0}/${discovery.firm_count || 0} firms
+        &middot; ${discovery.off_book_count || 0} at issuers outside the book
+        ${unresolved ? `&middot; <span style="color:var(--accent-amber)">${unresolved} firm(s) unresolved</span>` : ''}
+      </p>
+      <table class="darwin-table">
+        <thead><tr><th>Date</th><th>Firm</th><th>Form</th><th>Issuer</th><th>Stake</th><th></th></tr></thead>
+        <tbody>
+          ${shown.slice(0, 200).map(r => `
+            <tr>
+              <td class="mono">${esc(r.filing_date || '—')}</td>
+              <td>${esc(r.firm_name || r.firm_id || '—')}</td>
+              <td class="mono" style="font-size:11px">${esc(r.form || '—')}</td>
+              <td>${esc(r.issuer_name || '—')}</td>
+              <td class="mono">${r.stake_percent != null ? `${Number(r.stake_percent).toFixed(1)}%` : '—'}</td>
+              <td>${r.index_url ? state.linkHtml(r.index_url, 'EDGAR', 'source-open-link') : ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      ${shown.length > 200 ? `<p class="tier-sub">${shown.length - 200} more &mdash; refine the filter</p>` : ''}`;
+  }
+
   function renderActivistPanel(feedDoc, state) {
     if (!feedDoc) {
       return '<div class="empty">Activist feed not built. Run: python _system/scripts/build_activist_feed.py</div>';
@@ -346,7 +412,9 @@
       <div class="subhead">Materiality-ranked activist filings and short reports · signal tier shown by default</div>
       ${renderSummary(feedDoc.summary)}
       ${renderFilters(state)}
-      ${renderFeed([...(feedDoc.feed || []), ...(feedDoc.review_queue || [])], state)}
+      ${(state.view || 'active') === 'discovery'
+        ? renderDiscovery(state.discovery, state)
+        : renderFeed([...(feedDoc.feed || []), ...(feedDoc.review_queue || [])], state)}
       <div class="tier-sub" style="margin-top:12px">Last scan: ${state.escapeHtml(feedDoc.last_scan || feedDoc.generated_at || '—')}</div>`;
   }
 

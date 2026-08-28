@@ -35,3 +35,46 @@ def test_private_sleeve_snapshots_are_never_deployed(tmp_path: Path, monkeypatch
     reasons = {row["path"]: row["reason"] for row in report["excluded"]}
     assert reasons["data/sleeves_drew.json"] == "private account artifact"
     assert reasons["data/sleeves_michael.json"] == "private account artifact"
+
+
+def test_asset_versions_are_stamped_from_content(tmp_path: Path) -> None:
+    """A hand-written ?v= only changes when someone remembers; a hash cannot go stale.
+
+    insights-viz.js once shipped a fix under a stamp last touched a week
+    earlier, so returning browsers kept serving the cached, broken file.
+    """
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "app.js").write_text("console.log(1)", encoding="utf-8")
+    (site / "app.css").write_text("body{}", encoding="utf-8")
+    (site / "index.html").write_text(
+        '<link href="app.css?v=handwritten" rel="stylesheet">'
+        '<script src="app.js?v=handwritten"></script>'
+        '<script src="https://cdn.example.com/chart.js?v=4.4.1"></script>',
+        encoding="utf-8",
+    )
+
+    stamped = builder.stamp_asset_versions(site)
+    first = (site / "index.html").read_text(encoding="utf-8")
+
+    assert stamped == 2
+    assert "?v=handwritten" not in first
+    # Remote assets are left exactly as authored.
+    assert "https://cdn.example.com/chart.js?v=4.4.1" in first
+
+    # Same bytes, same stamp: caching still works across rebuilds.
+    builder.stamp_asset_versions(site)
+    assert (site / "index.html").read_text(encoding="utf-8") == first
+
+    # Changed bytes, changed stamp: the fix reaches the browser.
+    (site / "app.js").write_text("console.log(2)", encoding="utf-8")
+    builder.stamp_asset_versions(site)
+    assert (site / "index.html").read_text(encoding="utf-8") != first
+
+
+def test_stamping_leaves_missing_assets_alone(tmp_path: Path) -> None:
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "index.html").write_text('<script src="gone.js?v=keepme"></script>', encoding="utf-8")
+    assert builder.stamp_asset_versions(site) == 0
+    assert "?v=keepme" in (site / "index.html").read_text(encoding="utf-8")

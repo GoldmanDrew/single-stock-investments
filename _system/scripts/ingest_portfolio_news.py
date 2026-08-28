@@ -387,6 +387,60 @@ def phase_google_news(
     return items
 
 
+def phase_two_phase_theme_news(session: requests.Session) -> list[NewsItem]:
+    """INV Accelsius / two-phase queries, including LinkedIn-as-publisher (not a LinkedIn crawl)."""
+    if not ENABLE_GOOGLE:
+        return []
+    try:
+        from two_phase_watch import COOLING_RE, THEME_NEWS_QUERIES
+    except ImportError:
+        LOGGER.warning("two_phase_watch import failed; skipping theme news")
+        return []
+
+    locale = {"hl": "en-US", "gl": "US", "ceid": "US:en"}
+    cutoff = datetime.now(UTC) - timedelta(days=NEWS_WINDOW_DAYS)
+    items: list[NewsItem] = []
+    for kind, query in THEME_NEWS_QUERIES:
+        rows = _fetch_google_news_rss(session, query, locale)
+        for row in rows:
+            title = row.get("title") or ""
+            description = row.get("description") or ""
+            text = f"{title}\n{description}"
+            if not COOLING_RE.search(text):
+                continue
+            publisher = row.get("source") or ""
+            url = row.get("link") or ""
+            source = "linkedin_syndicated" if (
+                kind == "linkedin_syndicated" or "linkedin" in f"{publisher} {url}".lower()
+            ) else "google_news"
+            pub_iso = _parse_rfc822(row.get("pub_date"))
+            if pub_iso:
+                try:
+                    if datetime.fromisoformat(pub_iso) < cutoff:
+                        continue
+                except ValueError:
+                    pass
+            slug = re.sub(r"[^a-z0-9]+", "-", title.lower())[:60].strip("-") or "item"
+            pub_day = (pub_iso or "")[:10] or "unknown"
+            item = NewsItem(
+                id=f"gnews-tpw:{slug}:{pub_day}:INV",
+                tickers=["INV"],
+                company="Innventure, Inc.",
+                category="product",
+                confidence=0.55,
+                match_tier="theme",
+                published_utc=pub_iso,
+                title=title or None,
+                summary=description or None,
+                url=url or None,
+                publisher=publisher or None,
+                source=source,
+            )
+            items.append(item)
+    LOGGER.info("two_phase theme news: kept=%d", len(items))
+    return items
+
+
 def _load_filing_urls() -> dict[str, set[str]]:
     out: dict[str, set[str]] = {}
     for ticker_dir in ROOT.iterdir():
@@ -696,6 +750,8 @@ def main() -> None:
     items: list[NewsItem] = []
     items.extend(phase_polygon_news(session, configs))
     items.extend(phase_google_news(session, configs, tickers=subset or sorted(configs.keys())))
+    if not subset or "INV" in subset:
+        items.extend(phase_two_phase_theme_news(session))
 
     filing_urls = _load_filing_urls()
     link_filings(items, filing_urls)

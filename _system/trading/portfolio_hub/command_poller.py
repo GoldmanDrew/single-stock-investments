@@ -33,6 +33,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from contextlib import contextmanager
+
 from .orders import GuardedOrderService, OrderIntent
 from .publisher import signed_headers
 
@@ -95,7 +97,14 @@ class OrderCommandChannel:
 
 class OrderCommandLoop:
     def __init__(self, service: GuardedOrderService, channel: OrderCommandChannel, *,
-                 account_alias: str, live_enabled: bool = False, options_enabled: bool = False):
+                 account_alias: str, live_enabled: bool = False, options_enabled: bool = False,
+                 sessions: Any = None):
+        # `sessions` is a GatewaySessionFactory. When present the loop holds NO
+        # standing IB connection: it polls D1 over HTTPS, and opens a Gateway
+        # session only around the broker work a claimed ticket actually needs
+        # (CLAUDE.md rule 10). When absent the service's broker is used directly,
+        # which is how the drills and tests run without ib_async.
+        self.sessions = sessions
         self.service = service
         self.channel = channel
         self.account_alias = account_alias
@@ -120,39 +129,81 @@ class OrderCommandLoop:
             sleep(ACTIVE_POLL_SECONDS if busy else IDLE_POLL_SECONDS)
 
     def tick(self) -> bool:
-        """Advance every claimable request one step. Returns True if the desk is open."""
-        busy_lookups = self.resolve_lookups()
+        """Advance every claimable request one step. Returns True if the desk is open.
+
+        Both claims are HTTPS calls to D1. Nothing here touches IB, and on a
+        quiet desk -- which is nearly always -- this function returns having made
+        no Gateway contact whatsoever. That is the whole design: the connection
+        follows a human action, never a timer.
+        """
         requests = self.channel.claim()
-        open_desk = busy_lookups
-        for row in requests:
-            state = row.get("state")
-            if state in OPEN_STATES:
-                open_desk = True
-            try:
-                if state == "requested":
-                    self._draft_and_preview(row)
-                elif state == "approved":
-                    self._approve_and_submit(row)
-            except Exception as exc:
-                # Reject the request rather than leaving a ticket that looks live.
+        lookups = self._claim_lookups()
+        actionable = [row for row in requests if row.get("state") in {"requested", "approved"}]
+        open_desk = any(row.get("state") in OPEN_STATES for row in requests) or bool(lookups)
+
+        if not actionable and not lookups:
+            return open_desk
+
+        # One session for everything this tick needs, then released. Opening one
+        # per call would multiply connection events by the number of tickets.
+        purpose = f"{len(actionable)} ticket(s), {len(lookups)} lookup(s)"
+        try:
+            with self._broker(purpose) as broker:
+                self._resolve_lookups(broker, lookups)
+                for row in actionable:
+                    try:
+                        if row.get("state") == "requested":
+                            self._draft_and_preview(row, broker)
+                        else:
+                            self._approve_and_submit(row, broker)
+                    except Exception as exc:
+                        # Reject the request rather than leaving a ticket that looks live.
+                        self.channel.publish(row["request_id"], {"state": "rejected", "reject_reason": str(exc)})
+        except Exception as exc:
+            # The session itself could not be opened -- budget spent, breaker
+            # open, or the Gateway refused. Every waiting ticket is told why and
+            # nothing is retried. A human resubmitting is the retry mechanism.
+            for row in actionable:
                 self.channel.publish(row["request_id"], {"state": "rejected", "reject_reason": str(exc)})
+            for row in lookups:
+                self.channel.publish_lookup(row["lookup_id"], {"state": "failed", "error": str(exc)})
         return open_desk
 
-    def resolve_lookups(self) -> bool:
-        """Answer contract questions. Returns True if any were waiting.
+    @contextmanager
+    def _broker(self, purpose: str):
+        """The broker for this tick: a short-lived session, or the injected one."""
+        if self.sessions is None:
+            yield self.service.broker
+            return
+        with self.sessions.session(purpose) as broker:
+            # GuardedOrderService holds its broker for the length of a call, so
+            # the session's broker is swapped in for the duration and removed
+            # after. Leaving it attached would give the service a handle to a
+            # disconnected object between ticks.
+            previous = self.service.broker
+            self.service.broker = broker
+            try:
+                yield broker
+            finally:
+                self.service.broker = previous
+
+    def _claim_lookups(self) -> list[dict[str, Any]]:
+        try:
+            return self.channel.claim_lookups()
+        except Exception as exc:
+            print(f"contract lookup claim failed: {exc}", flush=True)
+            return []
+
+    def _resolve_lookups(self, broker: Any, lookups: list[dict[str, Any]]) -> bool:
+        """Answer contract questions on an already-open session.
 
         A failed lookup is published as `failed` with its reason rather than
         left to time out. A picker that spins forever teaches people to retype
         the conId by hand, which is the habit this whole path exists to remove.
         """
-        try:
-            lookups = self.channel.claim_lookups()
-        except Exception as exc:
-            print(f"contract lookup claim failed: {exc}", flush=True)
-            return False
         for row in lookups:
             try:
-                matches = self.service.broker.resolve(row)
+                matches = broker.resolve(row)
                 if not matches:
                     self.channel.publish_lookup(row["lookup_id"], {
                         "state": "failed",
@@ -166,7 +217,7 @@ class OrderCommandLoop:
 
     # ----------------------------------------------------------------- steps
 
-    def _draft_and_preview(self, row: dict[str, Any]) -> None:
+    def _draft_and_preview(self, row: dict[str, Any], broker: Any = None) -> None:
         """Draft in the ledger, then price it against the live book right now."""
         if row.get("mode") == "live" and not self.live_enabled:
             self.channel.publish(row["request_id"], {
@@ -186,7 +237,7 @@ class OrderCommandLoop:
         # from "what the page claimed" into "what would be sent", and any
         # disagreement between the two shows up in the fingerprint the human is
         # asked to confirm.
-        identity = self._identity(row)
+        identity = self._identity(row, broker)
         intent = OrderIntent(
             account_alias=self.account_alias,
             conid=int(row["conid"]),
@@ -235,7 +286,7 @@ class OrderCommandLoop:
             "currency": identity.get("currency"),
         })
 
-    def _approve_and_submit(self, row: dict[str, Any]) -> None:
+    def _approve_and_submit(self, row: dict[str, Any], broker: Any = None) -> None:
         """Re-verify the approval against the hub's own token, then transmit."""
         intent_uuid = row.get("intent_uuid")
         if not intent_uuid:
@@ -262,7 +313,7 @@ class OrderCommandLoop:
 
     # --------------------------------------------------------------- helpers
 
-    def _identity(self, row: dict[str, Any]) -> dict[str, Any]:
+    def _identity(self, row: dict[str, Any], broker: Any = None) -> dict[str, Any]:
         """Ask the broker what this conId is, and refuse if it is not what was asked for.
 
         The old version built the fingerprint from the request row itself, which
@@ -275,7 +326,7 @@ class OrderCommandLoop:
         conId is what actually gets sent, so the ticket would have been priced,
         approved and transmitted as an option while every screen said stock.
         """
-        identity = self.service.broker.contract_identity(int(row["conid"]))
+        identity = (broker or self.service.broker).contract_identity(int(row["conid"]))
         wanted = str(row.get("sec_type") or "").upper()
         got = str(identity.get("sec_type") or "").upper()
         if wanted and got and wanted != got:

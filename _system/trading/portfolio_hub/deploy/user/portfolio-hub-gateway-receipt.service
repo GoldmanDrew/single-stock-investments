@@ -1,0 +1,32 @@
+[Unit]
+# Counts Gateway connection EVENTS. Opens nothing, connects to nothing.
+#
+# The collector was not undetected for want of monitoring. It was undetected
+# because the thing being counted -- concurrent sockets -- was not the thing
+# doing the harm, so every dashboard read healthy while it opened ~780
+# connections a session. This reads the attempt log the brake itself writes, so
+# what is watched and what is enforced are the same rows.
+Description=Magis portfolio hub Gateway connection-event receipt (no Gateway)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/spx/single-stock-investments
+EnvironmentFile=/home/spx/.config/portfolio-hub/secrets.env
+Environment=PYTHONPATH=/home/spx/single-stock-investments
+ExecStart=/home/spx/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub \
+  --db /home/spx/portfolio-hub/portfolio.db \
+  gateway-receipt
+
+# No Restart=, for the same reason the Flex unit has none: a receipt that
+# retries is a receipt that can become the incident it is meant to report.
+# A non-zero exit leaves the unit `failed`, which is the signal.
+
+# CLAUDE.md rule 7: niced and capped like every background unit on this box.
+Nice=15
+CPUQuota=20%
+IOSchedulingClass=idle
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=portfolio-hub-gateway-receipt
