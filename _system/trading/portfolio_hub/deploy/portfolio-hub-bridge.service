@@ -5,6 +5,8 @@
 # suppresses the order information the bridge needs to prove ownership.
 Description=Magis portfolio hub order bridge (IBKR client 91, sole transmitter)
 After=network-online.target ibgateway.service
+StartLimitIntervalSec=300
+StartLimitBurst=8
 Requires=ibgateway.service
 
 [Service]
@@ -19,8 +21,9 @@ ExecStart=/opt/portfolio-hub-venv/bin/python -m _system.trading.portfolio_hub --
 # so a restart is safe; a crash loop is a real fault and should stop.
 Restart=always
 RestartSec=10
-StartLimitIntervalSec=300
-StartLimitBurst=8
+# StartLimitIntervalSec / StartLimitBurst are in [Unit]; systemd ignores them
+# here. See deploy/user/portfolio-hub-bridge.service, which is the unit that is
+# actually installed.
 
 # This process holds the approval secret and the broker socket. Nothing else on
 # the host needs either.

@@ -16,6 +16,14 @@ on:
     - cron: "0 15 * * 1"    # CVR discovery (SEC + inbox) Mondays
     - cron: "0 16 * * 0"    # World Model weekly (Sunday UTC: themes + KPI ledgers + strip)
 
+# Concurrency: each job below takes its own queue (data-commit-main-<job>)
+# rather than one shared "data-commit-main" group. GitHub Actions keeps at most
+# one *pending* run per concurrency group and cancels any earlier pending run,
+# so a single shared group let a long-running 03:00 job evict the 06:00 activist
+# scan while it sat in the queue. Those runs report "cancelled", not "failed",
+# so no red X ever appeared and the activist feed silently stopped updating on
+# 2026-08-02. Concurrent pushes to main remain safe because every job commits
+# through .github/actions/commit-main, which rebases and retries.
 permissions:
   contents: write
   pull-requests: write
@@ -82,7 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     env:
       RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
@@ -130,7 +139,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -212,7 +222,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     env:
       RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
@@ -247,9 +258,18 @@ jobs:
           TICKER: ""
           SEC_ONLY: "false"
         run: |
-          python _system/scripts/scan_activist_sources.py --reconcile --fetch-sec
+          python _system/scripts/scan_activist_sources.py --reconcile --fetch-sec --discover-filers
           python _system/scripts/short_scan_batch.py
           python _system/scripts/activist_registry_audit.py
+      - name: Japan large-shareholding reports (EDINET)
+        # Exits 0 and prints "not configured" until EDINET_API_KEY exists, so
+        # the lane can ship before the credential does. See
+        # _system/reference/activist-reports/COVERAGE_DECISIONS.md
+        env:
+          EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+        run: python _system/scripts/edinet_activist_scan.py
+      - name: Activist coverage guards
+        run: python -m unittest _system/scripts/test_activist_coverage.py _system/scripts/test_activist_taxonomy.py
       - name: Rebuild activist dashboard slice
         uses: ./.github/actions/rebuild-data
         env:
@@ -262,6 +282,13 @@ jobs:
         uses: ./.github/actions/commit-main
         with:
           message: "chore: activist scan sync $(date -u +%Y-%m-%d)"
+      # Runs after the commit and always, so it judges what actually shipped.
+      # A job that is cancelled while pending never reaches this step -- which
+      # is the point: the NEXT run then sees a stale feed and goes red, so the
+      # silence that hid three weeks of evictions cannot repeat.
+      - name: Assert the activist feed actually moved
+        if: always()
+        run: python _system/scripts/check_activist_freshness.py
 
   downloads:
     needs: decide
@@ -271,7 +298,8 @@ jobs:
     # the Actions worker for GitHub's six-hour hard maximum.
     timeout-minutes: 270
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     steps:
       - uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -322,7 +350,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     outputs:
       imported: ${{ steps.import.outputs.imported }}
@@ -485,7 +514,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     env:
       POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY || secrets.POLYGON_IO_API_KEY }}
@@ -524,7 +554,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -610,7 +641,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -664,7 +696,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
-      group: data-commit-main
+      # Per-job queue - see the concurrency note at the top of this file.
+      group: data-commit-main-${{ github.job }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4

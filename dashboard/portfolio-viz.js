@@ -207,6 +207,46 @@
     renderPortfolio();
   }
 
+  /**
+   * A time axis rendered as HTML underneath the chart rather than inside it.
+   *
+   * Both charts are `preserveAspectRatio="none"` so the plot fills its box; any
+   * <text> inside them is stretched by the same factor and becomes unreadable.
+   * Laying the labels out in HTML keeps them upright at any width.
+   *
+   * The format follows the span: a series covering hours needs clock times, one
+   * covering weeks needs dates, and printing the wrong one makes a chart look
+   * like it covers a period it does not.
+   */
+  function timeAxis(stamps, ariaLabel = 'Time axis') {
+    const times = (stamps || []).map((value) => Date.parse(value)).filter((value) => Number.isFinite(value));
+    if (times.length < 2) return '';
+    const first = times[0];
+    const last = times[times.length - 1];
+    const spanHours = (last - first) / 3_600_000;
+    const fmt = (ms) => {
+      const date = new Date(ms);
+      if (spanHours <= 36) {
+        return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    };
+    const ticks = Math.min(5, times.length);
+    const labels = Array.from({ length: ticks }, (_, index) => {
+      const position = Math.round(index / (ticks - 1) * (times.length - 1));
+      return `<span>${esc(fmt(times[position]))}</span>`;
+    }).join('');
+    // A short series labelled only with clock times hides which day it is, so the
+    // date is stated once alongside.
+    const dayNote = spanHours <= 36
+      ? `<em>${esc(new Date(first).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${
+          new Date(first).toDateString() === new Date(last).toDateString()
+            ? ''
+            : ` – ${esc(new Date(last).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}`}</em>`
+      : '';
+    return `<div class="ph-chart-axis" aria-label="${esc(ariaLabel)}">${labels}</div>${dayNote ? `<div class="ph-chart-axis-note">${dayNote}</div>` : ''}`;
+  }
+
   function portfolioSparkline(series, benchmark) {
     const rows = (series || []).map((row) => ({ value: num(row.nav_decimal), asOf: row.as_of })).filter((row) => row.value != null);
     if (rows.length < 2) return '<div class="ph-chart-empty">History begins after the next complete snapshots.</div>';
@@ -219,7 +259,14 @@
       const scaled = 36 - ((value - Math.min(...bench)) / ((Math.max(...bench) - Math.min(...bench)) || 1) * 30);
       return `${(index / (bench.length - 1) * 100).toFixed(2)},${scaled.toFixed(2)}`;
     }).join(' ') : '';
-    return `<svg class="ph-sparkline ${positive ? 'positive' : 'negative'}" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Net liquidation history"><defs><linearGradient id="ph-nav-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".24"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polygon points="0,40 ${points} 100,40" fill="url(#ph-nav-fill)"/><polyline points="${points}" fill="none" vector-effect="non-scaling-stroke"/>${benchPoints ? `<polyline class="ph-benchmark" points="${benchPoints}" fill="none" vector-effect="non-scaling-stroke"/>` : ''}</svg>`;
+    return `<svg class="ph-sparkline ${positive ? 'positive' : 'negative'}" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Net liquidation history"><defs><linearGradient id="ph-nav-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".24"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polygon points="0,40 ${points} 100,40" fill="url(#ph-nav-fill)"/><polyline points="${points}" fill="none" vector-effect="non-scaling-stroke"/>${benchPoints ? `<polyline class="ph-benchmark" points="${benchPoints}" fill="none" vector-effect="non-scaling-stroke"/>` : ''}</svg>${timeAxis(rows.map((row) => row.asOf), 'Account value time axis')}`;
+  }
+
+  function describeAge(seconds) {
+    if (seconds == null) return 'an unknown time';
+    if (seconds < 3600) return `${Math.round(seconds / 60)} min`;
+    if (seconds < 172_800) return `${Math.round(seconds / 3600)} h`;
+    return `${Math.round(seconds / 86_400)} days`;
   }
 
   function accountCockpit(book) {
@@ -227,8 +274,15 @@
     const nav = num(values.NetLiquidation); const daily = num(values.DailyPnL || values.DailyPnl);
     const maintenance = num(values.MaintMarginReq); const excess = num(values.ExcessLiquidity);
     const cushion = num(values.Cushion); const marginLoad = nav > 0 && maintenance != null ? Math.max(0, Math.min(1, maintenance / nav)) : null;
-    const dataState = book?.status === 'complete' ? 'Broker feed complete' : 'Broker feed unavailable';
-    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state"><i class="${book?.status === 'complete' ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>BROKER READ ONLY</span> Paper tickets never route to IBKR.</div></div></section>`;
+    // A stopped feed must not read the same as a live one. The collector was
+    // disabled on 2026-08-25, so "complete" now means "this snapshot was whole
+    // when it was taken", which can be days ago.
+    const stale = book?.snapshot?.stale === true;
+    const ageSeconds = num(book?.snapshot?.age_seconds);
+    const dataState = book?.status !== 'complete'
+      ? 'Broker feed unavailable'
+      : stale ? `Broker feed stopped · last snapshot ${describeAge(ageSeconds)} ago` : 'Broker feed complete';
+    return `<section class="ph-cockpit" aria-label="Account overview"><div class="ph-cockpit-value"><button type="button" class="ph-lineage-target" data-ph-lineage="Net liquidation" data-ph-source="IBKR live" data-ph-detail="Account tag NetLiquidation"><div class="ph-kicker">Net liquidation value</div><div class="ph-hero-value">${money(nav)}</div></button><div class="ph-daily ${daily < 0 ? 'ph-negative' : 'ph-positive'}"><span>${signed(daily)}</span><small>today</small></div><div class="ph-feed-state ${stale ? 'stale' : ''}"><i class="${book?.status === 'complete' && !stale ? 'live' : ''}"></i>${esc(dataState)}</div></div><div class="ph-cockpit-chart"><div class="ph-chart-head"><span>Account value</span><b>${state.accountPerformance?.nav_series?.length || 0} observations</b></div>${portfolioSparkline(state.accountPerformance?.nav_series, state.accountPerformance?.benchmark)}</div><div class="ph-cockpit-safety"><div class="ph-kicker">Liquidity runway</div><div class="ph-safety-line"><span>Excess liquidity</span><b>${money(excess, true)}</b></div><div class="ph-safety-line"><span>Margin load</span><b>${pct(marginLoad)}</b></div><div class="ph-meter"><i style="width:${marginLoad == null ? 0 : (marginLoad * 100).toFixed(1)}%"></i></div><div class="ph-safety-line"><span>Broker cushion</span><b>${cushion == null ? '—' : pct(cushion)}</b></div><div class="ph-readonly"><span>BROKER READ ONLY</span> Paper tickets never route to IBKR.</div></div></section>`;
   }
 
   function accountFacts(book) {
@@ -368,8 +422,20 @@
     const maxValue = Math.max(1, ...history.flatMap((row) => [num(row.MaintMarginReq) || 0, num(row.ExcessLiquidity) || 0]));
     const points = (key) => history.length < 2 ? '' : history.map((row, index) => `${(index / (history.length - 1) * 100).toFixed(2)},${(42 - ((num(row[key]) || 0) / maxValue * 36)).toFixed(2)}`).join(' ');
     const change = (key) => (num(latest[key]) != null && num(prior[key]) != null) ? num(latest[key]) - num(prior[key]) : null;
-    const chart = history.length > 1 ? `<svg class="ph-margin-chart" viewBox="0 0 100 46" preserveAspectRatio="none" role="img" aria-label="Maintenance margin and excess liquidity history"><polyline class="margin" points="${points('MaintMarginReq')}"/><polyline class="liquidity" points="${points('ExcessLiquidity')}"/></svg><div class="ph-chart-legend"><span class="margin">Maintenance margin</span><span class="liquidity">Excess liquidity</span></div>` : emptyState('upstream_absent', 'Margin history needs another observation', 'Current broker facts are available; a time series begins after the next complete snapshot.', 'IBKR account summary', 'Keep the collector running through the session.');
+    const chart = history.length > 1 ? `<svg class="ph-margin-chart" viewBox="0 0 100 46" preserveAspectRatio="none" role="img" aria-label="Maintenance margin and excess liquidity history"><polyline class="margin" points="${points('MaintMarginReq')}"/><polyline class="liquidity" points="${points('ExcessLiquidity')}"/></svg>${timeAxis(history.map((row) => row.as_of), 'Margin history time axis')}<div class="ph-chart-legend"><span class="margin">Maintenance margin</span><span class="liquidity">Excess liquidity</span></div>` : emptyState('upstream_absent', 'Margin history needs another observation', 'Current broker facts are available; a time series begins after the next complete snapshot.', 'IBKR account summary', 'Keep the collector running through the session.');
     return `<div class="ph-grid">${panelLines('Broker-reported margin now', [['Initial requirement · USD', money(values.InitMarginReq)], ['Maintenance requirement · USD', money(values.MaintMarginReq)], ['Available funds · USD', money(values.AvailableFunds)], ['Excess liquidity · USD', money(values.ExcessLiquidity)], ['Cushion · %', values.Cushion == null ? 'Unavailable' : pct(values.Cushion)]])}${panelLines('Intraday consumption', [['Peak maintenance · USD', money(peak.MaintMarginReq)], ['Peak time', peak.as_of || 'Awaiting history'], ['Maintenance change', signed(change('MaintMarginReq'))], ['Liquidity change', signed(change('ExcessLiquidity'))]])}${panelLines('Risk boundary', [['Selected owner', state.scope], ['Owner margin', 'Not additive · suppressed'], ['Order shock', 'IBKR what-if required'], ['Value kind', state.margin?.value_kind || 'broker_reported']])}</div><section class="ph-panel ph-chart-panel"><div class="ph-chart-head"><span>Account margin and liquidity · USD</span><b>${history.length} observations</b></div>${chart}</section>${lineageDrawer()}`;
+  }
+
+  /**
+   * Exposure is a sum in one currency, so a position that cannot be stated in
+   * that currency is left out of it. Saying so on the panel is the difference
+   * between a total that is honestly incomplete and one that just reads low.
+   */
+  function untranslatedNote() {
+    const count = state.risk?.coverage?.untranslated_positions ?? 0;
+    if (!count) return 'None';
+    const currencies = (state.risk?.coverage?.untranslated_currencies || []).join(', ');
+    return `${count} position${count === 1 ? '' : 's'}${currencies ? ` · ${currencies}` : ''}`;
   }
 
   function riskView(book) {
@@ -377,13 +443,29 @@
     const concentration = state.risk?.concentration || [];
     const scenarios = state.risk?.scenarios || [];
     const scenarioSurface = scenarios.length ? `<div class="ph-table-wrap"><table class="ph-table ph-table--scenario"><thead><tr><th>Strategy</th><th>Scenario</th><th>Shock</th><th>Horizon</th><th>P&amp;L · USD</th><th>P&amp;L · % NAV</th><th>Margin Δ · USD</th><th>Post-shock liquidity · USD</th><th>Top contributor</th></tr></thead><tbody>${scenarios.map((row) => `<tr><td>${esc(row.strategy)}</td><td>${esc(row.scenario)}</td><td>${row.shock_value == null ? 'Unavailable' : `${(row.shock_value * 100).toFixed(1)}%`}</td><td>${esc(row.horizon)}</td><td>${signed(row.pnl_usd)}</td><td>${row.pnl_pct_nav == null ? 'Unavailable' : `${(row.pnl_pct_nav * 100).toFixed(2)}%`}</td><td>${row.margin_delta_usd == null ? 'Not modeled' : signed(row.margin_delta_usd)}</td><td>${row.post_shock_excess_liquidity_usd == null ? 'Not modeled' : money(row.post_shock_excess_liquidity_usd)}</td><td>${esc(row.top_contributor || 'Unavailable')}</td></tr>`).join('')}</tbody></table></div>` : emptyState(state.scope === 'all' ? 'upstream_absent' : 'suppressed_by_methodology', 'No valid scenario surface for this scope', state.risk?.nonlinear?.null_reason || 'A producer must publish shock vectors and coverage before scenario P&L can be shown.', 'strategy scenario producers', state.scope === 'all' ? 'Publish scenario_surface.v1 with model version and coverage.' : 'Use All or the strategy page; owner nonlinear risk is never pro-rated.');
-    return `<div class="ph-grid">${panelLines('Concentration', [['Gross exposure · USD', money(state.risk?.gross_exposure, true)], ['Net exposure · USD', money(state.risk?.net_exposure, true)], ['Largest gross weight', concentration[0]?.gross_weight == null ? 'Unavailable' : `${(concentration[0].gross_weight * 100).toFixed(1)}%`]])}${panelLines('Linear sensitivities', [['Beta exposure · USD', money(state.risk?.linear_sensitivities?.beta_exposure, true)], ['Delta exposure · USD', money(state.risk?.linear_sensitivities?.delta_exposure, true)], ['Gamma / vega', `${state.risk?.linear_sensitivities?.gamma ?? 'Unavailable'} / ${state.risk?.linear_sensitivities?.vega ?? 'Unavailable'}`]])}${panelLines('Shock coverage', [['Market slide', state.risk?.shock_coverage?.market_slide || 'unavailable'], ['Margin shock', state.risk?.shock_coverage?.margin || 'unavailable'], ['Correlation lift', state.risk?.shock_coverage?.correlation || 'unavailable'], ['Linked producer rows', `${state.risk?.coverage?.linked_atomic_rows ?? 0} / ${state.risk?.coverage?.producer_atomic_rows ?? 0}`]])}</div><section class="ph-panel ph-section-block"><h3>Top position concentration</h3><p>Rows are positions. Quantity retains its native unit; weights are percent of gross exposure and market value is signed USD.</p><div class="ph-table-wrap"><table class="ph-table ph-table--compact"><thead><tr><th>Position</th><th>Quantity</th><th>Unit</th><th>Gross weight · %</th><th>Signed market value · USD</th></tr></thead><tbody>${concentration.map((row) => `<tr><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol)}">${esc(row.symbol)}</button></td><td>${quantity(row.quantity)}</td><td>${esc(row.quantity_unit)}</td><td>${row.gross_weight == null ? 'Unavailable' : `${(row.gross_weight * 100).toFixed(1)}%`}</td><td>${signed(row.market_value)}</td></tr>`).join('')}</tbody></table>${concentration.length ? '' : emptyState('true_zero', 'No concentration rows', 'This scope has no positions with market value.', 'IBKR positions', 'Select another owner or wait for the next complete snapshot.')}</div></section><section class="ph-panel ph-section-block"><h3>Published scenario surface</h3><p>Only producer-owned account or strategy models appear here. Missing margin and correlation values stay explicit.</p>${scenarioSurface}</section><section class="ph-panel ph-section-block"><h3>Factor drill-down</h3><div class="ph-table-wrap"><table class="ph-table ph-table--wide"><thead><tr><th>Row</th><th>Symbol</th><th>Role</th><th>Basis</th><th>Beta · USD</th><th>Delta · USD</th></tr></thead><tbody>${factors.map((row) => `<tr><td>${esc(row.row_id)}</td><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol || '')}">${esc(row.symbol || 'Unavailable')}</button></td><td>${esc(row.reconciliation_role)}</td><td>${esc(row.exposure_basis)}</td><td>${row.beta_exposure == null ? 'Unavailable' : money(row.beta_exposure)}</td><td>${row.delta_exposure == null ? 'Unavailable' : money(row.delta_exposure)}</td></tr>`).join('')}</tbody></table>${factors.length ? '' : emptyState('suppressed_by_methodology', 'No factor rows at this scope', 'Producer atomic rows remain unpublished instead of being pro-rated.', 'strategy_snapshot.v1', 'Open All or the source strategy.')}</div></section>${lineageDrawer()}`;
+    return `<div class="ph-grid">${panelLines('Concentration', [['Gross exposure · USD', money(state.risk?.gross_exposure, true)], ['Net exposure · USD', money(state.risk?.net_exposure, true)], ['Largest gross weight', concentration[0]?.gross_weight == null ? 'Unavailable' : `${(concentration[0].gross_weight * 100).toFixed(1)}%`], ['Excluded · no FX rate', untranslatedNote()]])}${panelLines('Linear sensitivities', [['Beta exposure · USD', money(state.risk?.linear_sensitivities?.beta_exposure, true)], ['Delta exposure · USD', money(state.risk?.linear_sensitivities?.delta_exposure, true)], ['Gamma / vega', `${state.risk?.linear_sensitivities?.gamma ?? 'Unavailable'} / ${state.risk?.linear_sensitivities?.vega ?? 'Unavailable'}`]])}${panelLines('Shock coverage', [['Market slide', state.risk?.shock_coverage?.market_slide || 'unavailable'], ['Margin shock', state.risk?.shock_coverage?.margin || 'unavailable'], ['Correlation lift', state.risk?.shock_coverage?.correlation || 'unavailable'], ['Linked producer rows', `${state.risk?.coverage?.linked_atomic_rows ?? 0} / ${state.risk?.coverage?.producer_atomic_rows ?? 0}`]])}</div><section class="ph-panel ph-section-block"><h3>Top position concentration</h3><p>Rows are positions. Quantity retains its native unit; weights are percent of gross exposure and market value is signed USD.</p><div class="ph-table-wrap"><table class="ph-table ph-table--compact"><thead><tr><th>Position</th><th>Quantity</th><th>Unit</th><th>Gross weight · %</th><th>Signed market value · USD</th></tr></thead><tbody>${concentration.map((row) => `<tr><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol)}">${esc(row.symbol)}</button></td><td>${quantity(row.quantity)}</td><td>${esc(row.quantity_unit)}</td><td>${row.gross_weight == null ? 'Unavailable' : `${(row.gross_weight * 100).toFixed(1)}%`}</td><td>${signed(row.market_value)}</td></tr>`).join('')}</tbody></table>${concentration.length ? '' : emptyState('true_zero', 'No concentration rows', 'This scope has no positions with market value.', 'IBKR positions', 'Select another owner or wait for the next complete snapshot.')}</div></section><section class="ph-panel ph-section-block"><h3>Published scenario surface</h3><p>Only producer-owned account or strategy models appear here. Missing margin and correlation values stay explicit.</p>${scenarioSurface}</section><section class="ph-panel ph-section-block"><h3>Factor drill-down</h3><div class="ph-table-wrap"><table class="ph-table ph-table--wide"><thead><tr><th>Row</th><th>Symbol</th><th>Role</th><th>Basis</th><th>Beta · USD</th><th>Delta · USD</th></tr></thead><tbody>${factors.map((row) => `<tr><td>${esc(row.row_id)}</td><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol || '')}">${esc(row.symbol || 'Unavailable')}</button></td><td>${esc(row.reconciliation_role)}</td><td>${esc(row.exposure_basis)}</td><td>${row.beta_exposure == null ? 'Unavailable' : money(row.beta_exposure)}</td><td>${row.delta_exposure == null ? 'Unavailable' : money(row.delta_exposure)}</td></tr>`).join('')}</tbody></table>${factors.length ? '' : emptyState('suppressed_by_methodology', 'No factor rows at this scope', 'Producer atomic rows remain unpublished instead of being pro-rated.', 'strategy_snapshot.v1', 'Open All or the source strategy.')}</div></section>${lineageDrawer()}`;
     return `<div class="ph-grid">${panelLines('Concentration', [['Gross exposure', money(state.risk?.gross_exposure, true)], ['Net exposure', money(state.risk?.net_exposure, true)], ['Largest weight', state.risk?.concentration?.[0]?.gross_weight == null ? '—' : `${(state.risk.concentration[0].gross_weight * 100).toFixed(1)}%`]])}${panelLines('Linear sensitivities', [['Beta exposure', money(state.risk?.linear_sensitivities?.beta_exposure, true)], ['Delta exposure', money(state.risk?.linear_sensitivities?.delta_exposure, true)], ['Gamma / vega', `${state.risk?.linear_sensitivities?.gamma ?? '—'} / ${state.risk?.linear_sensitivities?.vega ?? '—'}`]])}${panelLines('Coverage & nonlinear gates', [['Broker positions', String(state.risk?.coverage?.broker_positions ?? book.positions?.length ?? 0)], ['Linked producer rows', `${state.risk?.coverage?.linked_atomic_rows ?? 0} / ${state.risk?.coverage?.producer_atomic_rows ?? 0}`], ['Scenario risk', state.risk?.nonlinear?.value == null ? 'Suppressed — unsupported scope' : String(state.risk.nonlinear.value)], ['Open breaks', String(book.reconciliation_breaks?.length || 0)]])}</div><div class="ph-split"><section class="ph-panel"><h3>Factor drill-down</h3><div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Row</th><th>Symbol</th><th>Role</th><th>Basis</th><th>Beta</th><th>Delta</th></tr></thead><tbody>${factors.map((row) => `<tr><td>${esc(row.row_id)}</td><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol || '')}">${esc(row.symbol || '—')}</button></td><td>${esc(row.reconciliation_role)}</td><td>${esc(row.exposure_basis)}</td><td>${esc(row.beta_exposure ?? '—')}</td><td>${esc(row.delta_exposure ?? '—')}</td></tr>`).join('')}</tbody></table>${factors.length ? '' : '<div class="ph-empty"><div><b>No factor rows at this scope</b>Producer atomic rows stay unpublished rather than being pro-rated.</div></div>'}</div></section><section class="ph-panel"><h3>Scenario drill-down</h3><p>${esc(state.risk?.nonlinear?.null_reason || 'Scenario vectors have not been published.')}</p><div class="ph-table-wrap"><table class="ph-table"><thead><tr><th>Symbol</th><th>Weight</th><th>Market value</th></tr></thead><tbody>${concentration.map((row) => `<tr><td><button type="button" class="ph-symbol-link" data-ph-linked-symbol="${esc(row.symbol)}">${esc(row.symbol)}</button></td><td>${row.gross_weight == null ? '—' : `${(row.gross_weight * 100).toFixed(1)}%`}</td><td>${money(row.market_value, true)}</td></tr>`).join('')}</tbody></table></div></section></div>${lineageDrawer()}`;
   }
 
   function performanceView() {
-    const reason = state.performance?.benchmark?.null_reason || state.performance?.null_reason || 'Benchmark withheld';
-    return `<div class="ph-grid">${panelLines('Live P&L', [['Daily', 'IBKR reset-series'], ['Unrealized', 'Broker-reported'], ['Realized', 'Execution/Flex reconcile']])}${panelLines('Completed sessions', [['Flex versions', String(state.performance?.completed_sessions?.length || 0)], ['Session P&L', 'Immutable Flex lineage'], ['Restatements', 'Separate series'], ['Legacy pnl_today', 'Never used as daily']])}${panelLines('Returns', [['NAV observations', String(state.performance?.nav_series?.length || 0)], ['TWR', state.performance?.twr == null ? 'Suppressed' : String(state.performance.twr)], ['Max drawdown', state.performance?.max_drawdown == null ? '—' : `${(state.performance.max_drawdown * 100).toFixed(2)}%`], ['Reason', state.performance?.null_reason || '—']])}</div><section class="ph-panel ph-chart-panel"><div class="ph-chart-head"><span>NAV vs ${esc(state.performance?.benchmark?.symbol || 'SPY')}</span><button type="button" class="ph-density" data-ph-lineage="NAV vs benchmark" data-ph-source="IBKR NetLiquidation" data-ph-detail="${esc(reason)}">Lineage</button></div>${portfolioSparkline(state.performance?.nav_series, state.performance?.benchmark)}<p class="ph-dim">${esc(reason)}</p></section>${lineageDrawer()}`;
+    const rolling = state.performance?.rolling || [];
+    const navFrom = state.performance?.nav_first_at;
+    const navTo = state.performance?.nav_last_at;
+    const navDays = state.performance?.nav_daily_observations ?? 0;
+    const rollingRows = rolling.map((row) => {
+      if (!row.available) {
+        // The reason occupies the row rather than leaving four blank cells, so a
+        // window that cannot be computed says when it will be.
+        return `<tr class="ph-window-pending"><td>${esc(row.label)}</td><td colspan="5">${esc(row.null_reason || 'Not available')}</td></tr>`;
+      }
+      return `<tr><td>${esc(row.label)}</td><td>${pct(row.nav_cagr)}</td><td>${row.volatility == null ? 'Unavailable' : pct(row.volatility)}</td><td>${row.max_drawdown == null ? 'Unavailable' : pct(row.max_drawdown)}</td><td>${row.calmar == null ? 'No drawdown' : row.calmar.toFixed(2)}</td><td class="ph-dim">${esc(row.from)} → ${esc(row.to)}</td></tr>`;
+    }).join('');
+    return `<div class="ph-grid">${panelLines('Live P&L', [['Daily', 'IBKR reset-series'], ['Unrealized', 'Broker-reported'], ['Realized', 'Execution/Flex reconcile']])}${panelLines('Completed sessions', [['Flex versions', String(state.performance?.completed_sessions?.length || 0)], ['Session P&L', 'Immutable Flex lineage'], ['Restatements', 'Separate series'], ['Legacy pnl_today', 'Never used as daily']])}${panelLines('NAV history', [['Daily observations', String(navDays)], ['First', navFrom || 'None'], ['Last', navTo || 'None'], ['Max drawdown · all history', state.performance?.max_drawdown == null ? 'Unavailable' : pct(state.performance.max_drawdown)]])}</div>
+      <section class="ph-panel ph-section-block"><h3>Rolling performance</h3>
+        <p>NAV growth, not investor return: NetLiquidation moves with deposits and withdrawals as well as with P&amp;L, and is not cash-flow adjusted. Volatility is annualised from daily closes; Calmar is CAGR over the worst drawdown in the window.</p>
+        <div class="ph-table-wrap"><table class="ph-table ph-table--compact"><thead><tr><th>Window</th><th>NAV CAGR</th><th>Volatility · ann.</th><th>Max drawdown</th><th>Calmar</th><th>Period</th></tr></thead><tbody>${rollingRows}</tbody></table></div>
+      </section>
+      <section class="ph-panel ph-chart-panel"><div class="ph-chart-head"><span>Net liquidation value</span><button type="button" class="ph-density" data-ph-lineage="NAV history" data-ph-source="IBKR NetLiquidation" data-ph-detail="${esc(state.performance?.lineage?.rolling?.note || 'Broker-reported NAV')}">Lineage</button></div>${portfolioSparkline(state.performance?.nav_series)}</section>${lineageDrawer()}`;
   }
 
   // ---------------------------------------------------------------------------
@@ -711,12 +793,21 @@
     // person approves the one they were not looking at.
     const working = activeRequest();
     const entry = working ? guardedTicket(working) : ticket;
-    return `${entry}${notice}${requestHistory()}
+    // The queue is filtered to the *logged-in* owner, so it is always Drew's
+    // tickets when Drew is signed in -- including on the Michael tab, where it
+    // rendered under a "Drew paper queue" heading as if Michael's book contained
+    // Drew's orders. Nobody may read another owner's queue, so on a foreign tab
+    // the right answer is to show nothing and say why.
+    const foreignScope = Boolean(orderOwner) && state.scope !== orderOwner && state.scope !== 'all';
+    const queue = foreignScope ? '' : `
       <div class="ph-toolbar"><strong>${esc(ownerLabel)} paper queue · ${paper.filter((row) => row.status === 'paper_queued').length}</strong><span class="ph-dim">Owner-filtered · audit stored in D1 · never published to the broker bridge</span></div>
       <div class="ph-table-wrap"><table class="ph-table ph-paper-table"><thead><tr><th>Created</th><th>Symbol / contract</th><th>Side</th><th>Qty</th><th>DAY limit</th><th>Notional</th><th>Status</th><th>Action</th></tr></thead><tbody>${paper.map((row) => {
         const notional = (num(row.quantity_decimal) || 0) * (num(row.limit_price_decimal) || 0);
         return `<tr><td>${esc(row.created_at)}</td><td><b>${esc(row.symbol)}</b><br><span class="ph-dim">${esc(row.sec_type)} · ${esc(row.conid)}</span></td><td>${esc(row.side)}</td><td>${quantity(row.quantity_decimal)}</td><td>${money(row.limit_price_decimal)}</td><td>${money(notional)}</td><td><span class="ph-pill ${row.status === 'paper_queued' ? 'paper' : ''}">${esc(String(row.status || '').replace('paper_', ''))}</span></td><td>${row.status === 'paper_queued' ? `<button type="button" class="ph-order-cancel" data-ph-cancel-paper="${esc(row.paper_order_id)}">Cancel paper</button>` : '—'}</td></tr>`;
-      }).join('')}</tbody></table>${paper.length ? '' : '<div class="ph-order-empty"><b>No paper orders yet</b><span>Your first owner-authorized ticket will appear here.</span></div>'}</div>
+      }).join('')}</tbody></table>${paper.length ? '' : '<div class="ph-order-empty"><b>No paper orders yet</b><span>Your first owner-authorized ticket will appear here.</span></div>'}</div>`;
+    const scopeLabel = state.scope ? state.scope[0].toUpperCase() + state.scope.slice(1) : 'this';
+    return `${entry}${notice}${requestHistory()}${queue}${foreignScope ? `
+      <div class="ph-order-empty"><b>No queue shown for the ${esc(scopeLabel)} portfolio</b><span>You are signed in as ${esc(ownerLabel)}. A paper queue is only ever readable by the owner it belongs to.</span></div>` : ''}
       <details class="ph-order-audit"><summary>Broker and central order audit</summary>
         <div class="ph-alert"><strong>Live command plane remains private.</strong> Browser paper orders cannot reach Python, IB Gateway, or IBKR. Qualified live orders still require the separate guarded workflow.</div>
         <div class="ph-toolbar"><strong>Broker open orders · ${broker.length}</strong><span class="ph-dim">Foreign/manual orders are visible and never cancellable by the hub.</span></div>

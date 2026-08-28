@@ -1,0 +1,59 @@
+{
+  // This workspace is 54 GB across 169,165 tracked files and 933 top-level
+  // directories. With no excludes, the editor's file watcher and search index
+  // cover all of it -- which is why the extension host reserved ~16 GB of
+  // address space and Cursor's 19 processes held ~4.9 GB of RAM.
+  //
+  // Everything excluded below is generated, binary, or an external checkout.
+  // Nothing here is hand-authored source, so losing watch/index on it costs
+  // nothing: the payloads are rebuilt by build_dashboard_data.py, the _text
+  // extracts by the PDF pipeline, and _external is another repo.
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "dashboard/data/**": true,
+    "_external/**": true,
+    "tmp/**": true,
+    "outputs/**": true,
+    "**/research/valuation_history/**": true,
+    "**/research/evidence/_text/**": true,
+    "**/investor-documents/**": true,
+    "_system/data/runs/**": true,
+    "_system/reference/data-sources/**": true
+  },
+
+  // Search still reaches source and research prose. Only generated payloads,
+  // extracted PDF text and binary document trees are dropped -- searching a
+  // 426 MB dashboard payload or a PDF blob was never useful anyway.
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/__pycache__/**": true,
+    "dashboard/data/**": true,
+    "_external/**": true,
+    "tmp/**": true,
+    "**/research/valuation_history/**": true,
+    "**/research/evidence/_text/**": true,
+    "**/investor-documents/**": true,
+    "_system/data/runs/**": true
+  },
+
+  // The repo has no TypeScript to speak of; keep tsserver from indexing the
+  // JS payloads under dashboard/.
+  "typescript.tsserver.maxTsServerMemory": 2048,
+
+  // Large generated JSON should not be tokenised, folded, or linted.
+  "files.associations": {
+    "dashboard/data/**/*.json": "plaintext"
+  },
+
+  "python.analysis.exclude": [
+    "dashboard/data/**",
+    "_external/**",
+    "**/research/**",
+    "tmp/**"
+  ],
+  "python.analysis.indexing": false
+}

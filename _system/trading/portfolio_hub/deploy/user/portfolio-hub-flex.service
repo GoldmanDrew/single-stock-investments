@@ -1,0 +1,28 @@
+[Unit]
+# Broker truth from IBKR Flex. Opens no IB connection, holds no client id, and
+# cannot contend with the SPX 0DTE executor for anything (CLAUDE.md rule 9).
+Description=Magis portfolio hub Flex book publisher (no Gateway)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/spx/single-stock-investments
+EnvironmentFile=/home/spx/.config/portfolio-hub/secrets.env
+Environment=PYTHONPATH=/home/spx/single-stock-investments
+ExecStart=/home/spx/bin/publish-flex-book.sh
+
+# Type=oneshot with NO Restart=. This is the single most important line in the
+# file. The collector's second defect was that a failed connect killed the
+# process and systemd brought it straight back, turning an upstream outage into
+# a restart loop -- 213 restarts during a healthy RTH session. A run that fails
+# here fails until the timer fires again tomorrow, which is the correct
+# behaviour for a daily report job. Do not add Restart=.
+
+# Niced and capped like every other background hub unit, per CLAUDE.md rule 7.
+Nice=15
+CPUQuota=40%
+IOSchedulingClass=idle
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=portfolio-hub-flex

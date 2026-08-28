@@ -8,14 +8,14 @@ One long-lived hub bridge is the sole transmitter for central orders. The collec
 
 | Role | Default client ID | May transmit | Owns/cancels |
 |---|---:|---|---|
-| Hub collector | 81 | No | Nothing |
+| ~~Hub collector~~ | 81 | No | Nothing | **DISABLED 2026-08-25 — do not re-enable.** Masked on NY4 after reconnect-storming the shared Gateway (a session every 30s, ~780 connects/session, 213 systemd restarts during a healthy Monday RTH). It passed the concurrency rule the whole time because concurrency was not what did the harm. See repo-root `CLAUDE.md` rules 9-10; broker truth is now Flex over HTTPS, which uses no client ID. The ID stays reserved so nobody else takes it.
 | Hub master observer | 82 | No | Nothing; observes all clients. (Was documented as 90, which collides with ls-algo's daily screener — `daily_screener.py` client_id=90. Never implemented at 90; reassigned before first use.) |
 | Hub order bridge | 91 | Paper initially | Only positive `MAGIS|…` orderRefs submitted by client 91 |
 | SPX producer | Existing registered value | Its strategy only | Positive SPX namespace after migration |
 | LS producer | Existing registered value | Its strategy only | Positive LS namespace after migration |
 | Manual TWS | 0 / registered operator | Manual only | Always foreign to hub |
 
-Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines) and **97** (dead-executor watchdog, 17 + offset 80); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 198 (bucket5 contract probe) and a leased worker pool at **100–129**; hub IDs are 81 and 91. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
+Cross-system map: SPX 0DTE runs as client **17** (live executor), **18** (ibc_guard handshake probe — read-only connect/disconnect, never subscribes or transmits), **19** (market-data line probe — off-hours only, cancels every subscription it opens), **87** (ES/SPX basis sampler — read-only snapshots, holds no streaming lines), **88** (quote_sleeve_margin whatIf probe — off-hours, never transmits; added to the cross-repo registries 2026-08-25) and **97** (dead-executor watchdog, 17 + offset 80); ls-algo holds 0 (cancel coordinator), 41, 77, 90, 198 (bucket5 contract probe) and a leased worker pool at **100–129**; hub IDs are 81 (DISABLED 2026-08-25, reserved) and 91. The full three-repo coexistence contract is in the repo-root `CLAUDE.md` and mirrored in spx-0dte `AGENTS.md` and ls-algo `CLAUDE.md`.
 
 Gateway restart tolerance (2026-08-20): spx-0dte's `ibc_guard` may issue ONE
 remedial Gateway restart per session day when the API handshake is provably
