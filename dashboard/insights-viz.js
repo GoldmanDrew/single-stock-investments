@@ -660,6 +660,20 @@
       : '';
     const episodeLink = merged.link ? linkHtml(merged.link, 'Episode', 'source-open-link') : '';
     const positions = (merged.positions || []).filter(p => p && p.ticker).slice(0, 12);
+    // Local-model analysis. Absent on every episode that has not been through
+    // analyze_podcast_batch.py, which is most of them.
+    const thesis = (merged.thesis || '').trim();
+    const claims = (Array.isArray(merged.claims) ? merged.claims : [])
+      .filter(c => c && String(c.claim || '').trim());
+    const analysis = merged.analysis || null;
+    const verifiedRate = analysis && typeof analysis.quote_verified_rate === 'number'
+      ? Math.round(analysis.quote_verified_rate * 100)
+      : null;
+    const stanceBadge = st => {
+      const s = String(st || 'neutral').toLowerCase();
+      const cls = s === 'bullish' ? 'badge-ok' : (s === 'bearish' ? 'badge-bad' : '');
+      return `<span class="badge${cls ? ' ' + cls : ''}">${escapeHtml(s)}</span>`;
+    };
     return `
       <div class="detail-section fund-detail" id="podcast-episode-detail">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
@@ -683,6 +697,20 @@
         ${positions.length ? `
         <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">TICKER COMMENTARY</h4>
         <ul class="dev-list">${positions.map(p => `<li style="font-size:12px"><span class="mono">${escapeHtml(p.ticker)}</span>${p.commentary ? ` — ${escapeHtml(String(p.commentary).slice(0, 200))}` : ''}</li>`).join('')}</ul>
+        ` : ''}
+        ${thesis ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">THESIS</h4>
+        <p style="font-size:13px;line-height:1.5;margin:6px 0">${escapeHtml(thesis)}</p>
+        ` : ''}
+        ${claims.length ? `
+        <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">CLAIMS${
+          verifiedRate === null ? '' : ` · ${verifiedRate}% QUOTE-VERIFIED`}</h4>
+        <ul class="dev-list">${claims.map(c => `
+          <li style="font-size:12px;line-height:1.45;margin-bottom:8px">
+            ${c.ticker ? `<button type="button" class="filter-btn source-pill mono" data-select-ticker="${escapeHtml(c.ticker)}">${escapeHtml(c.ticker)}</button> ` : ''}${stanceBadge(c.stance)}
+            <div style="margin-top:3px">${escapeHtml(String(c.claim).slice(0, 400))}</div>
+            ${c.quote && c.quote_verified ? `<div class="tier-sub" style="margin-top:3px;font-style:italic">&ldquo;${escapeHtml(String(c.quote).slice(0, 300))}&rdquo;</div>` : ''}
+          </li>`).join('')}</ul>
         ` : ''}
         ${highlights.length ? `
         <h4 style="margin-top:14px;font-size:12px;color:var(--text-muted)">HIGHLIGHTS</h4>
@@ -1081,9 +1109,20 @@
     };
   }
 
-  function periodFromSelection(selection, timeModel) {
+  function periodFromSelection(selection, timeModel, opts) {
     const raw = selection || 'latest';
     const allQuarters = timeModel.quarters.map(q => q.id);
+    // Rolling windows must count quarters that actually carry content for this
+    // section. The Drive catalog runs ahead of the indexed corpus (PDFs land
+    // before their text is extracted), so slicing raw allQuarters spends
+    // "Last 4Q" slots on quarters with zero letters. Mirrors the indexedYears
+    // split already used for the year tabs.
+    const indexedQuarters = opts?.indexedOnly
+      ? timeModel.quarters
+        .filter(q => timeModel.indexedQuarterSet?.has(q.id) || q.indexed_count > 0)
+        .map(q => q.id)
+      : allQuarters;
+    const rollingQuarters = indexedQuarters.length ? indexedQuarters : allQuarters;
     let ids = [];
     let label = 'All history';
     let selectedYear = timeModel.latestYear;
@@ -1092,10 +1131,10 @@
       label = ids[0] ? quarterLabel(ids[0]) : 'Latest quarter';
       selectedYear = parseQuarter(ids[0])?.year || selectedYear;
     } else if (raw === 'last4') {
-      ids = allQuarters.slice(0, 4);
+      ids = rollingQuarters.slice(0, 4);
       label = 'Last 4 quarters';
     } else if (raw === 'last8') {
-      ids = allQuarters.slice(0, 8);
+      ids = rollingQuarters.slice(0, 8);
       label = 'Last 8 quarters';
     } else if (raw === 'since2020') {
       ids = allQuarters.filter(id => (parseQuarter(id)?.year || 0) >= 2020);
@@ -1142,6 +1181,22 @@
       if (period.quarterSet.has(qid)) return true;
     }
     return false;
+  }
+
+  // Fund rows come in two shapes: fund_registry rows (one per letter, carrying
+  // quarter/letter_date) and fund_profiles (one per fund, dated only by their
+  // nested letters[] + latest_quarter). Matching a profile on quarter/letter_date
+  // alone returns an empty id set, which periodMatchesRecord reads as "no match"
+  // — so every profile fell out of every window except All history.
+  function fundMatchesPeriod(fund, period) {
+    if (!period || period.all) return true;
+    if (periodMatchesRecord(fund, period, ['quarter', 'letter_date'])) return true;
+    const letters = fund?.letters || [];
+    for (const letter of letters) {
+      if (periodMatchesRecord(letter, period, ['quarter', 'letter_date'])) return true;
+    }
+    if (letters.length) return false;
+    return periodMatchesRecord(fund, period, ['latest_quarter']);
   }
 
   function periodCoverage(period, timeModel, letterIndex, funds) {
@@ -4920,7 +4975,7 @@
     const letterIndex = insights?.letter_index || [];
     const timeModel = buildTimeModel(insights, documentCatalog);
     const periodQuarter = activeSection === 'consensus' ? (options?.consensusQuarter || quarter || 'last4') : quarter;
-    const period = periodFromSelection(periodQuarter, timeModel);
+    const period = periodFromSelection(periodQuarter, timeModel, { indexedOnly: activeSection !== 'documents' });
     const knownTickers = SearchMatch.catalogKnownTickers(documentCatalog);
     let funds = Object.values(insights?.fund_profiles || {});
     if (!funds.length) {
@@ -4943,7 +4998,7 @@
       funds = funds.filter(f => (f.our_ticker_count || 0) > 0);
     }
     if (period && !period.all) {
-      funds = funds.filter(f => periodMatchesRecord(f, period, ['quarter', 'letter_date']));
+      funds = funds.filter(f => fundMatchesPeriod(f, period));
     }
 
     const rangeTabs = [

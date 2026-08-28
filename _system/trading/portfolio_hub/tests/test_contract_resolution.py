@@ -145,7 +145,7 @@ def test_a_conid_that_disagrees_with_the_declared_sec_type_is_refused():
 
 def test_lookups_are_resolved_and_published():
     channel = _Channel(lookups=[{"lookup_id": "l1", "kind": "contract", "symbol": "MSFT", "sec_type": "STK"}])
-    assert _loop(channel).resolve_lookups() is True
+    _loop(channel).tick()
     lookup_id, update = channel.lookup_published[0]
     assert lookup_id == "l1"
     assert update["state"] == "resolved"
@@ -157,7 +157,7 @@ def test_a_failing_lookup_is_published_as_failed_rather_than_left_to_spin():
         def resolve(self, request): raise RuntimeError("gateway is down")
 
     channel = _Channel(lookups=[{"lookup_id": "l2", "kind": "contract", "symbol": "NOPE", "sec_type": "STK"}])
-    _loop(channel, broker=_Broken(_quotes)).resolve_lookups()
+    _loop(channel, broker=_Broken(_quotes)).tick()
     _, update = channel.lookup_published[0]
     assert update["state"] == "failed"
     assert "gateway is down" in update["error"]
@@ -168,7 +168,7 @@ def test_an_empty_resolution_is_a_failure_not_an_empty_success():
         def resolve(self, request): return []
 
     channel = _Channel(lookups=[{"lookup_id": "l3", "kind": "contract", "symbol": "ZZZZ", "sec_type": "STK"}])
-    _loop(channel, broker=_Empty(_quotes)).resolve_lookups()
+    _loop(channel, broker=_Empty(_quotes)).tick()
     _, update = channel.lookup_published[0]
     assert update["state"] == "failed"
     assert "no contract" in update["error"]
@@ -268,3 +268,96 @@ def test_an_unmarked_broker_is_assumed_to_transmit(tmp_path):
     from _system.trading.portfolio_hub.orders import OrderBroker
 
     assert "transmits" in OrderBroker.__annotations__
+
+
+# ------------------------------------- an idle desk must not touch the gateway
+
+def test_an_idle_tick_opens_no_gateway_session():
+    """The property the whole design rests on (CLAUDE.md rule 10)."""
+    from _system.trading.portfolio_hub.gateway_session import GatewaySessionFactory
+
+    opened = []
+    sessions = GatewaySessionFactory(lambda: opened.append(1) or _Never())
+    channel = _Channel()  # nothing claimed: no tickets, no lookups
+    loop = OrderCommandLoop(_Service(PaperOrderBroker(_quotes)), channel,
+                            account_alias="U123", sessions=sessions)
+    for _ in range(50):
+        loop.tick()
+    assert opened == [], "50 idle ticks must produce zero connections"
+    assert sessions.sessions_opened == 0
+
+
+def test_a_tick_with_work_opens_exactly_one_session_for_all_of_it():
+    from _system.trading.portfolio_hub.gateway_session import GatewaySessionFactory
+
+    broker = PaperOrderBroker(_quotes)
+    opened = []
+
+    def connect():
+        opened.append(1)
+        return broker
+
+    sessions = GatewaySessionFactory(connect)
+    channel = _Channel(
+        requests=[_option_row(request_id="r1"), _option_row(request_id="r2")],
+        lookups=[{"lookup_id": "l1", "kind": "contract", "symbol": "MSFT", "sec_type": "STK"}],
+    )
+    loop = OrderCommandLoop(_Service(broker), channel, account_alias="U123", sessions=sessions)
+    loop.tick()
+    assert len(opened) == 1, "three pieces of work, one connection"
+
+
+def test_a_refused_session_rejects_every_waiting_ticket_and_never_retries():
+    """A failed connect must produce an answer, not another attempt."""
+    from _system.trading.portfolio_hub.gateway_session import GatewaySessionFactory
+
+    attempts = []
+
+    def connect():
+        attempts.append(1)
+        raise ConnectionRefusedError("gateway is not accepting connections")
+
+    sessions = GatewaySessionFactory(connect)
+    channel = _Channel(requests=[_option_row(request_id="r1")],
+                       lookups=[{"lookup_id": "l1", "kind": "contract", "symbol": "MSFT", "sec_type": "STK"}])
+    loop = OrderCommandLoop(_Service(PaperOrderBroker(_quotes)), channel,
+                            account_alias="U123", sessions=sessions)
+    loop.tick()
+    assert len(attempts) == 1, "one attempt per tick, never an inner retry"
+    assert channel.published[0][1]["state"] == "rejected"
+    assert "gateway connect failed" in channel.published[0][1]["reject_reason"]
+    assert channel.lookup_published[0][1]["state"] == "failed"
+
+
+def test_repeated_failures_stop_connecting_altogether():
+    """The collector's shape, run through the real loop."""
+    from _system.trading.portfolio_hub.gateway_budget import BudgetLimits, ConnectionBudget
+    from _system.trading.portfolio_hub.gateway_session import GatewaySessionFactory
+
+    attempts = []
+
+    def connect():
+        attempts.append(1)
+        raise ConnectionRefusedError("gateway wedged")
+
+    sessions = GatewaySessionFactory(
+        connect, budget=ConnectionBudget(limits=BudgetLimits(trip_after_failures=3, max_per_hour=50)))
+    loop = OrderCommandLoop(
+        _Service(PaperOrderBroker(_quotes)),
+        _Channel(requests=[_option_row(request_id="r1")]),
+        account_alias="U123", sessions=sessions)
+    for _ in range(200):
+        loop.tick()
+    assert len(attempts) == 3, f"200 ticks against a dead gateway made {len(attempts)} attempts"
+
+
+class _Never:
+    """A broker that must never be asked for anything."""
+
+    transmits = False
+
+    def __getattr__(self, name):
+        raise AssertionError(f"idle desk touched the broker: {name}")
+
+    def disconnect(self):
+        pass

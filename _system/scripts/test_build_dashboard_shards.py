@@ -84,6 +84,20 @@ class SlimTickerRowTests(unittest.TestCase):
         slim = bds.slim_ticker_row({"ticker": "T"})
         self.assertNotIn("component_valuation", slim)
 
+    def test_two_phase_watch_stays_off_core_rows(self):
+        row = {"ticker": "INV", "two_phase_watch": {"as_of": "2026-08-26", "hits": [{}] * 8}}
+        slim = bds.slim_ticker_row(row)
+        self.assertNotIn("two_phase_watch", slim)
+        self.assertIn("two_phase_watch", bds.DETAIL_ONLY_FIELDS)
+
+    def test_index_html_has_two_phase_section(self):
+        if not INDEX_HTML.exists():  # pragma: no cover
+            self.skipTest("dashboard/index.html not present")
+        html = INDEX_HTML.read_text(encoding="utf-8", errors="ignore")
+        self.assertIn("renderTwoPhaseWatch", html)
+        self.assertIn("Two-phase cooling watch", html)
+        self.assertIn('id="two-phase-watch"', html)
+
 
 if __name__ == "__main__":
     unittest.main()

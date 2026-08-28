@@ -1,6 +1,6 @@
 import { failure, json, requestId, requireDatabase } from "../../../_lib/http.js";
 import { requirePortfolioViewer } from "../../../_lib/auth.js";
-import { loadPortfolio, ownerScope } from "../../../_lib/portfolio.js";
+import { baseMarketValue, loadPortfolio, ownerScope } from "../../../_lib/portfolio.js";
 
 function number(value) { const result = Number(value); return Number.isFinite(result) ? result : null; }
 
@@ -11,23 +11,34 @@ export async function onRequestGet(context) {
     if (!viewer) return json({ error: "Authentication required.", request_id: id }, 401, { "cache-control": "no-store" });
     const owner = ownerScope(context.request.url);
     const book = await loadPortfolio(context.env, owner);
+    const baseCurrency = book?.snapshot?.base_currency || "USD";
     const positions = (book.positions || []).map((row) => {
       const brokerQty = number(row.quantity_decimal) || 0;
       const scopeQty = owner === "all" ? brokerQty : (row.allocations || []).reduce((sum, allocation) => sum + (number(allocation.quantity_decimal) || 0), 0);
       const factor = brokerQty ? scopeQty / brokerQty : 0;
+      // null, not 0, when the row cannot be stated in base. A zero would quietly
+      // shrink gross exposure; a null keeps the row countable as excluded.
+      const base = baseMarketValue(row, baseCurrency);
       return {
         conid: row.conid,
         symbol: row.local_symbol || row.symbol,
         sec_type: row.sec_type,
         quantity: scopeQty,
         quantity_unit: ["OPT", "FOP"].includes(String(row.sec_type || "").toUpperCase()) ? "contracts" : "shares",
-        market_value: (number(row.market_value_base_decimal ?? row.market_value_decimal) || 0) * factor,
+        market_value: base == null ? null : base * factor,
+        native_currency: row.native_currency || row.currency || baseCurrency,
+        convertible: base != null,
         factor,
       };
     });
-    const gross = positions.reduce((sum, row) => sum + Math.abs(row.market_value), 0);
-    const net = positions.reduce((sum, row) => sum + row.market_value, 0);
-    const concentration = [...positions].sort((a, b) => Math.abs(b.market_value) - Math.abs(a.market_value)).slice(0, 20).map((row) => ({ ...row, gross_weight: gross ? Math.abs(row.market_value) / gross : null }));
+    // Exposure is a sum in one currency. A row that cannot be expressed in that
+    // currency is excluded and counted, never coerced -- the alternative is a
+    // gross-exposure figure that silently mixes yen into dollars.
+    const convertible = positions.filter((row) => row.convertible);
+    const untranslated = positions.filter((row) => !row.convertible);
+    const gross = convertible.reduce((sum, row) => sum + Math.abs(row.market_value), 0);
+    const net = convertible.reduce((sum, row) => sum + row.market_value, 0);
+    const concentration = [...convertible].sort((a, b) => Math.abs(b.market_value) - Math.abs(a.market_value)).slice(0, 20).map((row) => ({ ...row, gross_weight: gross ? Math.abs(row.market_value) / gross : null }));
     const strategyResult = await requireDatabase(context.env).prepare(`SELECT s.payload_json FROM portfolio_strategy_snapshots s
       JOIN portfolio_source_runs r USING(source_run_id)
       WHERE r.complete=1 AND r.as_of=(SELECT MAX(r2.as_of) FROM portfolio_source_runs r2 WHERE r2.source=r.source AND r2.complete=1)`).all();
@@ -78,7 +89,13 @@ export async function onRequestGet(context) {
         }));
       }) : [],
       scenarios,
-      coverage: { broker_positions: positions.length, producer_atomic_rows: atomicRows, linked_atomic_rows: linkedRows },
+      coverage: {
+        broker_positions: positions.length, producer_atomic_rows: atomicRows, linked_atomic_rows: linkedRows,
+        // Named, so an exposure total that is missing positions says so on the
+        // page instead of just reading low.
+        untranslated_positions: untranslated.length,
+        untranslated_currencies: [...new Set(untranslated.map((row) => row.native_currency))].sort(),
+      },
       nonlinear: {
         supported: scenarios.length > 0,
         value: scenarios.length || null,
