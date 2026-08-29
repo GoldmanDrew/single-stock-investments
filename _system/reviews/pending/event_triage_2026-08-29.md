@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-29
-**Rows:** 2726
+**Rows:** 1662
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -35,6 +35,11 @@
 | 2026-08-29 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-29 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-29 | ZBRA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
+| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
+| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Mitani-Sekisan |
+| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-babcock-wilcox |
+| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-HLS-Therapeutics |
 | 2026-08-28 | MO | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Altria Group, Inc. (NYSE:MO) Declares Quarterly Dividend of  |
 | 2026-08-28 | SBUX | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | United Capital Financial Advisors LLC Acquires Shares of 524 |
 | 2026-08-28 | AXON | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | N10 Assets LLC Acquires Shares of 13,808 Axon Enterprise, In |
@@ -49,11 +54,6 @@
 | 2026-08-28 | DASH | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13G/A |
 | 2026-08-28 | CSGP | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 09-CoStar-Group |
 | 2026-08-28 | CSGP | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | VIC PDF intake - CSGP - CSGP VIC PDF |
-| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
-| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
-| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Mitani-Sekisan |
-| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-HLS-Therapeutics |
-| 2026-08-28 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 05-Onterris |
 | 2026-08-28 | CHTR | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | 07-Charter-Communications |
 | 2026-08-28 | DASH | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-Yelp |
 | 2026-08-27 | ADSK | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Autodesk (ADSK) FY2027 Q2 Earnings Call: Guidance Raised Aft |
