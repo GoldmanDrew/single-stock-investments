@@ -50,7 +50,7 @@ re_pass: false
 | Check | Expected (valuation.json) | Found in dive | OK? |
 |-------|---------------------------|---------------|-----|
 | Returns statement | n/a | -18.08% | — |
-| Classification IRR | n/a | -18.53% | — |
+| Classification IRR | n/a | -17.78% | — |
 | Valuation bridge base | n/a | -18.08% | — |
 
 ---
