@@ -25,6 +25,9 @@ PROFILE_DEFAULT_METHOD = {
     "binary_milestone": "risk_adjusted_milestone_value",
     "credit_and_normalized_returns": "capital_structure_and_excess_return",
 }
+RETURN_PUBLISHABLE_LEVELS = frozenset({
+    "stock_specific", "committee_reviewed", "owner_approved",
+})
 
 
 def stable_id(*parts: Any) -> str:
@@ -205,9 +208,17 @@ def export(
         if not ticker:
             continue
         classification = row.get("classification") or {}
-        decision = row.get("valuation_decision") or {}
+        decision = dict(row.get("valuation_decision") or {})
+        if row.get("valuation_tier") and not decision.get("valuation_tier"):
+            decision["valuation_tier"] = row["valuation_tier"]
         values = decision.get("value_per_share") or {}
-        returns = decision.get("annualized_return_at_price_pct") or {}
+        model_level = decision.get("model_level")
+        returns = (
+            decision.get("forward_return_at_price_pct") or {}
+            if model_level in RETURN_PUBLISHABLE_LEVELS
+            and decision.get("return_publishable") is True
+            else {}
+        )
         route = read_json(ROOT / ticker / "research" / "valuation_route.json")
         if not route:
             route = dict(((row.get("power_zones") or {}).get("valuation_route") or {}))

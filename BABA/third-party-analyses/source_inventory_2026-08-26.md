@@ -1,0 +1,20 @@
+# BABA — Third-party source inventory
+
+**Date:** 2026-08-26
+**Sources:** 11 total (0 approved, 0 pending, 11 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| activist_long | Alibaba Group Holding Limited — SC 13D/A | `BABA/third-party-analyses/activist_reports/long/SC-13D/A_20190919_acc0001104659_19_050668.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D/A | `BABA/third-party-analyses/activist_reports/long/SC-13D/A_20200603_acc0001104659_20_069250.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D/A | `BABA/third-party-analyses/activist_reports/long/SC-13D/A_20231212_acc0001104659_23_125354.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D/A | `BABA/third-party-analyses/activist_reports/long/SC-13D/A_20231219_acc0001104659_23_127302.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D/A | `BABA/third-party-analyses/activist_reports/long/SC-13D/A_20240322_acc0001104659_24_037487.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D | `BABA/third-party-analyses/activist_reports/long/SC-13D_20180621_acc0001104659_18_041429.htm` | context | activist/long — sec_edgar |
+| activist_long | Alibaba Group Holding Limited — SC 13D | `BABA/third-party-analyses/activist_reports/long/SC-13D_20200908_acc0001104659_20_102778.htm` | context | activist/long — sec_edgar |
+| activist_long | dule 13G is being filed jointly by SoftBank G... — SC 13G/A | `BABA/third-party-analyses/activist_reports/long/SC-13G/A_20180214_acc0001193125_18_043991.htm` | context | activist/long — sec_edgar |
+| activist_long | Altaba Inc. — SC 13G/A | `BABA/third-party-analyses/activist_reports/long/SC-13G/A_20180214_acc0001193125_18_044322.htm` | context | activist/long — sec_edgar |
+| activist_long | Altaba Inc. — SC 13G/A | `BABA/third-party-analyses/activist_reports/long/SC-13G/A_20190214_acc0001193125_19_039407.htm` | context | activist/long — sec_edgar |
+| activist_long | Altaba Inc. — SC 13G/A | `BABA/third-party-analyses/activist_reports/long/SC-13G/A_20200214_acc0001193125_20_038127.htm` | context | activist/long — sec_edgar |
+
+Cross-check required: `BABA/research/cross_check_third_party_2026-08-26.md`

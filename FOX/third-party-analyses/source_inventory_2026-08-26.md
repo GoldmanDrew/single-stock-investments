@@ -1,0 +1,10 @@
+# FOX — Third-party source inventory
+
+**Date:** 2026-08-26
+**Sources:** 1 total (0 approved, 0 pending, 1 context)
+
+| ID | Title | Path | Status | Use |
+|----|-------|------|--------|-----|
+| activist_long | Cruden Financial Services LLC — SC 13G | `FOX/third-party-analyses/activist_reports/long/SC-13G_20190322_acc0001193125_19_082332.htm` | context | activist/long — sec_edgar |
+
+Cross-check required: `FOX/research/cross_check_third_party_2026-08-26.md`

@@ -7,6 +7,15 @@ on:
       - "*/research/valuation.json"
       - "*/research/evidence_refresh.json"
       - "*/research/evidence/*.json"
+      - "*/research/human_decision.json"
+      - "*/research/committee_trigger.json"
+      - "_system/portfolio/paper/*.json"
+      - "_system/portfolio/*target_weights.json"
+      - "_system/portfolio/registry.json"
+      - "_system/portfolio/classification.json"
+      - "_system/portfolio/valuation_universe_policy.json"
+      - "_system/reference/valuation_followups.json"
+      - "_system/scripts/build_valuation_universe_tiers.py"
       - "_system/scripts/calculation_proof.py"
       - "_system/scripts/universal_valuation_contract.py"
       - "_system/reference/valuation_method_registry.json"
@@ -81,8 +90,9 @@ jobs:
             test_investment_committee_pipeline \
             test_valuation_workbench \
             test_power_zone_pricing \
-            test_decision_authority \
-            test_security_decision_pipeline \
+             test_decision_authority \
+             test_valuation_universe_tiers \
+             test_security_decision_pipeline \
             test_human_decision \
             test_valuation_authority_cutover \
             test_llm_call_gate \
@@ -105,6 +115,7 @@ jobs:
         run: |
           python _system/scripts/build_valuation_method_registry.py
           python _system/scripts/run_security_decision_pipeline.py --scope all --skip-dashboard
+          python _system/scripts/build_valuation_universe_tiers.py --check --strict-sources
           python _system/scripts/persona_lens.py --all --skip-valuation
           python _system/scripts/refresh_valuation_dashboard_rows.py
           # dashboard_data.json is a gitignored build intermediate (removed
@@ -130,6 +141,7 @@ jobs:
                          '*/research/pricing_analysis.json' \
                          '*/research/lenses.json' \
                          '_system/lenses/universe_percentiles.json' \
+                         '_system/data/valuation_universe_tiers.json' \
                          '_system/data/runs/power_zone_universe_run_*.json' \
                          dashboard/data/valuation_method_registry.json \
                          dashboard/data/power_zones.json

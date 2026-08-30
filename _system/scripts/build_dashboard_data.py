@@ -28,6 +28,10 @@ from listing_units import resolve_units  # noqa: E402
 from valuation_synthesis import website_implied_irr  # noqa: E402
 from calculation_proof import floor_equity_value_range  # noqa: E402
 from decision_authority import contract_return_display, resolve_authority  # noqa: E402
+from build_valuation_workbench import (  # noqa: E402
+    MODEL_LEVELS as VALUATION_MODEL_LEVELS,
+    RETURN_PUBLISHABLE_LEVELS,
+)
 from macro_regime_panel import (  # noqa: E402
     build_portfolio_macro_regime,
     regime_to_compat_macro_list,
@@ -46,6 +50,7 @@ CLASS_PATH = ROOT / "_system" / "portfolio" / "classification.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 SLEEVES_PATH = ROOT / "_system" / "portfolio" / "investment_sleeves.json"
 CVR_UNIVERSE_PATH = ROOT / "_system" / "reference" / "cvr" / "cvr_universe.json"
+VALUATION_UNIVERSE_TIERS_PATH = ROOT / "_system" / "data" / "valuation_universe_tiers.json"
 GITHUB_REPO = "GoldmanDrew/single-stock-investments"
 UNIVERSE_INTAKE_WORKFLOW = "ls-algo-universe.yml"
 
@@ -976,6 +981,8 @@ def classification_for(ticker: str, ticker_dir: Path, portfolio: dict[str, dict]
             out["implied_irr"] = authority_display
         elif authority.get("authority_level") == "legacy_reference" and irr_web.get("display"):
             out["implied_irr"] = irr_web["display"] + " [legacy]"
+        else:
+            out["implied_irr"] = "unavailable (no canonical forward-return model)"
         method = authority.get("profile_id") or val.get("method", val.get("irr_method"))
         if method and out.get("irr_method") == "pending":
             out["irr_method"] = method
@@ -997,7 +1004,7 @@ def classification_for(ticker: str, ticker_dir: Path, portfolio: dict[str, dict]
         elif authority.get("authority_level") == "legacy_reference" and irr_web.get("base_pct") is not None:
             out["analysis_irr_pct"] = float(irr_web["base_pct"])
         else:
-            out["analysis_irr_pct"] = parse_irr_pct(out.get("implied_irr"))
+            out["analysis_irr_pct"] = None
         gate_pct = irr_web.get("lawrence_stance_gate_pct")
         if gate_pct is not None:
             out["filing_irr_ref"] = f"{gate_pct}% (stance gate)"
@@ -1252,6 +1259,28 @@ def _extreme_return_validated(ticker_dir: Path) -> bool:
     return bool((contract.get("model_checks") or {}).get("extreme_return_validated"))
 
 
+def _valuation_margin_of_safety(values: dict, price) -> dict:
+    try:
+        price_value = float(price)
+    except (TypeError, ValueError):
+        return {}
+    result = {}
+    for scenario in ("low", "base", "high"):
+        try:
+            intrinsic = float(values.get(scenario))
+        except (TypeError, ValueError):
+            result[scenario] = None
+            continue
+        result[scenario] = round((intrinsic - price_value) / intrinsic * 100, 2) if intrinsic > 0 else None
+    return result
+
+
+def _authority_model_level(ticker_dir: Path) -> str | None:
+    authority = resolve_authority(ticker_dir / "research")
+    level = str(authority.get("model_level") or "")
+    return level if level in VALUATION_MODEL_LEVELS else None
+
+
 def valuation_decision_summary(
     ticker: str,
     ticker_dir: Path,
@@ -1277,48 +1306,105 @@ def valuation_decision_summary(
     method = (wb or {}).get("method_fit") or {}
     open_count = int(evidence.get("open_count") if evidence.get("open_count") is not None else len(open_gaps))
     critical_count = int(evidence.get("critical_count") if evidence.get("critical_count") is not None else len(critical))
-    status = decision.get("status")
+    status = decision.get("contract_status") or decision.get("status")
+    model_level = decision.get("model_level")
     if critical_count > 0 or open_count > 0:
         status = "evidence_blocked"
+        model_level = "evidence_blocked"
     elif status == "decision_grade":
         status = "decision_grade"
     elif wb:
         status = status or "evidence_blocked"
     elif cv:
-        status = "provisional"
+        status = "evidence_blocked"
+        model_level = "screening_grade"
     else:
         # First-pass inventory without workbench
         phase2 = ticker_dir / "research"
         first_pass = list(phase2.glob("evidence_reconciliation_*_phase2_first_pass.json")) if phase2.exists() else []
         if first_pass or ticker_cfg.get("rollout_wave"):
-            status = "provisional"
+            status = "evidence_blocked"
+            model_level = "unmodeled"
         else:
             status = "missing"
+            model_level = "unmodeled"
+    if model_level not in VALUATION_MODEL_LEVELS:
+        model_level = _authority_model_level(ticker_dir)
+    if model_level not in VALUATION_MODEL_LEVELS:
+        model_level = "evidence_blocked" if status == "evidence_blocked" else "unmodeled"
     next_gap = None
     for gap in critical + open_gaps:
         next_gap = gap.get("id")
         break
     if not next_gap and (evidence.get("gaps") or []):
         next_gap = (evidence["gaps"][0] or {}).get("id")
-    diagnostic_returns = (
-        decision.get("annualized_return_at_price_pct")
-        or ((wb or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
-        or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("annualized_return_at_price_pct")
+    wb_valuation = ((wb or {}).get("valuation") or {})
+    valuation_body = wb_valuation.get("valuation") or {}
+    forward_returns = (
+        decision.get("forward_return_at_price_pct")
+        or wb_valuation.get("forward_return_at_price_pct")
+        or valuation_body.get("forward_return_at_price_pct")
+        or {}
     )
+    return_publishable = bool(
+        model_level in RETURN_PUBLISHABLE_LEVELS
+        and decision.get("return_publishable") is True
+        and forward_returns.get("base") is not None
+    )
+    if not return_publishable:
+        forward_returns = None
+    values = (
+        decision.get("intrinsic_value_today_per_share")
+        or decision.get("value_per_share")
+        or (cv or {}).get("total_equity_value_per_share")
+        or {}
+    )
+    price = decision.get("price_per_share") or (cv or {}).get("market_price_per_share")
+    margin_of_safety = (
+        decision.get("margin_of_safety_pct")
+        or valuation_body.get("margin_of_safety_pct")
+        or _valuation_margin_of_safety(values, price)
+    )
+    dates = decision.get("dates") or {}
+    legacy_audit = decision.get("legacy_audit") or {
+        "actionable": False,
+        "annualized_return_at_price_pct": (
+            decision.get("annualized_return_at_price_pct")
+            or valuation_body.get("annualized_return_at_price_pct")
+            or {}
+        ),
+    }
     return {
         "status": status,
-        "provisional": status in {"evidence_blocked", "provisional"},
+        "contract_status": decision.get("contract_status") or status,
+        "model_level": model_level,
+        "model_level_reason": decision.get("model_level_reason"),
+        "provisional": model_level in {"unmodeled", "evidence_blocked", "screening_grade"},
         "open_gap_count": open_count,
         "critical_gap_count": critical_count,
         "method_profile": ticker_cfg.get("method_profile") or method.get("profile_id"),
         "primary_power_zone": decision.get("primary_power_zone") or method.get("label"),
-        "value_per_share": decision.get("value_per_share") or (cv or {}).get("total_equity_value_per_share"),
+        "value_per_share": values,
+        "intrinsic_value_today_per_share": values,
+        "margin_of_safety_pct": margin_of_safety,
         "upside_downside_pct": _sane_upside_pct(
             (cv or {}).get("upside_downside_pct") or decision.get("upside_downside_pct")
         ),
-        # Keep diagnostic returns inside the workbench, but never publish an
-        # unvalidated IRR into the front-page ranking or D1 valuation table.
-        "annualized_return_at_price_pct": diagnostic_returns if status == "decision_grade" else None,
+        # Only canonical Contract-v3 forward returns can feed ranking or D1.
+        # The deprecated field is a compatibility alias to the same vetted
+        # number; old PV/price annualization remains exclusively in legacy_audit.
+        "forward_return_at_price_pct": forward_returns,
+        "annualized_return_at_price_pct": forward_returns,
+        "return_publishable": return_publishable,
+        "required_return_pct": decision.get("required_return_pct") or valuation_body.get("required_return_pct"),
+        "output_basis": decision.get("output_basis") or valuation_body.get("output_basis"),
+        "dates": {
+            "model_as_of": dates.get("model_as_of") or (wb or {}).get("as_of"),
+            "latest_fact_as_of": dates.get("latest_fact_as_of"),
+            "oldest_fact_as_of": dates.get("oldest_fact_as_of"),
+            "price_as_of": dates.get("price_as_of"),
+        },
+        "legacy_audit": legacy_audit,
         # Whether an extreme IRR has been corroborated by outlier_validation.
         # Carried in the payload because validate_dashboard_data.py runs in the
         # sparse "pages" checkout, which has no ticker trees to read the
@@ -1330,7 +1416,7 @@ def valuation_decision_summary(
             or ((wb or {}).get("valuation") or {}).get("horizon_years")
             or (((wb or {}).get("valuation") or {}).get("valuation") or {}).get("horizon_years")
         ),
-        "price_per_share": decision.get("price_per_share") or (cv or {}).get("market_price_per_share"),
+        "price_per_share": price,
         "next_action": decision.get("next_action"),
         "next_gap_id": next_gap,
         "rollout_wave": ticker_cfg.get("rollout_wave"),
@@ -2589,6 +2675,7 @@ def build_ticker_row(
     memory_doc: dict | None = None,
     watchlist: dict | None = None,
     registry_docs: list[dict] | None = None,
+    valuation_tiers: dict[str, dict] | None = None,
 ) -> dict:
     ticker_dir = ROOT / ticker
     meta = {**TICKER_META.get(ticker, {}), **holdings.get(ticker, {})}
@@ -2643,12 +2730,19 @@ def build_ticker_row(
         "in_holdings": ticker in holdings,
         "in_watchlist": bool((watchlist or {}).get(ticker)),
     }
+    tier_assignment = (valuation_tiers or {}).get(ticker.upper())
+    if tier_assignment:
+        # The generated tier artifact is authoritative.  Never infer a tier in
+        # the dashboard builder when the artifact or assignment is absent.
+        row["valuation_tier"] = tier_assignment
     row["valuation_decision"] = valuation_decision_summary(
         ticker,
         ticker_dir,
         workbench=row.get("valuation_workbench"),
         component=row.get("component_valuation"),
     )
+    if tier_assignment:
+        row["valuation_decision"]["valuation_tier"] = tier_assignment
     row["completeness"] = completeness_score(row)
     lenses = load_lenses(ticker_dir)
     val = load_valuation(ticker_dir)
@@ -2697,14 +2791,6 @@ def build_ticker_row(
     if row["fund_nav"] and classification.get("fund_edge") in ("—", "-", None, ""):
         classification["fund_edge"] = row["fund_nav"].get("edge") or "—"
     row["cvr"] = cvr_summary(ticker, ticker_dir)
-    try:
-        from two_phase_watch import compact_for_dashboard as _two_phase_compact
-    except ImportError:
-        _two_phase_compact = None
-    if _two_phase_compact is not None:
-        watch = _two_phase_compact(ticker)
-        if watch:
-            row["two_phase_watch"] = watch
     if row["cvr"] and classification.get("investment_sleeve") in ("—", "-", "pending", None, ""):
         classification["investment_sleeve"] = "cvr_contingent"
         classification["investment_sleeve_label"] = _INVESTMENT_SLEEVE_LABELS.get(
@@ -2833,6 +2919,8 @@ def build() -> dict:
     memory_doc = _load_json(RESEARCH_MEMORY_PATH)
     registry_doc = _load_json(DOCUMENT_REGISTRY_PATH) or {}
     registry_docs = list(registry_doc.get("documents") or [])
+    valuation_tiers_doc = _load_json(VALUATION_UNIVERSE_TIERS_PATH) or {}
+    valuation_tier_assignments = valuation_tiers_doc.get("assignments") or {}
     rows = [
         build_ticker_row(
             t,
@@ -2842,6 +2930,7 @@ def build() -> dict:
             memory_doc,
             reg.get("watchlist") or {},
             registry_docs,
+            valuation_tier_assignments,
         )
         for t in tickers
     ]
@@ -2966,10 +3055,17 @@ def build() -> dict:
             "valuation_queue_tickers": (valuation_queue.get("counts") or {}).get("tickers"),
             "valuation_evidence_blocked": (valuation_queue.get("counts") or {}).get("evidence_blocked"),
             "valuation_critical_gaps": (valuation_queue.get("counts") or {}).get("critical_gaps"),
+            "valuation_tier_counts": (valuation_tiers_doc.get("summary") or {}).get("tier_counts"),
+            "valuation_tier_universe_count": (valuation_tiers_doc.get("summary") or {}).get("universe_count"),
         },
         "watchlist": watchlist,
         "tickers": rows,
         "valuation_queue": valuation_queue,
+        "valuation_universe_tiers": (
+            {"summary": valuation_tiers_doc.get("summary") or {}}
+            if valuation_tiers_doc
+            else None
+        ),
         "portfolio_macro_regime": portfolio_macro_regime,
         "portfolio_macro": portfolio_macro,
     }

@@ -15,7 +15,9 @@ REQUIRED = {
     "method_id", "version", "status", "label", "power_zones", "economic_claim",
     "required_inputs", "equation", "allowed_judgments", "scenario_rule",
     "double_counting_exclusions", "failure_modes", "corroborating_methods", "sources",
+    "output_basis",
 }
+OUTPUT_BASES = {"present_value_today", "future_payoff", "forward_cashflow_schedule"}
 
 
 def sha(path: Path) -> str:
@@ -33,6 +35,8 @@ def build() -> dict:
         ids.add(key)
         if card.get("status") not in {"candidate", "approved", "deprecated"}:
             errors.append(f"{key}: invalid status")
+        if card.get("output_basis") not in OUTPUT_BASES:
+            errors.append(f"{key}: invalid or missing output_basis")
         for source in card.get("sources") or []:
             path = ROOT / str(source.get("ref") or "")
             present = path.is_file()

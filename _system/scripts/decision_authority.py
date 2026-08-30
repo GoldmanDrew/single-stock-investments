@@ -19,6 +19,13 @@ DECIDED_STATUSES = {"decided", "approved", "complete"}
 ACTIONABLE_DECISIONS = {
     "approve", "accumulate", "core", "hold", "watch", "trim", "exit", "pass", "reject"
 }
+MODEL_LEVELS = frozenset({
+    "unmodeled", "evidence_blocked", "screening_grade", "stock_specific",
+    "committee_reviewed", "owner_approved",
+})
+RETURN_PUBLISHABLE_LEVELS = frozenset({
+    "stock_specific", "committee_reviewed", "owner_approved",
+})
 
 
 def read_json(path: Path, default=None):
@@ -67,9 +74,62 @@ def _human_decision(research: Path, committee: dict) -> tuple[str | None, dict]:
     return None, {}
 
 
-def _contract_returns(contract: dict) -> dict:
+def _generic_screening_model(valuation: dict, contract: dict) -> bool:
+    methodology = valuation.get("valuation_methodology") or {}
+    if methodology.get("automation") != "source_locked_first_pass":
+        return False
+    components = (
+        (valuation.get("component_valuation_results") or {}).get("additive_components")
+        or [
+            row for row in contract.get("economic_ownership_map") or []
+            if row.get("treatment") == "additive"
+        ]
+    )
+    if len(components) != 1:
+        return False
+    component = components[0] or {}
+    return (
+        (component.get("id") or component.get("component_id"))
+        == "operating_business_and_net_assets"
+        and component.get("method") == "owner_earnings_reinvestment_dcf"
+    )
+
+
+def _model_level(
+    research: Path,
+    valuation: dict,
+    contract: dict,
+    committee: dict,
+    human: dict,
+) -> str:
+    """Resolve model maturity independently from governance authority."""
+    if not contract:
+        return "unmodeled"
+    if contract.get("status") != "decision_grade":
+        return "evidence_blocked"
+    if _generic_screening_model(valuation, contract):
+        return "screening_grade"
+    workbench = read_json(research / "valuation_workbench.json")
+    stored = str((workbench.get("decision") or {}).get("model_level") or "")
+    if stored in MODEL_LEVELS:
+        return stored
+    if human:
+        return "owner_approved"
+    if committee:
+        return "committee_reviewed"
+    return "stock_specific"
+
+
+def _contract_returns(contract: dict, model_level: str) -> dict:
     valuation = contract.get("valuation") or {}
-    returns = valuation.get("annualized_return_at_price_pct") or {}
+    # Contract v3 is explicit: only a modeled future cash-flow/payoff path can
+    # publish a forward return.  The former annualized PV/price gap is retained
+    # under legacy_audit by the contract builder and is never normalized here.
+    returns = (
+        valuation.get("forward_return_at_price_pct") or {}
+        if model_level in RETURN_PUBLISHABLE_LEVELS
+        else {}
+    )
     return {
         "low": returns.get("low"),
         "base": returns.get("base"),
@@ -87,7 +147,8 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
     committee_state = str(committee.get("final_state") or "not_started")
     committee_rec = (committee.get("chair_synthesis") or {}).get("recommendation")
     contract_status = str(contract.get("status") or "missing")
-    returns = _contract_returns(contract)
+    model_level = _model_level(research, valuation, contract, committee, human)
+    returns = _contract_returns(contract, model_level)
 
     base = {
         "schema_version": "1.0",
@@ -96,11 +157,16 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
         "profile_id": route.get("profile_id"),
         "profile_label": route.get("label"),
         "contract_status": contract_status,
+        "model_level": model_level,
         "contract_source": contract_source,
         "committee_state": committee_state,
         "committee_source": committee_path.name if committee_path else None,
         "committee_recommendation": committee_rec,
         "return_range_pct": returns,
+        "return_publishable": (
+            model_level in RETURN_PUBLISHABLE_LEVELS
+            and returns.get("base") is not None
+        ),
         "value_per_share": (contract.get("valuation") or {}).get("value_per_share") or {},
         "legacy": {
             "method": valuation.get("method") or valuation.get("irr_method"),
@@ -160,9 +226,12 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
 
 
 def contract_return_display(authority: dict) -> str | None:
+    if (
+        authority.get("model_level") not in RETURN_PUBLISHABLE_LEVELS
+        or not authority.get("return_publishable")
+    ):
+        return None
     base = (authority.get("return_range_pct") or {}).get("base")
     if base is None:
         return None
-    provisional = authority.get("contract_status") != "decision_grade"
-    suffix = "contract base, provisional" if provisional else "contract base"
-    return f"{base}% ({suffix})"
+    return f"{base}% (forward return, contract base)"

@@ -4,10 +4,43 @@
   "type": "object",
   "required": ["schema_version", "ticker", "as_of", "decision", "business", "valuation", "optionality", "committee", "evidence", "method_fit", "outcomes", "attribution"],
   "properties": {
-    "schema_version": {"const": "2.0"},
+    "schema_version": {"const": "3.0"},
     "ticker": {"type": "string", "minLength": 1},
     "as_of": {"type": "string", "format": "date"},
-    "decision": {"type": "object", "required": ["status", "value_per_share", "unvalued_component_count", "unresolved_evidence_count"]},
+    "decision": {
+      "type": "object",
+      "required": [
+        "status", "contract_status", "model_level", "model_level_reason",
+        "value_per_share", "intrinsic_value_today_per_share", "margin_of_safety_pct",
+        "forward_return_at_price_pct", "return_publishable", "legacy_audit", "dates",
+        "unvalued_component_count", "unresolved_evidence_count"
+      ],
+      "properties": {
+        "status": {"enum": ["decision_grade", "evidence_blocked"]},
+        "contract_status": {"enum": ["decision_grade", "evidence_blocked"]},
+        "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
+        "model_level_reason": {"type": "string", "minLength": 1},
+        "value_per_share": {"type": "object"},
+        "intrinsic_value_today_per_share": {"type": "object"},
+        "margin_of_safety_pct": {"type": "object"},
+        "forward_return_at_price_pct": {"type": "object"},
+        "return_publishable": {"type": "boolean"},
+        "legacy_audit": {
+          "type": "object",
+          "required": ["actionable", "annualized_return_at_price_pct"],
+          "properties": {
+            "actionable": {"const": false},
+            "annualized_return_at_price_pct": {"type": "object"}
+          }
+        },
+        "dates": {
+          "type": "object",
+          "required": ["model_as_of", "latest_fact_as_of", "oldest_fact_as_of", "price_as_of"]
+        },
+        "unvalued_component_count": {"type": ["integer", "null"], "minimum": 0},
+        "unresolved_evidence_count": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
     "business": {"type": "object", "required": ["status", "components", "component_coverage", "facts", "estimates", "judgments"]},
     "valuation": {"type": "object", "required": ["status", "market", "valuation", "components", "scenario_contract", "calculation_proof_summary", "model_checks", "source_lineage", "change_control"]},
     "optionality": {"type": "object", "required": ["status", "option_count", "options", "rule"]},

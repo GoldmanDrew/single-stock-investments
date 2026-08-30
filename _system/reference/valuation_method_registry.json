@@ -1,15 +1,17 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "governance": {
     "production_rule": "Only approved, versioned method cards may produce a decision-grade component value.",
     "library_role": "Library sources establish reusable method logic and failure modes; issuer primary evidence supplies company facts.",
     "crowd_rule": "Independent reviewers nominate methods, challenge assumptions, and supply base rates. Incompatible values are never averaged.",
-    "arithmetic_rule": "Deterministic calculators, not LLMs, produce final values."
+    "arithmetic_rule": "Deterministic calculators, not LLMs, produce final values.",
+    "output_basis_rule": "Every approved method declares whether its proof output is present_value_today, future_payoff, or forward_cashflow_schedule. A present value is never annualized or discounted again."
   },
   "method_cards": [
     {
       "method_id": "royalty_distribution_curve", "version": "1.0", "status": "approved",
       "label": "Finite royalty distribution curve", "power_zones": ["scarce_asset_optionality"],
+      "output_basis": "present_value_today",
       "economic_claim": "After-expense distributions from a legally defined royalty or trust claim over finite production.",
       "required_inputs": ["contractual royalty tiers", "production by period", "realized pricing or contractual index", "bonus thresholds", "trust expenses and taxes", "reserve life", "units outstanding", "discount rate"],
       "equation": "value_per_unit = sum((tons_t * royalty_per_ton_t - trust_costs_t) / (1+r)^t) / units",
@@ -23,6 +25,7 @@
     {
       "method_id": "net_asset_value", "version": "1.0", "status": "approved",
       "label": "Reconciled net asset value", "power_zones": ["scarce_asset_optionality", "catalyst_asset_value", "credit_and_normalized_returns"],
+      "output_basis": "present_value_today",
       "economic_claim": "Audited or contractually supported assets less senior claims, realization costs, taxes, and friction.",
       "required_inputs": ["asset quantity", "unit value", "ownership claim", "senior claims", "tax and realization costs", "fully diluted units"],
       "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
@@ -36,6 +39,7 @@
     {
       "method_id": "owner_earnings_reinvestment_dcf", "version": "1.0", "status": "approved",
       "label": "Owner earnings and reinvestment-return DCF", "power_zones": ["quality_reinvestment"],
+      "output_basis": "present_value_today",
       "economic_claim": "Present value of distributable owner cash after charging the capital required for growth.",
       "required_inputs": ["normalized owner earnings", "reinvestment rate", "incremental after-tax ROIC", "runway", "discount rate", "terminal economics"],
       "equation": "cash_t = cash_(t-1)*(1+reinvestment*incremental_ROIC); value = PV(distributable cash + terminal owner earnings)",
@@ -49,6 +53,7 @@
     {
       "method_id": "midcycle_capacity_value", "version": "1.0", "status": "approved",
       "label": "Capital-cycle normalized capacity value", "power_zones": ["capital_cycle"],
+      "output_basis": "present_value_today",
       "economic_claim": "Equity value supported by normalized utilization and unit margins after maintenance capital and downside reserves.",
       "required_inputs": ["capacity", "utilization", "revenue per unit", "normalized margin", "maintenance capital", "tax", "net debt", "shares"],
       "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
@@ -62,6 +67,7 @@
     {
       "method_id": "capital_structure_and_excess_return", "version": "1.0", "status": "approved",
       "label": "Tangible capital and excess-return value", "power_zones": ["credit_and_normalized_returns"],
+      "output_basis": "present_value_today",
       "economic_claim": "Tangible equity plus the finite value of normalized returns above the cost of equity, less stress losses and senior claims.",
       "required_inputs": ["tangible equity", "normalized ROE", "cost of equity", "excess-return duration", "stress losses", "senior claims", "shares"],
       "equation": "value = (tangible_equity + max(ROE-COE,0)*tangible_equity*duration - stress_losses - senior_claims)/shares",
@@ -75,6 +81,7 @@
     {
       "method_id": "probability_weighted_catalyst_nav", "version": "1.0", "status": "approved",
       "label": "Mutually exclusive catalyst event tree", "power_zones": ["catalyst_asset_value"],
+      "output_basis": "present_value_today",
       "economic_claim": "Expected present equity payoff across exhaustive, mutually exclusive completion, delay, and break outcomes.",
       "required_inputs": ["event list", "probability", "payoff", "remaining cost", "timing", "discount rate"],
       "equation": "value = sum(probability_i*(payoff_i-cost_i)/(1+r_i)^years_i)",
@@ -88,6 +95,7 @@
     {
       "method_id": "risk_adjusted_milestone_value", "version": "1.0", "status": "approved",
       "label": "Milestone risk-adjusted present value", "power_zones": ["binary_milestone"],
+      "output_basis": "present_value_today",
       "economic_claim": "Net cash plus probability-weighted asset success values less remaining costs and dilution.",
       "required_inputs": ["asset milestones", "base-rate success probability", "success value", "time", "remaining costs", "cash runway", "dilution", "shares"],
       "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
@@ -101,6 +109,7 @@
     {
       "method_id": "owner_cash_or_dividend_discount", "version": "1.0", "status": "approved",
       "label": "Predictable owner-cash discount model", "power_zones": ["predictable_cash_flow"],
+      "output_basis": "present_value_today",
       "economic_claim": "Value of sustainable owner cash or distributions after required funding and dilution.",
       "required_inputs": ["sustainable distribution", "growth", "required return", "maintenance funding", "dilution"],
       "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",

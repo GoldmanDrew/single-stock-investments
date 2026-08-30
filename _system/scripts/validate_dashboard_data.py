@@ -286,15 +286,22 @@ def main() -> int:
     extreme_decision_grade = []
     corroborated_outliers = []
     blocked_with_published_irr = []
+    return_publishable_levels = {"stock_specific", "committee_reviewed", "owner_approved"}
 
     for row in rows:
         decision = row.get("valuation_decision") or {}
-        returns = decision.get("annualized_return_at_price_pct") or {}
+        # Only Contract-v3 forward returns are decision-surface data.  The old
+        # annualized PV/price gap may remain in legacy_audit, but is ignored.
+        returns = decision.get("forward_return_at_price_pct") or {}
         base_return = returns.get("base")
         if base_return is None:
             continue
         ticker = str(row.get("ticker") or "")
-        if decision.get("status") != "decision_grade":
+        if (
+            decision.get("status") != "decision_grade"
+            or decision.get("model_level") not in return_publishable_levels
+            or decision.get("return_publishable") is not True
+        ):
             blocked_with_published_irr.append(ticker)
         elif abs(float(base_return)) >= EXTREME_PUBLISHED_IRR_PCT:
             entry = f"{ticker}={float(base_return):.2f}%"
@@ -304,7 +311,7 @@ def main() -> int:
                 extreme_decision_grade.append(entry)
     if blocked_with_published_irr:
         errors.append(
-            "Blocked valuations publish front-page IRRs: "
+            "Blocked or screening valuations publish front-page forward returns: "
             + ", ".join(blocked_with_published_irr[:20])
         )
     if extreme_decision_grade:
