@@ -19,6 +19,17 @@ DECIDED_STATUSES = {"decided", "approved", "complete"}
 ACTIONABLE_DECISIONS = {
     "approve", "accumulate", "core", "hold", "watch", "trim", "exit", "pass", "reject"
 }
+MODEL_LEVELS = {
+    "unmodeled", "evidence_blocked", "screening_grade", "stock_specific",
+    "committee_reviewed", "owner_approved",
+}
+RETURN_PUBLISHABLE_LEVELS = {
+    "stock_specific", "committee_reviewed", "owner_approved",
+}
+COMMITTEE_REVIEWED_STATES = {
+    "committee_complete_decision_pending", "owner_decision_pending",
+    "outcome_tracking", "complete",
+}
 
 
 def read_json(path: Path, default=None):
@@ -67,9 +78,50 @@ def _human_decision(research: Path, committee: dict) -> tuple[str | None, dict]:
     return None, {}
 
 
-def _contract_returns(contract: dict) -> dict:
+def _is_automated_generic_screen(valuation: dict) -> bool:
+    methodology = valuation.get("valuation_methodology") or {}
+    if methodology.get("automation") != "source_locked_first_pass":
+        return False
+    result = valuation.get("component_valuation_results") or {}
+    additive = [
+        row for row in (result.get("additive_components") or [])
+        if row.get("treatment") == "additive"
+    ]
+    return (
+        len(additive) == 1
+        and str(additive[0].get("id") or additive[0].get("component_id"))
+        == "operating_business_and_net_assets"
+        and additive[0].get("method") == "owner_earnings_reinvestment_dcf"
+    )
+
+
+def _model_level(contract: dict, valuation: dict, committee: dict, human: dict) -> str:
+    if not contract:
+        return "unmodeled"
+    if str(contract.get("status") or "") != "decision_grade":
+        return "evidence_blocked"
+    declared = str(contract.get("model_level") or "").lower()
+    if declared == "screening_grade" or _is_automated_generic_screen(valuation):
+        return "screening_grade"
+    if declared == "unmodeled":
+        return "unmodeled"
+    if declared == "evidence_blocked":
+        return "evidence_blocked"
+    if human:
+        return "owner_approved"
+    if str(committee.get("final_state") or "").lower() in COMMITTEE_REVIEWED_STATES:
+        return "committee_reviewed"
+    return declared if declared in MODEL_LEVELS else "stock_specific"
+
+
+def _contract_returns(contract: dict, model_level: str) -> dict:
     valuation = contract.get("valuation") or {}
-    returns = valuation.get("annualized_return_at_price_pct") or {}
+    publishable = (
+        contract.get("status") == "decision_grade"
+        and model_level in RETURN_PUBLISHABLE_LEVELS
+        and valuation.get("forward_return_status") == "available"
+    )
+    returns = valuation.get("forward_return_at_price_pct") or {} if publishable else {}
     return {
         "low": returns.get("low"),
         "base": returns.get("base"),
@@ -87,10 +139,17 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
     committee_state = str(committee.get("final_state") or "not_started")
     committee_rec = (committee.get("chair_synthesis") or {}).get("recommendation")
     contract_status = str(contract.get("status") or "missing")
-    returns = _contract_returns(contract)
+    model_level = _model_level(contract, valuation, committee, human)
+    returns = _contract_returns(contract, model_level)
+    return_publishable = (
+        contract_status == "decision_grade"
+        and model_level in RETURN_PUBLISHABLE_LEVELS
+        and (contract.get("valuation") or {}).get("forward_return_status") == "available"
+    )
+    contract_valuation = contract.get("valuation") or {}
 
     base = {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "ticker": valuation.get("ticker") or research.parent.name,
         "route": route,
         "profile_id": route.get("profile_id"),
@@ -100,8 +159,15 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
         "committee_state": committee_state,
         "committee_source": committee_path.name if committee_path else None,
         "committee_recommendation": committee_rec,
+        "model_level": model_level,
+        "return_publishable": return_publishable,
         "return_range_pct": returns,
-        "value_per_share": (contract.get("valuation") or {}).get("value_per_share") or {},
+        "value_per_share": contract_valuation.get("present_value_today_per_share") or contract_valuation.get("value_per_share") or {},
+        "margin_of_safety_pct": contract_valuation.get("margin_of_safety_pct") or {},
+        "output_basis": contract_valuation.get("output_basis"),
+        "required_return_pct": contract_valuation.get("required_return_pct"),
+        "dates": contract.get("dates") or {},
+        "legacy_audit": contract.get("legacy_audit") or {},
         "legacy": {
             "method": valuation.get("method") or valuation.get("irr_method"),
             "implied_return": valuation.get("implied_return") or {},
@@ -160,9 +226,9 @@ def resolve_authority(research: Path, valuation: dict | None = None) -> dict:
 
 
 def contract_return_display(authority: dict) -> str | None:
+    if not authority.get("return_publishable"):
+        return None
     base = (authority.get("return_range_pct") or {}).get("base")
     if base is None:
         return None
-    provisional = authority.get("contract_status") != "decision_grade"
-    suffix = "contract base, provisional" if provisional else "contract base"
-    return f"{base}% ({suffix})"
+    return f"{base}% forward return (contract base)"

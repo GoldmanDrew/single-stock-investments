@@ -207,7 +207,17 @@ def export(
         classification = row.get("classification") or {}
         decision = row.get("valuation_decision") or {}
         values = decision.get("value_per_share") or {}
-        returns = decision.get("annualized_return_at_price_pct") or {}
+        # Only the dated forward-return contract is rankable.  The deprecated
+        # annualized column below receives the same canonical value (or NULL)
+        # for compatibility; it must never receive the legacy PV-gap number.
+        returns = (
+            decision.get("forward_return_at_price_pct") or {}
+            if decision.get("return_publishable")
+            else {}
+        )
+        margins = decision.get("margin_of_safety_pct") or {}
+        dates = decision.get("dates") or {}
+        tier = row.get("valuation_tier") or decision.get("universe_tier") or {}
         route = read_json(ROOT / ticker / "research" / "valuation_route.json")
         if not route:
             route = dict(((row.get("power_zones") or {}).get("valuation_route") or {}))
@@ -251,7 +261,11 @@ def export(
             [
                 "ticker", "decision_status", "provisional", "method_profile", "primary_power_zone",
                 "price_per_share", "value_low", "value_base", "value_high",
-                "annualized_return_base_pct", "open_gap_count", "critical_gap_count",
+                "annualized_return_base_pct", "model_level", "output_basis",
+                "present_value_base", "margin_of_safety_base_pct",
+                "forward_return_base_pct", "required_return_pct", "return_publishable",
+                "valuation_tier", "model_as_of", "latest_fact_as_of", "price_as_of",
+                "open_gap_count", "critical_gap_count",
                 "next_gap_id", "next_gap_question", "source_as_of", "latest_run_id",
                 "payload_json", "updated_at",
             ],
@@ -266,6 +280,17 @@ def export(
                 number(values.get("base")),
                 number(values.get("high")),
                 number(returns.get("base")),
+                decision.get("model_level"),
+                decision.get("output_basis"),
+                number((decision.get("present_value_today_per_share") or values).get("base")),
+                number(margins.get("base")),
+                number(returns.get("base")),
+                number(decision.get("required_return_pct")),
+                bool(decision.get("return_publishable")),
+                int(tier.get("tier")) if tier.get("tier") is not None else None,
+                dates.get("model_as_of"),
+                dates.get("latest_fact_as_of"),
+                dates.get("price_as_of"),
                 int(decision.get("open_gap_count") or 0),
                 int(decision.get("critical_gap_count") or 0),
                 decision.get("next_gap_id") or queue_item.get("next_gap_id"),

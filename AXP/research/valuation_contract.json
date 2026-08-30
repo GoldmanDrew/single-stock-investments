@@ -1,8 +1,34 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "screening_grade",
+  "model_level_reason": "The source-locked automated owner-earnings template uses generic assumption bounds; it is useful for triage but is not stock-specific underwriting.",
+  "decision_eligibility": {
+    "committee_eligible": false,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Model must be stock-specific and evidence-clear before committee review."
+  },
   "ticker": "AXP",
   "as_of": "2026-08-21",
+  "dates": {
+    "model_as_of": "2026-08-21",
+    "latest_fact_as_of": "2026-07-14",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-08-20"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -5.15,
+      "base": 3.19,
+      "high": 13.15
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
   "economic_ownership_map": [
     {
       "component_id": "operating_business_and_net_assets",
@@ -19,6 +45,7 @@
         "method_id": "owner_earnings_reinvestment_dcf",
         "version": "1.0",
         "label": "Owner earnings and reinvestment-return DCF",
+        "output_basis": "present_value_today",
         "power_zones": [
           "quality_reinvestment"
         ],
@@ -36,6 +63,7 @@
         "base": 412.5193,
         "high": 786.435
       },
+      "output_basis": "present_value_today",
       "legacy_range_per_share": null,
       "valuation_status": "bounded_estimate",
       "calculation_proof": {
@@ -1617,14 +1645,36 @@
     "price_per_share": 331.15,
     "fully_diluted_shares": 675309833.0,
     "market_cap_m": 223628.85,
-    "enterprise_value_m": 235402.85
+    "enterprise_value_m": 235402.85,
+    "price_source": "Yahoo AXP close 2026-08-20",
+    "price_as_of": "2026-08-20"
   },
   "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 228.6534,
+      "base": 412.5193,
+      "high": 786.435
+    },
     "value_per_share": {
       "low": 228.6534,
       "base": 412.5193,
       "high": 786.435
     },
+    "present_value_today_per_share": {
+      "low": 228.6534,
+      "base": 412.5193,
+      "high": 786.435
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
     "priced_components_per_share": {
       "low": 228.6534,
       "base": 412.5193,
@@ -1633,15 +1683,35 @@
     "legacy_value_per_share": null,
     "probability_weighted_value_per_share": 412.5193,
     "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
     "annualized_return_at_price_pct": {
-      "low": -5.15,
-      "base": 3.19,
-      "high": 13.15
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": 10.0,
+    "margin_of_safety_pct": {
+      "low": -44.83,
+      "base": 19.72,
+      "high": 57.89
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -30.95,
+      "base": 24.57,
+      "high": 137.49
     },
     "downside_to_low_pct": -30.95,
     "horizon_years": 7,
     "equity_liability_floor": 0.0,
-    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
   },
   "scenario_contract": {
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
@@ -1718,7 +1788,10 @@
     "positive_base_or_explicit_zero_value": true,
     "low_base_high_ordered": true,
     "source_identity_and_freshness_valid": true,
-    "extreme_return_validated": true
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
   },
   "evidence": {
     "unresolved_count": 0,
@@ -1737,14 +1810,14 @@
     ]
   },
   "change_control": {
-    "model_hash": "ffbae71e18066ac9d72c2cb52ac8e14aed71bda267a42e323e907a172f111fca",
+    "model_hash": "d29448903a3b776b85f357d0c315ca0f266f70e343caa107517bbc1e6da84ce8",
     "method_versions": [
       "owner_earnings_reinvestment_dcf@1.0"
     ],
     "change_log": [],
     "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
   },
-  "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved.",
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
   "authority": "universal_valuation_contract",
   "legacy_reference_present": false,
   "falsifier_coverage": {

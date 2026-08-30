@@ -68,7 +68,7 @@ class ResolvePayloadPathTests(unittest.TestCase):
                 resolve_payload_path(monolith=monolith, core=core, deploy_only=False)
             )
 
-    def test_monolith_wins_when_present(self):
+    def test_deploy_only_prefers_core_even_when_monolith_is_present(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             monolith = root / "dashboard_data.json"
@@ -77,7 +77,7 @@ class ResolvePayloadPathTests(unittest.TestCase):
             core.write_text("{}", encoding="utf-8")
             self.assertEqual(
                 resolve_payload_path(monolith=monolith, core=core, deploy_only=True),
-                monolith,
+                core,
             )
 
 

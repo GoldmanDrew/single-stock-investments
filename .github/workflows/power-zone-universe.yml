@@ -9,7 +9,9 @@ on:
       - "*/research/evidence/*.json"
       - "_system/scripts/calculation_proof.py"
       - "_system/scripts/universal_valuation_contract.py"
+      - "_system/scripts/build_valuation_universe_tiers.py"
       - "_system/reference/valuation_method_registry.json"
+      - "_system/portfolio/valuation_universe_policy.json"
       - "_system/templates/*valuation*schema.json"
   schedule:
     - cron: "30 5 * * 1"
@@ -82,6 +84,10 @@ jobs:
             test_valuation_workbench \
             test_power_zone_pricing \
             test_decision_authority \
+            test_dashboard_valuation_publishing \
+            test_build_dashboard_shards \
+            test_build_valuation_universe_tiers \
+            test_refresh_valuation_dashboard_rows \
             test_security_decision_pipeline \
             test_human_decision \
             test_valuation_authority_cutover \
@@ -130,9 +136,12 @@ jobs:
                          '*/research/pricing_analysis.json' \
                          '*/research/lenses.json' \
                          '_system/lenses/universe_percentiles.json' \
+                         '_system/data/valuation_universe_tiers.json' \
                          '_system/data/runs/power_zone_universe_run_*.json' \
                          dashboard/data/valuation_method_registry.json \
-                         dashboard/data/power_zones.json
+                         dashboard/data/power_zones.json \
+                         dashboard/data/core.json \
+                         dashboard/data/tickers
           # dashboard_data.json is deliberately absent from that list. It has
           # been gitignored since the 2026-08-11 monolith cleanup, so it can
           # never be committed -- but `git add` on a pathspec matching nothing

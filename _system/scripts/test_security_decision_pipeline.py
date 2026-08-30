@@ -101,6 +101,74 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
         self.assertEqual(result["initiated"], [])
         self.assertEqual(result["triggered_evidence_tasks"][0]["ticker"], "BBB")
 
+    def test_pricing_stage_neutralizes_stale_artifact_when_proof_is_blocked(self):
+        self.write(
+            "STALE/research/valuation_workbench.json",
+            {"decision": {"status": "evidence_blocked", "model_level": "evidence_blocked"}},
+        )
+        self.write(
+            "STALE/research/pricing_analysis.json",
+            {"schema_version": "2.0", "primary_entry_price_15pct_base": 99},
+        )
+        calls = []
+        old_builder = pipeline.build_contract_pricing
+        pipeline.build_contract_pricing = lambda ticker, as_of: calls.append((ticker, as_of))
+        try:
+            result = pipeline.stage_pricing(["STALE"], "2026-08-30", dry_run=False)
+        finally:
+            pipeline.build_contract_pricing = old_builder
+        self.assertEqual(calls, [("STALE", "2026-08-30")])
+        self.assertEqual(result["neutralized"], ["STALE"])
+        self.assertEqual(result["skipped"], ["STALE"])
+        self.assertEqual(result["errors"], [])
+
+    def test_tier_two_cannot_auto_start_committee(self):
+        self.write(
+            "TWO/research/valuation_workbench.json",
+            {
+                "decision": {"status": "decision_grade", "model_level": "stock_specific"},
+                "committee": {"status": "not_started"},
+            },
+        )
+        self.write("TWO/research/committee_trigger.json", {"status": "open", "reason": "material change"})
+        manifest = {"assignments": {"TWO": {"tier": 2}}}
+        result = pipeline.stage_committees(
+            ["TWO"], "2026-08-30", dry_run=True, tier_manifest=manifest
+        )
+        self.assertEqual(result["initiated"], [])
+        self.assertEqual(result["tier_restricted"][0]["ticker"], "TWO")
+
+    def test_tier_one_generic_screen_cannot_auto_start_committee(self):
+        self.write(
+            "SCREEN/research/valuation_workbench.json",
+            {
+                "decision": {"status": "decision_grade", "model_level": "screening_grade"},
+                "committee": {"status": "not_started"},
+            },
+        )
+        self.write("SCREEN/research/committee_trigger.json", {"status": "open", "reason": "material change"})
+        manifest = {"assignments": {"SCREEN": {"tier": 1}}}
+        result = pipeline.stage_committees(
+            ["SCREEN"], "2026-08-30", dry_run=True, tier_manifest=manifest
+        )
+        self.assertEqual(result["initiated"], [])
+        self.assertEqual(result["triggered_evidence_tasks"][0]["model_level"], "screening_grade")
+
+    def test_tier_one_stock_specific_model_can_enter_committee_dry_run(self):
+        self.write(
+            "READY/research/valuation_workbench.json",
+            {
+                "decision": {"status": "decision_grade", "model_level": "stock_specific"},
+                "committee": {"status": "not_started"},
+            },
+        )
+        self.write("READY/research/committee_trigger.json", {"status": "open", "reason": "material change"})
+        manifest = {"assignments": {"READY": {"tier": 1}}}
+        result = pipeline.stage_committees(
+            ["READY"], "2026-08-30", dry_run=True, tier_manifest=manifest
+        )
+        self.assertEqual(result["initiated"][0]["ticker"], "READY")
+
     def test_missing_model_gets_autonomous_evidence_blocked_scaffold(self):
         self.write("ZZZ/research/valuation_route.json", {
             "profile_id": "quality_reinvestment", "status": "routed", "label": "High-return compounder",
@@ -128,6 +196,17 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
             self.assertEqual(pipeline.selected_tickers("priority"), ["CORE", "HOLD"])
         finally:
             pipeline.registry_entries = old_entries
+
+    def test_priority_scope_uses_tier_one_and_two_manifest(self):
+        manifest = {
+            "assignments": {
+                "ONE": {"tier": 1}, "TWO": {"tier": 2}, "THREE": {"tier": 3},
+            }
+        }
+        self.assertEqual(
+            pipeline.selected_tickers("priority", tier_manifest=manifest),
+            ["ONE", "TWO"],
+        )
 
     def test_contract_carries_falsifier_coverage_from_sidecar(self):
         # The sidecar is the durable source (contracts are regenerated);
@@ -219,6 +298,23 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
             "AAA", unchanged, {"economic_ownership_map": [component]},
             "2026-08-12")
         self.assertEqual(allowed["status"], "decision_grade")
+
+        schema_enriched = {
+            "status": "decision_grade",
+            "economic_ownership_map": [{
+                **component,
+                "output_basis": "present_value_today",
+                "evidence_level": "primary_verified",
+                "method_provenance": {"output_basis": "present_value_today"},
+            }],
+            "evidence": {"blockers": [], "unresolved_count": 0},
+            "falsifier_coverage": {},
+        }
+        migrated = pipeline.apply_prospective_falsifier_gate(
+            "AAA", schema_enriched, {"economic_ownership_map": [component]},
+            "2026-08-12")
+        self.assertEqual(migrated["status"], "decision_grade")
+        self.assertNotIn("prospective_gate", migrated["falsifier_coverage"])
 
 
 if __name__ == "__main__":

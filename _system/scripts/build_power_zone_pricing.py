@@ -15,53 +15,138 @@ from marvin_valuation import compute_valuation  # noqa: E402
 from economic_value_framework import build_economic_value_analysis  # noqa: E402
 from calculation_proof import floor_equity_value_range  # noqa: E402
 from decision_authority import load_contract, load_route, read_json  # noqa: E402
+from universal_valuation_contract import entry_price_for_contract_valuation  # noqa: E402
 
 HURDLES = (0.10, 0.12, 0.15, 0.20)
 VALUE_CASES = ("low", "base", "high")
 
 
 def build_contract_pricing(ticker: str, as_of: str | None = None) -> dict:
-    """Price a decision-grade universal contract without legacy Marvin math."""
+    """Price a contract without leaking stale or double-discounted outputs.
+
+    Decision-grade dated economics may publish hurdle prices. Present values
+    and evidence-blocked workbenches instead receive an explicit unavailable
+    artifact so an older pricing file can never remain an actionable side
+    channel after the contract is rebuilt.
+    """
     ticker = ticker.upper()
     research = ROOT / ticker / "research"
     valuation = read_json(research / "valuation.json")
     contract_source, contract = load_contract(research, valuation)
-    if contract.get("status") != "decision_grade":
-        raise ValueError(f"{ticker}: contract pricing requires decision_grade")
-    market = contract.get("market") or {}
-    value = floor_equity_value_range(
-        (contract.get("valuation") or {}).get("value_per_share") or {},
-        ndigits=4,
+    workbench = read_json(research / "valuation_workbench.json")
+    workbench_decision = workbench.get("decision") or {}
+    proof_status = str(
+        workbench_decision.get("status")
+        or workbench.get("proof_status")
+        or contract.get("status")
+        or "evidence_blocked"
     )
-    years = int((contract.get("valuation") or {}).get("horizon_years") or 7)
-    distributions = float((contract.get("valuation") or {}).get("expected_distributions_per_share") or 0)
+    model_level = str(
+        workbench_decision.get("model_level")
+        or workbench.get("model_level")
+        or contract.get("model_level")
+        or "unmodeled"
+    )
+    market = contract.get("market") or {}
+    contract_valuation = contract.get("valuation") or {}
+    value = floor_equity_value_range(
+        contract_valuation.get("value_per_share") or {}, ndigits=4,
+    )
     price = market.get("price_per_share")
-    if price is None or any(value.get(case) is None for case in VALUE_CASES):
-        raise ValueError(f"{ticker}: price and low/base/high contract values are required")
+    has_complete_economics = (
+        price is not None
+        and all(value.get(case) is not None for case in VALUE_CASES)
+    )
+    proof_ready = (
+        contract.get("status") == "decision_grade"
+        and proof_status == "decision_grade"
+    )
     entries = {
         case: {
-            f"{int(hurdle * 100)}pct": round((float(value[case]) + distributions) / ((1 + hurdle) ** years), 2)
+            f"{int(hurdle * 100)}pct": (
+                round(entry, 2) if entry is not None else None
+            )
             for hurdle in HURDLES
+            for entry in [
+                entry_price_for_contract_valuation(contract_valuation, case, hurdle)
+                if proof_ready and has_complete_economics
+                else None
+            ]
         }
         for case in VALUE_CASES
     }
+    primary_entry = entries["base"]["15pct"]
+    pricing_status = "available" if primary_entry is not None else "unavailable"
+    output_basis = str(contract_valuation.get("output_basis") or "present_value_today")
+    if not proof_ready:
+        unavailable_reason = (
+            "The valuation workbench is evidence-blocked; hurdle prices are withheld until proof is decision-grade."
+        )
+    elif not has_complete_economics:
+        unavailable_reason = (
+            "Price and complete low/base/high economics are required for hurdle-price calculation."
+        )
+    elif output_basis == "present_value_today":
+        unavailable_reason = (
+            "A present value today has no dated future payoff or cash-flow schedule and cannot be discounted again."
+        )
+    else:
+        unavailable_reason = "The dated future economics are incomplete for hurdle-price calculation."
     route = load_route(research, valuation, contract)
+    falsifiers = []
+    for item in (contract.get("monitoring") or {}).get("falsifiers") or []:
+        if isinstance(item, str) and item not in falsifiers:
+            falsifiers.append(item)
     pricing = {
-        "schema_version": "2.0",
+        "schema_version": "3.0",
         "ticker": ticker,
         "as_of": (as_of or contract.get("as_of") or date.today().isoformat())[:10],
         "authority": "valuation_contract",
         "contract_source": contract_source,
         "contract_status": contract.get("status"),
-        "price": float(price),
+        "proof_status": proof_status,
+        "model_level": model_level,
+        "price": float(price) if price is not None else None,
         "price_source": market.get("price_source") or (valuation.get("inputs") or {}).get("price_source"),
         "component_value_per_share": value,
-        "annualized_return_at_price_pct": (contract.get("valuation") or {}).get("annualized_return_at_price_pct") or {},
+        "output_basis": output_basis,
+        "present_value_today_per_share": contract_valuation.get("present_value_today_per_share") or value,
+        "future_payoff_per_share": contract_valuation.get("future_payoff_per_share") or {},
+        "forward_cashflow_schedule": contract_valuation.get("forward_cashflow_schedule"),
+        "forward_return_at_price_pct": contract_valuation.get("forward_return_at_price_pct") or {},
+        "forward_return_status": contract_valuation.get("forward_return_status") or "withheld",
+        "annualized_return_at_price_pct": contract_valuation.get("forward_return_at_price_pct") or {},
+        "required_return_pct": contract_valuation.get("required_return_pct"),
+        "margin_of_safety_pct": contract_valuation.get("margin_of_safety_pct") or {},
         "entry_prices_by_hurdle_and_case": entries,
-        "primary_entry_price_15pct_base": entries["base"]["15pct"],
-        "decision": "owner_review_required",
-        "pricing_conclusion": "Hurdle prices are derived from the decision-grade universal contract; they do not constitute a capital decision.",
-        "falsifiers": (contract.get("monitoring") or {}).get("falsifiers") or [],
+        "primary_entry_price_15pct_base": primary_entry,
+        "entry_price_status": pricing_status,
+        "entry_price_method": (
+            "discounted_dated_future_payoff"
+            if output_basis == "future_payoff" and pricing_status == "available"
+            else (
+                "npv_of_forward_cashflow_schedule"
+                if output_basis == "forward_cashflow_schedule" and pricing_status == "available"
+                else None
+            )
+        ),
+        "entry_price_unavailable_reason": unavailable_reason if pricing_status == "unavailable" else None,
+        "legacy_audit": {
+            **(contract.get("legacy_audit") or {}),
+            "actionable": False,
+            "status": "audit_only",
+        },
+        "decision": (
+            "owner_review_required"
+            if proof_ready and model_level in {"stock_specific", "committee_reviewed", "owner_approved"}
+            else "screening_only"
+        ),
+        "pricing_conclusion": (
+            "Hurdle prices are NPV calculations from dated forward economics; they do not constitute a capital decision."
+            if pricing_status == "available"
+            else "No hurdle entry price is published because this contract does not contain usable dated forward economics."
+        ),
+        "falsifiers": falsifiers,
         "power_zone": {"profile_id": route.get("profile_id"), "label": route.get("label"), "input_hash": route.get("input_hash")},
     }
     (research / "pricing_analysis.json").write_text(json.dumps(pricing, indent=2) + "\n", encoding="utf-8")

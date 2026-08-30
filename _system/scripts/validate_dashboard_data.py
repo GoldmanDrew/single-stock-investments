@@ -16,6 +16,13 @@ from activist_common import classify_publisher_page  # noqa: E402
 DATA_PATH = ROOT / "dashboard" / "data" / "dashboard_data.json"
 CORE_PATH = ROOT / "dashboard" / "data" / "core.json"
 REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
+RETURN_PUBLISHABLE_MODEL_LEVELS = {
+    "stock_specific", "committee_reviewed", "owner_approved",
+}
+MODEL_LEVELS = {
+    "unmodeled", "evidence_blocked", "screening_grade",
+    *RETURN_PUBLISHABLE_MODEL_LEVELS,
+}
 
 
 def extreme_return_corroborated(
@@ -92,11 +99,11 @@ def resolve_payload_path(
     dashboard_data.json is a gitignored build intermediate. Cloudflare Pages
     loads core.json. Deploy-only CI therefore must not require the monolith.
     """
-    if monolith.exists():
-        return monolith
     use_deploy_only = pages_deploy_only() if deploy_only is None else deploy_only
     if use_deploy_only and core.exists():
         return core
+    if monolith.exists():
+        return monolith
     return None
 
 
@@ -195,7 +202,7 @@ def main() -> int:
         return 1
     if payload_path == CORE_PATH:
         warnings.append(
-            "dashboard_data.json absent (gitignored); validating dashboard/data/core.json"
+            "Deploy-only mode: validating dashboard/data/core.json, the SPA boot payload"
         )
 
     for path in (payload_path, INSIGHTS_PATH, ACTIVIST_FEED_PATH):
@@ -286,15 +293,40 @@ def main() -> int:
     extreme_decision_grade = []
     corroborated_outliers = []
     blocked_with_published_irr = []
+    noncanonical_aliases = []
+    invalid_tiers = []
+    missing_tiers = []
+    invalid_model_levels = []
+    present_value_return_leaks = []
 
     for row in rows:
         decision = row.get("valuation_decision") or {}
-        returns = decision.get("annualized_return_at_price_pct") or {}
+        returns = decision.get("forward_return_at_price_pct") or {}
+        alias = decision.get("annualized_return_at_price_pct")
+        if alias not in (None, returns):
+            noncanonical_aliases.append(str(row.get("ticker") or ""))
+        tier = (row.get("valuation_tier") or {}).get("tier")
+        if tier is None:
+            missing_tiers.append(str(row.get("ticker") or ""))
+        elif tier not in {1, 2, 3}:
+            invalid_tiers.append(f"{row.get('ticker')}={tier}")
+        model_level = decision.get("model_level")
+        if model_level not in MODEL_LEVELS:
+            invalid_model_levels.append(f"{row.get('ticker')}={model_level}")
+        if decision.get("output_basis") == "present_value_today" and any(
+            returns.get(case) is not None for case in ("low", "base", "high")
+        ):
+            present_value_return_leaks.append(str(row.get("ticker") or ""))
         base_return = returns.get("base")
         if base_return is None:
             continue
         ticker = str(row.get("ticker") or "")
-        if decision.get("status") != "decision_grade":
+        if (
+            decision.get("status") != "decision_grade"
+            or decision.get("model_level") not in RETURN_PUBLISHABLE_MODEL_LEVELS
+            or not decision.get("return_publishable")
+            or decision.get("forward_return_status") != "available"
+        ):
             blocked_with_published_irr.append(ticker)
         elif abs(float(base_return)) >= EXTREME_PUBLISHED_IRR_PCT:
             entry = f"{ticker}={float(base_return):.2f}%"
@@ -304,8 +336,31 @@ def main() -> int:
                 extreme_decision_grade.append(entry)
     if blocked_with_published_irr:
         errors.append(
-            "Blocked valuations publish front-page IRRs: "
+            "Non-publishable valuations expose front-page forward returns: "
             + ", ".join(blocked_with_published_irr[:20])
+        )
+    if noncanonical_aliases:
+        errors.append(
+            "Deprecated annualized-return aliases differ from canonical forward returns: "
+            + ", ".join(noncanonical_aliases[:20])
+        )
+    if invalid_tiers:
+        errors.append(
+            "Invalid valuation-universe tiers: " + ", ".join(invalid_tiers[:20])
+        )
+    if missing_tiers:
+        errors.append(
+            "Dashboard rows missing valuation-universe tiers: " + ", ".join(missing_tiers[:20])
+        )
+    if invalid_model_levels:
+        errors.append(
+            "Dashboard rows have invalid valuation model levels: "
+            + ", ".join(invalid_model_levels[:20])
+        )
+    if present_value_return_leaks:
+        errors.append(
+            "Present-value contracts expose forward returns: "
+            + ", ".join(present_value_return_leaks[:20])
         )
     if extreme_decision_grade:
         errors.append(

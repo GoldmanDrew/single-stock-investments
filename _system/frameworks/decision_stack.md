@@ -15,11 +15,11 @@
 | 1 | **What is it?** | Stahl + Hohn | `archetype`, `cycle`, `lawrence_bucket`, operating snapshot |
 | 2 | **Will it last?** | Munger | `moat` |
 | 3 | **Is the bear bounded?** | Pabrai | `dhando`, bear case |
-| 4 | **What return at this price?** | Power Zone method + contract (HK/Lawrence only if routed) | Contract `annualized_return_at_price_pct` / value per share; legacy `implied_irr` is reference-only |
+| 4 | **What value and, when modeled, what forward return at this price?** | Power Zone method + Contract v3 (HK/Lawrence only if routed) | Intrinsic value today, margin of safety, and canonical `forward_return_at_price_pct`; legacy `implied_irr` is audit-only |
 | 5 | **Why mispriced?** | HK + MOI | Predictive attribute; inefficiency; catalyst if `asset`/`event` |
 | 6 | **What do we do?** | Pabrai + **human owner** (IC recommends) | Actionable stance only from `human_decision.json` |
 
-**Flow:** Q4 from routed proof-first contract · IC challenge · Q6 **approved by human**. Legacy Lawrence `stance_proposal` is not capital authority.
+**Flow:** Q4 from routed proof-first contract · stock-specific maturity gate · IC challenge · Q6 **approved by human**. Legacy Lawrence `stance_proposal` is not capital authority.
 
 **Payoff lens:** tag `payoff_lens` (`operating` | `asset` | `event` | `levered`) to pick toolkit — see `analysis_arsenal.md`.
 
@@ -72,18 +72,21 @@ Full index: `analysis_arsenal.md`.
 
 ## Step 4 — Expected return
 
-| Trigger | `irr_method` | Tool |
-|---------|--------------|------|
-| Modelable FCF | `full` | `marvin_valuation.py` |
-| Dated payoff | `yield_curve` | HK curve + valuation.json |
-| Binary / levered | `scenario` | Bear/base/bull |
-| Cannot model | `pending` | Explain why |
+Contract v3 first asks what the proof output represents. Never infer a holding-period return from an intrinsic value that has already been discounted to today.
+
+| Contract output basis | Publish | Withhold |
+|-----------------------|---------|----------|
+| `present_value_today` | Low/base/high intrinsic value and margin of safety | Forward return and hurdle entry price |
+| `future_payoff` | Present value at the required return, dated payoff CAGR, and hurdle entry price | Any undated return proxy |
+| `forward_cashflow_schedule` | NPV at the required return, dated cash-flow IRR, and schedule NPV hurdle prices | Return when timing is incomplete or IRR is not unique |
+
+Model maturity is independent of proof status: `unmodeled → evidence_blocked → screening_grade → stock_specific → committee_reviewed → owner_approved`. Screening output supports triage, not committee admission or capital action.
 
 ---
 
 ## Step 5 — Stance proposal
 
-Script logic in `valuation.json` (unchanged). Override in `[HUMAN REVIEW]`.
+Legacy script logic in `valuation.json` is a reference only. A stance becomes actionable only through `human_decision.json` after the contract maturity and committee gates.
 
 ---
 
@@ -93,11 +96,11 @@ Script logic in `valuation.json` (unchanged). Override in `[HUMAN REVIEW]`.
 
 1. What this business is (Q1)  
 2. Why the market might be wrong (Q5 prose — not a separate MOI table)  
-3. Executive summary — one base return %  
+3. Executive summary — base intrinsic value and margin of safety; include a base forward return only when Contract v3 marks it available
 4. Business & moat (Q1–2)  
 5. Payoff & return — gate table (Q3–4–6)  
 6. Risks — primary risk + **lens failure mode** if non-operating lens  
-7. Valuation & IRR — assumption ledger last  
+7. Valuation & forward economics — assumption ledger last
 
 ---
 

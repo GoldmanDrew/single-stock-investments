@@ -2,12 +2,26 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Valuation workbench",
   "type": "object",
-  "required": ["schema_version", "ticker", "as_of", "decision", "business", "valuation", "optionality", "committee", "evidence", "method_fit", "outcomes", "attribution"],
+  "required": ["schema_version", "ticker", "as_of", "proof_status", "model_level", "decision_eligibility", "dates", "legacy_audit", "decision", "business", "valuation", "optionality", "committee", "evidence", "method_fit", "outcomes", "attribution", "freshness"],
   "properties": {
-    "schema_version": {"const": "2.0"},
+    "schema_version": {"const": "3.0"},
     "ticker": {"type": "string", "minLength": 1},
     "as_of": {"type": "string", "format": "date"},
-    "decision": {"type": "object", "required": ["status", "value_per_share", "unvalued_component_count", "unresolved_evidence_count"]},
+    "proof_status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
+    "decision_eligibility": {"type": "object"},
+    "dates": {"type": "object"},
+    "legacy_audit": {"type": "object"},
+    "decision": {
+      "type": "object",
+      "required": ["status", "proof_status", "model_level", "return_publishable", "value_per_share", "present_value_today_per_share", "margin_of_safety_pct", "forward_return_at_price_pct", "unvalued_component_count", "unresolved_evidence_count"],
+      "properties": {
+        "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
+        "return_publishable": {"type": "boolean"},
+        "output_basis": {"type": ["string", "null"]},
+        "forward_return_status": {"enum": ["available", "withheld"]}
+      }
+    },
     "business": {"type": "object", "required": ["status", "components", "component_coverage", "facts", "estimates", "judgments"]},
     "valuation": {"type": "object", "required": ["status", "market", "valuation", "components", "scenario_contract", "calculation_proof_summary", "model_checks", "source_lineage", "change_control"]},
     "optionality": {"type": "object", "required": ["status", "option_count", "options", "rule"]},
@@ -27,7 +41,8 @@
     "evidence": {"type": "object", "required": ["status", "gaps"], "properties": {"status": {"type": "string"}, "gaps": {"type": "array"}}},
     "method_fit": {"type": "object", "required": ["profile_id", "label", "applicability_tests", "failure_modes"]},
     "outcomes": {"type": "object", "required": ["status", "schedule", "minimum_persona_outcomes_before_reweighting"]},
-    "attribution": {"type": "object", "required": ["status", "current"]}
+    "attribution": {"type": "object", "required": ["status", "current"]},
+    "freshness": {"type": "object", "required": ["status", "dates", "age_days", "warnings"]}
   },
   "additionalProperties": true
 }

@@ -84,6 +84,52 @@ class SlimTickerRowTests(unittest.TestCase):
         slim = bds.slim_ticker_row({"ticker": "T"})
         self.assertNotIn("component_valuation", slim)
 
+    def test_valuation_governance_detail_is_lazy_loaded(self):
+        tier = {
+            "tier": 1,
+            "tier_id": "tier_1",
+            "label": "Active underwriting",
+            "assignment_reasons": [{"code": "paper_position"}] * 8,
+            "promotion_gates": ["long policy text"] * 4,
+        }
+        decision = {
+            "status": "decision_grade",
+            "model_level": "stock_specific",
+            "return_publishable": True,
+            "value_per_share": {"low": 90, "base": 110, "high": 130},
+            "margin_of_safety_pct": {"base": 9.1},
+            "forward_return_at_price_pct": {"base": 12.0},
+            "decision_eligibility": {"reason": "full detail only"},
+            "legacy_audit": {"reason": "audit only"},
+            "forward_cashflow_schedule": [{"date": "2030-12-31", "amount": 130}],
+            "universe_tier": tier,
+        }
+        slim = bds.slim_ticker_row({
+            "ticker": "T",
+            "valuation_decision": decision,
+            "valuation_tier": tier,
+        })
+        self.assertEqual(slim["valuation_tier"], {
+            "tier": 1, "tier_id": "tier_1", "label": "Active underwriting",
+        })
+        self.assertEqual(slim["valuation_decision"]["forward_return_at_price_pct"], {"base": 12.0})
+        self.assertNotIn("decision_eligibility", slim["valuation_decision"])
+        self.assertNotIn("legacy_audit", slim["valuation_decision"])
+        self.assertNotIn("forward_cashflow_schedule", slim["valuation_decision"])
+        self.assertNotIn("assignment_reasons", slim["valuation_decision"]["universe_tier"])
+
+    def test_every_valuation_decision_sort_key_survives_the_slim(self):
+        if not INDEX_HTML.exists():  # pragma: no cover
+            self.skipTest("dashboard/index.html not present")
+        html = INDEX_HTML.read_text(encoding="utf-8", errors="ignore")
+        referenced = set(re.findall(r"valuation_decision\??\.([A-Za-z0-9_]+)", html))
+        self.assertTrue(referenced, "expected index.html valuation decision fields")
+        self.assertEqual(
+            referenced - set(bds._VALUATION_DECISION_CORE_FIELDS),
+            {"annualized_return_at_price_pct", "proof_complete_pct", "unvalued_component_count"},
+            "A new boot-time decision field was added without updating the core slim contract",
+        )
+
     def test_two_phase_watch_stays_off_core_rows(self):
         row = {"ticker": "INV", "two_phase_watch": {"as_of": "2026-08-26", "hits": [{}] * 8}}
         slim = bds.slim_ticker_row(row)

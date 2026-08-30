@@ -103,6 +103,73 @@ class DashboardD1ExportTests(unittest.TestCase):
             self.assertLessEqual(criticality[1], 100)
             self.assertIn(criticality[2], {"ready", "limited"})
 
+    def test_export_writes_contract_v3_fields_and_only_canonical_forward_return(self):
+        core = {
+            "generated_at": "2026-08-30T12:00:00Z",
+            "summary": {"holdings": 1},
+            "valuation_queue": {"items": []},
+            "tickers": [{
+                "ticker": "READY",
+                "company": "Ready Company",
+                "market": "US",
+                "classification": {"stance": "watch", "analysis_as_of": "2026-08-30"},
+                "valuation_tier": {"tier": 1, "tier_id": "tier_1"},
+                "valuation_decision": {
+                    "status": "decision_grade",
+                    "provisional": False,
+                    "model_level": "stock_specific",
+                    "output_basis": "future_payoff",
+                    "price_per_share": 80,
+                    "value_per_share": {"low": 90, "base": 100, "high": 110},
+                    "present_value_today_per_share": {"low": 90, "base": 100, "high": 110},
+                    "margin_of_safety_pct": {"low": 11.11, "base": 20, "high": 27.27},
+                    "forward_return_at_price_pct": {"low": 6, "base": 12, "high": 18},
+                    "annualized_return_at_price_pct": {"low": 6, "base": 12, "high": 18},
+                    "forward_return_status": "available",
+                    "required_return_pct": 10,
+                    "return_publishable": True,
+                    "dates": {
+                        "model_as_of": "2026-08-30",
+                        "latest_fact_as_of": "2026-08-20",
+                        "price_as_of": "2026-08-29",
+                    },
+                    "open_gap_count": 0,
+                    "critical_gap_count": 0,
+                },
+            }],
+        }
+        migration = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "dashboard/cloudflare/migrations").glob("*.sql"))
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
+            temp = Path(temp_dir)
+            core_path = temp / "core.json"
+            seed_path = temp / "seed.sql"
+            core_path.write_text(json.dumps(core), encoding="utf-8")
+            exporter.export(core_path, seed_path)
+
+            connection = sqlite3.connect(":memory:")
+            connection.executescript(migration)
+            connection.executescript(seed_path.read_text(encoding="utf-8"))
+            row = connection.execute(
+                """
+                SELECT model_level, output_basis, present_value_base,
+                       margin_of_safety_base_pct, forward_return_base_pct,
+                       annualized_return_base_pct, required_return_pct,
+                       return_publishable, valuation_tier, model_as_of,
+                       latest_fact_as_of, price_as_of
+                FROM valuation_current WHERE ticker = 'READY'
+                """
+            ).fetchone()
+            self.assertEqual(
+                row,
+                (
+                    "stock_specific", "future_payoff", 100.0, 20.0, 12.0,
+                    12.0, 10.0, 1, 1, "2026-08-30", "2026-08-20", "2026-08-29",
+                ),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
