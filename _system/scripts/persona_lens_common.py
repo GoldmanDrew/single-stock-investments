@@ -14,6 +14,9 @@ REGISTRY_PATH = ROOT / "_system" / "portfolio" / "registry.json"
 
 STANCES = ["accumulate", "hold", "watch", "pass", "pending", "silent"]
 STANCE_RANK = {s: i for i, s in enumerate(["accumulate", "hold", "watch", "pass", "pending", "silent"])}
+RETURN_PUBLISHABLE_MODEL_LEVELS = {
+    "stock_specific", "committee_reviewed", "owner_approved",
+}
 
 
 def load_json(path: Path) -> dict | list | None:
@@ -113,33 +116,37 @@ def extract_shared_context(val: dict, registry_class: dict | None = None,
     if bull is None:
         bull = _num(implied.get("bull_pct"))
 
-    # Explicit valuation.json returns are legacy persona inputs.  They may
-    # remain visible inside the lens artifact for audit, but only Contract-v3's
-    # canonical forward return can be labeled as a contract return.
-    return_source = "legacy_valuation" if base is not None or bear is not None or bull is not None else "missing"
-    if base is None and bear is None and bull is None:
-        contract_returns = ((contract or {}).get("valuation") or {}).get(
-            "forward_return_at_price_pct") or {}
-        methodology = val.get("valuation_methodology") or {}
-        components = (val.get("component_valuation_results") or {}).get("additive_components") or []
-        generic_screen = bool(
-            methodology.get("automation") == "source_locked_first_pass"
-            and len(components) == 1
-            and (components[0].get("id") or components[0].get("component_id"))
-            == "operating_business_and_net_assets"
-            and components[0].get("method") == "owner_earnings_reinvestment_dcf"
+    return_source = "valuation"
+    if contract:
+        # Contract v3 is authoritative.  A missing forward cash-flow model is
+        # a real "not modeled" result, not permission to fall back to the old
+        # calculation that annualized an intrinsic value already discounted
+        # to today.  Generic screening templates are likewise withheld.
+        contract_valuation = (contract or {}).get("valuation") or {}
+        contract_returns = contract_valuation.get("forward_return_at_price_pct") or {}
+        model_level = str((contract or {}).get("model_level") or "").lower()
+        publishable = (
+            str((contract or {}).get("status") or "") == "decision_grade"
+            and model_level in RETURN_PUBLISHABLE_MODEL_LEVELS
+            and str(contract_valuation.get("forward_return_status") or "available") == "available"
+            and any(contract_returns.get(case) is not None for case in ("low", "base", "high"))
         )
-        if (contract or {}).get("status") == "decision_grade" and not generic_screen:
+        if publishable:
             base = _num(contract_returns.get("base"))
             bear = _num(contract_returns.get("low"))
             bull = _num(contract_returns.get("high"))
-            if base is not None or bear is not None or bull is not None:
-                return_source = "contract_forward"
+            return_source = "contract_forward_return"
+        else:
+            base = bear = bull = None
+            return_source = "contract_forward_return_withheld"
 
     synthesis_pct = _num(synthesis.get("total_synthesis_pct"))
     if synthesis_pct is None:
         synthesis_pct = _num(implied.get("synthesis_pct"))
     filing_gate = _num(implied.get("lawrence_stance_gate_pct") or implied.get("falsifier_adjusted_pct"))
+    if contract:
+        synthesis_pct = None
+        filing_gate = None
 
     growth_y1_5 = _num((scenarios.get("base") or {}).get("growth_y1_5"))
     if growth_y1_5 is not None and growth_y1_5 <= 1:
@@ -174,7 +181,6 @@ def extract_shared_context(val: dict, registry_class: dict | None = None,
 
     return {
         "return_source": return_source,
-        "return_actionable": return_source == "contract_forward",
         "archetype": str(resolved["archetype"] or "unknown").lower(),
         "moat": str(resolved["moat"] or "unproven").lower(),
         "dhando": str(resolved["dhando"] or "pending").lower(),

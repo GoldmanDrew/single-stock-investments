@@ -1,22 +1,83 @@
 {
   "schema_version": "1.0",
   "policy_id": "valuation_universe_tiers_v1",
-  "description": "Owner-controlled research-priority policy. Tiering never grants capital authority; only a valid human_decision.json can do that.",
-  "committee_eligible_model_levels": [
-    "stock_specific",
-    "committee_reviewed",
-    "owner_approved"
-  ],
-  "overrides": {},
-  "override_instructions": {
-    "shape": "TICKER -> {tier: 1|2|3, reason: non-empty owner rationale, review_by: optional YYYY-MM-DD}",
-    "effect": "An explicit override replaces the mechanically assigned research tier but never changes capital authority or bypasses the committee model-level gate.",
-    "example": {
-      "EXAMPLE": {
-        "tier": 2,
-        "reason": "Priority watchlist after owner review.",
-        "review_by": "2026-12-31"
+  "description": "Research-priority tiers for the single-stock valuation universe. Tiers allocate research effort; they never authorize capital.",
+  "governance": {
+    "capital_authority": "human_decision_only",
+    "registry_holdings_semantics": "research_universe_membership_only",
+    "owner_override_precedence": "owner overrides replace the automatically assigned tier but retain observed automatic signals for auditability",
+    "automated_model_cap": "screening_only",
+    "generic_model_cap": "screening_only",
+    "committee_eligible_model_levels": [
+      "stock_specific",
+      "committee_reviewed",
+      "owner_approved"
+    ]
+  },
+  "tier_definitions": {
+    "tier_1": {
+      "tier": 1,
+      "label": "Active capital decision",
+      "research_depth": "full stock-specific model, primary-source evidence, adversarial review, and explicit refresh cadence",
+      "actionability_cap": "committee_review_eligible_after_model_and_evidence_gates",
+      "promotion_gates": [
+        "A positive active position, active committee, open material trigger, current or expired owner decision, or approved target allocation exists.",
+        "A stock-specific model and complete evidence gates are still required before committee review.",
+        "Only a recorded human decision may authorize capital or sizing."
+      ],
+      "demotion_conditions": [
+        "No positive position, active committee, open trigger, current or expired owner decision, or approved target allocation remains.",
+        "The owner explicitly overrides the name to a lower tier."
+      ],
+      "workflow_policy": {
+        "committee_auto_start": true,
+        "committee_requires_stock_specific_model": true,
+        "automated_screen_can_authorize_capital": false,
+        "generic_screen_can_authorize_capital": false,
+        "capital_authority": "human_decision_only"
+      }
+    },
+    "tier_2": {
+      "tier": 2,
+      "label": "Curated research queue",
+      "research_depth": "focused evidence closure and stock-specific model development before any committee work",
+      "actionability_cap": "research_priority_only",
+      "promotion_gates": [
+        "Promote when a positive position, active committee, open material trigger, current or expired owner decision, or approved target allocation appears.",
+        "An owner override may promote the name with a documented reason and review date."
+      ],
+      "demotion_conditions": [
+        "No validation follow-up, watchlist membership, priority stance, or proposed target allocation remains.",
+        "The owner explicitly overrides the name to Tier 3."
+      ],
+      "workflow_policy": {
+        "committee_auto_start": false,
+        "committee_requires_stock_specific_model": true,
+        "automated_screen_can_authorize_capital": false,
+        "generic_screen_can_authorize_capital": false,
+        "capital_authority": "human_decision_only"
+      }
+    },
+    "tier_3": {
+      "tier": 3,
+      "label": "Broad screening universe",
+      "research_depth": "automated screening and lightweight monitoring only",
+      "actionability_cap": "screening_only",
+      "promotion_gates": [
+        "Promote to Tier 2 when a curated follow-up, watchlist entry, priority stance, or proposed target allocation appears.",
+        "Promote to Tier 1 only through a Tier 1 qualifying signal or documented owner override."
+      ],
+      "demotion_conditions": [
+        "Remove from the valuation universe only through an explicit universe-governance change; absence of a model is not a deletion signal."
+      ],
+      "workflow_policy": {
+        "committee_auto_start": false,
+        "committee_requires_stock_specific_model": true,
+        "automated_screen_can_authorize_capital": false,
+        "generic_screen_can_authorize_capital": false,
+        "capital_authority": "human_decision_only"
       }
     }
-  }
+  },
+  "overrides": {}
 }

@@ -1942,9 +1942,9 @@ const HOLDINGS_COLUMNS = [
   { id: 'company', label: 'Company', sort: 'company', group: 'core' },
   { id: 'stance', label: 'Stance', sort: 'classification.stance', group: 'core' },
   { id: 'valuation', label: 'Decision', sort: 'valuation_decision.status', group: 'core' },
-  { id: 'price_value', label: 'Price → base', sort: 'valuation_decision.value_per_share.base', group: 'core' },
-  { id: 'vs_price', label: 'Value gap', sort: 'component_valuation.upside_downside_pct.base', group: 'core' },
-  { id: 'irr', label: 'Ann. return', sort: 'valuation_decision.annualized_return_at_price_pct.base', group: 'core' },
+  { id: 'price_value', label: 'PV today', sort: 'valuation_decision.value_per_share.base', group: 'core' },
+  { id: 'vs_price', label: 'Margin of safety', sort: 'valuation_decision.margin_of_safety_pct.base', group: 'core' },
+  { id: 'irr', label: 'Forward return', sort: 'valuation_decision.forward_return_at_price_pct.base', group: 'core' },
   { id: 'technical_setup', label: 'Fear / tape', sort: 'technicals.capitulation.scores.panic', group: 'core' },
   { id: 'next_action', label: 'Next action', sort: 'valuation_decision.critical_gap_count', group: 'core' },
   { id: 'route_method', label: 'Power Zone / method', sort: 'power_zones.primary', group: 'core' },
@@ -2620,22 +2620,13 @@ function renderIrrCell(t) {
       const pct = Number(ret.pct);
       const years = t.valuation_decision?.horizon_years
         ?? t.valuation_workbench?.valuation?.horizon_years;
-      const label = irrLabel(t.classification?.implied_irr) || (ret.source === 'workbench' ? 'contract base' : '');
-      const title = [ret.sub, years != null ? `${years}y horizon` : '', t.classification?.analysis_as_of ? `as of ${t.classification.analysis_as_of}` : '']
+      const label = 'contract forward';
+      const title = [ret.sub, years != null ? `${years}y horizon` : '', t.valuation_decision?.dates?.model_as_of ? `model as of ${t.valuation_decision.dates.model_as_of}` : '']
         .filter(Boolean).join(' · ');
       return `<span class="irr-cell ${irrClass(pct)}" title="${escapeHtml(title)}">${pct.toFixed(pct % 1 ? 1 : 0)}%${label ? `<span class="irr-sub">${escapeHtml(label)}</span>` : ''}</span>`;
     }
   }
-  const implied = t.classification?.implied_irr;
-  const pct = t.classification?.analysis_irr_pct ?? parseIrrPct(implied);
-  if (pct == null && (!implied || implied === 'pending')) {
-    return '<span class="irr-cell irr-pending">—</span>';
-  }
-  const label = irrLabel(implied);
-  const asOf = t.classification?.analysis_as_of;
-  const title = [implied, asOf ? `as of ${asOf}` : ''].filter(Boolean).join(' · ');
-  const head = pct != null ? `${pct.toFixed(pct % 1 ? 1 : 0)}%` : escapeHtml(implied);
-  return `<span class="irr-cell ${irrClass(pct)}" title="${escapeHtml(title)}">${head}${label ? `<span class="irr-sub">${escapeHtml(label)}</span>` : ''}</span>`;
+  return '<span class="irr-cell irr-pending" title="No publishable dated forward-cash-flow return">—<span class="irr-sub">not modeled</span></span>';
 }
 
 const METHOD_BY_PROFILE = {
@@ -5007,10 +4998,13 @@ function renderSummary() {
       && Number(t.valuation_decision?.unvalued_component_count || 0) === 0
     )
   ).length;
-  const decisionGrade = Number(
-    opValuation.decision_grade_count
-    ?? data.tickers.filter((t) => t.valuation_decision?.status === 'decision_grade').length
-  );
+  const stockSpecific = data.tickers.filter((t) =>
+    ['stock_specific', 'committee_reviewed', 'owner_approved'].includes(t.valuation_decision?.model_level)
+  ).length;
+  const screeningOnly = data.tickers.filter((t) =>
+    t.valuation_decision?.model_level === 'screening_grade'
+  ).length;
+  const tier1 = data.tickers.filter((t) => Number(t.valuation_tier?.tier) === 1).length;
   const dueNow = Number(opTasks.due_count ?? s.valuation_critical_gaps ?? 0);
   const staleCutoff = Date.now() - 90 * 86400000;
   const stale = data.tickers.filter((t) => {
@@ -5021,7 +5015,8 @@ function renderSummary() {
     { label: 'Route review', value: routeReview, sub: 'Power Zone classification', cls: routeReview ? 'stage-alert' : 'stage-ready' },
     { label: 'Evidence due now', value: dueNow, sub: `${Number(opTasks.actionable_count ?? s.valuation_critical_gaps ?? 0)} actionable tasks`, cls: dueNow ? 'stage-alert' : 'stage-ready' },
     { label: 'Compiler ready', value: compilerReady, sub: 'complete deterministic proof', cls: compilerReady ? 'stage-ready' : '' },
-    { label: 'Decision-grade', value: decisionGrade, sub: `${Number(opValuation.evidence_blocked_count ?? s.valuation_evidence_blocked ?? 0)} evidence blocked`, cls: 'stage-ready' },
+    { label: 'Stock-specific', value: stockSpecific, sub: `${screeningOnly} screening-only`, cls: stockSpecific ? 'stage-ready' : '' },
+    { label: 'Tier 1 research', value: tier1, sub: 'owned or imminent decisions', cls: tier1 ? 'stage-ready' : '' },
     { label: 'Stale research', value: stale, sub: 'older than 90 days', cls: stale ? 'stage-alert' : 'stage-ready' },
   ];
   const catalog = data.document_catalog?.summary;
@@ -5114,8 +5109,12 @@ function filtered() {
       av = av == null ? Infinity : av;
       bv = bv == null ? Infinity : bv;
     } else if (sortKey === 'classification.analysis_irr_pct') {
-      av = a.classification?.analysis_irr_pct ?? parseIrrPct(a.classification?.implied_irr);
-      bv = b.classification?.analysis_irr_pct ?? parseIrrPct(b.classification?.implied_irr);
+      // Old saved preferences map to the canonical forward-return sort.  Do
+      // not revive classification IRRs as a fallback.
+      av = a.valuation_decision?.return_publishable
+        ? a.valuation_decision?.forward_return_at_price_pct?.base : null;
+      bv = b.valuation_decision?.return_publishable
+        ? b.valuation_decision?.forward_return_at_price_pct?.base : null;
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
     } else if (sortKey === 'classification.stance') {
@@ -5179,17 +5178,15 @@ function filtered() {
       bv = upOf(b);
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
-    } else if (sortKey === 'valuation_decision.annualized_return_at_price_pct.base') {
-      const annOf = (t) => t.valuation_decision?.annualized_return_at_price_pct?.base
-        ?? t.valuation_workbench?.decision?.annualized_return_at_price_pct?.base
-        ?? t.valuation_workbench?.valuation?.annualized_return_at_price_pct?.base
-        ?? t.classification?.analysis_irr_pct;
-      const upOf = (t) => t.valuation_decision?.upside_downside_pct?.base
-        ?? t.component_valuation?.upside_downside_pct?.base;
-      av = annOf(a);
-      bv = annOf(b);
-      if (av == null) av = upOf(a);
-      if (bv == null) bv = upOf(b);
+    } else if (
+      sortKey === 'valuation_decision.forward_return_at_price_pct.base'
+      || sortKey === 'valuation_decision.annualized_return_at_price_pct.base'
+    ) {
+      const forwardOf = (t) => t.valuation_decision?.return_publishable
+        ? t.valuation_decision?.forward_return_at_price_pct?.base
+        : null;
+      av = forwardOf(a);
+      bv = forwardOf(b);
       av = av == null ? -Infinity : av;
       bv = bv == null ? -Infinity : bv;
     } else if (sortKey === 'special_situation') {
@@ -5770,6 +5767,11 @@ function renderValuationFilters() {
   if (!group || !data) return;
   const filters = [
     { id: 'ALL', label: 'All vals' },
+    { id: 'tier-1', label: 'Tier 1' },
+    { id: 'tier-2', label: 'Tier 2' },
+    { id: 'tier-3', label: 'Tier 3' },
+    { id: 'stock-specific', label: 'Stock-specific' },
+    { id: 'screening-grade', label: 'Screening only' },
     { id: 'evidence-blocked', label: 'Evidence blocked' },
     { id: 'cohort', label: 'Cohort' },
     { id: 'phase2', label: 'Phase 2' },

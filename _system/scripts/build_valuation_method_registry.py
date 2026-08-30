@@ -17,6 +17,7 @@ REQUIRED = {
     "double_counting_exclusions", "failure_modes", "corroborating_methods", "sources",
     "output_basis",
 }
+
 OUTPUT_BASES = {"present_value_today", "future_payoff", "forward_cashflow_schedule"}
 
 
@@ -36,7 +37,7 @@ def build() -> dict:
         if card.get("status") not in {"candidate", "approved", "deprecated"}:
             errors.append(f"{key}: invalid status")
         if card.get("output_basis") not in OUTPUT_BASES:
-            errors.append(f"{key}: invalid or missing output_basis")
+            errors.append(f"{key}: invalid output_basis {card.get('output_basis')!r}")
         for source in card.get("sources") or []:
             path = ROOT / str(source.get("ref") or "")
             present = path.is_file()

@@ -26,9 +26,27 @@ MODEL_LEVELS = (
     "committee_reviewed",
     "owner_approved",
 )
-RETURN_PUBLISHABLE_LEVELS = frozenset({
+RETURN_PUBLISHABLE_LEVELS = {
     "stock_specific", "committee_reviewed", "owner_approved",
-})
+}
+COMMITTEE_REVIEWED_STATES = {"owner_decision_pending", "outcome_tracking"}
+
+
+def is_automated_generic_screen(valuation: dict) -> bool:
+    methodology = valuation.get("valuation_methodology") or {}
+    if methodology.get("automation") != "source_locked_first_pass":
+        return False
+    result = valuation.get("component_valuation_results") or {}
+    additive = [
+        row for row in (result.get("additive_components") or [])
+        if row.get("treatment") == "additive"
+    ]
+    return (
+        len(additive) == 1
+        and str(additive[0].get("id") or additive[0].get("component_id"))
+        == "operating_business_and_net_assets"
+        and additive[0].get("method") == "owner_earnings_reinvestment_dcf"
+    )
 
 
 def read_json(path: Path, default=None):
@@ -223,139 +241,109 @@ def method_fit_view(config: dict, ticker_cfg: dict, valuation: dict) -> dict:
     }
 
 
-def is_automated_generic_screening_model(valuation: dict, contract: dict | None = None) -> bool:
-    """Identify the source-locked, one-size-fits-all owner-earnings screen.
-
-    The screen is useful for triage, but its standard reinvestment, incremental
-    ROIC, discount-rate, and terminal-multiple bounds are not a stock-specific
-    underwriting conclusion.  Keep the test deliberately narrow so a custom
-    one-component model is not demoted merely because it uses the same method.
-    """
-    methodology = valuation.get("valuation_methodology") or {}
-    automated = methodology.get("automation") == "source_locked_first_pass"
-    if not automated:
-        return False
-    components = (
-        (valuation.get("component_valuation_results") or {}).get("additive_components")
-        or [
-            row for row in (contract or {}).get("economic_ownership_map") or []
-            if row.get("treatment") == "additive"
-        ]
-    )
-    if len(components) != 1:
-        return False
-    component = components[0] or {}
-    return (
-        (component.get("id") or component.get("component_id"))
-        == "operating_business_and_net_assets"
-        and component.get("method") == "owner_earnings_reinvestment_dcf"
-    )
-
-
-def _margin_of_safety(values: dict, price) -> dict:
-    """Return discount to intrinsic value, not upside from market price."""
-    try:
-        price_value = float(price)
-    except (TypeError, ValueError):
-        return {}
-    result = {}
-    for scenario in ("low", "base", "high"):
-        try:
-            intrinsic = float(values.get(scenario))
-        except (TypeError, ValueError):
-            result[scenario] = None
-            continue
-        result[scenario] = round((intrinsic - price_value) / intrinsic * 100, 2) if intrinsic > 0 else None
-    return result
-
-
-def _model_dates(valuation: dict, contract: dict) -> dict:
-    fact_dates = sorted({
-        str(row.get("as_of"))[:10]
-        for row in contract.get("source_lineage") or []
-        if row.get("as_of")
-    })
-    market = contract.get("market") or {}
-    inputs = valuation.get("inputs") or {}
-    return {
-        "model_as_of": str(contract.get("as_of") or valuation.get("as_of") or "")[:10] or None,
-        "latest_fact_as_of": fact_dates[-1] if fact_dates else None,
-        "oldest_fact_as_of": fact_dates[0] if fact_dates else None,
-        "price_as_of": str(market.get("price_as_of") or inputs.get("price_as_of") or "")[:10] or None,
-    }
-
-
-def valuation_model_level(
-    valuation: dict,
-    contract: dict,
-    evidence: dict,
-    committee: dict,
-) -> tuple[str, str]:
-    """Map contract, evidence, and review state onto the honest maturity ladder."""
-    has_model = bool(
-        valuation.get("method")
-        or (valuation.get("component_valuation_results") or {}).get("additive_components")
-        or contract.get("economic_ownership_map")
-    )
-    if not has_model:
-        return "unmodeled", "No completed valuation model exists."
-    coverage = contract.get("component_coverage") or {}
-    blocked = (
-        contract.get("status") != "decision_grade"
-        or int(evidence.get("open_count") or 0) > 0
-        or int(evidence.get("critical_count") or 0) > 0
-        or int(coverage.get("unvalued_component_count") or 0) > 0
-    )
-    if blocked:
-        return "evidence_blocked", "Required evidence or component coverage remains open."
-    if is_automated_generic_screening_model(valuation, contract):
-        return (
-            "screening_grade",
-            "Automated generic owner-earnings assumptions support triage only; stock-specific underwriting is still required.",
-        )
-    if committee.get("owner_status") in {"complete", "decided", "approved"} and committee.get("owner_decision"):
-        return "owner_approved", "A human owner recorded the final decision."
-    if committee.get("record_ref"):
-        return "committee_reviewed", "A completed Investment Committee record is awaiting or includes the owner decision."
-    return "stock_specific", "The source-backed contract is stock-specific and ready for independent review."
-
-
 def decision_view(valuation: dict, committee: dict) -> dict:
     contract = valuation.get("universal_valuation_contract") or build_universal_valuation_contract(valuation)
     contract_valuation = contract.get("valuation") or {}
-    values = (contract.get("valuation") or {}).get("value_per_share") or {}
-    market = contract.get("market") or {}
+    values = contract_valuation.get("present_value_today_per_share") or contract_valuation.get("value_per_share") or {}
     forward_returns = contract_valuation.get("forward_return_at_price_pct") or {}
-    legacy_returns = contract_valuation.get("annualized_return_at_price_pct") or {}
+    model_level = str(contract.get("model_level") or "").lower()
+    if model_level not in MODEL_LEVELS:
+        model_level = "stock_specific" if contract.get("status") == "decision_grade" else "evidence_blocked"
+    if contract.get("status") == "decision_grade" and is_automated_generic_screen(valuation):
+        model_level = "screening_grade"
+    if model_level not in {"unmodeled", "evidence_blocked", "screening_grade"}:
+        if committee.get("owner_decision"):
+            model_level = "owner_approved"
+        elif committee.get("status") in COMMITTEE_REVIEWED_STATES and committee.get("record_ref"):
+            model_level = "committee_reviewed"
+        else:
+            model_level = "stock_specific"
+    return_publishable = (
+        contract.get("status") == "decision_grade"
+        and model_level in RETURN_PUBLISHABLE_LEVELS
+        and contract_valuation.get("forward_return_status") == "available"
+    )
+    published_returns = forward_returns if return_publishable else {case: None for case in ("low", "base", "high")}
     return {
         "status": contract.get("status"),
-        "contract_status": contract.get("status"),
-        "price_per_share": market.get("price_per_share"),
-        "market_cap_m": market.get("market_cap_m"),
-        "enterprise_value_m": market.get("enterprise_value_m"),
+        "proof_status": contract.get("proof_status") or contract.get("status"),
+        "model_level": model_level,
+        "model_level_reason": contract.get("model_level_reason"),
+        "return_publishable": return_publishable,
+        "price_per_share": (contract.get("market") or {}).get("price_per_share"),
+        "market_cap_m": (contract.get("market") or {}).get("market_cap_m"),
+        "enterprise_value_m": (contract.get("market") or {}).get("enterprise_value_m"),
         "value_per_share": values,
-        "intrinsic_value_today_per_share": values,
-        "margin_of_safety_pct": contract_valuation.get("margin_of_safety_pct") or _margin_of_safety(
-            values, market.get("price_per_share")
-        ),
-        "forward_return_at_price_pct": forward_returns,
-        "required_return_pct": contract_valuation.get("required_return_pct"),
+        "present_value_today_per_share": values,
         "output_basis": contract_valuation.get("output_basis"),
-        "return_publishable": False,
-        "legacy_audit": {
-            "actionable": False,
-            "annualized_return_at_price_pct": legacy_returns,
-            "note": "Legacy annualized value-gap math is retained for audit only and is never served as a forward return.",
-        },
-        "dates": _model_dates(valuation, contract),
+        "output_basis_status": contract_valuation.get("output_basis_status"),
+        "margin_of_safety_pct": contract_valuation.get("margin_of_safety_pct") or {},
+        "upside_to_value_pct": contract_valuation.get("upside_to_value_pct") or {},
+        "forward_return_at_price_pct": published_returns,
+        # Compatibility field: it is the canonical forward return or null,
+        # never the former annualized present-value/price gap.
+        "annualized_return_at_price_pct": published_returns,
+        "forward_return_status": "available" if return_publishable else "withheld",
+        "forward_return_reason": (
+            contract_valuation.get("forward_return_reason")
+            if return_publishable
+            else (
+                "model maturity is not eligible to publish a return"
+                if model_level not in RETURN_PUBLISHABLE_LEVELS
+                else contract_valuation.get("forward_return_reason")
+            )
+        ),
+        "required_return_pct": contract_valuation.get("required_return_pct"),
         "downside_to_low_pct": contract_valuation.get("downside_to_low_pct"),
         "unvalued_component_count": (contract.get("component_coverage") or {}).get("unvalued_component_count"),
         "unresolved_evidence_count": (contract.get("evidence") or {}).get("unresolved_count"),
         "proof_complete_pct": (contract.get("calculation_proof_summary") or {}).get("proof_complete_pct"),
         "model_hash": (contract.get("change_control") or {}).get("model_hash"),
+        "dates": contract.get("dates") or {},
+        "legacy_audit": contract.get("legacy_audit") or {},
+        "decision_eligibility": contract.get("decision_eligibility") or {},
         "primary_power_zone": (contract.get("method_route") or {}).get("label"),
         "owner_decision": committee.get("owner_decision"),
         "next_action": committee.get("next_action"),
+    }
+
+
+def freshness_view(decision: dict, as_of: str) -> dict:
+    """Make model, fact, and quote age visible without inventing precision."""
+    dates = decision.get("dates") or {}
+    thresholds = {
+        "model_as_of": 365,
+        "latest_fact_as_of": 548,
+        "price_as_of": 7,
+    }
+    ages: dict[str, int | None] = {}
+    warnings = []
+    try:
+        effective = date.fromisoformat(str(as_of)[:10])
+    except (TypeError, ValueError):
+        effective = None
+    for field, limit in thresholds.items():
+        raw = dates.get(field)
+        try:
+            age = (effective - date.fromisoformat(str(raw)[:10])).days if effective and raw else None
+        except ValueError:
+            age = None
+        ages[field] = age
+        if age is None:
+            warnings.append(f"{field} is not dated")
+        elif age > limit:
+            warnings.append(f"{field} is {age} days old (review threshold {limit})")
+    status = "current" if not warnings else (
+        "stale" if any("days old" in warning for warning in warnings) else "undated"
+    )
+    return {
+        "status": status,
+        "as_of": str(as_of)[:10],
+        "dates": dates,
+        "age_days": ages,
+        "review_threshold_days": thresholds,
+        "warnings": warnings,
+        "rule": "Freshness is disclosed separately from proof completeness; stale or undated inputs require review before a new capital decision.",
     }
 
 
@@ -376,6 +364,12 @@ def valuation_view(valuation: dict) -> dict:
     contract = valuation.get("universal_valuation_contract") or build_universal_valuation_contract(valuation)
     return {
         "status": contract.get("status"),
+        "proof_status": contract.get("proof_status") or contract.get("status"),
+        "model_level": contract.get("model_level"),
+        "model_level_reason": contract.get("model_level_reason"),
+        "decision_eligibility": contract.get("decision_eligibility") or {},
+        "dates": contract.get("dates") or {},
+        "legacy_audit": contract.get("legacy_audit") or {},
         "market": contract.get("market") or {},
         "valuation": contract.get("valuation") or {},
         "components": contract.get("economic_ownership_map") or [],
@@ -494,7 +488,7 @@ def attribution_view(research: Path, current: dict) -> dict:
     contract = current.get("universal_valuation_contract") or {}
     current_total = (
         (contract.get("valuation") or {}).get("value_per_share")
-        if contract.get("schema_version") == "2.0"
+        if contract.get("schema_version") in {"2.0", "3.0"}
         else (current.get("component_valuation_results") or {}).get("total_equity_value_per_share")
     ) or {}
     current_point = {"as_of": current.get("as_of"), "low": current_total.get("low"), "base": current_total.get("base"), "high": current_total.get("high")}
@@ -605,7 +599,13 @@ def build(ticker: str, as_of: str | None = None) -> dict:
         }
         return {
             "schema_version": "3.0", "ticker": ticker, "as_of": effective_date,
-            "decision": {"status": "evidence_blocked", "contract_status": "evidence_blocked", "model_level": "unmodeled", "model_level_reason": "No completed valuation model exists.", "price_per_share": None, "market_cap_m": None, "enterprise_value_m": None, "value_per_share": {}, "intrinsic_value_today_per_share": {}, "margin_of_safety_pct": {}, "forward_return_at_price_pct": {}, "required_return_pct": None, "output_basis": None, "return_publishable": False, "legacy_audit": {"actionable": False, "annualized_return_at_price_pct": {}}, "dates": {"model_as_of": None, "latest_fact_as_of": None, "oldest_fact_as_of": None, "price_as_of": None}, "downside_to_low_pct": None, "unvalued_component_count": 1, "unresolved_evidence_count": 1, "primary_power_zone": route.get("label"), "owner_decision": None, "next_action": scaffold.get("next_action")},
+            "proof_status": "evidence_blocked",
+            "model_level": "unmodeled",
+            "model_level_reason": "No completed economic ownership model exists.",
+            "decision_eligibility": {"committee_eligible": False, "capital_actionable": False, "capital_authority_required": "human_decision"},
+            "dates": {"model_as_of": None, "latest_fact_as_of": None, "oldest_fact_as_of": None, "price_as_of": None},
+            "legacy_audit": {},
+            "decision": {"status": "evidence_blocked", "proof_status": "evidence_blocked", "model_level": "unmodeled", "model_level_reason": "No completed economic ownership model exists.", "return_publishable": False, "price_per_share": None, "market_cap_m": None, "enterprise_value_m": None, "value_per_share": {}, "present_value_today_per_share": {}, "output_basis": None, "output_basis_status": "missing", "margin_of_safety_pct": {}, "upside_to_value_pct": {}, "forward_return_at_price_pct": {"low": None, "base": None, "high": None}, "annualized_return_at_price_pct": {"low": None, "base": None, "high": None}, "forward_return_status": "withheld", "forward_return_reason": "No completed forward cash-flow model exists.", "required_return_pct": None, "dates": {"model_as_of": None, "latest_fact_as_of": None, "oldest_fact_as_of": None, "price_as_of": None}, "legacy_audit": {}, "decision_eligibility": {"committee_eligible": False, "capital_actionable": False, "capital_authority_required": "human_decision"}, "downside_to_low_pct": None, "unvalued_component_count": 1, "unresolved_evidence_count": 1, "primary_power_zone": route.get("label"), "owner_decision": None, "next_action": scaffold.get("next_action")},
             "business": {"status": "incomplete", "components": [], "component_coverage": {"unvalued_component_count": 1}, "facts": [], "estimates": [], "judgments": []},
             "valuation": {"status": "evidence_blocked", "market": {}, "valuation": {}, "components": [], "scenario_contract": {"rule": "Build causal low/base/high scenarios before drawing a conclusion."}, "calculation_proof_summary": {"component_count": 0, "priced_component_count": 0, "proof_complete_pct": 0, "status_counts": {"unpriced": 1}, "all_material_components_priced": False, "calculation_errors": [], "aggregate_proof_hash": None}, "model_checks": {"all_material_components_priced": False}, "source_lineage": [], "change_control": {"model_hash": None, "method_versions": [], "change_log": []}},
             "optionality": {"status": "not_yet_mapped", "option_count": 0, "options": [], "rule": "Optionality remains unvalued until the component map is complete."},
@@ -614,6 +614,7 @@ def build(ticker: str, as_of: str | None = None) -> dict:
             "method_fit": {"profile_id": route.get("profile_id"), "label": route.get("label"), "primary_methods": route.get("primary_methods") or [], "corroborating_methods": route.get("corroborating_methods") or [], "primary_personas": route.get("primary_personas") or [], "cross_check_personas": route.get("cross_check_personas") or [], "silent_personas": route.get("silent_personas") or [], "routing_reasons": route.get("reasons") or [], "required_evidence": route.get("required_evidence") or [], "applicability_tests": [], "failure_modes": route.get("failure_modes") or [], "validation_cohort": [], "rule": route.get("decision_rule")},
             "outcomes": {"status": "waiting_for_owner_decision", "schedule": [], "recorded_outcome_count": 0, "minimum_persona_outcomes_before_reweighting": 20, "personas_eligible_for_weight_review": [], "weighting_rule": "No calibration before a completed IC decision and measured dividend-aware outcome."},
             "attribution": {"status": "waiting_for_baseline", "current": {"as_of": effective_date, "low": None, "base": None, "high": None}, "drivers": [], "explanation": "Attribution begins after the first decision-grade baseline."},
+            "freshness": freshness_view({"dates": {}}, effective_date),
         }
     config = read_json(CONFIG)
     ticker_cfg = (config.get("tickers") or {}).get(ticker) or {}
@@ -625,24 +626,32 @@ def build(ticker: str, as_of: str | None = None) -> dict:
     decision["unresolved_evidence_count"] = evidence.get("open_count") or 0
     if (evidence.get("open_count") or 0) > 0 or (evidence.get("critical_count") or 0) > 0:
         decision["status"] = "evidence_blocked"
-        decision["contract_status"] = decision["contract_status"] or "evidence_blocked"
+        decision["proof_status"] = "evidence_blocked"
+        decision["model_level"] = "evidence_blocked"
+        decision["model_level_reason"] = "Curated primary-evidence follow-ups remain open."
+        decision["return_publishable"] = False
+        decision["forward_return_at_price_pct"] = {"low": None, "base": None, "high": None}
+        decision["annualized_return_at_price_pct"] = {"low": None, "base": None, "high": None}
+        decision["forward_return_status"] = "withheld"
+        decision["forward_return_reason"] = "Primary-evidence follow-ups remain open."
+        decision["decision_eligibility"] = {
+            **(decision.get("decision_eligibility") or {}),
+            "committee_eligible": False,
+            "capital_actionable": False,
+            "capital_authority_required": "human_decision",
+            "reason": "Close primary-evidence gaps before committee review.",
+        }
         decision["next_action"] = "Close critical evidence gaps before freezing a decision-grade packet."
-    contract = valuation.get("universal_valuation_contract") or build_universal_valuation_contract(valuation)
-    model_level, model_level_reason = valuation_model_level(valuation, contract, evidence, committee)
-    decision["model_level"] = model_level
-    decision["model_level_reason"] = model_level_reason
-    decision["return_publishable"] = bool(
-        model_level in RETURN_PUBLISHABLE_LEVELS
-        and (decision.get("forward_return_at_price_pct") or {}).get("base") is not None
-    )
-    if not decision["return_publishable"]:
-        # Keep any invalid/legacy return only in legacy_audit.  A blocked or
-        # screening-grade model must never feed a dashboard rank.
-        decision["forward_return_at_price_pct"] = {}
     return {
         "schema_version": "3.0",
         "ticker": ticker,
         "as_of": effective_date,
+        "proof_status": decision.get("proof_status"),
+        "model_level": decision.get("model_level"),
+        "model_level_reason": decision.get("model_level_reason"),
+        "decision_eligibility": decision.get("decision_eligibility") or {},
+        "dates": decision.get("dates") or {},
+        "legacy_audit": decision.get("legacy_audit") or {},
         "decision": decision,
         "business": business_view(valuation),
         "valuation": valuation_view(valuation),
@@ -652,6 +661,7 @@ def build(ticker: str, as_of: str | None = None) -> dict:
         "method_fit": method_fit_view(config, ticker_cfg, valuation),
         "outcomes": outcome_view(ticker, config, committee, effective_date),
         "attribution": attribution_view(research, valuation),
+        "freshness": freshness_view(decision, effective_date),
     }
 
 

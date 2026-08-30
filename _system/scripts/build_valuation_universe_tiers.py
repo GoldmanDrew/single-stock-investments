@@ -1,637 +1,544 @@
 #!/usr/bin/env python3
-"""Build the canonical three-tier valuation research universe.
+"""Build the governed Tier 1/2/3 valuation research universe.
 
-Tiering controls research depth and automated workflow progression.  It does
-not grant capital authority: only a valid human_decision.json may do that.
-
-The portfolio registry's ``holdings`` key is intentionally treated as the
-research universe, not as evidence that a security is currently owned.  The
-only automatic active-position inputs are positive positions in the canonical
-paper account states.  Automated valuation outputs, prices, returns, and model
-grades are deliberately absent from the promotion inputs.
+The registry is a research universe, not a position ledger.  A registry name is
+therefore Tier 3 unless another explicit source promotes it.  Tiers allocate
+research effort and workflow priority; only a signed ``human_decision.json``
+may authorize capital or sizing.
 """
 from __future__ import annotations
 
 import argparse
+import copy
 import json
-import sys
-from collections import Counter
-from datetime import date
+from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "_system" / "data" / "valuation_universe_tiers.json"
-POLICY_PATH = "_system/portfolio/valuation_universe_policy.json"
+POLICY_REL = Path("_system/portfolio/valuation_universe_policy.json")
+OUTPUT_REL = Path("_system/data/valuation_universe_tiers.json")
 
-PAPER_POSITION_PATHS = (
-    "_system/portfolio/paper/taxable.json",
-    "_system/portfolio/paper/roth.json",
-)
-TARGET_WEIGHT_PATHS = (
-    "_system/portfolio/taxable_target_weights.json",
-    "_system/portfolio/ira_target_weights.json",
-    "_system/portfolio/roth_target_weights.json",
-)
-
-ACTIVE_COMMITTEE_STATES = {
-    "round_one_open",
-    "independent_review_open",
-    "conditional_escalation",
-    "chair_pending",
-    "ready_to_assemble",
-    "parked",
+PRIORITY_STANCES = {"accumulate", "core", "hold"}
+APPROVED_TARGET_STATUSES = {"active", "approved", "current", "executed", "executing"}
+ACTIVE_WORKBENCH_COMMITTEE_STATUSES = {
     "evidence_blocked",
-    "committee_complete_decision_pending",
+    "independent_review_open",
     "owner_decision_pending",
-    "outcome_tracking",
+    "parked",
+    "ready_to_assemble",
 }
-PRIORITY_STANCES = {"core", "hold", "accumulate"}
-APPROVED_PLAN_STATUSES = {"approved", "active", "live"}
-PROPOSED_PLAN_STATUSES = {"proposed", "draft", "pending_review"}
-
-TIER_META = {
-    1: {
-        "id": "tier_1",
-        "label": "Active holdings and imminent decisions",
-        "research_depth": "stock_specific_current",
-        "committee_auto_start_allowed": True,
-        "screening_only": False,
-    },
-    2: {
-        "id": "tier_2",
-        "label": "Priority watchlist",
-        "research_depth": "routed_screening_with_promotion_gates",
-        "committee_auto_start_allowed": False,
-        "screening_only": True,
-    },
-    3: {
-        "id": "tier_3",
-        "label": "Broad universe",
-        "research_depth": "screening_only",
-        "committee_auto_start_allowed": False,
-        "screening_only": True,
-    },
+ACTIVE_COMMITTEE_STAGES = {
+    "chair_pending",
+    "committee_complete_decision_pending",
+    "conditional_escalation",
+    "evidence_blocked",
+    "independent_review_open",
+    "owner_decision_pending",
+    "parked",
+    "ready_to_assemble",
+    "round_one_open",
 }
-
-TIER_ONE_CODES = {
-    "active_paper_position",
-    "active_committee_workflow",
-    "explicit_committee_trigger",
-    "current_human_decision",
-    "expired_human_decision_review_due",
-    "approved_target_weight",
-}
-TIER_TWO_CODES = {
-    "registry_watchlist",
-    "curated_valuation_followup",
-    "priority_stance",
-    "proposed_target_weight",
-}
-
-TIER_ONE_PROMOTION_GATES = [
-    {
-        "code": "positive_canonical_position",
-        "requirement": "Ticker has a positive position in a canonical paper account state.",
-    },
-    {
-        "code": "imminent_decision_workflow",
-        "requirement": "An explicit committee trigger or active committee workbench requires a near-term decision.",
-    },
-    {
-        "code": "human_capital_authority",
-        "requirement": "A current or expired human decision requires ownership, renewal, or exit review.",
-    },
-    {
-        "code": "approved_capital_plan",
-        "requirement": "A human-approved target-weight plan includes the ticker with a positive weight.",
-    },
-]
-TIER_TWO_PROMOTION_GATES = [
-    {
-        "code": "curated_priority",
-        "requirement": "Ticker is explicitly placed on the registry watchlist or curated valuation follow-up list.",
-    },
-    {
-        "code": "priority_stance",
-        "requirement": "Human-maintained classification stance is core, hold, or accumulate.",
-    },
-    {
-        "code": "proposed_capital_plan",
-        "requirement": "A proposed target-weight plan includes the ticker with a positive weight.",
-    },
-]
+CASH_TICKERS = {"$CASH", "CASH", "CASH_USD", "USD"}
 
 
-def _read_json(path: Path) -> tuple[dict[str, Any], str | None]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return {}, "missing"
-    except (OSError, json.JSONDecodeError) as exc:
-        return {}, f"{type(exc).__name__}: {exc}"
-    if not isinstance(value, dict):
-        return {}, "top-level JSON value is not an object"
-    return value, None
+def _ticker(value: Any) -> str:
+    return str(value or "").strip().upper()
 
 
 def _number(value: Any) -> float | None:
     try:
-        if value is None or isinstance(value, bool):
-            return None
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _positive_position(row: dict[str, Any]) -> bool:
-    """Recognize an explicit long position without inferring from a label."""
-    for field in ("shares", "quantity", "qty", "notional_usd", "weight_pct"):
-        value = _number(row.get(field))
-        if value is not None and value > 0:
-            return True
-    return False
+def _relative(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
-def _positive_weight(row: dict[str, Any]) -> bool:
-    for field in ("weight_pct", "weight", "target_weight_pct"):
-        value = _number(row.get(field))
-        if value is not None and value > 0:
-            return True
-    return False
-
-
-def _reason(code: str, source: str, detail: str, strength: str) -> dict[str, str]:
-    return {"code": code, "source": source, "detail": detail, "strength": strength}
-
-
-def _add_reason(reasons: dict[str, list[dict[str, str]]], ticker: str,
-                reason: dict[str, str], universe: set[str],
-                unmatched: list[dict[str, str]]) -> None:
-    ticker = str(ticker or "").strip().upper()
-    if not ticker:
-        return
-    if ticker not in universe:
-        unmatched.append({
-            "ticker": ticker,
-            "source": reason["source"],
-            "reason_code": reason["code"],
-        })
-        return
-    reasons[ticker].append(reason)
-
-
-def _source_health(path: str, status: str, records: int = 0,
-                   detail: str | None = None, required: bool = False) -> dict[str, Any]:
-    row: dict[str, Any] = {
-        "path": path,
-        "status": status,
-        "records": records,
+def _source_bucket(health: dict, group: str, required: bool = False) -> dict:
+    return health.setdefault(group, {
         "required": required,
+        "files_seen": 0,
+        "valid_files": 0,
+        "record_count": 0,
+        "missing_files": [],
+        "invalid_files": [],
+    })
+
+
+def _read_json(path: Path, root: Path, health: dict, group: str,
+               *, required: bool = False) -> dict | list:
+    bucket = _source_bucket(health, group, required)
+    ref = _relative(path, root)
+    if not path.exists():
+        bucket["missing_files"].append(ref)
+        return {}
+    bucket["files_seen"] += 1
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        bucket["invalid_files"].append({"path": ref, "error": str(exc)})
+        return {}
+    if not isinstance(payload, (dict, list)):
+        bucket["invalid_files"].append({"path": ref, "error": "top level must be an object or array"})
+        return {}
+    bucket["valid_files"] += 1
+    return payload
+
+
+def _record_count(health: dict, group: str, count: int) -> None:
+    _source_bucket(health, group)["record_count"] += count
+
+
+def _watchlist_tickers(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        return {_ticker(key) for key in value if _ticker(key)}
+    if isinstance(value, list):
+        names = set()
+        for row in value:
+            names.add(_ticker(row.get("ticker")) if isinstance(row, dict) else _ticker(row))
+        return names - {""}
+    return set()
+
+
+def _positive_position(row: dict) -> bool:
+    values = [row.get(field) for field in (
+        "shares", "quantity", "notional_usd", "market_value", "market_value_usd", "weight_pct"
+    )]
+    numbers = [_number(value) for value in values]
+    return any(value is not None and value > 0 for value in numbers)
+
+
+def _positive_target(row: dict) -> bool:
+    value = _number(row.get("weight_pct", row.get("target_weight_pct", row.get("weight"))))
+    return value is None or value > 0
+
+
+def _override_tier(value: Any) -> int | None:
+    if isinstance(value, str):
+        value = value.lower().replace("tier_", "").replace("tier ", "")
+    try:
+        tier = int(value)
+    except (TypeError, ValueError):
+        return None
+    return tier if tier in {1, 2, 3} else None
+
+
+def validate_policy(policy: dict) -> None:
+    errors = []
+    if policy.get("schema_version") != "1.0":
+        errors.append("schema_version must be 1.0")
+    governance = policy.get("governance") or {}
+    if governance.get("capital_authority") != "human_decision_only":
+        errors.append("governance.capital_authority must be human_decision_only")
+    if governance.get("automated_model_cap") != "screening_only":
+        errors.append("automated_model_cap must be screening_only")
+    if governance.get("generic_model_cap") != "screening_only":
+        errors.append("generic_model_cap must be screening_only")
+    definitions = policy.get("tier_definitions") or {}
+    required_definition_fields = {
+        "tier", "label", "research_depth", "actionability_cap",
+        "promotion_gates", "demotion_conditions", "workflow_policy",
     }
-    if detail:
-        row["detail"] = detail
-    return row
-
-
-def _expiry_state(human: dict[str, Any], as_of: str) -> str:
-    expiry = str(human.get("expires_at") or human.get("review_by") or "")[:10]
-    if expiry and expiry < as_of:
-        return "expired"
-    return "current"
-
-
-def _assignment(ticker: str, tier: int, assignment_reasons: list[dict[str, str]]) -> dict[str, Any]:
-    meta = TIER_META[tier]
-    if tier == 1:
-        promotion_gates: list[dict[str, str]] = []
-        demotion = [
-            "No positive canonical position remains.",
-            "No explicit or active committee workflow remains.",
-            "No current/expired human decision or approved capital plan requires review.",
-            "Then re-evaluate Tier 2 priority signals; otherwise demote to Tier 3.",
-        ]
-    elif tier == 2:
-        promotion_gates = TIER_ONE_PROMOTION_GATES
-        demotion = [
-            "Remove the ticker from every explicit watchlist and curated follow-up list.",
-            "Remove it from proposed target-weight plans and any priority stance.",
-            "Confirm no Tier 1 gate is present; then demote to Tier 3.",
-        ]
-    else:
-        promotion_gates = [*TIER_TWO_PROMOTION_GATES, *TIER_ONE_PROMOTION_GATES]
-        demotion = ["Tier 3 is the fail-closed default; archival/removal requires a separate universe decision."]
-
-    return {
-        "ticker": ticker,
-        "tier": tier,
-        "tier_id": meta["id"],
-        "label": meta["label"],
-        "research_depth": meta["research_depth"],
-        "actionability_cap": "human_decision_only",
-        "assignment_reasons": assignment_reasons,
-        "promotion_gates": promotion_gates,
-        "demotion_conditions": demotion,
-        "workflow_policy": {
-            "screening_only": meta["screening_only"],
-            "committee_auto_start_allowed": meta["committee_auto_start_allowed"],
-            "automated_models_can_authorize_capital": False,
-            "capital_authority_required": "human_decision",
-        },
-    }
-
-
-def build_manifest(root: Path = ROOT, as_of: str | None = None) -> dict[str, Any]:
-    """Return a deterministic tier manifest from explicit local authority inputs."""
-    root = Path(root)
-    as_of = (as_of or date.today().isoformat())[:10]
-    registry_path = root / "_system" / "portfolio" / "registry.json"
-    registry, registry_error = _read_json(registry_path)
-    if registry_error:
-        raise ValueError(f"cannot build tier universe: _system/portfolio/registry.json {registry_error}")
-    holdings = registry.get("holdings") or {}
-    watchlist = registry.get("watchlist") or {}
-    if not isinstance(holdings, dict) or not isinstance(watchlist, dict):
-        raise ValueError("cannot build tier universe: registry holdings/watchlist must be objects")
-    entries = {**watchlist, **holdings}
-    universe = set(str(ticker).upper() for ticker in entries)
-    reasons: dict[str, list[dict[str, str]]] = {ticker: [] for ticker in universe}
-    source_health = [
-        _source_health("_system/portfolio/registry.json", "loaded", len(universe), required=True)
-    ]
-    source_errors: list[str] = []
-    unmatched: list[dict[str, str]] = []
-
-    policy, policy_error = _read_json(root / POLICY_PATH)
-    if policy_error:
-        raise ValueError(f"cannot build tier universe: {POLICY_PATH} {policy_error}")
-    if policy.get("schema_version") != "1.0" or not isinstance(policy.get("overrides"), dict):
-        raise ValueError(f"cannot build tier universe: {POLICY_PATH} has an invalid schema")
-    source_health.append(_source_health(POLICY_PATH, "loaded", len(policy["overrides"]), required=True))
-
-    # Registry bucket membership is a priority signal only for the explicit
-    # watchlist.  The misleadingly named holdings bucket is the full research
-    # universe and is never interpreted as a position.
-    for ticker in sorted(watchlist):
-        _add_reason(
-            reasons,
-            ticker,
-            _reason("registry_watchlist", "_system/portfolio/registry.json#watchlist",
-                    "Explicit registry watchlist membership.", "tier_2"),
-            universe,
-            unmatched,
-        )
-
-    # Canonical active-position evidence.
-    for relative in PAPER_POSITION_PATHS:
-        payload, error = _read_json(root / relative)
-        if error:
-            source_errors.append(f"{relative}: {error}")
-            source_health.append(_source_health(relative, "invalid", detail=error, required=True))
+    for tier in (1, 2, 3):
+        tier_id = f"tier_{tier}"
+        definition = definitions.get(tier_id) or {}
+        missing = sorted(required_definition_fields - set(definition))
+        if missing:
+            errors.append(f"{tier_id} missing fields: {', '.join(missing)}")
             continue
-        active = 0
-        for row in payload.get("positions") or []:
+        if definition.get("tier") != tier:
+            errors.append(f"{tier_id}.tier must be {tier}")
+        workflow = definition.get("workflow_policy") or {}
+        if workflow.get("capital_authority") != "human_decision_only":
+            errors.append(f"{tier_id} capital authority must be human_decision_only")
+        if workflow.get("automated_screen_can_authorize_capital") is not False:
+            errors.append(f"{tier_id} automated screens must not authorize capital")
+        if workflow.get("generic_screen_can_authorize_capital") is not False:
+            errors.append(f"{tier_id} generic screens must not authorize capital")
+        if tier > 1 and workflow.get("committee_auto_start") is not False:
+            errors.append(f"{tier_id} committee_auto_start must be false")
+    overrides = policy.get("overrides") or {}
+    if not isinstance(overrides, dict):
+        errors.append("overrides must be a ticker-keyed object")
+    else:
+        for ticker, override in overrides.items():
+            if not _ticker(ticker) or not isinstance(override, dict):
+                errors.append(f"invalid override entry for {ticker!r}")
+                continue
+            if _override_tier(override.get("tier")) is None:
+                errors.append(f"override {ticker} must declare tier 1, 2, or 3")
+            if not str(override.get("reason") or "").strip():
+                errors.append(f"override {ticker} must include a reason")
+    if errors:
+        raise ValueError("Invalid valuation universe policy: " + "; ".join(errors))
+
+
+def _add_signal(signals: dict[str, list[dict]], universe: set[str], ticker: Any,
+                tier: int, code: str, detail: str, source_ref: str) -> None:
+    name = _ticker(ticker)
+    if not name or name in CASH_TICKERS:
+        return
+    universe.add(name)
+    signal = {
+        "qualifying_tier": tier,
+        "code": code,
+        "detail": detail,
+        "source_ref": source_ref,
+    }
+    if signal not in signals[name]:
+        signals[name].append(signal)
+
+
+def _collect_registry(root: Path, health: dict, signals: dict, universe: set[str]) -> dict:
+    path = root / "_system/portfolio/registry.json"
+    payload = _read_json(path, root, health, "registry", required=True)
+    payload = payload if isinstance(payload, dict) else {}
+    holdings = payload.get("holdings") or {}
+    if not isinstance(holdings, dict):
+        holdings = {}
+    ref = _relative(path, root)
+    for ticker in sorted(holdings):
+        _add_signal(signals, universe, ticker, 3, "research_universe_member",
+                    "Registry membership establishes research coverage only; it is not evidence of ownership.", ref)
+    watchlist = _watchlist_tickers(payload.get("watchlist"))
+    for ticker in sorted(watchlist):
+        _add_signal(signals, universe, ticker, 2, "registry_watchlist",
+                    "The security is on the curated registry watchlist.", ref)
+    _record_count(health, "registry", len(holdings) + len(watchlist))
+    return holdings
+
+
+def _collect_positions(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    paths = sorted((root / "_system/portfolio/paper").glob("*.json"))
+    _source_bucket(health, "paper_positions")
+    for path in paths:
+        payload = _read_json(path, root, health, "paper_positions")
+        payload = payload if isinstance(payload, dict) else {}
+        positions = payload.get("positions") or []
+        if not isinstance(positions, list):
+            positions = []
+        account = str(payload.get("account_id") or path.stem)
+        count = 0
+        for row in positions:
             if not isinstance(row, dict) or not _positive_position(row):
                 continue
-            active += 1
-            account = str(payload.get("account_id") or Path(relative).stem)
-            _add_reason(
-                reasons,
-                row.get("ticker"),
-                _reason("active_paper_position", relative,
-                        f"Positive canonical paper position in account {account}.", "tier_1"),
-                universe,
-                unmatched,
-            )
-        source_health.append(_source_health(relative, "loaded", active, required=True))
+            count += 1
+            _add_signal(signals, universe, row.get("ticker"), 1, "positive_paper_position",
+                        f"Positive position in the {account} paper portfolio.", _relative(path, root))
+        _record_count(health, "paper_positions", count)
 
-    # Explicitly approved plans are Tier 1; machine-proposed plans remain only
-    # a Tier 2 research-priority signal.
-    for relative in TARGET_WEIGHT_PATHS:
-        payload, error = _read_json(root / relative)
-        if error:
-            source_health.append(_source_health(relative, "unavailable", detail=error))
+
+def _collect_followups(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    path = root / "_system/reference/valuation_followups.json"
+    payload = _read_json(path, root, health, "valuation_followups")
+    payload = payload if isinstance(payload, dict) else {}
+    ref = _relative(path, root)
+    tickers = payload.get("tickers") or {}
+    if isinstance(tickers, dict):
+        for ticker in sorted(tickers):
+            _add_signal(signals, universe, ticker, 2, "valuation_followup",
+                        "The curated valuation follow-up ledger includes this security.", ref)
+    cohort = payload.get("validation_cohort") or payload.get("securities") or []
+    if isinstance(cohort, list):
+        for row in cohort:
+            ticker = row.get("ticker") if isinstance(row, dict) else row
+            _add_signal(signals, universe, ticker, 2, "validation_cohort",
+                        "The security is in the cross-method valuation validation cohort.", ref)
+    _record_count(health, "valuation_followups",
+                  (len(tickers) if isinstance(tickers, dict) else 0) + (len(cohort) if isinstance(cohort, list) else 0))
+
+
+def _collect_classifications(root: Path, health: dict, signals: dict, universe: set[str],
+                             registry_holdings: dict) -> None:
+    path = root / "_system/portfolio/classification.json"
+    payload = _read_json(path, root, health, "classifications")
+    payload = payload if isinstance(payload, dict) else {}
+    ref = _relative(path, root)
+    names = set(payload) | set(registry_holdings)
+    count = 0
+    for ticker in sorted(names):
+        standalone = payload.get(ticker) if isinstance(payload.get(ticker), dict) else None
+        registry_row = registry_holdings.get(ticker) if isinstance(registry_holdings.get(ticker), dict) else {}
+        classification = standalone or (registry_row.get("classification") or {})
+        stance = str(classification.get("stance") or "").strip().lower()
+        if stance not in PRIORITY_STANCES:
             continue
-        status = str(payload.get("status") or "").lower()
-        records = 0
-        for row in payload.get("weights") or []:
-            if not isinstance(row, dict) or not _positive_weight(row):
-                continue
-            records += 1
-            if status in APPROVED_PLAN_STATUSES:
-                code, strength = "approved_target_weight", "tier_1"
-            elif status in PROPOSED_PLAN_STATUSES:
-                code, strength = "proposed_target_weight", "tier_2"
-            else:
-                continue
-            _add_reason(
-                reasons,
-                row.get("ticker"),
-                _reason(code, relative, f"Positive target weight in a {status or 'status-missing'} plan.", strength),
-                universe,
-                unmatched,
-            )
-        source_health.append(_source_health(relative, "loaded", records))
+        count += 1
+        source = ref if standalone else "_system/portfolio/registry.json"
+        _add_signal(signals, universe, ticker, 2, "priority_classification",
+                    f"Portfolio classification stance is {stance}.", source)
+    _record_count(health, "classifications", count)
 
-    followup_path = "_system/reference/valuation_followups.json"
-    followups, followup_error = _read_json(root / followup_path)
-    if followup_error:
-        source_health.append(_source_health(followup_path, "unavailable", detail=followup_error))
-    else:
-        ticker_cfg = followups.get("tickers") or {}
-        for ticker in sorted(ticker_cfg):
-            _add_reason(
-                reasons,
-                ticker,
-                _reason("curated_valuation_followup", f"{followup_path}#tickers",
-                        "Ticker is in the curated valuation follow-up cohort.", "tier_2"),
-                universe,
-                unmatched,
-            )
-        source_health.append(_source_health(followup_path, "loaded", len(ticker_cfg)))
 
-    classification_path = "_system/portfolio/classification.json"
-    classifications, classification_error = _read_json(root / classification_path)
-    if classification_error:
-        classifications = {}
-        source_health.append(_source_health(classification_path, "unavailable", detail=classification_error))
-    else:
-        source_health.append(_source_health(classification_path, "loaded", len(classifications)))
+def _collect_targets(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    paths = sorted((root / "_system/portfolio").glob("*_target_weights.json"))
+    _source_bucket(health, "target_weights")
+    for path in paths:
+        payload = _read_json(path, root, health, "target_weights")
+        payload = payload if isinstance(payload, dict) else {}
+        status = str(payload.get("status") or "").strip().lower()
+        rows = payload.get("weights") or payload.get("targets") or []
+        if not isinstance(rows, list):
+            rows = []
+        qualifying_tier = 1 if status in APPROVED_TARGET_STATUSES else 2 if status == "proposed" else None
+        count = 0
+        if qualifying_tier:
+            for row in rows:
+                if not isinstance(row, dict) or not _positive_target(row):
+                    continue
+                count += 1
+                code = "approved_target_allocation" if qualifying_tier == 1 else "proposed_target_allocation"
+                detail = ("Positive allocation in an approved/current target-weight plan."
+                          if qualifying_tier == 1 else
+                          "Positive allocation in a proposed, not-yet-approved target-weight plan.")
+                _add_signal(signals, universe, row.get("ticker"), qualifying_tier,
+                            code, detail, _relative(path, root))
+        _record_count(health, "target_weights", count)
 
-    priority_stance_count = 0
-    overrides = policy.get("overrides") or {}
-    normalized_overrides = {str(ticker).upper(): value for ticker, value in overrides.items()}
-    invalid_overrides: list[str] = []
-    for raw_ticker, override in sorted(overrides.items()):
-        ticker = str(raw_ticker).upper()
-        if ticker not in universe:
-            invalid_overrides.append(f"{ticker}: ticker is outside the registry universe")
-            continue
-        if not isinstance(override, dict) or override.get("tier") not in {1, 2, 3}:
-            invalid_overrides.append(f"{ticker}: tier must be 1, 2, or 3")
-            continue
-        if not str(override.get("reason") or "").strip():
-            invalid_overrides.append(f"{ticker}: reason is required")
-            continue
-        review_by = str(override.get("review_by") or "")[:10]
-        detail = str(override["reason"]).strip()
-        if review_by:
-            detail += f" Review by {review_by}."
-        reasons[ticker].append(_reason("owner_tier_override", POLICY_PATH, detail, "owner_override"))
-    if invalid_overrides:
-        source_errors.extend(f"{POLICY_PATH}: {error}" for error in invalid_overrides)
 
-    for ticker in sorted(universe):
-        entry = entries.get(ticker) or entries.get(ticker.lower()) or {}
-        inline = (entry.get("classification") or {}) if isinstance(entry, dict) else {}
-        direct = classifications.get(ticker) or {}
-        stance = str(direct.get("stance") or inline.get("stance") or "").lower()
-        if stance in PRIORITY_STANCES:
-            priority_stance_count += 1
-            reasons[ticker].append(
-                _reason("priority_stance", classification_path,
-                        f"Classification stance is {stance}.", "tier_2")
-            )
-
-    workbench_records = 0
-    active_workbenches = 0
-    explicit_triggers = 0
-    human_decisions = 0
-    malformed_research_inputs: list[str] = []
-    for ticker in sorted(universe):
-        research = root / ticker / "research"
-        workbench_path = research / "valuation_workbench.json"
-        if workbench_path.exists():
-            workbench, error = _read_json(workbench_path)
-            if error:
-                malformed_research_inputs.append(f"{ticker}/research/valuation_workbench.json: {error}")
-            else:
-                workbench_records += 1
-                committee_status = str(((workbench.get("committee") or {}).get("status")) or "").lower()
-                if committee_status in ACTIVE_COMMITTEE_STATES:
-                    active_workbenches += 1
-                    reasons[ticker].append(
-                        _reason("active_committee_workflow",
-                                f"{ticker}/research/valuation_workbench.json#committee",
-                                f"Committee workflow status is {committee_status}.", "tier_1")
-                    )
-
-        trigger_path = research / "committee_trigger.json"
-        if trigger_path.exists():
-            trigger, error = _read_json(trigger_path)
-            if error:
-                malformed_research_inputs.append(f"{ticker}/research/committee_trigger.json: {error}")
-            elif str(trigger.get("status") or "").lower() == "open":
-                explicit_triggers += 1
-                detail = str(trigger.get("reason") or "Explicit material decision trigger is open.")
-                reasons[ticker].append(
-                    _reason("explicit_committee_trigger", f"{ticker}/research/committee_trigger.json",
-                            detail, "tier_1")
-                )
-
-        human_path = research / "human_decision.json"
-        if human_path.exists():
-            human, error = _read_json(human_path)
-            if error:
-                malformed_research_inputs.append(f"{ticker}/research/human_decision.json: {error}")
-            elif str(human.get("status") or "").lower() in {"decided", "approved", "complete", "expired"}:
-                human_decisions += 1
-                expiry = _expiry_state(human, as_of)
-                code = "expired_human_decision_review_due" if expiry == "expired" else "current_human_decision"
-                reasons[ticker].append(
-                    _reason(code, f"{ticker}/research/human_decision.json",
-                            "Human decision is expired and requires review." if expiry == "expired"
-                            else "Current human capital decision exists.", "tier_1")
-                )
-
-    source_health.extend([
-        _source_health("*/research/valuation_workbench.json", "loaded", workbench_records,
-                       f"{active_workbenches} active committee workflows"),
-        _source_health("*/research/committee_trigger.json", "loaded", explicit_triggers),
-        _source_health("*/research/human_decision.json", "loaded", human_decisions),
-    ])
-    if malformed_research_inputs:
-        source_errors.extend(malformed_research_inputs)
-        source_health.append(_source_health(
-            "per-ticker research authority inputs",
-            "degraded",
-            len(malformed_research_inputs),
-            "; ".join(malformed_research_inputs[:20]),
-        ))
-
-    assignments: dict[str, dict[str, Any]] = {}
-    reason_counts: Counter[str] = Counter()
-    for ticker in sorted(universe):
-        rows = sorted(
-            reasons[ticker],
-            key=lambda row: (row["code"], row["source"], row["detail"]),
+def _collect_workbenches(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    paths = sorted(root.glob("*/research/valuation_workbench.json"))
+    _source_bucket(health, "committee_workbenches")
+    for path in paths:
+        payload = _read_json(path, root, health, "committee_workbenches")
+        payload = payload if isinstance(payload, dict) else {}
+        committee = payload.get("committee") or {}
+        status = str(committee.get("status") or "").strip().lower()
+        has_committee = bool(
+            committee.get("manifest_ref") or committee.get("record_ref") or committee.get("stage")
+            or (committee.get("analysis_progress") or {}).get("completed")
         )
-        codes = {row["code"] for row in rows}
-        override_value = normalized_overrides.get(ticker)
-        override = override_value if isinstance(override_value, dict) else None
-        valid_override = (
-            override is not None
-            and override.get("tier") in {1, 2, 3}
-            and bool(str(override.get("reason") or "").strip())
-        )
-        if valid_override:
-            tier = int(override["tier"])
-        elif codes & TIER_ONE_CODES:
-            tier = 1
-        elif codes & TIER_TWO_CODES:
-            tier = 2
-        else:
-            tier = 3
-            rows = [_reason(
-                "broad_universe_default",
-                "valuation_universe_tiers_policy",
-                "No explicit Tier 1 or Tier 2 promotion gate is present.",
-                "tier_3",
-            )]
-        reason_counts.update(row["code"] for row in rows)
-        assignments[ticker] = _assignment(ticker, tier, rows)
+        if status not in ACTIVE_WORKBENCH_COMMITTEE_STATUSES or (status == "evidence_blocked" and not has_committee):
+            continue
+        ticker = payload.get("ticker") or path.parents[1].name
+        _add_signal(signals, universe, ticker, 1, "active_committee",
+                    f"Valuation committee workflow is active with status {status}.", _relative(path, root))
+        _record_count(health, "committee_workbenches", 1)
 
-    counts = Counter(row["tier_id"] for row in assignments.values())
-    unmatched = sorted(unmatched, key=lambda row: (row["ticker"], row["source"], row["reason_code"]))
-    validation_errors = validate_assignments(assignments, universe)
-    validation_status = (
-        "valid" if not validation_errors and not source_errors and not malformed_research_inputs
-        else "degraded"
-    )
-    active_position_tickers = sum(
-        1 for row in assignments.values()
-        if any(reason["code"] == "active_paper_position" for reason in row["assignment_reasons"])
-    )
+
+def _collect_committee_manifests(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    paths = sorted(root.glob("*/research/committee_work/????-??-??/manifest.json"))
+    _source_bucket(health, "committee_manifests")
+    latest: dict[str, Path] = {}
+    for path in paths:
+        latest[path.parents[3].name.upper()] = path
+    for ticker, path in sorted(latest.items()):
+        payload = _read_json(path, root, health, "committee_manifests")
+        payload = payload if isinstance(payload, dict) else {}
+        stage = str(payload.get("stage") or "").strip().lower()
+        if stage not in ACTIVE_COMMITTEE_STAGES:
+            continue
+        _add_signal(signals, universe, payload.get("ticker") or ticker, 1, "active_committee_manifest",
+                    f"Latest committee manifest remains active at stage {stage}.", _relative(path, root))
+        _record_count(health, "committee_manifests", 1)
+
+
+def _collect_triggers(root: Path, health: dict, signals: dict, universe: set[str]) -> None:
+    paths = sorted(root.glob("*/research/committee_trigger.json"))
+    _source_bucket(health, "committee_triggers")
+    for path in paths:
+        payload = _read_json(path, root, health, "committee_triggers")
+        payload = payload if isinstance(payload, dict) else {}
+        if str(payload.get("status") or "").strip().lower() != "open":
+            continue
+        reason = str(payload.get("reason") or "material thesis, evidence, or price change")
+        _add_signal(signals, universe, payload.get("ticker") or path.parents[1].name, 1,
+                    "open_committee_trigger", f"Open committee trigger: {reason}", _relative(path, root))
+        _record_count(health, "committee_triggers", 1)
+
+
+def _collect_human_decisions(root: Path, as_of: str, health: dict,
+                             signals: dict, universe: set[str]) -> None:
+    paths = sorted(root.glob("*/research/human_decision.json"))
+    _source_bucket(health, "human_decisions")
+    for path in paths:
+        payload = _read_json(path, root, health, "human_decisions")
+        payload = payload if isinstance(payload, dict) else {}
+        status = str(payload.get("status") or "").strip().lower()
+        if status not in {"decided", "expired"} or not payload.get("decision"):
+            continue
+        expires_at = str(payload.get("expires_at") or "")[:10]
+        expired = status == "expired" or bool(expires_at and expires_at < as_of[:10])
+        code = "expired_human_decision" if expired else "current_human_decision"
+        detail = ("The recorded owner decision is expired and requires review."
+                  if expired else "A current recorded owner decision governs this security.")
+        _add_signal(signals, universe, payload.get("ticker") or path.parents[1].name, 1,
+                    code, detail, _relative(path, root))
+        _record_count(health, "human_decisions", 1)
+
+
+def _finalize_health(health: dict) -> dict:
+    degraded = False
+    for group in sorted(health):
+        bucket = health[group]
+        bucket["missing_files"] = sorted(set(bucket["missing_files"]))
+        bucket["invalid_files"] = sorted(bucket["invalid_files"], key=lambda row: row["path"])
+        if bucket["invalid_files"] or (bucket["required"] and bucket["missing_files"]):
+            degraded = True
+    return {"status": "degraded" if degraded else "healthy", "sources": {key: health[key] for key in sorted(health)}}
+
+
+def _assignment_validation(assignments: dict[str, dict], source_health: dict) -> dict:
+    errors = []
+    required = {
+        "tier", "tier_id", "label", "research_depth", "actionability_cap",
+        "assignment_reasons", "promotion_gates", "demotion_conditions", "workflow_policy",
+    }
+    for ticker, row in assignments.items():
+        missing = sorted(required - set(row))
+        if missing:
+            errors.append(f"{ticker} missing assignment fields: {', '.join(missing)}")
+            continue
+        workflow = row.get("workflow_policy") or {}
+        if workflow.get("capital_authority") != "human_decision_only":
+            errors.append(f"{ticker} does not preserve human-only capital authority")
+        if workflow.get("automated_screen_can_authorize_capital") is not False:
+            errors.append(f"{ticker} permits automated capital authority")
+        if workflow.get("generic_screen_can_authorize_capital") is not False:
+            errors.append(f"{ticker} permits generic-screen capital authority")
+        if row["tier"] > 1 and workflow.get("committee_auto_start") is not False:
+            errors.append(f"{ticker} Tier {row['tier']} improperly permits committee auto-start")
+        codes = {reason.get("code") for reason in row.get("assignment_reasons") or []}
+        if row.get("assignment_source") == "automatic" and codes == {"research_universe_member"} and row["tier"] != 3:
+            errors.append(f"{ticker} registry membership alone promoted above Tier 3")
+    if source_health.get("status") == "degraded":
+        errors.append("one or more required or present source files could not be read")
     return {
-        "schema_version": "1.0",
-        "as_of": as_of,
-        "policy": {
-            "id": "valuation_universe_tiers_v1",
-            "purpose": "Allocate scarce valuation effort without converting automated screening into capital authority.",
-            "definitions": {str(tier): TIER_META[tier] for tier in (1, 2, 3)},
-            "source_precedence": [
-                "positive canonical paper positions and human/committee authority inputs",
-                "explicit watchlists, curated follow-ups, stances, and proposed plans",
-                "fail-closed broad-universe default",
-            ],
-            "promotion_gates": {
-                "to_tier_1": TIER_ONE_PROMOTION_GATES,
-                "to_tier_2": TIER_TWO_PROMOTION_GATES,
-            },
-            "owner_override_source": POLICY_PATH,
-            "committee_eligible_model_levels": policy.get("committee_eligible_model_levels") or [],
-            "invariants": [
-                "registry.holdings is the research universe and is never active-position evidence",
-                "valuation grade, price, implied return, and automated model output are never tier-promotion signals",
-                "Tier 2 and Tier 3 cannot auto-start an investment committee",
-                "no automated model can authorize capital in any tier; human_decision is always required",
-            ],
+        "status": "pass" if not errors else "fail",
+        "errors": errors,
+        "checks": {
+            "all_assignments_complete": not any("missing assignment fields" in row for row in errors),
+            "registry_membership_is_not_position_evidence": not any("registry membership alone" in row for row in errors),
+            "human_only_capital_authority": not any("capital authority" in row for row in errors),
+            "automated_and_generic_screens_cannot_authorize_capital": not any("permits" in row for row in errors),
+            "tier_2_and_tier_3_disable_committee_auto_start": not any("committee auto-start" in row for row in errors),
+            "source_health_acceptable": source_health.get("status") == "healthy",
         },
-        "source_health": source_health,
-        "source_errors": sorted(source_errors),
-        "unmatched_source_records": unmatched,
-        "validation": {
-            "status": validation_status,
-            "errors": validation_errors,
-        },
-        "summary": {
-            "universe_count": len(universe),
-            "assignment_count": len(assignments),
-            "tier_counts": {tier_id: counts.get(tier_id, 0) for tier_id in ("tier_1", "tier_2", "tier_3")},
-            "reason_counts": dict(sorted(reason_counts.items())),
-            "active_position_tickers": active_position_tickers,
-            "active_committee_workflows": active_workbenches,
-            "priority_stances": priority_stance_count,
-            "unmatched_source_record_count": len(unmatched),
-        },
-        "assignments": assignments,
     }
 
 
-def validate_assignments(assignments: dict[str, dict[str, Any]], universe: set[str]) -> list[str]:
-    errors: list[str] = []
-    assigned = set(assignments)
-    if assigned != universe:
-        missing = sorted(universe - assigned)
-        extra = sorted(assigned - universe)
-        if missing:
-            errors.append("missing assignments: " + ", ".join(missing[:20]))
-        if extra:
-            errors.append("assignments outside universe: " + ", ".join(extra[:20]))
-    for ticker, row in sorted(assignments.items()):
-        tier = row.get("tier")
-        if tier not in {1, 2, 3}:
-            errors.append(f"{ticker}: invalid tier {tier!r}")
-        if not row.get("assignment_reasons"):
-            errors.append(f"{ticker}: assignment reasons are empty")
-        policy = row.get("workflow_policy") or {}
-        if policy.get("automated_models_can_authorize_capital") is not False:
-            errors.append(f"{ticker}: automated capital authority is not explicitly false")
-        if tier in {2, 3} and policy.get("committee_auto_start_allowed") is not False:
-            errors.append(f"{ticker}: non-Tier-1 committee auto-start is not blocked")
-    return errors
+def build(as_of: str, root: Path = ROOT) -> dict:
+    root = Path(root)
+    health: dict[str, dict] = {}
+    policy_path = root / POLICY_REL
+    policy_payload = _read_json(policy_path, root, health, "policy", required=True)
+    policy = policy_payload if isinstance(policy_payload, dict) else {}
+    validate_policy(policy)
+
+    signals: dict[str, list[dict]] = defaultdict(list)
+    universe: set[str] = set()
+    registry_holdings = _collect_registry(root, health, signals, universe)
+    _collect_positions(root, health, signals, universe)
+    _collect_followups(root, health, signals, universe)
+    _collect_classifications(root, health, signals, universe, registry_holdings)
+    _collect_targets(root, health, signals, universe)
+    _collect_workbenches(root, health, signals, universe)
+    _collect_committee_manifests(root, health, signals, universe)
+    _collect_triggers(root, health, signals, universe)
+    _collect_human_decisions(root, as_of, health, signals, universe)
+
+    overrides = policy.get("overrides") or {}
+    universe.update(_ticker(ticker) for ticker in overrides if _ticker(ticker))
+    definitions = policy["tier_definitions"]
+    assignments = {}
+    for ticker in sorted(universe):
+        observed = sorted(signals[ticker], key=lambda row: (
+            row["qualifying_tier"], row["code"], row["source_ref"], row["detail"]
+        ))
+        automatic_tier = min((row["qualifying_tier"] for row in observed), default=3)
+        override = overrides.get(ticker) or overrides.get(ticker.lower())
+        final_tier = _override_tier((override or {}).get("tier")) if override else automatic_tier
+        assignment_source = "owner_override" if override else "automatic"
+        if override:
+            observed.append({
+                "qualifying_tier": final_tier,
+                "code": "owner_override",
+                "detail": str(override["reason"]).strip(),
+                "source_ref": POLICY_REL.as_posix(),
+            })
+            observed = sorted(observed, key=lambda row: (
+                row["qualifying_tier"], row["code"], row["source_ref"], row["detail"]
+            ))
+        definition = definitions[f"tier_{final_tier}"]
+        assignments[ticker] = {
+            "ticker": ticker,
+            "tier": final_tier,
+            "tier_id": f"tier_{final_tier}",
+            "label": definition["label"],
+            "research_depth": definition["research_depth"],
+            "actionability_cap": definition["actionability_cap"],
+            "assignment_source": assignment_source,
+            "automatic_tier": automatic_tier,
+            "override_reason": str((override or {}).get("reason") or "").strip() or None,
+            "review_by": (override or {}).get("review_by"),
+            "review_overdue": bool((override or {}).get("review_by") and str(override["review_by"])[:10] < as_of[:10]),
+            "assignment_reasons": observed,
+            "promotion_gates": copy.deepcopy(definition["promotion_gates"]),
+            "demotion_conditions": copy.deepcopy(definition["demotion_conditions"]),
+            "workflow_policy": copy.deepcopy(definition["workflow_policy"]),
+        }
+
+    source_health = _finalize_health(health)
+    tier_counts = {
+        f"tier_{tier}": sum(row["tier"] == tier for row in assignments.values())
+        for tier in (1, 2, 3)
+    }
+    manifest = {
+        "schema_version": "1.0",
+        "as_of": as_of[:10],
+        "policy_id": policy.get("policy_id"),
+        "policy_ref": POLICY_REL.as_posix(),
+        "universe_semantics": {
+            "registry_holdings": "research universe membership only; never treated as owned positions",
+            "tier_purpose": "research depth and workflow priority, not capital authorization",
+            "capital_authority": "human_decision_only",
+            "automated_and_generic_models": "screening only; never authorize capital",
+        },
+        "summary": {
+            "security_count": len(assignments),
+            "tier_counts": tier_counts,
+            "owner_override_count": sum(row["assignment_source"] == "owner_override" for row in assignments.values()),
+            "automatic_assignment_count": sum(row["assignment_source"] == "automatic" for row in assignments.values()),
+        },
+        "source_health": source_health,
+        "assignments": assignments,
+    }
+    manifest["validation"] = _assignment_validation(assignments, source_health)
+    return manifest
 
 
-def validate_manifest(manifest: dict[str, Any]) -> list[str]:
-    assignments = manifest.get("assignments") or {}
-    errors = []
-    if manifest.get("schema_version") != "1.0":
-        errors.append("schema_version must be 1.0")
-    if not isinstance(assignments, dict):
-        return [*errors, "assignments must be an object"]
-    errors.extend(validate_assignments(assignments, set(assignments)))
-    counts = Counter(row.get("tier_id") for row in assignments.values())
-    expected = (manifest.get("summary") or {}).get("tier_counts") or {}
-    for tier_id in ("tier_1", "tier_2", "tier_3"):
-        if expected.get(tier_id) != counts.get(tier_id, 0):
-            errors.append(f"summary count mismatch for {tier_id}")
-    if (manifest.get("summary") or {}).get("assignment_count") != len(assignments):
-        errors.append("summary assignment_count mismatch")
-    return errors
+def render(payload: dict) -> str:
+    return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
 
-def write_manifest(manifest: dict[str, Any], output: Path = OUTPUT) -> Path:
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return output
-
-
-def main(argv: list[str] | None = None) -> int:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--date", default=date.today().isoformat())
-    parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--check", action="store_true", help="Verify the committed artifact exactly matches current inputs.")
-    parser.add_argument("--strict-sources", action="store_true", help="Fail when a required source is missing or invalid.")
-    args = parser.parse_args(argv)
-    output = args.output or (ROOT / "_system" / "data" / "valuation_universe_tiers.json")
-    try:
-        manifest = build_manifest(ROOT, args.date)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-    errors = validate_manifest(manifest)
-    if errors:
-        print("tier manifest validation failed: " + "; ".join(errors), file=sys.stderr)
-        return 1
-    if args.strict_sources and manifest.get("source_errors"):
-        print("tier source validation failed: " + "; ".join(manifest["source_errors"]), file=sys.stderr)
-        return 1
-    expected = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    parser.add_argument("--date", default=datetime.now(timezone.utc).date().isoformat())
+    parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--out", type=Path)
+    parser.add_argument("--check", action="store_true", help="Fail when the committed manifest differs from a fresh build.")
+    args = parser.parse_args()
+    payload = build(args.date, args.root)
+    target = args.out or args.root / OUTPUT_REL
+    expected = render(payload)
     if args.check:
-        try:
-            current = output.read_text(encoding="utf-8")
-        except OSError as exc:
-            print(f"tier manifest missing or unreadable: {exc}", file=sys.stderr)
+        actual = target.read_text(encoding="utf-8") if target.exists() else ""
+        if actual != expected:
+            print(f"valuation universe tier manifest is stale: {target}")
             return 1
-        if current != expected:
-            print(f"tier manifest is stale: regenerate {output}", file=sys.stderr)
-            return 1
-    else:
-        write_manifest(manifest, output)
-    summary = manifest["summary"]
-    print(json.dumps({"status": "valid", "as_of": manifest["as_of"], **summary["tier_counts"]}))
-    return 0
+        print(f"valuation universe tier manifest is current: {target}")
+        return 0
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(expected, encoding="utf-8")
+    print(json.dumps(payload["summary"], sort_keys=True))
+    return 0 if payload["validation"]["status"] == "pass" else 1
 
 
 if __name__ == "__main__":

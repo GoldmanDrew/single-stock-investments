@@ -1,17 +1,17 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "1.0",
   "governance": {
     "production_rule": "Only approved, versioned method cards may produce a decision-grade component value.",
     "library_role": "Library sources establish reusable method logic and failure modes; issuer primary evidence supplies company facts.",
     "crowd_rule": "Independent reviewers nominate methods, challenge assumptions, and supply base rates. Incompatible values are never averaged.",
     "arithmetic_rule": "Deterministic calculators, not LLMs, produce final values.",
-    "output_basis_rule": "Every approved method declares whether its proof output is present_value_today, future_payoff, or forward_cashflow_schedule. A present value is never annualized or discounted again."
+    "output_basis_rule": "Every approved method declares whether its proof output is a present value today, a dated future payoff, or a dated forward cash-flow schedule. A present value is never annualized or discounted again."
   },
   "method_cards": [
     {
       "method_id": "royalty_distribution_curve", "version": "1.0", "status": "approved",
-      "label": "Finite royalty distribution curve", "power_zones": ["scarce_asset_optionality"],
       "output_basis": "present_value_today",
+      "label": "Finite royalty distribution curve", "power_zones": ["scarce_asset_optionality"],
       "economic_claim": "After-expense distributions from a legally defined royalty or trust claim over finite production.",
       "required_inputs": ["contractual royalty tiers", "production by period", "realized pricing or contractual index", "bonus thresholds", "trust expenses and taxes", "reserve life", "units outstanding", "discount rate"],
       "equation": "value_per_unit = sum((tons_t * royalty_per_ton_t - trust_costs_t) / (1+r)^t) / units",
@@ -24,8 +24,8 @@
     },
     {
       "method_id": "net_asset_value", "version": "1.0", "status": "approved",
-      "label": "Reconciled net asset value", "power_zones": ["scarce_asset_optionality", "catalyst_asset_value", "credit_and_normalized_returns"],
       "output_basis": "present_value_today",
+      "label": "Reconciled net asset value", "power_zones": ["scarce_asset_optionality", "catalyst_asset_value", "credit_and_normalized_returns"],
       "economic_claim": "Audited or contractually supported assets less senior claims, realization costs, taxes, and friction.",
       "required_inputs": ["asset quantity", "unit value", "ownership claim", "senior claims", "tax and realization costs", "fully diluted units"],
       "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
@@ -38,8 +38,8 @@
     },
     {
       "method_id": "owner_earnings_reinvestment_dcf", "version": "1.0", "status": "approved",
-      "label": "Owner earnings and reinvestment-return DCF", "power_zones": ["quality_reinvestment"],
       "output_basis": "present_value_today",
+      "label": "Owner earnings and reinvestment-return DCF", "power_zones": ["quality_reinvestment"],
       "economic_claim": "Present value of distributable owner cash after charging the capital required for growth.",
       "required_inputs": ["normalized owner earnings", "reinvestment rate", "incremental after-tax ROIC", "runway", "discount rate", "terminal economics"],
       "equation": "cash_t = cash_(t-1)*(1+reinvestment*incremental_ROIC); value = PV(distributable cash + terminal owner earnings)",
@@ -52,8 +52,8 @@
     },
     {
       "method_id": "midcycle_capacity_value", "version": "1.0", "status": "approved",
-      "label": "Capital-cycle normalized capacity value", "power_zones": ["capital_cycle"],
       "output_basis": "present_value_today",
+      "label": "Capital-cycle normalized capacity value", "power_zones": ["capital_cycle"],
       "economic_claim": "Equity value supported by normalized utilization and unit margins after maintenance capital and downside reserves.",
       "required_inputs": ["capacity", "utilization", "revenue per unit", "normalized margin", "maintenance capital", "tax", "net debt", "shares"],
       "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
@@ -66,8 +66,8 @@
     },
     {
       "method_id": "capital_structure_and_excess_return", "version": "1.0", "status": "approved",
-      "label": "Tangible capital and excess-return value", "power_zones": ["credit_and_normalized_returns"],
       "output_basis": "present_value_today",
+      "label": "Tangible capital and excess-return value", "power_zones": ["credit_and_normalized_returns"],
       "economic_claim": "Tangible equity plus the finite value of normalized returns above the cost of equity, less stress losses and senior claims.",
       "required_inputs": ["tangible equity", "normalized ROE", "cost of equity", "excess-return duration", "stress losses", "senior claims", "shares"],
       "equation": "value = (tangible_equity + max(ROE-COE,0)*tangible_equity*duration - stress_losses - senior_claims)/shares",
@@ -80,8 +80,8 @@
     },
     {
       "method_id": "probability_weighted_catalyst_nav", "version": "1.0", "status": "approved",
-      "label": "Mutually exclusive catalyst event tree", "power_zones": ["catalyst_asset_value"],
       "output_basis": "present_value_today",
+      "label": "Mutually exclusive catalyst event tree", "power_zones": ["catalyst_asset_value"],
       "economic_claim": "Expected present equity payoff across exhaustive, mutually exclusive completion, delay, and break outcomes.",
       "required_inputs": ["event list", "probability", "payoff", "remaining cost", "timing", "discount rate"],
       "equation": "value = sum(probability_i*(payoff_i-cost_i)/(1+r_i)^years_i)",
@@ -94,8 +94,8 @@
     },
     {
       "method_id": "risk_adjusted_milestone_value", "version": "1.0", "status": "approved",
-      "label": "Milestone risk-adjusted present value", "power_zones": ["binary_milestone"],
       "output_basis": "present_value_today",
+      "label": "Milestone risk-adjusted present value", "power_zones": ["binary_milestone"],
       "economic_claim": "Net cash plus probability-weighted asset success values less remaining costs and dilution.",
       "required_inputs": ["asset milestones", "base-rate success probability", "success value", "time", "remaining costs", "cash runway", "dilution", "shares"],
       "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
@@ -108,8 +108,8 @@
     },
     {
       "method_id": "owner_cash_or_dividend_discount", "version": "1.0", "status": "approved",
-      "label": "Predictable owner-cash discount model", "power_zones": ["predictable_cash_flow"],
       "output_basis": "present_value_today",
+      "label": "Predictable owner-cash discount model", "power_zones": ["predictable_cash_flow"],
       "economic_claim": "Value of sustainable owner cash or distributions after required funding and dilution.",
       "required_inputs": ["sustainable distribution", "growth", "required return", "maintenance funding", "dilution"],
       "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
@@ -119,6 +119,34 @@
       "failure_modes": ["dividend treated as earning power", "required return not above growth", "renewal or reset ignored"],
       "corroborating_methods": ["regulated_asset_base", "yield_and_reverse_dcf"],
       "sources": [{"ref": "_system/frameworks/segment_cashflow_valuation.md", "locator": "Cash-flow duration and funding"}]
+    },
+    {
+      "method_id": "dated_future_payoff_per_share", "version": "1.0", "status": "approved",
+      "output_basis": "future_payoff",
+      "label": "Dated future equity payoff", "power_zones": ["scarce_asset_optionality", "catalyst_asset_value", "binary_milestone"],
+      "economic_claim": "A source-backed per-share equity payoff at one explicit future date or horizon, before discounting to present value.",
+      "required_inputs": ["low/base/high future payoff per share", "payoff date or positive horizon", "required return", "senior claims and remaining capital already reflected"],
+      "equation": "present_value_today = future_payoff_per_share / (1 + required_return)^years; forward_return_at_price = (future_payoff_per_share / price)^(1/years) - 1",
+      "allowed_judgments": ["scenario payoff", "payoff date", "required return"],
+      "scenario_rule": "Cases vary source-backed payoff drivers and timing; each output is explicitly a future payoff rather than a present value.",
+      "double_counting_exclusions": ["Do not add interim cash flows already included in the payoff.", "Do not discount the payoff inside the calculation proof and again in the contract."],
+      "failure_modes": ["present value mislabeled as future payoff", "undated terminal value", "remaining capital or senior claims omitted"],
+      "corroborating_methods": ["present_value_cross_check", "break_value"],
+      "sources": [{"ref": "_system/frameworks/proof_first_valuation.md", "locator": "Output basis and dated forward economics"}]
+    },
+    {
+      "method_id": "dated_forward_cashflow_schedule_per_share", "version": "1.0", "status": "approved",
+      "output_basis": "forward_cashflow_schedule",
+      "label": "Dated forward per-share cash-flow schedule", "power_zones": ["scarce_asset_optionality", "quality_reinvestment", "capital_cycle", "credit_and_normalized_returns", "catalyst_asset_value", "predictable_cash_flow", "binary_milestone"],
+      "economic_claim": "A complete low/base/high schedule of dated cash flows accruing to one fully diluted share.",
+      "required_inputs": ["low/base/high dated cash-flow schedules per share", "required return", "fully diluted share claim", "terminal or final realization cash flow if any"],
+      "equation": "present_value_today = sum(cashflow_t / (1 + required_return)^t); forward_return_at_price = unique IRR(-price, dated_cashflows)",
+      "allowed_judgments": ["cash-flow amount", "cash-flow date", "required return", "terminal realization"],
+      "scenario_rule": "Every case contains a complete dated schedule; cases change causal operating, capital, probability, timing, or financing drivers.",
+      "double_counting_exclusions": ["Do not include a terminal payoff and the same continuing cash flows twice.", "Do not discount scheduled cash flows inside the proof and again in the contract."],
+      "failure_modes": ["undated cash flows", "multiple-sign-change IRR presented as unique", "terminal value without a dated realization", "present-value output mixed into the forward schedule"],
+      "corroborating_methods": ["present_value_cross_check", "reverse_expectations"],
+      "sources": [{"ref": "_system/frameworks/proof_first_valuation.md", "locator": "Output basis and dated forward economics"}]
     }
   ]
 }

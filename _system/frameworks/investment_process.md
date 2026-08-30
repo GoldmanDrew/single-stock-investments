@@ -7,6 +7,7 @@ Single-stock research workflow for this workspace.
 - Read README, INDEX.csv, or document-index.csv per holding
 - Check `_download_log.txt` for freshness
 - **New / watchlist names:** `idea_funnel.md` gate before full deep dive (see `analysis_arsenal.md`)
+- Read the valuation-universe assignment. Tier 1 receives active underwriting, Tier 2 receives curated follow-up, and Tier 3 receives screening only until a promotion gate is met.
 
 ## 2. Download
 - Run or author market-appropriate download scripts
@@ -22,13 +23,15 @@ Single-stock research workflow for this workspace.
 - Apply `_system/frameworks/decision_stack.md` (six orthogonal questions)
 - Triggered tools from `_system/frameworks/analysis_arsenal.md` only when payoff lens or archetype requires
 - Write prose per `_system/frameworks/report_prose.md` (Hohn/HK voice; spell out mental models; no em dashes)
-- Tier 2 prompts from `archetype_models.json`; appendix detail in `mental_models.md` / `lawrence_irr.md` only if needed
+- Archetype second-pass prompts from `archetype_models.json`; appendix detail in `mental_models.md` / `lawrence_irr.md` only if needed
 - Apply `ai_disruption_lens.md` where relevant
 - Write to `{TICKER}/research/` — not chat-only
 - Valuation authority: `valuation_route.json` → `valuation_contract.json` → `valuation_workbench.json` via `run_security_decision_pipeline.py`. `valuation.json` is an input/legacy envelope, not the final decision.
+- Contract v3 records the proof's `output_basis`. `present_value_today` publishes value and margin of safety but no forward return; only a dated payoff or cash-flow schedule can publish a forward return or hurdle entry price.
+- Keep proof status, model level, and universe tier separate. A proof-complete generic screen remains `screening_grade`, regardless of its tier.
 
 ## 5. Review loop
-- Freeze a decision-grade evidence packet only after all critical acceptance tests close.
+- Freeze a decision-grade evidence packet only after all critical acceptance tests close and the model is stock-specific.
 - Run three isolated Power Zone committee reviewers plus an outside pre-mortem.
 - Preserve dissent and route the recommendation to `human_decision.json`; agents never size capital.
 - Copy summary to `_system/reviews/pending/`
@@ -38,7 +41,7 @@ Single-stock research workflow for this workspace.
 
 ## Output standards
 Every report ends with:
-- **Classification** table (archetype, moat, dhando, stance, cycle, implied_irr, irr_method, lawrence_bucket) — see `_system/frameworks/classification.md`
+- **Classification** table (archetype, moat, dhando, stance, cycle, intrinsic value/margin of safety, forward return when available, model level, universe tier, method) — see `_system/frameworks/classification.md`
 - [HUMAN REVIEW] items
 - [PROPOSED MEMORY] bullets (daily log only)
 

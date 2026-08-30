@@ -18,6 +18,28 @@
     return { label: 'missing', cls: 'badge-warn' };
   }
 
+  function modelLevelMeta(level, fallbackStatus) {
+    const value = String(level || '').toLowerCase();
+    if (value === 'owner_approved') return { label: 'owner approved', cls: 'badge-ok' };
+    if (value === 'committee_reviewed') return { label: 'committee reviewed', cls: 'badge-ok' };
+    if (value === 'stock_specific') return { label: 'stock-specific', cls: 'badge-ok' };
+    if (value === 'screening_grade') return { label: 'screening only', cls: 'badge-warn' };
+    if (value === 'evidence_blocked') return { label: 'evidence blocked', cls: 'badge-bad' };
+    if (value === 'unmodeled') return { label: 'unmodeled', cls: 'badge-warn' };
+    return statusMeta(fallbackStatus);
+  }
+
+  function tierMeta(t) {
+    const tier = t.valuation_tier || decisionOf(t).universe_tier || {};
+    const n = Number(tier.tier);
+    if (![1, 2, 3].includes(n)) return { tier: null, label: null, cls: 'badge-warn' };
+    return {
+      tier: n,
+      label: tier.label || `Tier ${n}`,
+      cls: n === 1 ? 'badge-ok' : n === 2 ? 'badge-warn' : 'badge-warn',
+    };
+  }
+
   function workbenchStatusBadge(status, escapeHtml) {
     const text = String(status || 'pending').replace(/_/g, ' ');
     const good = ['outcome_tracking', 'ready_to_assemble', 'measured', 'complete', 'clear', 'decision_grade'];
@@ -28,14 +50,18 @@
 
   function renderValuationStatusCell(t, escapeHtml) {
     const d = decisionOf(t);
-    const meta = statusMeta(d.status);
+    const meta = modelLevelMeta(d.model_level, d.status);
+    const tier = tierMeta(t);
     const crit = d.critical_gap_count;
     const open = d.open_gap_count;
     let sub = '';
     if (crit > 0) sub = `${crit} critical`;
     else if (open > 0) sub = `${open} open`;
-    else if (d.status === 'decision_grade') sub = 'ready';
+    else if (d.model_level === 'screening_grade') sub = 'triage only';
+    else if (d.model_level === 'stock_specific') sub = 'IC eligible';
+    else if (d.status === 'decision_grade') sub = 'proof complete';
     else if (d.status === 'provisional') sub = 'first-pass';
+    if (tier.label) sub = `${tier.label}${sub ? ` · ${sub}` : ''}`;
     return `<div class="valuation-status-cell"><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>${sub ? `<div class="tier-sub">${escapeHtml(sub)}</div>` : ''}</div>`;
   }
 
@@ -51,40 +77,13 @@
 
   function renderPriceToBaseCell(t, fmtPct) {
     const d = decisionOf(t);
-    const rawPct = d.upside_downside_pct?.base ?? t.component_valuation?.upside_downside_pct?.base;
-    const absPct = rawPct == null ? null : Math.abs(Number(rawPct));
-    // Share-count unit bugs produce multi-million % gaps; hide rather than display.
-    const pct = (absPct != null && absPct > 50000) ? null : rawPct;
-    const years = d.horizon_years
-      ?? t.valuation_workbench?.valuation?.horizon_years
-      ?? t.valuation_workbench?.valuation?.valuation?.horizon_years
-      ?? t.valuation_workbench?.decision?.horizon_years;
-    const ann = d.annualized_return_at_price_pct?.base
-      ?? t.valuation_workbench?.decision?.annualized_return_at_price_pct?.base
-      ?? t.valuation_workbench?.valuation?.annualized_return_at_price_pct?.base
-      ?? t.valuation_workbench?.valuation?.valuation?.annualized_return_at_price_pct?.base;
-    if (pct == null && ann == null) {
+    const pct = d.margin_of_safety_pct?.base;
+    if (pct == null) {
       return '<span class="mono" style="color:var(--text-muted)">—</span>';
     }
-    const primary = pct != null ? Number(pct) : Number(ann);
-    const cls = primary >= 0 ? 'irr-pass' : 'irr-fail';
-    const titleParts = [
-      pct != null ? `Base value vs price: ${pct > 0 ? '+' : ''}${fmtPct(pct)}` : null,
-      ann != null ? `Annualized at price: ${Number(ann).toFixed(1)}%/yr` : null,
-      years != null ? `Horizon ${years}y (IRR = this annualized gap)` : null,
-      (d.provisional || d.status === 'evidence_blocked') ? 'Not decision-grade while evidence-blocked' : null,
-    ].filter(Boolean);
-    const head = pct != null
-      ? `${pct > 0 ? '+' : ''}${fmtPct(pct)}`
-      : `${Number(ann).toFixed(1)}%/yr`;
-    let sub = '';
-    if (pct != null && ann != null) {
-      const y = years != null ? ` · ${years}y` : '';
-      sub = `<span class="irr-sub">≈${Number(ann).toFixed(1)}%/yr${y}</span>`;
-    } else if (pct != null && years != null) {
-      sub = `<span class="irr-sub">${years}y horizon</span>`;
-    }
-    return `<span class="irr-cell ${cls}" title="${titleParts.join(' · ')}">${head}${sub}</span>`;
+    const cls = Number(pct) >= 0 ? 'irr-pass' : 'irr-fail';
+    const title = 'Margin of safety = (intrinsic value today − market price) / intrinsic value today';
+    return `<span class="irr-cell ${cls}" title="${title}">${Number(pct) > 0 ? '+' : ''}${fmtPct(pct)}<span class="irr-sub">margin of safety</span></span>`;
   }
 
   function claimList(items, escapeHtml, empty) {
@@ -97,42 +96,26 @@
     }).join('')}</ul>`;
   }
 
-  function parseIrrNumber(raw) {
-    if (raw == null || raw === '' || raw === 'pending') return null;
-    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-    const m = String(raw).match(/-?\d+(?:\.\d+)?/);
-    return m ? Number(m[0]) : null;
-  }
-
   function displayReturn(t) {
     const d = decisionOf(t);
-    const wb = t.valuation_workbench || {};
-    const decision = wb.decision || d;
-    const atPrice = decision.annualized_return_at_price_pct?.base
-      ?? d.annualized_return_at_price_pct?.base;
-    if (atPrice != null && Number.isFinite(Number(atPrice))) {
+    const atPrice = d.forward_return_at_price_pct?.base;
+    if (d.return_publishable && atPrice != null && Number.isFinite(Number(atPrice))) {
       return {
         pct: Number(atPrice),
-        label: 'Base return at price',
-        source: 'workbench',
-        sub: 'Implied annualized return at last price',
-      };
-    }
-    const cls = t.classification || {};
-    const thesis = cls.analysis_irr_pct ?? parseIrrNumber(cls.implied_irr);
-    if (thesis != null && Number.isFinite(Number(thesis))) {
-      return {
-        pct: Number(thesis),
-        label: 'Thesis IRR (classification)',
-        source: 'classification',
-        sub: 'House thesis IRR — not price-implied workbench return',
+        label: 'Forward return',
+        source: 'contract_forward_return',
+        sub: d.forward_return_reason || 'Dated payoff or cash-flow return at the current price',
       };
     }
     return {
       pct: null,
-      label: 'Return',
+      label: 'Forward return',
       source: 'missing',
-      sub: 'Return not modeled',
+      sub: d.forward_return_reason || (
+        d.model_level === 'screening_grade'
+          ? 'Withheld: generic screening model'
+          : 'Not modeled from dated forward cash flows'
+      ),
     };
   }
 
@@ -185,20 +168,21 @@
     const fmtQuote = (v, d) => helpers.fmtQuote(v, units, d);
     const d = decisionOf(t);
     const wb = t.valuation_workbench || {};
-    const decision = wb.decision || d;
+    const decision = d;
     if (!t.valuation_workbench && !t.component_valuation && d.status === 'missing') return '';
-    const meta = statusMeta(d.status || decision.status);
-    const values = decision.value_per_share || d.value_per_share
+    const meta = modelLevelMeta(d.model_level, d.status);
+    const tier = tierMeta(t);
+    const values = d.present_value_today_per_share || d.value_per_share
       || t.component_valuation?.total_equity_value_per_share || {};
-    const price = decision.price_per_share ?? d.price_per_share
+    const price = d.price_per_share
       ?? t.component_valuation?.price_per_share;
-    const upside = d.upside_downside_pct?.base
-      ?? t.component_valuation?.upside_downside_pct?.base;
+    const margin = d.margin_of_safety_pct?.base;
     const ret = displayReturn(t);
     const zone = primaryPowerZone(t, personaMeta || {});
     const stance = t.classification?.stance || '—';
     const stanceCls = (stanceBadgeClass && stanceBadgeClass[stance]) || 'badge-warn';
-    const asOf = wb.as_of || t.classification?.analysis_as_of || '—';
+    const dates = d.dates || {};
+    const asOf = dates.model_as_of || wb.as_of || t.classification?.analysis_as_of || '—';
     const hasWorkbench = !!t.valuation_workbench;
     const crit = Number(d.critical_gap_count || 0);
     const open = Number(d.open_gap_count || 0);
@@ -217,7 +201,7 @@
       ? `${zone.label}${zone.fit != null ? ` · ${Math.round(Number(zone.fit) * 100)}%` : ''}`
       : 'No persona zone';
     const retDisplay = ret.pct != null ? fmtPct(ret.pct) : 'not modeled';
-    const upsideCls = upside == null ? '' : (Number(upside) >= 0 ? 'irr-pass' : 'irr-fail');
+    const marginCls = margin == null ? '' : (Number(margin) >= 0 ? 'irr-pass' : 'irr-fail');
     const rangeLow = values.low;
     const rangeHigh = values.high;
     const rangeBase = values.base;
@@ -242,25 +226,37 @@
         ? 'Build valuation workbench or close provisional evidence before committee.'
         : 'Close evidence gaps before committee freeze.');
 
+    const legacy = d.legacy_audit || {};
+    const legacyBase = legacy.annualized_return_at_price_pct?.base;
+    const legacyAudit = legacy.status
+      ? `<details style="margin-top:9px"><summary class="tier-sub">Legacy calculation audit (non-actionable)</summary><div class="workbench-callout"><strong>Excluded result:</strong> ${legacyBase == null ? '—' : `${fmtPct(legacyBase)}/yr`}<br>${escapeHtml(legacy.reason_non_actionable || 'Legacy result is excluded from ranking and capital decisions.')}</div></details>`
+      : '';
+
     return `<div class="detail-section valuation-decision-strip decision-hero">
       <h3>Decision</h3>
       <div class="metric-grid metric-grid-3 decision-band">
         <div class="metric"><div class="k">Stance</div><div class="v"><span class="badge ${stanceCls}">${escapeHtml(stance)}</span></div></div>
-        <div class="metric"><div class="k">Readiness</div><div class="v"><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span></div></div>
-        <div class="metric"><div class="k">As of</div><div class="v mono">${escapeHtml(asOf)}</div></div>
+        <div class="metric"><div class="k">Model readiness</div><div class="v"><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span></div></div>
+        <div class="metric"><div class="k">Research tier</div><div class="v">${tier.label ? `<span class="badge ${tier.cls}">${escapeHtml(tier.label)}</span>` : '<span class="mono">—</span>'}</div></div>
       </div>
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
-        <div class="metric"><div class="k">Price / base</div><div class="v mono">${fmtQuote(price)} / ${fmtQuote(rangeBase)}</div></div>
-        <div class="metric"><div class="k">vs price</div><div class="v mono ${upsideCls}">${upside == null ? '—' : `${Number(upside) > 0 ? '+' : ''}${fmtPct(upside)}`}</div></div>
-        <div class="metric"><div class="k">Low / high</div><div class="v mono">${fmtQuote(rangeLow)} / ${fmtQuote(rangeHigh)}</div></div>
+        <div class="metric"><div class="k">Price / PV today</div><div class="v mono">${fmtQuote(price)} / ${fmtQuote(rangeBase)}</div></div>
+        <div class="metric"><div class="k">Margin of safety</div><div class="v mono ${marginCls}">${margin == null ? '—' : `${Number(margin) > 0 ? '+' : ''}${fmtPct(margin)}`}</div></div>
+        <div class="metric"><div class="k">PV today low / high</div><div class="v mono">${fmtQuote(rangeLow)} / ${fmtQuote(rangeHigh)}</div></div>
       </div>
       ${trackHtml}
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
         <div class="metric"><div class="k">${escapeHtml(ret.label)}</div><div class="v mono">${escapeHtml(retDisplay)}<div class="tier-sub">${escapeHtml(ret.sub)}</div></div></div>
+        <div class="metric"><div class="k">Required return</div><div class="v mono">${d.required_return_pct == null ? '—' : fmtPct(d.required_return_pct)}<div class="tier-sub">${escapeHtml(String(d.output_basis || 'basis not declared').replace(/_/g, ' '))}</div></div></div>
+        <div class="metric"><div class="k">Model / fact / price dates</div><div class="v mono" style="font-size:11px">${escapeHtml(asOf)} / ${escapeHtml(dates.latest_fact_as_of || '—')} / ${escapeHtml(dates.price_as_of || '—')}</div></div>
+      </div>
+      <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
         ${gapsHtml}
         <div class="metric"><div class="k">Power zone</div><div class="v" style="font-size:12px">${escapeHtml(zoneLabel)}</div></div>
+        <div class="metric"><div class="k">Output basis</div><div class="v" style="font-size:12px">${escapeHtml(String(d.output_basis || 'not declared').replace(/_/g, ' '))}</div></div>
       </div>
       <div class="workbench-callout"><strong>Next:</strong> ${escapeHtml(nextAction)}${d.next_gap_id ? `<div class="tier-sub" style="margin-top:4px">Next gap: ${escapeHtml(d.next_gap_id)}</div>` : ''}</div>
+      ${legacyAudit}
       ${provisional ? '<p class="tier-sub" style="margin-top:8px">Ranges are provisional until acceptance tests are met. Do not treat them as IC-approved targets.</p>' : ''}
     </div>`;
   }
@@ -273,6 +269,7 @@
     const fmtSignedQuote = (v) => helpers.fmtSignedQuote(v, units);
     const wb = t.valuation_workbench;
     if (!wb) return '';
+    const published = decisionOf(t);
     const decision = wb.decision || {};
     const business = wb.business || {};
     const valuation = wb.valuation || {};
@@ -286,6 +283,10 @@
     const progressPct = progress.required ? Math.min(100, Number(progress.completed || 0) / Number(progress.required) * 100) : 0;
     const ic = t.investment_committee;
     const proofSummary = valuation.calculation_proof_summary || {};
+    const publishedReturn = displayReturn(t);
+    const publishedReturnText = publishedReturn.pct == null ? 'not modeled' : fmtPct(publishedReturn.pct);
+    const readiness = modelLevelMeta(published.model_level || wb.model_level, published.status || decision.status);
+    const modelDates = published.dates || wb.dates || {};
     const valueText = (row) => row.range_per_share?.base == null
       ? 'unpriced'
       : `${fmtQuote(row.range_per_share.low)} / ${fmtQuote(row.range_per_share.base)} / ${fmtQuote(row.range_per_share.high)}`;
@@ -378,12 +379,12 @@
 
     const decisionPage = `
       <div class="metric-grid metric-grid-3">
-        <div class="metric"><div class="k">Decision readiness</div><div class="v">${workbenchStatusBadge(decision.status, escapeHtml)}</div></div>
-        <div class="metric"><div class="k">Price / base value</div><div class="v mono">${fmtQuote(decision.price_per_share)} / ${fmtQuote(decision.value_per_share?.base)}</div></div>
-        <div class="metric"><div class="k">Base annual return</div><div class="v mono">${fmtPct(decision.annualized_return_at_price_pct?.base)}</div></div>
+        <div class="metric"><div class="k">Model readiness</div><div class="v"><span class="badge ${readiness.cls}">${escapeHtml(readiness.label)}</span></div></div>
+        <div class="metric"><div class="k">Price / PV today</div><div class="v mono">${fmtQuote(published.price_per_share ?? decision.price_per_share)} / ${fmtQuote(published.present_value_today_per_share?.base ?? published.value_per_share?.base ?? decision.value_per_share?.base)}</div></div>
+        <div class="metric"><div class="k">Forward return</div><div class="v mono">${escapeHtml(publishedReturnText)}<div class="tier-sub">${escapeHtml(publishedReturn.sub)}</div></div></div>
       </div>
       <div class="metric-grid metric-grid-3" style="margin-top:9px">
-        <div class="metric"><div class="k">Low / high value</div><div class="v mono">${fmtQuote(decision.value_per_share?.low)} / ${fmtQuote(decision.value_per_share?.high)}</div></div>
+        <div class="metric"><div class="k">PV today low / high</div><div class="v mono">${fmtQuote(published.value_per_share?.low ?? decision.value_per_share?.low)} / ${fmtQuote(published.value_per_share?.high ?? decision.value_per_share?.high)}</div></div>
         <div class="metric"><div class="k">Unvalued components</div><div class="v mono">${Number(decision.unvalued_component_count || 0)}</div></div>
         <div class="metric"><div class="k">Evidence blockers</div><div class="v mono">${Number(decision.unresolved_evidence_count || 0)}</div></div>
       </div>
@@ -392,6 +393,7 @@
         <div class="metric"><div class="k">Priced components</div><div class="v mono">${Number(proofSummary.priced_component_count || 0)} / ${Number(proofSummary.component_count || 0)}</div></div>
         <div class="metric"><div class="k">Model hash</div><div class="v mono" style="font-size:11px">${escapeHtml(String(decision.model_hash || valuation.change_control?.model_hash || '—').slice(0, 12))}</div></div>
       </div>
+      <div class="tier-sub" style="margin-top:8px">Model / latest fact / price dates: ${escapeHtml(modelDates.model_as_of || wb.as_of || '—')} / ${escapeHtml(modelDates.latest_fact_as_of || '—')} / ${escapeHtml(modelDates.price_as_of || '—')}</div>
       <div class="workbench-callout"><strong>Power zone:</strong> ${escapeHtml(decision.primary_power_zone || 'review required')}<br><strong>Next:</strong> ${escapeHtml(decision.next_action || 'Complete evidence and committee gates.')}</div>`;
 
     const businessPage = `
@@ -408,9 +410,10 @@
     const valuationPage = `
       <div class="metric-grid metric-grid-3">
         <div class="metric"><div class="k">Market cap</div><div class="v mono">${valuation.market?.market_cap_m == null ? '—' : fmtQuote(valuation.market.market_cap_m) + 'm'}</div></div>
-        <div class="metric"><div class="k">Base value</div><div class="v mono">${fmtQuote(valuation.valuation?.value_per_share?.base)}</div></div>
-        <div class="metric"><div class="k">Low-case downside</div><div class="v mono">${fmtPct(valuation.valuation?.downside_to_low_pct)}</div></div>
+        <div class="metric"><div class="k">Base PV today</div><div class="v mono">${fmtQuote(published.present_value_today_per_share?.base ?? valuation.valuation?.present_value_today_per_share?.base ?? valuation.valuation?.value_per_share?.base)}</div></div>
+        <div class="metric"><div class="k">Base margin of safety</div><div class="v mono">${fmtPct(published.margin_of_safety_pct?.base ?? valuation.valuation?.margin_of_safety_pct?.base)}</div></div>
       </div>
+      <div class="tier-sub" style="margin-top:7px">Output basis: ${escapeHtml(String(published.output_basis || valuation.valuation?.output_basis || 'not declared').replace(/_/g, ' '))} · required return ${published.required_return_pct == null ? '—' : fmtPct(published.required_return_pct)}</div>
       <div class="workbench-callout">${escapeHtml(valuation.scenario_contract?.rule || '')}</div>
       ${scheduleRows ? `<h4 style="margin:13px 0 0">Component schedule</h4><table class="workbench-table"><thead><tr><th>Component</th><th>Low</th><th>Base</th><th>High</th><th>Status</th></tr></thead><tbody>${scheduleRows}</tbody></table>` : ''}
       ${proofCards ? `<h4 style="margin:13px 0 0">Show the math</h4><div class="workbench-list">${proofCards}</div>` : ''}
@@ -517,7 +520,7 @@
     return `<div class="detail-section valuation-workbench">
       <div class="workbench-head">
         <div>
-          <h3>Valuation workbench ${workbenchStatusBadge(decision.status || committee.status, escapeHtml)}</h3>
+          <h3>Valuation workbench <span class="badge ${readiness.cls}">${escapeHtml(readiness.label)}</span></h3>
           <div class="tier-sub">Decision readiness, ownership map, evidence gaps, method fit, committee, and measured outcomes · ${escapeHtml(wb.as_of || '—')}</div>
         </div>
         ${wb.github_url ? `<a class="research-link" href="${wb.github_url}" target="_blank" rel="noopener">Audit file →</a>` : ''}
@@ -615,8 +618,9 @@
     const counts = queue.counts || {};
     const waves = queue.expansion_waves || {};
     const rows = (queue.items || []).map((row) => {
-      const meta = statusMeta(row.decision_status);
+      const meta = modelLevelMeta(row.model_level, row.decision_status);
       const values = row.value_per_share || {};
+      const valuationTier = row.valuation_tier || {};
       const tier = String(row.next_gap_progress_tier || '');
       const tierBadge = tier === 'partially_met'
         ? '<span class="badge badge-warn">partially met</span>'
@@ -635,7 +639,7 @@
       return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(row.ticker)} evidence">
         <td><strong>${escapeHtml(row.ticker)}</strong><div class="tier-sub">${escapeHtml(row.company || '')}</div></td>
         <td>${escapeHtml(String(row.method_profile || '—').replace(/_/g, ' '))}</td>
-        <td><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>${row.in_validation_cohort ? '<div class="tier-sub">cohort</div>' : ''}</td>
+        <td><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span><div class="tier-sub">${escapeHtml(valuationTier.label || (valuationTier.tier ? `Tier ${valuationTier.tier}` : 'tier not assigned'))}${row.in_validation_cohort ? ' · cohort' : ''}</div></td>
         <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}</td>
         <td>${escapeHtml(row.next_gap_id || '—')}${row.next_gap_question ? `<div class="tier-sub">${escapeHtml(String(row.next_gap_question).slice(0, 120))}</div>` : ''}${progress}</td>
         <td class="mono">${values.base == null ? '—' : fmtQuote(values.base, 0)}</td>
@@ -672,6 +676,11 @@
     if (valuationFilter === 'provisional') return d.status === 'provisional' || d.provisional;
     if (valuationFilter === 'cohort') return !!d.in_validation_cohort;
     if (valuationFilter === 'phase2') return String(d.rollout_wave || '').startsWith('phase2');
+    if (valuationFilter === 'tier-1') return Number((t.valuation_tier || d.universe_tier || {}).tier) === 1;
+    if (valuationFilter === 'tier-2') return Number((t.valuation_tier || d.universe_tier || {}).tier) === 2;
+    if (valuationFilter === 'tier-3') return Number((t.valuation_tier || d.universe_tier || {}).tier) === 3;
+    if (valuationFilter === 'screening-grade') return d.model_level === 'screening_grade';
+    if (valuationFilter === 'stock-specific') return ['stock_specific', 'committee_reviewed', 'owner_approved'].includes(d.model_level);
     if (valuationFilter.startsWith('profile:')) {
       return d.method_profile === valuationFilter.slice('profile:'.length);
     }
@@ -681,6 +690,8 @@
   global.ValuationViz = {
     decisionOf,
     statusMeta,
+    modelLevelMeta,
+    tierMeta,
     displayReturn,
     primaryPowerZone,
     renderPowerZoneCell,

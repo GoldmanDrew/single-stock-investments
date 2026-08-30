@@ -1,8 +1,34 @@
 {
-  "schema_version": "2.0",
-  "status": "evidence_blocked",
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
   "ticker": "APO",
   "as_of": "2026-07-25",
+  "dates": {
+    "model_as_of": "2026-07-25",
+    "latest_fact_as_of": "2026-07-25",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-07-20"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -16.55,
+      "base": -0.04,
+      "high": 8.49
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
   "economic_ownership_map": [
     {
       "component_id": "core_engine",
@@ -22,6 +48,7 @@
         "method_id": "owner_cash_or_dividend_discount",
         "version": "1.0",
         "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
         "power_zones": [
           "predictable_cash_flow"
         ],
@@ -39,6 +66,7 @@
         "base": 111.3909,
         "high": 169.1762
       },
+      "output_basis": "present_value_today",
       "legacy_range_per_share": {
         "low": 62.21,
         "base": 111.39,
@@ -67,7 +95,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -313,7 +342,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -559,7 +589,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -801,14 +832,15 @@
             "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
             "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
             "as_of": "2025-12-31",
-            "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+            "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+            "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
           }
         ],
         "checks": {
           "passed": true,
           "errors": []
         },
-        "proof_hash": "6a6cc178f899e96e8d6c088b75d245bddf14cb63a81ca5b3d3fa6651cc486b62"
+        "proof_hash": "55e9ff86b155cccba6924a0ad023b14258e5cddd4fa18f38329b34cd654c632f"
       },
       "evidence_tier": "primary_derived",
       "evidence_level": "primary_derived",
@@ -838,6 +870,7 @@
         "method_id": "owner_earnings_reinvestment_dcf",
         "version": "1.0",
         "label": "Owner earnings and reinvestment-return DCF",
+        "output_basis": "present_value_today",
         "power_zones": [
           "quality_reinvestment"
         ],
@@ -855,6 +888,7 @@
         "base": 20.0,
         "high": 45.0
       },
+      "output_basis": "present_value_today",
       "legacy_range_per_share": {
         "low": 5.0,
         "base": 20.0,
@@ -883,7 +917,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -908,7 +943,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -933,7 +969,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -954,14 +991,15 @@
             "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
             "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
             "as_of": "2025-12-31",
-            "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+            "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+            "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
           }
         ],
         "checks": {
           "passed": true,
           "errors": []
         },
-        "proof_hash": "331a63b9e3847dd3f5d8b30c8ce077f1a21ff84bb649fd198c5b6bec067ed25a"
+        "proof_hash": "34c2e2a457aa58e5273e5e44f41f5bb056732ba0aa05c85a68b6a92c3773881b"
       },
       "evidence_tier": "primary_derived",
       "evidence_level": "primary_derived",
@@ -991,6 +1029,7 @@
         "method_id": "net_asset_value",
         "version": "1.0",
         "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
         "power_zones": [
           "scarce_asset_optionality",
           "catalyst_asset_value",
@@ -1010,6 +1049,7 @@
         "base": -3.4601,
         "high": -3.0195
       },
+      "output_basis": "present_value_today",
       "legacy_range_per_share": {
         "low": -3.9,
         "base": -3.46,
@@ -1038,8 +1078,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "CashAndCashEquivalents",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "486dd2ea1a4fba2d2689519f5482db6d409fff7c3c8925dee5cae3076fb522ec"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "6c909e06e5041b389060199ba77e133579040bd9d035f4918e8cfb97fa5a2420"
               },
               "rationale": null
             },
@@ -1053,8 +1093,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "LongTermDebt",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "6a05d1a365e0bb536d04c4a7512ce146179d27f3f56c3bc1a14d9f2bf9087e3f"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "51ac156dbb36b9ec4a491c605cf03c258885fff7a66ac227e9511c440f6a47b4"
               },
               "rationale": null
             },
@@ -1068,7 +1108,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -1107,8 +1148,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "CashAndCashEquivalents",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "486dd2ea1a4fba2d2689519f5482db6d409fff7c3c8925dee5cae3076fb522ec"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "6c909e06e5041b389060199ba77e133579040bd9d035f4918e8cfb97fa5a2420"
               },
               "rationale": null
             },
@@ -1122,8 +1163,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "LongTermDebt",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "6a05d1a365e0bb536d04c4a7512ce146179d27f3f56c3bc1a14d9f2bf9087e3f"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "51ac156dbb36b9ec4a491c605cf03c258885fff7a66ac227e9511c440f6a47b4"
               },
               "rationale": null
             },
@@ -1137,7 +1178,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -1176,8 +1218,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "CashAndCashEquivalents",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "486dd2ea1a4fba2d2689519f5482db6d409fff7c3c8925dee5cae3076fb522ec"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "6c909e06e5041b389060199ba77e133579040bd9d035f4918e8cfb97fa5a2420"
               },
               "rationale": null
             },
@@ -1191,8 +1233,8 @@
                 "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
                 "locator": "LongTermDebt",
                 "as_of": "2025-12-31",
-                "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-                "source_id": "6a05d1a365e0bb536d04c4a7512ce146179d27f3f56c3bc1a14d9f2bf9087e3f"
+                "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+                "source_id": "51ac156dbb36b9ec4a491c605cf03c258885fff7a66ac227e9511c440f6a47b4"
               },
               "rationale": null
             },
@@ -1206,7 +1248,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
                 "as_of": "2025-12-31",
-                "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
               },
               "rationale": null
             },
@@ -1241,30 +1284,31 @@
             "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
             "locator": "CashAndCashEquivalents",
             "as_of": "2025-12-31",
-            "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-            "source_id": "486dd2ea1a4fba2d2689519f5482db6d409fff7c3c8925dee5cae3076fb522ec"
+            "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+            "source_id": "6c909e06e5041b389060199ba77e133579040bd9d035f4918e8cfb97fa5a2420"
           },
           {
             "node_id": "long_term_debt_m",
             "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
             "locator": "LongTermDebt",
             "as_of": "2025-12-31",
-            "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-            "source_id": "6a05d1a365e0bb536d04c4a7512ce146179d27f3f56c3bc1a14d9f2bf9087e3f"
+            "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+            "source_id": "51ac156dbb36b9ec4a491c605cf03c258885fff7a66ac227e9511c440f6a47b4"
           },
           {
             "node_id": "shares_m",
             "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
             "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
             "as_of": "2025-12-31",
-            "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+            "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+            "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
           }
         ],
         "checks": {
           "passed": true,
           "errors": []
         },
-        "proof_hash": "c3c0b98be701e2d7550fbcb19509563592a1430b224e4448001b6193e335de78"
+        "proof_hash": "207d7345de4eb9e347554be094d17355dc54e7c69869f2b3256b3bfa4337ad14"
       },
       "evidence_tier": "primary_derived",
       "evidence_level": "primary_derived",
@@ -1294,6 +1338,7 @@
         "method_id": "midcycle_capacity_value",
         "version": "1.0",
         "label": "Capital-cycle normalized capacity value",
+        "output_basis": "present_value_today",
         "power_zones": [
           "capital_cycle"
         ],
@@ -1311,6 +1356,7 @@
         "base": -10.0,
         "high": -2.0
       },
+      "output_basis": "present_value_today",
       "legacy_range_per_share": {
         "low": -30.0,
         "base": -10.0,
@@ -1339,8 +1385,8 @@
                 "ref": "APO/research/valuation.json",
                 "locator": "inputs.price",
                 "as_of": "2026-07-25",
-                "content_sha256": "ce174d10f60fe4040edf227c4a09d4e8551780b56fdf5e83e4b527d1da033bb6",
-                "source_id": "ad5775ad143bcba55ebc0fc1f172cc5709ea0326ee1fbab2d1829355498853a1"
+                "content_sha256": "2beb5b508bf3a53bbc750b04924eb1678f6b47dd449318c498d84af40824d64f",
+                "source_id": "5d323be2ff74052c0942a25c385e4c65ecc31440ea7ec559225561bb554a0fba"
               },
               "rationale": null
             },
@@ -1354,7 +1400,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -1379,8 +1426,8 @@
                 "ref": "APO/research/valuation.json",
                 "locator": "inputs.price",
                 "as_of": "2026-07-25",
-                "content_sha256": "ce174d10f60fe4040edf227c4a09d4e8551780b56fdf5e83e4b527d1da033bb6",
-                "source_id": "ad5775ad143bcba55ebc0fc1f172cc5709ea0326ee1fbab2d1829355498853a1"
+                "content_sha256": "2beb5b508bf3a53bbc750b04924eb1678f6b47dd449318c498d84af40824d64f",
+                "source_id": "5d323be2ff74052c0942a25c385e4c65ecc31440ea7ec559225561bb554a0fba"
               },
               "rationale": null
             },
@@ -1394,7 +1441,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -1419,8 +1467,8 @@
                 "ref": "APO/research/valuation.json",
                 "locator": "inputs.price",
                 "as_of": "2026-07-25",
-                "content_sha256": "ce174d10f60fe4040edf227c4a09d4e8551780b56fdf5e83e4b527d1da033bb6",
-                "source_id": "ad5775ad143bcba55ebc0fc1f172cc5709ea0326ee1fbab2d1829355498853a1"
+                "content_sha256": "2beb5b508bf3a53bbc750b04924eb1678f6b47dd449318c498d84af40824d64f",
+                "source_id": "5d323be2ff74052c0942a25c385e4c65ecc31440ea7ec559225561bb554a0fba"
               },
               "rationale": null
             },
@@ -1434,7 +1482,8 @@
                 "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
                 "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
                 "as_of": "2025-12-31",
-                "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+                "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+                "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
               },
               "rationale": null
             },
@@ -1455,22 +1504,23 @@
             "ref": "APO/research/valuation.json",
             "locator": "inputs.price",
             "as_of": "2026-07-25",
-            "content_sha256": "ce174d10f60fe4040edf227c4a09d4e8551780b56fdf5e83e4b527d1da033bb6",
-            "source_id": "ad5775ad143bcba55ebc0fc1f172cc5709ea0326ee1fbab2d1829355498853a1"
+            "content_sha256": "2beb5b508bf3a53bbc750b04924eb1678f6b47dd449318c498d84af40824d64f",
+            "source_id": "5d323be2ff74052c0942a25c385e4c65ecc31440ea7ec559225561bb554a0fba"
           },
           {
             "node_id": "normalized_owner_cash",
             "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
             "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
             "as_of": "2025-12-31",
-            "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+            "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+            "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
           }
         ],
         "checks": {
           "passed": true,
           "errors": []
         },
-        "proof_hash": "7ab668a772a971e50c83a1798f9b95ede2d3da5c22474546ea384d27e4a5b7db"
+        "proof_hash": "49d9f36d5d013bf39aba5887de04b3c624b1dcc9add0bf788bb6968b0437e451"
       },
       "evidence_tier": "primary_derived",
       "evidence_level": "primary_derived",
@@ -1686,14 +1736,36 @@
     "price_per_share": 118.24,
     "fully_diluted_shares": 626000000,
     "market_cap_m": 74018.24,
-    "enterprise_value_m": 76184.24
+    "enterprise_value_m": 76184.24,
+    "price_source": "Yahoo APO close 2026-07-20",
+    "price_as_of": "2026-07-20"
   },
   "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 33.3103,
+      "base": 117.9308,
+      "high": 209.1567
+    },
     "value_per_share": {
       "low": 33.3103,
       "base": 117.9308,
       "high": 209.1567
     },
+    "present_value_today_per_share": {
+      "low": 33.3103,
+      "base": 117.9308,
+      "high": 209.1567
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
     "priced_components_per_share": {
       "low": 33.3103,
       "base": 117.9308,
@@ -1706,15 +1778,35 @@
     },
     "probability_weighted_value_per_share": 117.9308,
     "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
     "annualized_return_at_price_pct": {
-      "low": -16.55,
-      "base": -0.04,
-      "high": 8.49
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": 9.0,
+    "margin_of_safety_pct": {
+      "low": -254.97,
+      "base": -0.26,
+      "high": 43.47
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -71.83,
+      "base": -0.26,
+      "high": 76.89
     },
     "downside_to_low_pct": -71.83,
     "horizon_years": 7,
     "equity_liability_floor": 0.0,
-    "interpretation": "value_per_share is withheld while any material additive component is unpriced; priced_components_per_share is the raw additive sum (may be negative). When complete, value_per_share applies a 0 floor (limited liability)."
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
   },
   "scenario_contract": {
     "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
@@ -1770,7 +1862,7 @@
     },
     "all_material_components_priced": true,
     "calculation_errors": [],
-    "aggregate_proof_hash": "c613a59b534438b61924cda0243af34c6ea7b39be52893ffd19fc2905a59e5da"
+    "aggregate_proof_hash": "b9d1871b67ac5468d197022ba2d066de1f7a8122f8edcea3a93e46dc359853f9"
   },
   "source_lineage": [
     {
@@ -1779,7 +1871,8 @@
       "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
       "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
       "as_of": "2025-12-31",
-      "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+      "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+      "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
     },
     {
       "component_id": "reinvestment_runway",
@@ -1787,7 +1880,8 @@
       "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
       "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
       "as_of": "2025-12-31",
-      "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+      "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+      "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
     },
     {
       "component_id": "net_financial_claims",
@@ -1795,8 +1889,8 @@
       "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
       "locator": "CashAndCashEquivalents",
       "as_of": "2025-12-31",
-      "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-      "source_id": "486dd2ea1a4fba2d2689519f5482db6d409fff7c3c8925dee5cae3076fb522ec"
+      "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+      "source_id": "6c909e06e5041b389060199ba77e133579040bd9d035f4918e8cfb97fa5a2420"
     },
     {
       "component_id": "net_financial_claims",
@@ -1804,8 +1898,8 @@
       "ref": "APO/research/evidence/filing_facts_2026-07-25.json",
       "locator": "LongTermDebt",
       "as_of": "2025-12-31",
-      "content_sha256": "c16df140b6c995082cfe342a3c10c7cb575b58c2dea1e925b3241dc35debb7ad",
-      "source_id": "6a05d1a365e0bb536d04c4a7512ce146179d27f3f56c3bc1a14d9f2bf9087e3f"
+      "content_sha256": "a50001917d8fdf621e06bb4ccbd456d8b40e72ea35e30a5ec4dc96779d531601",
+      "source_id": "51ac156dbb36b9ec4a491c605cf03c258885fff7a66ac227e9511c440f6a47b4"
     },
     {
       "component_id": "net_financial_claims",
@@ -1813,7 +1907,8 @@
       "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
       "locator": "Implied from FY2025 NI \\,492M / EPS \\.58 \u2248 626M shares",
       "as_of": "2025-12-31",
-      "source_id": "2ddc7c01c818d153402801616f69d3326e9e7d1dcb17c40fb239157af4cb2f9d"
+      "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+      "source_id": "d95fd212554f70eee43f34b3209ce22de183ae1fb463abd7c24795c953dbfe2d"
     },
     {
       "component_id": "cycle_reserve",
@@ -1821,8 +1916,8 @@
       "ref": "APO/research/valuation.json",
       "locator": "inputs.price",
       "as_of": "2026-07-25",
-      "content_sha256": "ce174d10f60fe4040edf227c4a09d4e8551780b56fdf5e83e4b527d1da033bb6",
-      "source_id": "ad5775ad143bcba55ebc0fc1f172cc5709ea0326ee1fbab2d1829355498853a1"
+      "content_sha256": "2beb5b508bf3a53bbc750b04924eb1678f6b47dd449318c498d84af40824d64f",
+      "source_id": "5d323be2ff74052c0942a25c385e4c65ecc31440ea7ec559225561bb554a0fba"
     },
     {
       "component_id": "cycle_reserve",
@@ -1830,7 +1925,8 @@
       "ref": "APO/investor-documents/sec-edgar/10-K_20260225_rpt20251231_acc0001858681_26_000013.htm",
       "locator": "FY2025 diluted EPS \\.58 used as conservative owner-earnings proxy for alt-manager FRE [Assumption]; NI \\,492M / EPS implies ~626M shares (10-K)",
       "as_of": "2025-12-31",
-      "source_id": "d08f163e0ddad2f5635e7e706f4d9b66eaa3c968c53998a2a5681727f520df66"
+      "content_sha256": "f7ee049b319c508fa8b8a20d79011644fab992b87688fee546e8279dcf63f43f",
+      "source_id": "acff2b41bf613faf1c05014b4b4d1fa907e7bae9c4ed77ba680d4a832a6aadee"
     }
   ],
   "model_checks": {
@@ -1841,13 +1937,14 @@
     "positive_base_or_explicit_zero_value": true,
     "low_base_high_ordered": true,
     "source_identity_and_freshness_valid": true,
-    "extreme_return_validated": true
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
   },
   "evidence": {
-    "unresolved_count": 1,
-    "blockers": [
-      "prospective_falsifier_gate: new/materially changed components lack eligible, source-preflighted v3 forecasts or typed v3 untestable dispositions: cycle_reserve"
-    ],
+    "unresolved_count": 0,
+    "blockers": [],
     "validation_errors": []
   },
   "monitoring": {
@@ -1865,7 +1962,7 @@
     ]
   },
   "change_control": {
-    "model_hash": "bbb145954a8ee39ea21ad9a82278abcba20d05cc0402686fc9246f3a46e94043",
+    "model_hash": "3be1d838ecb083fbffc5df0a6963322eb6bb1d3234454087345ee1d6b0e005d9",
     "method_versions": [
       "midcycle_capacity_value@1.0",
       "net_asset_value@1.0",
@@ -1875,7 +1972,7 @@
     "change_log": [],
     "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
   },
-  "decision_rule": "No security is decision-grade until every material claim is valued exactly once by a valid calculation proof and every material evidence blocker is resolved.",
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
   "authority": "universal_valuation_contract",
   "legacy_reference_present": true,
   "falsifier_coverage": {
@@ -1889,18 +1986,6 @@
     "calibration_eligible": 0,
     "diagnostic_only": 0,
     "spec_ref": null,
-    "enforcement_enabled": false,
-    "prospective_gate": {
-      "since": "2026-08-12",
-      "changed_components": [
-        "cycle_reserve"
-      ],
-      "covered_components": [],
-      "eligible_components": [],
-      "untestable_dispositions": [],
-      "missing_components": [
-        "cycle_reserve"
-      ]
-    }
+    "enforcement_enabled": false
   }
 }

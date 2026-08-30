@@ -2,9 +2,9 @@
 
 Unified labels from `_system/frameworks/decision_stack.md` — layers 1–5.
 
-Replace the old single **thesis status** (intact / weakening / strengthening / unclear) with independent axes plus return/value fields.
+Replace the old single **thesis status** (intact / weakening / strengthening / unclear) with independent business, valuation-maturity, universe-priority, value, and return axes.
 
-**Authority:** Actionable stance and production return come from Power Zone → universal contract → IC → `human_decision.json` (`proof_first_valuation.md`, `decision_authority.py`). Legacy Lawrence IRR fields below are display/migration unless no contract exists.
+**Authority:** Power Zone → Contract v3 → IC → `human_decision.json` is the production path (`proof_first_valuation.md`, `decision_authority.py`). Only `human_decision.json` is capital-actionable. A canonical forward return exists only when the contract contains dated future economics; legacy Lawrence IRR fields are audit-only once a contract exists.
 
 ## Fields
 
@@ -15,7 +15,10 @@ Replace the old single **thesis status** (intact / weakening / strengthening / u
 | **Dhando** | Pabrai | `full`, `partial`, `none`, `pending` | Heads I win, tails I don't lose much? |
 | **Stance** | Human (IC recommends) | `core`, `accumulate`, `hold`, `watch`, `trim`, `exit` | What do we *do* with capital? Only `human_decision.json` is actionable |
 | **Cycle** | Stahl (croupiers) | `peak`, `mid`, `trough`, `—` | Normalized earnings vs current activity |
-| **Implied return / value** | Contract first | e.g. contract base % or `$/sh`; else legacy Lawrence display + `[legacy]` | Prefer contract `annualized_return_at_price_pct` / value per share |
+| **Intrinsic value / margin of safety** | Contract v3 | Low/base/high present value today plus `(value - price) / value` | What is the security worth today, and how far is price below that value? |
+| **Forward return** | Contract v3 | Low/base/high `forward_return_at_price_pct`, or unavailable | What return follows from a dated future payoff or cash-flow schedule? Never annualize a present value |
+| **Model level** | Valuation maturity | `unmodeled`, `evidence_blocked`, `screening_grade`, `stock_specific`, `committee_reviewed`, `owner_approved` | How much underwriting authority does the model deserve? |
+| **Universe tier** | Research priority | Tier 1, Tier 2, Tier 3 | How much research depth and workflow priority should this security receive? This does not upgrade model quality |
 | **IRR method** | Legacy / routed specialist | `full`, `yield_curve`, `scenario`, `pending`, or Power Zone method id | How a return was computed; not automatically the authority |
 | **Lawrence bucket** | Lawrence taxonomy | `pricing_power`, `multi_sided`, `low_cost`, `other` | Oakcliff business taxonomy (label only) |
 | **Valuation overlay** | Speedwell / Hohn | `—`, `segment_cashflow` | Per-segment cash-flow sum + reverse DCF cross-check (`segment_cashflow_valuation.md`) |
@@ -55,7 +58,8 @@ Read `{TICKER}/research/valuation.json` **before** opening optional frameworks. 
 - Framework rules: `_system/frameworks/framework_governance.md`
 - Portfolio map: `_system/portfolio/classification.json`
 - Per-ticker copy: `{TICKER}/research/thesis.md` → `## Classification` table
-- Valuation + stance proposal: `{TICKER}/research/valuation.json`
+- Valuation input / legacy envelope: `{TICKER}/research/valuation.json`
+- Canonical valuation state: `{TICKER}/research/valuation_contract.json` and `valuation_workbench.json`
 - Dashboard: parsed by `_system/scripts/build_dashboard_data.py`
 - Sync check: `python _system/scripts/sync_classification.py`
 
@@ -73,7 +77,10 @@ Every deep dive and thesis update ends with:
 | **Dhando** (Pabrai) | … |
 | **Stance** | … |
 | **Cycle** | … |
-| **Implied 7yr IRR** (Lawrence) | … |
+| **Intrinsic value / margin of safety** | … |
+| **Forward return** | … or unavailable |
+| **Model level** | … |
+| **Universe tier** | … |
 | **IRR method** | … |
 | **Lawrence bucket** | … |
 | **Valuation overlay** | … |
@@ -108,3 +115,4 @@ List only terms used in that report. Skip if every framework term was defined in
 
 - **Table column:** Archetype (primary badge)
 - **Detail panel:** Moat · Dhando · Stance (+ Cycle when not `—`)
+- **Valuation panel:** Universe tier · model level · intrinsic value · margin of safety · forward return (only when dated and publishable)

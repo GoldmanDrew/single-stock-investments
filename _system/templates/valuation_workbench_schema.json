@@ -2,43 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Valuation workbench",
   "type": "object",
-  "required": ["schema_version", "ticker", "as_of", "decision", "business", "valuation", "optionality", "committee", "evidence", "method_fit", "outcomes", "attribution"],
+  "required": ["schema_version", "ticker", "as_of", "proof_status", "model_level", "decision_eligibility", "dates", "legacy_audit", "decision", "business", "valuation", "optionality", "committee", "evidence", "method_fit", "outcomes", "attribution", "freshness"],
   "properties": {
     "schema_version": {"const": "3.0"},
     "ticker": {"type": "string", "minLength": 1},
     "as_of": {"type": "string", "format": "date"},
+    "proof_status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
+    "decision_eligibility": {"type": "object"},
+    "dates": {"type": "object"},
+    "legacy_audit": {"type": "object"},
     "decision": {
       "type": "object",
-      "required": [
-        "status", "contract_status", "model_level", "model_level_reason",
-        "value_per_share", "intrinsic_value_today_per_share", "margin_of_safety_pct",
-        "forward_return_at_price_pct", "return_publishable", "legacy_audit", "dates",
-        "unvalued_component_count", "unresolved_evidence_count"
-      ],
+      "required": ["status", "proof_status", "model_level", "return_publishable", "value_per_share", "present_value_today_per_share", "margin_of_safety_pct", "forward_return_at_price_pct", "unvalued_component_count", "unresolved_evidence_count"],
       "properties": {
-        "status": {"enum": ["decision_grade", "evidence_blocked"]},
-        "contract_status": {"enum": ["decision_grade", "evidence_blocked"]},
         "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
-        "model_level_reason": {"type": "string", "minLength": 1},
-        "value_per_share": {"type": "object"},
-        "intrinsic_value_today_per_share": {"type": "object"},
-        "margin_of_safety_pct": {"type": "object"},
-        "forward_return_at_price_pct": {"type": "object"},
         "return_publishable": {"type": "boolean"},
-        "legacy_audit": {
-          "type": "object",
-          "required": ["actionable", "annualized_return_at_price_pct"],
-          "properties": {
-            "actionable": {"const": false},
-            "annualized_return_at_price_pct": {"type": "object"}
-          }
-        },
-        "dates": {
-          "type": "object",
-          "required": ["model_as_of", "latest_fact_as_of", "oldest_fact_as_of", "price_as_of"]
-        },
-        "unvalued_component_count": {"type": ["integer", "null"], "minimum": 0},
-        "unresolved_evidence_count": {"type": ["integer", "null"], "minimum": 0}
+        "output_basis": {"type": ["string", "null"]},
+        "forward_return_status": {"enum": ["available", "withheld"]}
       }
     },
     "business": {"type": "object", "required": ["status", "components", "component_coverage", "facts", "estimates", "judgments"]},
@@ -60,7 +41,8 @@
     "evidence": {"type": "object", "required": ["status", "gaps"], "properties": {"status": {"type": "string"}, "gaps": {"type": "array"}}},
     "method_fit": {"type": "object", "required": ["profile_id", "label", "applicability_tests", "failure_modes"]},
     "outcomes": {"type": "object", "required": ["status", "schedule", "minimum_persona_outcomes_before_reweighting"]},
-    "attribution": {"type": "object", "required": ["status", "current"]}
+    "attribution": {"type": "object", "required": ["status", "current"]},
+    "freshness": {"type": "object", "required": ["status", "dates", "age_days", "warnings"]}
   },
   "additionalProperties": true
 }

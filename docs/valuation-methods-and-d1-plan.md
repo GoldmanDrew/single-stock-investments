@@ -37,6 +37,37 @@ be treated as confirmed quality-reinvestment companies.
 7. D1 stores the operational state needed to schedule work and inspect
    provenance, while repository artifacts remain the source of truth.
 
+## Contract v3 semantic correction
+
+Proof completeness alone is not enough. Contract v3 separates three questions:
+
+1. **What did the proof produce?** Every approved method declares
+   `present_value_today`, `future_payoff`, or `forward_cashflow_schedule`.
+2. **How mature is the model?** Model level progresses from `unmodeled` through
+   `screening_grade` and `stock_specific` to committee and owner review.
+3. **How much research priority does the security receive?** The independent
+   Tier 1/2/3 universe policy controls workflow depth, not valuation authority.
+
+A present value is never annualized as if it were a future payoff and is never
+discounted again to manufacture a hurdle entry price. It publishes intrinsic
+value and margin of safety. Forward return is available only from an explicit
+dated payoff or dated cash-flow schedule; the old calculation remains audit-only.
+
+## Valuation-universe tiers
+
+The registry is a research universe, not a statement that every security is an
+owned position. The target operating policy is:
+
+| Tier | Purpose | Default valuation depth | Workflow ceiling |
+|------|---------|-------------------------|------------------|
+| Tier 1 | Active positions and imminent decisions | Stock-specific underwriting with current evidence | Committee may start only after proof and maturity gates |
+| Tier 2 | Curated candidates and explicit follow-ups | Evidence plan, route confirmation, and targeted model work | No automatic committee start |
+| Tier 3 | Broad research universe | Screening and triage | No automatic committee start; automated models cannot authorize capital |
+
+Promotion and demotion are driven by position state, explicit owner/committee
+workflow, curated follow-ups, and time-bounded policy overrides. Neither a high
+screening value nor a legacy return can promote a security or open committee work.
+
 ## Implemented method-specific compilers
 
 The planned dispatcher is now implemented for all approved routes. Every
@@ -106,7 +137,9 @@ Power Zone route
   -> locked facts with source locators
   -> method compiler
   -> proof + invariants
-  -> decision-grade valuation
+  -> proof-complete contract
+  -> output-basis semantics
+  -> model maturity + universe tier
   -> dashboard and D1 snapshot
 ```
 
@@ -120,6 +153,8 @@ marked unavailable.
 D1 is initially a free operational mirror with these responsibilities:
 
 - current security and valuation state;
+- Contract v3 output basis, present value, margin of safety, canonical forward return, and model level;
+- Tier 1/2/3 assignment and its auditable reasons;
 - retryable evidence tasks and attempt history;
 - source-document metadata and immutable fact provenance;
 - versioned valuation runs and component proofs;
@@ -131,8 +166,25 @@ Repository JSON remains authoritative until all of these gates pass:
 2. zero missing blocked-security tasks;
 3. idempotent re-imports;
 4. reproducible valuation outputs from stored facts;
-5. backup/export restoration test;
-6. API latency and free-tier usage remain within budget.
+5. no published forward return derived from a present value or a legacy fallback;
+6. every in-universe security has exactly one tier assignment;
+7. backup/export restoration test;
+8. API latency and free-tier usage remain within budget.
+
+Applying a database migration is a separate release gate from changing the
+repository contract. Do not treat the D1 cutover as complete until the new
+columns are migrated, exported, queried, and compared with repository artifacts.
+
+## End state
+
+The repository should become an auditable valuation compiler and research
+work-queue, not a collection of unqualified price targets. Source-locked facts
+flow through a routed, versioned method into a reproducible proof. Contract v3
+states whether the output is value today or future economics, assigns honest
+model maturity, and applies a separate research-priority tier. The dashboard
+then shows what is known, what is withheld, why it is withheld, and the dates
+behind it. Committee reviewers challenge only eligible stock-specific work, and
+`human_decision.json` remains the sole capital authority.
 
 Do not store full filings in D1. Store document hashes, locators, and extracted
 facts; keep large source files in the research vault or object storage.
