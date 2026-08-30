@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-30
-**Rows:** 2723
+**Rows:** 1659
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -36,6 +36,11 @@
 | 2026-08-30 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-30 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-30 | ZBRA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
+| 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-greencore-group |
+| 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
+| 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Mitani-Sekisan |
+| 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-babcock-wilcox |
 | 2026-08-29 | O | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Why I Think the Best Dividend Stock Isn't a Tech Name: It's  |
 | 2026-08-29 | CTVA | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Corteva (CTVA) Vylor Spin Off Puts Fair Value Back In Focus  |
 | 2026-08-29 | INTU | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | How Investors Are Reacting To Intuit (INTU) Balancing Softer |
@@ -46,11 +51,6 @@
 | 2026-08-29 | SBUX | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Beacon Pointe Advisors LLC Acquires Shares of 127,962 Starbu |
 | 2026-08-29 | AVY | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | How Investors Are Reacting To Avery Dennison (AVY) Elevating |
 | 2026-08-29 | HAS | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Hasbro Discloses Employee Data Breach: 436 SSNs Hit [2026] - |
-| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
-| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Malibu-Boats |
-| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-Mitani-Sekisan |
-| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 03-babcock-wilcox |
-| 2026-08-29 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 04-HLS-Therapeutics |
 | 2026-08-28 | AOS | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-28 | ADSK | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Autodesk Posts Strong Q2 Results, Raises 2027 Outlook - The  |
 | 2026-08-28 | CSGP | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Third Point Sends Letter to Board of Directors of CoStar Gro |
