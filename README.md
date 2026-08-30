@@ -79,13 +79,15 @@ https://single-stock-investments-2wt.pages.dev/
 
 ## Investment Committee
 
-Deterministic, multi-persona review that gates a Power Zone valuation before any stance becomes actionable. Each persona is a specialist error-checking lens (Marathon capital-cycle, Marks credit-cycle, Klarman asset-value, Pabrai asymmetry/downside, Greenblatt event) that must abstain unless its required inputs are measurable. A mandatory pre-mortem artifact precedes round-1 votes; the committee's evidence set is **frozen** (locked to a `packet_hash`) for the duration of a round so votes stay comparable — a refresh restarts the round. Dissent is preserved; agents never size capital, they only route a recommendation toward `human_decision.json`.
+Deterministic, multi-persona review that gates a stock-specific Power Zone valuation before any stance becomes actionable. Each persona is a specialist error-checking lens (Marathon capital-cycle, Marks credit-cycle, Klarman asset-value, Pabrai asymmetry/downside, Greenblatt event) that must abstain unless its required inputs are measurable. A mandatory pre-mortem artifact precedes round-1 votes; the committee's evidence set is **frozen** (locked to a `packet_hash`) for the duration of a round so votes stay comparable — a refresh restarts the round. Generic screening models cannot enter committee review. Dissent is preserved; agents never size capital, they only route a recommendation toward `human_decision.json`.
 
 Driven by [`investment-committee.yml`](.github/workflows/investment-committee.yml): `select_committee_work.py` → `committee_task_queue.py` (materializes deterministic stages, writes `proposer.json`) → `investment_committee_pipeline.py validate/assemble` → commits `{TICKER}/research/committee_{date}.json`. See [`investment_committee_personas.md`](_system/frameworks/investment_committee_personas.md) and [`investment_process.md`](_system/frameworks/investment_process.md) §5.
 
 ## Contract backfill
 
-`universal_valuation_contract.json` per holding must clear all `evidence.blockers[]` to move from `evidence_blocked` to **decision_grade** (the status gating IC/human review). `python _system/scripts/build_contract_backfill_queue.py` writes the priority queue ([`contract_backfill_queue.json`](_system/data/contract_backfill_queue.json)), ranking near-complete contracts first, then remaining evidence-blocked holdings by stance. `zero_value_policy` (in [`universal_valuation_contract.py`](_system/scripts/universal_valuation_contract.py)) lets a component be valued at zero only with explicit `evidence_refs` and `allowed: true` — never a silent default. Authority precedence — `human_decision → investment_committee → universal_valuation_contract → legacy` — is resolved solely by [`decision_authority.py`](_system/scripts/decision_authority.py); legacy Marvin/Lawrence IRR fields are non-actionable once a contract exists. Runs continuously via [`contract-backfill-continue.yml`](.github/workflows/contract-backfill-continue.yml).
+Contract v3 separates proof completeness from investment readiness. A contract may be technically `decision_grade` while its `model_level` remains `screening_grade`; only a stock-specific, evidence-clear model is committee-eligible. Every method also declares an `output_basis`: a `present_value_today` publishes intrinsic value and margin of safety but no forward return or hurdle entry price; only a dated `future_payoff` or `forward_cashflow_schedule` can publish a forward return. The former present-value/price annualization survives only under `legacy_audit` and is never actionable.
+
+`python _system/scripts/build_contract_backfill_queue.py` writes the proof-repair queue ([`contract_backfill_queue.json`](_system/data/contract_backfill_queue.json)). `zero_value_policy` (in [`universal_valuation_contract.py`](_system/scripts/universal_valuation_contract.py)) permits zero only with explicit `evidence_refs` and `allowed: true`. Authority precedence — `human_decision → investment_committee → universal_valuation_contract → legacy` — is resolved solely by [`decision_authority.py`](_system/scripts/decision_authority.py). The full contract and Tier 1/2/3 operating design is in [`valuation-contract-v3-and-universe-tiers.md`](docs/valuation-contract-v3-and-universe-tiers.md).
 
 ## Short Alpha
 
@@ -100,7 +102,7 @@ Rendered via [`dashboard/short-alpha-viz.js`](dashboard/short-alpha-viz.js).
 
 ## LS-Algo systematic flows
 
-Nightly Power Zone valuation pipeline for the Darwin portfolio's systematic/volatility-flow ("LS-Algo") sleeve: build power zones → route method → valuation workbench → entry pricing (10/12/15/20% hurdles) → gated IC review (only on a decision-grade/price/live-flag trigger, never the whole sleeve) → dashboard refresh.
+Nightly Power Zone valuation pipeline for the Darwin portfolio's systematic/volatility-flow ("LS-Algo") sleeve: build power zones → route method → valuation workbench → entry pricing from dated future economics, when available → gated IC review for stock-specific eligible models only → dashboard refresh.
 
 ```powershell
 python _system/scripts/darwin/run_ls_algo_equity_onboard_all.py   # onboard new underlyings
@@ -208,7 +210,7 @@ The authoritative valuation close is `python _system/scripts/run_security_decisi
 
 Resolver: [`decision_authority.py`](_system/scripts/decision_authority.py). Detail: [`proof_first_valuation.md`](_system/frameworks/proof_first_valuation.md) § *Do not mix two valuation languages*.
 
-Valuation arithmetic is proof-first: source-locked facts and bounded assumptions flow through deterministic calculation graphs, while unsupported ranges are excluded as legacy sensitivities. See also the approved [`valuation_method_registry.json`](_system/reference/valuation_method_registry.json).
+Valuation arithmetic is proof-first: source-locked facts and bounded assumptions flow through deterministic calculation graphs, while unsupported ranges are excluded as legacy sensitivities. Contract v3 keeps intrinsic value, margin of safety, and forward return as separate concepts; a present value is never annualized or discounted a second time. See the approved [`valuation_method_registry.json`](_system/reference/valuation_method_registry.json) and the [`Contract v3 and universe-tier plan`](docs/valuation-contract-v3-and-universe-tiers.md).
 
 **INDEX.csv:** prefer per-ticker regen: `python _system/scripts/build_folder_indexes.py --ticker SNOW` (avoid full-portfolio regen unless intentional).
 

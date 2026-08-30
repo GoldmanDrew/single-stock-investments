@@ -1,24 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "universal_valuation_contract_v2",
+  "$id": "universal_valuation_contract_v3",
   "title": "Proof-first universal security valuation and decision contract",
   "type": "object",
   "required": [
-    "schema_version", "status", "ticker", "economic_ownership_map", "component_coverage",
+    "schema_version", "status", "proof_status", "model_level", "decision_eligibility",
+    "ticker", "dates", "legacy_audit", "economic_ownership_map", "component_coverage",
     "input_classification", "method_route", "market", "valuation", "scenario_contract",
     "calculation_proof_summary", "source_lineage", "model_checks", "evidence", "monitoring",
     "change_control", "decision_rule"
   ],
   "properties": {
-    "schema_version": {"const": "2.0"},
+    "schema_version": {"const": "3.0"},
     "status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "proof_status": {"enum": ["decision_grade", "evidence_blocked"]},
+    "model_level": {"enum": ["unmodeled", "evidence_blocked", "screening_grade", "stock_specific", "committee_reviewed", "owner_approved"]},
+    "decision_eligibility": {
+      "type": "object",
+      "required": ["committee_eligible", "capital_actionable", "capital_authority_required"],
+      "properties": {
+        "committee_eligible": {"type": "boolean"},
+        "capital_actionable": {"const": false},
+        "capital_authority_required": {"const": "human_decision"}
+      }
+    },
+    "dates": {
+      "type": "object",
+      "required": ["model_as_of", "latest_fact_as_of", "oldest_fact_as_of", "price_as_of"]
+    },
+    "legacy_audit": {
+      "type": "object",
+      "required": ["actionable", "status", "annualized_return_at_price_pct"],
+      "properties": {
+        "actionable": {"const": false},
+        "status": {"const": "audit_only"}
+      }
+    },
     "ticker": {"type": ["string", "null"]},
     "economic_ownership_map": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["component_id", "treatment", "valuation_status", "range_per_share", "overlap_key"],
+        "required": ["component_id", "treatment", "valuation_status", "range_per_share", "overlap_key", "output_basis"],
         "properties": {
+          "output_basis": {"enum": ["present_value_today", "future_payoff", "forward_cashflow_schedule"]},
           "valuation_status": {"enum": ["calculated", "bounded_estimate", "unpriced", "legacy_sensitivity"]},
           "range_per_share": {
             "type": "object",
@@ -51,7 +76,20 @@
     "market": {"type": "object"},
     "valuation": {
       "type": "object",
-      "required": ["value_per_share", "priced_components_per_share", "annualized_return_at_price_pct", "downside_to_low_pct"]
+      "required": [
+        "output_basis", "output_basis_status", "output_range_per_share", "value_per_share",
+        "present_value_today_per_share", "future_payoff_per_share", "forward_cashflow_schedule",
+        "forward_return_at_price_pct", "forward_return_status", "required_return_pct",
+        "margin_of_safety_pct", "margin_of_safety_definition", "upside_to_value_pct",
+        "priced_components_per_share"
+      ],
+      "properties": {
+        "output_basis": {"enum": ["present_value_today", "future_payoff", "forward_cashflow_schedule"]},
+        "output_basis_status": {"enum": ["explicit", "method_declared", "defaulted_for_legacy_safety", "invalid_defaulted_to_present_value"]},
+        "forward_return_status": {"enum": ["available", "withheld"]},
+        "required_return_pct": {"type": ["number", "null"], "minimum": 0},
+        "forward_cashflow_schedule": {"type": ["object", "null"]}
+      }
     },
     "scenario_contract": {"type": "object"},
     "calculation_proof_summary": {
@@ -61,7 +99,7 @@
     "source_lineage": {"type": "array"},
     "model_checks": {
       "type": "object",
-      "required": ["calculation_graphs_valid", "component_sum_reconciles", "no_double_counting", "all_material_components_priced", "low_base_high_ordered"]
+      "required": ["calculation_graphs_valid", "component_sum_reconciles", "no_double_counting", "all_material_components_priced", "low_base_high_ordered", "output_basis_valid", "dated_forward_economics_valid", "present_value_is_not_treated_as_future_payoff"]
     },
     "evidence": {"type": "object", "required": ["unresolved_count", "blockers"]},
     "monitoring": {"type": "object", "required": ["falsifiers", "required_refresh_triggers"]},

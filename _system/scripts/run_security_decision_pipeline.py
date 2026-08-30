@@ -22,6 +22,11 @@ SCRIPTS = ROOT / "_system" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from build_power_zone_pricing import build_contract_pricing  # noqa: E402
+from build_valuation_universe_tiers import (  # noqa: E402
+    OUTPUT_REL as VALUATION_TIERS_REL,
+    build as build_valuation_universe_tiers,
+    render as render_valuation_universe_tiers,
+)
 from build_valuation_workbench import write as write_workbench  # noqa: E402
 from falsifier_specs import (  # noqa: E402
     anchor_errors as falsifier_anchor_errors,
@@ -52,6 +57,9 @@ BUSY_COMMITTEE_STATES = {
 FOLLOWUPS = ROOT / "_system" / "reference" / "valuation_followups.json"
 CLOSED_EVIDENCE_STATUSES = {"resolved", "accepted", "not_applicable", "met"}
 REVIEW_METADATA_FIELDS = {"cohort_purpose", "cohort_expected_profile", "profile_match"}
+COMMITTEE_ELIGIBLE_MODEL_LEVELS = {
+    "stock_specific", "committee_reviewed", "owner_approved",
+}
 
 
 def read_json(path: Path, default=None):
@@ -61,13 +69,23 @@ def read_json(path: Path, default=None):
         return {} if default is None else default
 
 
-def selected_tickers(scope: str, explicit: list[str] | None = None) -> list[str]:
+def selected_tickers(
+    scope: str,
+    explicit: list[str] | None = None,
+    tier_manifest: dict | None = None,
+) -> list[str]:
     if explicit:
         return sorted(set(t.upper() for t in explicit))
     entries = registry_entries()
     if scope == "valued":
         return sorted(t for t in entries if (ROOT / t / "research" / "valuation.json").exists())
     if scope == "priority":
+        assignments = (tier_manifest or {}).get("assignments") or {}
+        if assignments:
+            return sorted(
+                ticker for ticker, row in assignments.items()
+                if int((row or {}).get("tier") or 3) <= 2
+            )
         followups = read_json(ROOT / "_system" / "reference" / "valuation_followups.json")
         followup_names = set((followups.get("tickers") or {})) & set(entries)
         portfolio_names = {
@@ -78,6 +96,38 @@ def selected_tickers(scope: str, explicit: list[str] | None = None) -> list[str]
         }
         return sorted(followup_names | portfolio_names)
     return sorted(entries)
+
+
+def stage_universe_tiers(as_of: str, dry_run: bool) -> tuple[dict, dict]:
+    """Resolve research priority before selecting work or opening committees."""
+    try:
+        manifest = build_valuation_universe_tiers(as_of, ROOT)
+        validation = manifest.get("validation") or {}
+        errors = list(validation.get("errors") or [])
+        if validation.get("status") != "pass" and not errors:
+            errors.append("valuation universe tier validation did not pass")
+        if not dry_run and not errors:
+            path = ROOT / VALUATION_TIERS_REL
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(render_valuation_universe_tiers(manifest), encoding="utf-8")
+        result = {
+            "status": "ready" if not errors else "failed",
+            "summary": manifest.get("summary") or {},
+            "source_health": manifest.get("source_health") or {},
+            "validation": validation,
+            "output": VALUATION_TIERS_REL.as_posix(),
+            "errors": errors,
+        }
+        return result, manifest
+    except Exception as exc:
+        return ({
+            "status": "failed",
+            "summary": {},
+            "source_health": {},
+            "validation": {"status": "fail", "errors": [f"{type(exc).__name__}: {exc}"]},
+            "output": VALUATION_TIERS_REL.as_posix(),
+            "errors": [f"{type(exc).__name__}: {exc}"],
+        }, {})
 
 
 def curated_evidence_blockers(ticker: str) -> list[str]:
@@ -104,6 +154,28 @@ def _component_map(contract: dict) -> dict[str, dict]:
             if isinstance(row, dict) and row.get("component_id")}
 
 
+def _material_component_signature(component: dict) -> str:
+    """Compare underwriting substance, not contract-schema presentation.
+
+    Contract v3 adds output-basis metadata, standardized evidence labels, and
+    audit fields to every component. Treating those mechanical additions as a
+    model change would prospectively block the entire book during migration.
+    The falsifier gate should fire only when a claim, method, assumptions,
+    range, evidence, probability/timing, capital adjustment, or falsifier
+    actually changes.
+    """
+    material_fields = (
+        "component_id", "category", "treatment", "included_in_component_id",
+        "ownership_claim", "ownership_percentage", "quantity", "method",
+        "method_version", "comparable_ids", "range_per_share",
+        "valuation_status", "calculation_proof", "evidence_tier", "evidence",
+        "scenario_assumptions", "probability_and_timing",
+        "tax_and_realization_adjustments", "falsifier", "overlap_key",
+    )
+    payload = {field: component.get(field) for field in material_fields}
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+
+
 def apply_prospective_falsifier_gate(ticker: str, contract: dict,
                                      reviewed: dict, as_of: str) -> dict:
     """Gate only components introduced or materially changed after cutover."""
@@ -117,7 +189,8 @@ def apply_prospective_falsifier_gate(ticker: str, contract: dict,
     changed = {
         component_id for component_id, component in now.items()
         if component_id not in before
-        or json.dumps(component, sort_keys=True) != json.dumps(before[component_id], sort_keys=True)
+        or _material_component_signature(component)
+        != _material_component_signature(before[component_id])
     }
     if not changed:
         return contract
@@ -151,6 +224,16 @@ def apply_prospective_falsifier_gate(ticker: str, contract: dict,
         contract["evidence"]["blockers"] = sorted(set(blockers))
         contract["evidence"]["unresolved_count"] = len(contract["evidence"]["blockers"])
         contract["status"] = "evidence_blocked"
+        contract["proof_status"] = "evidence_blocked"
+        contract["model_level"] = "evidence_blocked"
+        contract["model_level_reason"] = "Prospective falsifier coverage is incomplete."
+        contract["decision_eligibility"] = {
+            **(contract.get("decision_eligibility") or {}),
+            "committee_eligible": False,
+            "capital_actionable": False,
+            "capital_authority_required": "human_decision",
+            "reason": "Close prospective falsifier coverage before committee review.",
+        }
     contract.setdefault("falsifier_coverage", {})["prospective_gate"] = {
         "since": since, "changed_components": sorted(changed),
         "covered_components": sorted(covered),
@@ -170,6 +253,16 @@ def current_contract(ticker: str, valuation: dict, route: dict, reviewed: dict,
     contract["evidence"]["unresolved_count"] = len(blockers)
     if blockers:
         contract["status"] = "evidence_blocked"
+        contract["proof_status"] = "evidence_blocked"
+        contract["model_level"] = "evidence_blocked"
+        contract["model_level_reason"] = "Curated primary-evidence follow-ups remain open."
+        contract["decision_eligibility"] = {
+            **(contract.get("decision_eligibility") or {}),
+            "committee_eligible": False,
+            "capital_actionable": False,
+            "capital_authority_required": "human_decision",
+            "reason": "Close curated evidence gaps before committee review.",
+        }
     for field in REVIEW_METADATA_FIELDS:
         if field in reviewed:
             contract[field] = reviewed[field]
@@ -302,19 +395,28 @@ def stage_workbenches(tickers: list[str], as_of: str, dry_run: bool) -> dict:
     return {"written": written, "skipped": skipped, "errors": errors}
 
 
-def workbench_status(ticker: str) -> tuple[str, str]:
+def workbench_status(ticker: str) -> tuple[str, str, str]:
     workbench = read_json(ROOT / ticker / "research" / "valuation_workbench.json")
     return (
         str(((workbench.get("decision") or {}).get("status")) or "missing"),
         str(((workbench.get("committee") or {}).get("status")) or "not_started"),
+        str(((workbench.get("decision") or {}).get("model_level")) or "unmodeled"),
     )
 
 
 def stage_pricing(tickers: list[str], as_of: str, dry_run: bool) -> dict:
-    priced, skipped, errors = [], [], []
+    priced, neutralized, skipped, errors = [], [], [], []
     for ticker in tickers:
-        decision, _ = workbench_status(ticker)
+        decision, _, _model_level = workbench_status(ticker)
         if decision != "decision_grade":
+            pricing_path = ROOT / ticker / "research" / "pricing_analysis.json"
+            if pricing_path.exists():
+                try:
+                    if not dry_run:
+                        build_contract_pricing(ticker, as_of)
+                    neutralized.append(ticker)
+                except Exception as exc:
+                    errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"})
             skipped.append(ticker)
             continue
         try:
@@ -323,7 +425,12 @@ def stage_pricing(tickers: list[str], as_of: str, dry_run: bool) -> dict:
             priced.append(ticker)
         except Exception as exc:
             errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"})
-    return {"priced": priced, "skipped": skipped, "errors": errors}
+    return {
+        "priced": priced,
+        "neutralized": neutralized,
+        "skipped": skipped,
+        "errors": errors,
+    }
 
 
 def decision_triggers(ticker: str, holding: dict) -> list[str]:
@@ -348,9 +455,15 @@ def decision_triggers(ticker: str, holding: dict) -> list[str]:
     return triggers
 
 
-def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
+def stage_committees(
+    tickers: list[str],
+    as_of: str,
+    dry_run: bool,
+    tier_manifest: dict | None = None,
+) -> dict:
     entries = registry_entries()
-    initiated, active, blocked, evidence_tasks, resting = [], [], [], [], []
+    assignments = (tier_manifest or {}).get("assignments") or {}
+    initiated, active, blocked, evidence_tasks, resting, tier_restricted = [], [], [], [], [], []
     for ticker in tickers:
         existing_manifest = read_json(ROOT / ticker / "research" / "committee_work" / as_of / "manifest.json")
         # Any manifest at this exact date, whatever stage it reached, means the
@@ -363,11 +476,31 @@ def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
                 "work": f"{ticker}/research/committee_work/{as_of}",
             })
             continue
-        decision, committee = workbench_status(ticker)
+        assignment = assignments.get(ticker) or {}
+        # Direct unit/library callers written before tiering may omit the
+        # manifest; preserve their prior behavior. The production main path
+        # always passes the freshly validated manifest.
+        tier = int(assignment.get("tier") or (1 if tier_manifest is None else 3))
+        if tier != 1:
+            tier_restricted.append({
+                "ticker": ticker,
+                "tier": tier,
+                "reason": "Only Tier 1 active-decision names may auto-start committee work.",
+            })
+            continue
+        decision, committee, model_level = workbench_status(ticker)
         triggers = decision_triggers(ticker, entries.get(ticker) or {})
-        if decision != "decision_grade":
+        if decision != "decision_grade" or model_level not in COMMITTEE_ELIGIBLE_MODEL_LEVELS:
             if triggers:
-                evidence_tasks.append({"ticker": ticker, "decision": decision, "triggers": triggers})
+                evidence_tasks.append({
+                    "ticker": ticker,
+                    "decision": decision,
+                    "model_level": model_level,
+                    "triggers": triggers,
+                    "reason": (
+                        "A stock-specific, evidence-clear model is required before committee review."
+                    ),
+                })
             continue
         if not triggers:
             resting.append(ticker)
@@ -389,6 +522,7 @@ def stage_committees(tickers: list[str], as_of: str, dry_run: bool) -> dict:
         "blocked": blocked,
         "triggered_evidence_tasks": evidence_tasks,
         "decision_grade_resting": resting,
+        "tier_restricted": tier_restricted,
     }
 
 
@@ -442,13 +576,27 @@ def main() -> int:
     parser.add_argument("--date", default=date.today().isoformat())
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-dashboard", action="store_true")
+    parser.add_argument("--skip-committees", action="store_true")
     args = parser.parse_args()
     as_of = args.date[:10]
-    tickers = selected_tickers(args.scope, args.tickers)
+    universe_tiers, tier_manifest = stage_universe_tiers(as_of, args.dry_run)
+    if universe_tiers["status"] == "failed":
+        print(f"[1/7] universe tiers: failed ({len(universe_tiers['errors'])} errors)")
+        for error in universe_tiers["errors"]:
+            print(f"  tier error: {error}")
+        return 1
+    tier_counts = (universe_tiers.get("summary") or {}).get("tier_counts") or {}
+    print(
+        "[1/7] universe tiers: "
+        f"T1={tier_counts.get('tier_1', 0)} "
+        f"T2={tier_counts.get('tier_2', 0)} "
+        f"T3={tier_counts.get('tier_3', 0)}"
+    )
+    tickers = selected_tickers(args.scope, args.tickers, tier_manifest)
     print(f"universe: scope={args.scope} tickers={len(tickers)}")
 
     routes = stage_routes(tickers, as_of, args.dry_run)
-    print(f"[1/6] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
+    print(f"[2/7] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
     power_zones = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
     if not args.dry_run and not args.tickers:
         power_zones = run_script("_system/scripts/build_power_zones.py")
@@ -456,19 +604,32 @@ def main() -> int:
         power_zones["status"] = "targeted_route_only"
 
     contracts = stage_contracts(tickers, args.dry_run, as_of)
-    print(f"[2/6] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
+    print(f"[3/7] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
 
     contract_tickers = [row["ticker"] for row in contracts["written"]]
     workbenches = stage_workbenches(contract_tickers, as_of, args.dry_run)
-    print(f"[3/6] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
+    print(f"[4/7] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
 
     pricing = stage_pricing(workbenches["written"], as_of, args.dry_run)
-    print(f"[4/6] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
+    print(f"[5/7] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
     for row in pricing.get("errors") or []:
         print(f"  pricing error {row.get('ticker')}: {row.get('error')}")
 
-    committees = stage_committees(workbenches["written"], as_of, args.dry_run)
-    print(f"[5/6] committees: {len(committees['initiated'])} initialized, {len(committees['blocked'])} blocked, {len(committees['triggered_evidence_tasks'])} evidence tasks")
+    committees = (
+        {
+            "initiated": [], "active": [], "blocked": [],
+            "triggered_evidence_tasks": [], "decision_grade_resting": [],
+            "tier_restricted": [], "status": "skipped",
+        }
+        if args.skip_committees
+        else stage_committees(workbenches["written"], as_of, args.dry_run, tier_manifest)
+    )
+    print(
+        f"[6/7] committees: {len(committees['initiated'])} initialized, "
+        f"{len(committees['blocked'])} blocked, "
+        f"{len(committees['triggered_evidence_tasks'])} evidence tasks, "
+        f"{len(committees['tier_restricted'])} outside Tier 1"
+    )
 
     dashboard = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
     if not args.skip_dashboard and not args.dry_run:
@@ -476,9 +637,10 @@ def main() -> int:
             dashboard = run_script("_system/scripts/refresh_valuation_dashboard_rows.py", "--tickers", *tickers)
         else:
             dashboard = run_script("_system/scripts/build_dashboard_data.py")
-    print(f"[6/6] dashboard: {dashboard['status']}")
+    print(f"[7/7] dashboard: {dashboard['status']}")
 
     stages = {
+        "universe_tiers": universe_tiers,
         "routes": routes,
         "power_zones": power_zones,
         "contracts": contracts,
@@ -490,7 +652,7 @@ def main() -> int:
     summary = write_summary(as_of, args.scope, tickers, stages, args.dry_run, explicit=bool(args.tickers))
     if summary:
         print(f"summary: {summary.relative_to(ROOT).as_posix()}")
-    errors = sum(len(stage.get("errors") or []) for stage in (routes, contracts, workbenches, pricing))
+    errors = sum(len(stage.get("errors") or []) for stage in (universe_tiers, routes, contracts, workbenches, pricing))
     errors += int(power_zones["returncode"] != 0) + int(dashboard["returncode"] != 0)
     return 1 if errors else 0
 

@@ -108,10 +108,72 @@ _COMPONENT_VALUATION_DETAIL_ONLY = (
     "review_open_count",   #         -- rendered beside review_status
 )
 
+# The holdings table needs only the decision ledger's display and sort fields.
+# The full contract proof, eligibility explanation, dated cash-flow schedule,
+# and legacy audit remain available in the per-ticker shard once a row opens.
+# Keeping the full object in core.json duplicates several kilobytes per ticker
+# and makes the SPA pay that cost before the user has selected a security.
+_VALUATION_DECISION_CORE_FIELDS = (
+    "status",
+    "proof_status",
+    "model_level",
+    "return_publishable",
+    "provisional",
+    "open_gap_count",
+    "critical_gap_count",
+    "method_profile",
+    "primary_power_zone",
+    "output_basis",
+    "value_per_share",
+    "margin_of_safety_pct",
+    "upside_to_value_pct",
+    "upside_downside_pct",
+    "forward_return_at_price_pct",
+    "forward_return_status",
+    "forward_return_reason",
+    "dates",
+    "horizon_years",
+    "price_per_share",
+    "next_action",
+    "next_gap_id",
+    "rollout_wave",
+    "in_validation_cohort",
+)
+
 
 def _slim_component_valuation(cv: dict) -> dict:
     """Drop the detail-pane schedule, keep the table's sort and display keys."""
     return {k: v for k, v in cv.items() if k not in _COMPONENT_VALUATION_DETAIL_ONLY}
+
+
+def slim_valuation_tier(tier: dict | None) -> dict:
+    """Keep only tier identity in the boot payload.
+
+    Assignment evidence, promotion gates, and workflow policy are detail-pane
+    governance context and remain in each ticker shard.
+    """
+    if not isinstance(tier, dict):
+        return {}
+    return {
+        key: tier.get(key)
+        for key in ("tier", "tier_id", "label")
+        if tier.get(key) is not None
+    }
+
+
+def slim_valuation_decision(decision: dict | None) -> dict:
+    """Keep pre-selection valuation fields used by table/filter rendering."""
+    if not isinstance(decision, dict):
+        return {}
+    slim = {
+        key: decision.get(key)
+        for key in _VALUATION_DECISION_CORE_FIELDS
+        if key in decision
+    }
+    tier = slim_valuation_tier(decision.get("universe_tier"))
+    if tier:
+        slim["universe_tier"] = tier
+    return slim
 
 
 def _slim_essential_insights(essential: dict) -> dict:
@@ -140,6 +202,12 @@ def slim_ticker_row(row: dict) -> dict:
     component_valuation = row.get("component_valuation")
     if isinstance(component_valuation, dict):
         slim["component_valuation"] = _slim_component_valuation(component_valuation)
+    valuation_decision = slim_valuation_decision(row.get("valuation_decision"))
+    if valuation_decision:
+        slim["valuation_decision"] = valuation_decision
+    valuation_tier = slim_valuation_tier(row.get("valuation_tier"))
+    if valuation_tier:
+        slim["valuation_tier"] = valuation_tier
     # KPI badge summary keeps the table's trend hints without the series.
     kpi = row.get("kpi_trends")
     if isinstance(kpi, dict):

@@ -7,6 +7,7 @@ the change is limited to valuation and committee research artifacts.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,14 +15,18 @@ from build_dashboard_data import (
     ROOT,
     investment_committee_summary,
     latest_deep_dive,
+    load_valuation_universe_tiers,
     load_power_zones,
     power_zones_for_ticker,
+    pricing_analysis_summary,
     property_register_summary,
     valuation_component_summary,
     valuation_decision_summary,
     valuation_queue_summary,
+    valuation_tier_for_ticker,
     valuation_workbench_summary,
 )
+from build_dashboard_shards import slim_valuation_decision, slim_valuation_tier
 
 DEFAULT_TICKERS = ("TPL", "LB", "WBI", "AZLCZ", "MSB", "C", "NVR", "NUE", "BIIB")
 PROPERTY_SEED_TICKERS = ("STHO", "TPL", "LAND", "PCYO", "CDZI")
@@ -113,18 +118,104 @@ def refresh(path: Path, tickers: tuple[str, ...] | None = None) -> int:
     return updated
 
 
+def _attach_current_valuation(row: dict, *, include_detail: bool) -> bool:
+    ticker = str(row.get("ticker") or "")
+    if not ticker:
+        return False
+    ticker_dir = ROOT / ticker
+    workbench = valuation_workbench_summary(ticker_dir)
+    component = valuation_component_summary(ticker_dir)
+    decision = valuation_decision_summary(
+        ticker, ticker_dir, workbench=workbench, component=component,
+    )
+    tier = valuation_tier_for_ticker(ticker)
+    if tier:
+        decision["universe_tier"] = tier
+    if include_detail:
+        row["valuation_decision"] = decision
+        row["valuation_tier"] = tier
+    else:
+        row["valuation_decision"] = slim_valuation_decision(decision)
+        row["valuation_tier"] = slim_valuation_tier(tier)
+    row["power_zones"] = power_zones_for_ticker(ticker)
+    if include_detail:
+        row["valuation_workbench"] = workbench
+        row["component_valuation"] = component
+        row["pricing_analysis"] = pricing_analysis_summary(ticker_dir)
+        row["investment_committee"] = investment_committee_summary(ticker_dir)
+    return True
+
+
+def _refresh_summary(data: dict) -> None:
+    rows = data.get("tickers") or []
+    queue = valuation_queue_summary(rows)
+    data["valuation_queue"] = queue
+    counts = queue.get("counts") or {}
+    summary = data.setdefault("summary", {})
+    summary["valuation_queue_tickers"] = counts.get("tickers")
+    summary["valuation_evidence_blocked"] = counts.get("evidence_blocked")
+    summary["valuation_critical_gaps"] = counts.get("critical_gaps")
+    summary["valuation_tier_counts"] = dict(sorted(Counter(
+        str((row.get("valuation_tier") or {}).get("tier_id"))
+        for row in rows
+        if (row.get("valuation_tier") or {}).get("tier_id")
+    ).items()))
+    summary["valuation_model_level_counts"] = dict(sorted(Counter(
+        str((row.get("valuation_decision") or {}).get("model_level") or "unmodeled")
+        for row in rows
+    ).items()))
+    summary["valuation_tiers_as_of"] = load_valuation_universe_tiers().get("as_of")
+
+
+def refresh_served_data(data_dir: Path, tickers: tuple[str, ...] | None = None) -> dict:
+    """Refresh the actual SPA boot payload and lazy ticker detail shards."""
+    wanted = {ticker.upper() for ticker in tickers} if tickers is not None else None
+    core_path = data_dir / "core.json"
+    core = json.loads(core_path.read_text(encoding="utf-8"))
+    core_updated = 0
+    for row in core.get("tickers") or []:
+        ticker = str(row.get("ticker") or "").upper()
+        if wanted is not None and ticker not in wanted:
+            continue
+        core_updated += int(_attach_current_valuation(row, include_detail=False))
+    _refresh_summary(core)
+    power_zones = load_power_zones()
+    if power_zones:
+        core["power_zones"] = power_zones
+    core["generated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    core_path.write_text(json.dumps(core, separators=(",", ":")), encoding="utf-8")
+
+    shard_updated = 0
+    for path in sorted((data_dir / "tickers").glob("*.json")):
+        row = json.loads(path.read_text(encoding="utf-8"))
+        ticker = str(row.get("ticker") or "").upper()
+        if wanted is not None and ticker not in wanted:
+            continue
+        if _attach_current_valuation(row, include_detail=True):
+            path.write_text(json.dumps(row, separators=(",", ":")), encoding="utf-8")
+            shard_updated += 1
+    return {"core_rows": core_updated, "ticker_shards": shard_updated}
+
+
 def main() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tickers", nargs="*", type=str.upper, help="Refresh only named ticker rows.")
+    parser.add_argument("--served-only", action="store_true", help="Skip the gitignored legacy monolith and refresh only core/ticker shards.")
     args = parser.parse_args()
     # Preserve the distinction between no --tickers flag (refresh every
     # materialized deep dive plus the valuation cohort) and an explicit list.
     tickers = tuple(args.tickers) if args.tickers is not None else None
     path = ROOT / "dashboard" / "data" / "dashboard_data.json"
-    if path.exists():
+    if path.exists() and not args.served_only:
         print(f"{path.relative_to(ROOT)}: {refresh(path, tickers)} valuation rows")
+    served = refresh_served_data(ROOT / "dashboard" / "data", tickers)
+    print(
+        "dashboard/data/core.json: "
+        f"{served['core_rows']} valuation rows; "
+        f"{served['ticker_shards']} detail shards"
+    )
     return 0
 
 
