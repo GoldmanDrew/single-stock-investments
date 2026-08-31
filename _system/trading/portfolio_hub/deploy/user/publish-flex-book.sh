@@ -47,4 +47,13 @@ cd "$REPO" || exit 1
   --stale-hours "$STALE_HOURS"
 rc=$?
 log "flex-publish exit=$rc"
+
+# Refresh the Research Watchdog's scope from the SAME statement. This is a local
+# file write, no IBKR request and no Gateway contact, so it cannot fail in a way
+# that matters to the publish above -- its exit code is logged and deliberately
+# not propagated. The builder refuses to write a statement older than the scope
+# it would replace, so a stale runs directory cannot rewind the book.
+"$PY" _system/scripts/build_research_scope.py --flex "$POSITIONS" --account "$ACCOUNT"
+log "build_research_scope exit=$?"
+
 exit $rc

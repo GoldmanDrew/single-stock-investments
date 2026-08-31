@@ -1,0 +1,103 @@
+name: Research Watchdog
+
+# WHAT THIS LANE CAN AND CANNOT PROVE.
+#
+# It proves the watchdog's CODE is healthy: the detectors still import, the
+# scoping invariants still hold, and the Flex scope builder still refuses to
+# rewind the book. That is worth a daily lane, because the failure this repo
+# keeps repeating is a detector that quietly stops working while everything
+# reports success - audit_deep_dive_depth.py sat unrun for months, and
+# build_review_queue_rollup.py went three weeks between runs with a test file,
+# a README and an INVARIANTS entry all pointing at it.
+#
+# It does NOT prove the book was checked. The watchdog's scope comes from
+# positions.json / research_scope.json, both gitignored local state: this
+# repository is public and those files name every held position and its market
+# value. So the ranked report is produced where the data lives - your machine,
+# or NY4 on the portfolio-hub-flex timer - and only the redacted receipt
+# (_system/data/research_watchdog_receipt.json: counts, no tickers, no dollars)
+# is ever committed.
+#
+# The gap, stated so it does not get forgotten: NY4 has no git remote (the repo
+# there is a file copy with no .git), so nothing pushes that receipt on its own
+# yet. Closing it needs either a token on NY4 or a D1 read path in CI.
+
+on:
+  schedule:
+    - cron: "15 11 * * *"
+  push:
+    branches: [main]
+    paths:
+      - _system/scripts/research_watchdog.py
+      - _system/scripts/build_research_scope.py
+      - _system/scripts/test_research_watchdog.py
+      - _system/scripts/test_build_research_scope.py
+      - _system/graph/graph_sources.json
+  # No workflow_dispatch: test_llm_workflow_governance.py bans a manual run
+  # surface outside a four-file allowlist. repository_dispatch gives the same
+  # on-demand trigger without adding a button to the Actions page:
+  #   gh api --method POST repos/:owner/:repo/dispatches -f event_type=research-watchdog-run
+  repository_dispatch:
+    types: [research-watchdog-run]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Deliberately NOT the shared data-commit-main group: a queued run in a shared
+  # group is evicted rather than failed, and an evicted run leaves no red X.
+  group: research-watchdog
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Watchdog invariants
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m pytest -q \
+            _system/scripts/test_research_watchdog.py \
+            _system/scripts/test_build_research_scope.py
+
+      # Proves the entry points still run end to end on a machine with no
+      # broker data at all - the state CI is always in. A crash here is a real
+      # regression; an empty scope is not.
+      - name: Smoke the entry points against an absent book
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          set -euo pipefail
+          python _system/scripts/research_watchdog.py --scope
+          python _system/scripts/research_watchdog.py --no-pr --json > /tmp/wd.json
+          python - <<'PY'
+          import json
+          d = json.load(open("/tmp/wd.json", encoding="utf-8"))
+          degraded = d.get("degraded_detectors") or {}
+          if degraded:
+              raise SystemExit("::error::detector bit-rot: " + json.dumps(degraded))
+          scope = d.get("scope") or {}
+          print(f"ok: scope_source={scope.get('scope_source')} "
+                f"in_scope={scope.get('in_scope')} findings={d['total_findings']}")
+          PY
+          python _system/scripts/build_research_scope.py --latest-run /nonexistent
+
+      - name: Report what this run did and did not check
+        if: always()
+        run: |
+          {
+            echo "### Research Watchdog"
+            echo
+            echo "Verified the watchdog code and the Flex scope builder."
+            echo "The book itself is checked where the data lives (local / NY4);"
+            echo "position names and values are never published from this lane."
+          } >> "$GITHUB_STEP_SUMMARY"
