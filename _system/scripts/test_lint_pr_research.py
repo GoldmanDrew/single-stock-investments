@@ -30,6 +30,17 @@ class LintPrResearchScopeTests(unittest.TestCase):
         paths = ["ALS.TO/research/authorized_evidence.json"]
         self.assertEqual(lpr.research_diff_kind("ALS.TO", paths, "origin/main"), "mechanical_only")
 
+    def test_lenses_only_is_derived(self):
+        paths = ["AAL/research/lenses.json"]
+        self.assertEqual(lpr.research_diff_kind("AAL", paths, "origin/main"), "derived_only")
+
+    def test_lenses_plus_narrative_is_not_derived(self):
+        paths = [
+            "AAL/research/lenses.json",
+            "AAL/research/deep_dive_2026-08-04.md",
+        ]
+        self.assertEqual(lpr.research_diff_kind("AAL", paths, "origin/main"), "mixed")
+
     def test_git_diff_names_never_uses_two_dot_base_tip(self):
         """Shallow CI used to fall back to `git diff base`, poisoning PRs."""
         calls: list[list[str]] = []
