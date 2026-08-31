@@ -616,6 +616,7 @@
       return '<div class="loading">Valuation queue empty. Run refresh_valuation_dashboard_rows.py after followups exist.</div>';
     }
     const counts = queue.counts || {};
+    const tier1Readiness = queue.tier_1_readiness || {};
     const waves = queue.expansion_waves || {};
     const rows = (queue.items || []).map((row) => {
       const meta = modelLevelMeta(row.model_level, row.decision_status);
@@ -636,12 +637,26 @@
       const technical = global.TechnicalViz && tickerRow
         ? global.TechnicalViz.renderSetupCell(tickerRow, escapeHtml)
         : '<span class="technical-empty">—</span>';
+      const priority = row.priority || {};
+      const readinessState = String(row.readiness_state || 'curated_followup');
+      const readinessLabel = readinessState.replace(/_/g, ' ');
+      const priorityClass = Number(priority.rank || 999) <= 20
+        ? 'badge-bad'
+        : Number(priority.rank || 999) <= 60
+          ? 'badge-warn'
+          : 'badge-neutral';
+      const priceFreshness = (row.freshness || {}).price_as_of || {};
+      const factFreshness = (row.freshness || {}).latest_fact_as_of || {};
+      const freshnessText = row.queue_scope === 'tier_1'
+        ? `price ${priceFreshness.age_days == null ? 'missing' : `${priceFreshness.age_days}d`} · facts ${factFreshness.age_days == null ? 'missing' : `${factFreshness.age_days}d`}`
+        : 'curated follow-up';
       return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(row.ticker)} evidence">
         <td><strong>${escapeHtml(row.ticker)}</strong><div class="tier-sub">${escapeHtml(row.company || '')}</div></td>
         <td>${escapeHtml(String(row.method_profile || '—').replace(/_/g, ' '))}</td>
         <td><span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span><div class="tier-sub">${escapeHtml(valuationTier.label || (valuationTier.tier ? `Tier ${valuationTier.tier}` : 'tier not assigned'))}${row.in_validation_cohort ? ' · cohort' : ''}</div></td>
-        <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}</td>
-        <td>${escapeHtml(row.next_gap_id || '—')}${row.next_gap_question ? `<div class="tier-sub">${escapeHtml(String(row.next_gap_question).slice(0, 120))}</div>` : ''}${progress}</td>
+        <td><span class="badge ${priorityClass}">${escapeHtml(readinessLabel)}</span><div class="tier-sub">${escapeHtml(String(priority.bucket || '').replace(/_/g, ' '))} · ${escapeHtml(freshnessText)}</div></td>
+        <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}<div class="tier-sub">${Number((row.blocker_codes || []).length)} blockers</div></td>
+        <td>${escapeHtml(row.next_action || row.next_gap_question || row.next_gap_id || '—')}${progress}</td>
         <td class="mono">${values.base == null ? '—' : fmtQuote(values.base, 0)}</td>
         <td>${technical}</td>
       </tr>`;
@@ -653,16 +668,17 @@
         <div class="sub">${(w.tickers || w.candidate_tickers || []).length || 0} tickers</div>
       </div>`).join('');
     return `
-      <div class="metric-grid metric-grid-3" style="margin-bottom:14px">
-        <div class="metric"><div class="k">Queue tickers</div><div class="v mono">${Number(counts.tickers || 0)}</div></div>
-        <div class="metric"><div class="k">Evidence blocked</div><div class="v mono">${Number(counts.evidence_blocked || 0)}</div></div>
-        <div class="metric"><div class="k">Critical gaps</div><div class="v mono">${Number(counts.critical_gaps || 0)}</div></div>
+      <div class="metric-grid" style="margin-bottom:14px">
+        <div class="metric"><div class="k">Tier 1 names</div><div class="v mono">${Number(counts.tier_1 || 0)}</div></div>
+        <div class="metric"><div class="k">Research blocked</div><div class="v mono">${Number(tier1Readiness.research_blocked_count || 0)}</div></div>
+        <div class="metric"><div class="k">Need model depth</div><div class="v mono">${Number(counts.model_deepening_required || 0)}</div></div>
+        <div class="metric"><div class="k">Committee ready</div><div class="v mono">${Number(counts.committee_ready || 0)}</div></div>
       </div>
       ${waveCards ? `<div class="summary-strip" style="margin-bottom:14px">${waveCards}</div>` : ''}
-      <p class="subhead">One ticker + one acceptance test at a time. Click a row to open the holdings detail Evidence tab.</p>
+      <p class="subhead">Tier 1 is ordered by evidence, model depth, freshness, then independent review. Curated Tier 2/3 followups remain below it. Click a row to open its Evidence tab.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Ticker</th><th>Method</th><th>Status</th><th>Crit / open</th><th>Next gap</th><th>Base / sh</th><th>Technical setup</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Method</th><th>Model</th><th>Readiness priority</th><th>Crit / open</th><th>Next action</th><th>Base / sh</th><th>Technical setup</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;

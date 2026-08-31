@@ -35,6 +35,7 @@ from macro_regime_panel import (  # noqa: E402
 from insider_materiality import SIGNAL_THRESHOLD as INSIDER_SIGNAL_THRESHOLD  # noqa: E402
 from event_materiality import materiality_score as event_materiality_score  # noqa: E402
 from ticker_identity import identity_match_ok  # noqa: E402
+from build_tier1_decision_readiness import build as build_tier1_decision_readiness  # noqa: E402
 
 DATA_DIR = ROOT / "dashboard" / "data"
 OUTPUT = DATA_DIR / "dashboard_data.json"
@@ -1510,16 +1511,35 @@ def valuation_decision_summary(
 
 
 def valuation_queue_summary(rows: list[dict]) -> dict:
-    """Portfolio Valuation Queue built from followups + per-ticker decision summaries."""
+    """Tier 1-first operating queue plus curated Tier 2/3 followups."""
     followups_path = ROOT / "_system" / "reference" / "valuation_followups.json"
     try:
         followups = json.loads(followups_path.read_text(encoding="utf-8")) if followups_path.exists() else {}
     except (json.JSONDecodeError, OSError):
         followups = {}
     by_ticker = {str(r.get("ticker") or "").upper(): r for r in rows}
+    try:
+        tier_1_queue = build_tier1_decision_readiness(root=ROOT)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        tier_1_queue = {"items": [], "summary": {}}
+    tier_1_by_ticker = {
+        str(row.get("ticker") or "").upper(): row
+        for row in (tier_1_queue.get("items") or [])
+        if row.get("ticker")
+    }
     items = []
-    for ticker, cfg in (followups.get("tickers") or {}).items():
-        row = by_ticker.get(str(ticker).upper()) or {}
+    candidate_tickers = sorted(
+        set(str(ticker).upper() for ticker in (followups.get("tickers") or {}))
+        | set(tier_1_by_ticker)
+    )
+    for ticker in candidate_tickers:
+        cfg = (
+            (followups.get("tickers") or {}).get(ticker)
+            or (followups.get("tickers") or {}).get(ticker.lower())
+            or {}
+        )
+        readiness = tier_1_by_ticker.get(ticker) or {}
+        row = by_ticker.get(ticker) or {}
         decision = row.get("valuation_decision") or {}
         gaps = [g for g in (cfg.get("evidence_gaps") or []) if g.get("status") not in CLOSED_GAP_STATUSES]
         critical = [g for g in gaps if g.get("priority") == "critical"]
@@ -1560,8 +1580,24 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
             "valuation_tier": row.get("valuation_tier"),
             "primary_power_zone": decision.get("primary_power_zone"),
             "in_validation_cohort": bool(decision.get("in_validation_cohort")),
+            "queue_scope": "tier_1" if readiness else "curated_followup",
+            "readiness_state": readiness.get("readiness_state"),
+            "priority": readiness.get("priority") or {
+                "rank": 200,
+                "bucket": "curated_followup",
+            },
+            "blocker_codes": [
+                blocker.get("code") for blocker in (readiness.get("blockers") or [])
+                if blocker.get("code")
+            ],
+            "next_action": readiness.get("next_action") or decision.get("next_action")
+                or next_gap.get("acceptance_test") or next_gap.get("question"),
+            "freshness": readiness.get("freshness") or {},
+            "committee": readiness.get("committee") or {},
+            "tier_reason_codes": readiness.get("tier_reason_codes") or [],
         })
     items.sort(key=lambda r: (
+        int((r.get("priority") or {}).get("rank") or 999),
         0 if r.get("in_validation_cohort") else 1,
         -(r.get("critical_gap_count") or 0),
         str(r.get("ticker") or ""),
@@ -1576,7 +1612,21 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
             "provisional": sum(1 for r in items if r.get("decision_status") == "provisional"),
             "open_gaps": sum(int(r.get("open_gap_count") or 0) for r in items),
             "critical_gaps": sum(int(r.get("critical_gap_count") or 0) for r in items),
+            "tier_1": sum(r.get("queue_scope") == "tier_1" for r in items),
+            "model_deepening_required": sum(
+                r.get("readiness_state") == "model_deepening_required" for r in items
+            ),
+            "freshness_refresh_required": sum(
+                r.get("readiness_state") == "freshness_refresh_required" for r in items
+            ),
+            "committee_ready": sum(
+                r.get("readiness_state") == "committee_ready" for r in items
+            ),
+            "owner_approved": sum(
+                r.get("readiness_state") == "owner_approved" for r in items
+            ),
         },
+        "tier_1_readiness": tier_1_queue.get("summary") or {},
         "expansion_waves": waves,
         "items": items,
     }
@@ -3206,6 +3256,10 @@ def build() -> dict:
             "valuation_queue_tickers": (valuation_queue.get("counts") or {}).get("tickers"),
             "valuation_evidence_blocked": (valuation_queue.get("counts") or {}).get("evidence_blocked"),
             "valuation_critical_gaps": (valuation_queue.get("counts") or {}).get("critical_gaps"),
+            "valuation_tier_1_queue": (valuation_queue.get("counts") or {}).get("tier_1"),
+            "valuation_model_deepening_required": (valuation_queue.get("counts") or {}).get("model_deepening_required"),
+            "valuation_freshness_refresh_required": (valuation_queue.get("counts") or {}).get("freshness_refresh_required"),
+            "valuation_committee_ready": (valuation_queue.get("counts") or {}).get("committee_ready"),
             "valuation_tier_counts": dict(sorted(valuation_tier_counts.items())),
             "valuation_model_level_counts": dict(sorted(model_level_counts.items())),
             "valuation_tiers_as_of": load_valuation_universe_tiers().get("as_of"),

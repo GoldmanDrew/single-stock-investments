@@ -3,14 +3,55 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
+import build_dashboard_data as dashboard
 from build_dashboard_data import valuation_decision_summary
 
 
 class DashboardValuationPublishingTests(unittest.TestCase):
+    def test_queue_includes_every_tier_1_name_before_curated_followups(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            followups = root / "_system/reference/valuation_followups.json"
+            followups.parent.mkdir(parents=True)
+            followups.write_text(json.dumps({
+                "tickers": {"FOLLOW": {"evidence_gaps": []}},
+            }), encoding="utf-8")
+            readiness = {
+                "summary": {"tier_1_count": 1},
+                "items": [{
+                    "ticker": "ACTIVE",
+                    "readiness_state": "model_deepening_required",
+                    "priority": {"rank": 40, "bucket": "model_deepening"},
+                    "blockers": [{"code": "stock_specific_model_required"}],
+                    "next_action": "Build the stock-specific model.",
+                    "freshness": {},
+                    "committee": {},
+                    "tier_reason_codes": ["positive_position"],
+                }],
+            }
+            rows = [
+                {"ticker": "ACTIVE", "company": "Active Co", "valuation_tier": {"tier": 1},
+                 "valuation_decision": {"status": "decision_grade", "model_level": "screening_grade"}},
+                {"ticker": "FOLLOW", "company": "Follow Co", "valuation_tier": {"tier": 2},
+                 "valuation_decision": {"status": "provisional", "model_level": "evidence_blocked"}},
+            ]
+
+            with (
+                patch.object(dashboard, "ROOT", root),
+                patch.object(dashboard, "build_tier1_decision_readiness", return_value=readiness),
+            ):
+                queue = dashboard.valuation_queue_summary(rows)
+
+        self.assertEqual([row["ticker"] for row in queue["items"]], ["ACTIVE", "FOLLOW"])
+        self.assertEqual(queue["counts"]["tier_1"], 1)
+        self.assertEqual(queue["items"][0]["next_action"], "Build the stock-specific model.")
+        self.assertEqual(queue["items"][0]["queue_scope"], "tier_1")
+
     def test_blocked_return_is_not_published_to_front_page(self):
         workbench = {
             "decision": {

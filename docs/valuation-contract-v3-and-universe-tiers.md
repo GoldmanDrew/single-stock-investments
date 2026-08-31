@@ -148,18 +148,28 @@ Phases 1 and 2, including the repository-wide migration, are implemented:
   dashboard honestly publishes zero forward returns. The old implied returns
   remain audit-only and cannot leak into ranking or decisions.
 
-Tier 1 currently contains 14 stock-specific models, 8 screening-grade models,
-and 18 evidence-blocked models. That distribution defines the next operating
-queue; a Tier 1 label does not conceal unfinished underwriting.
+Tier 1 currently contains 11 stock-specific models, 8 screening-grade models,
+and 21 evidence-blocked models. That distribution defines the operating queue;
+a Tier 1 label does not conceal unfinished underwriting.
+
+The Tier 1 readiness compiler now turns those 40 assignments into one governed
+work order. It prioritizes critical and open evidence gaps, proof completion,
+company-specific model depth, input freshness, falsifier coverage, independent
+committee work, and finally the owner decision. The generated queue is stored
+at `_system/data/tier1_decision_readiness.json`, is rebuilt by the security
+decision pipeline, and is displayed in the dashboard Decision Queue. It orders
+work only: it cannot clear a blocker, upgrade a model, start a committee, or
+authorize capital.
 
 ## Overall repository plan
 
 Phases 1 and 2 establish the contract and workflow boundary and their migration
 is complete. The next plan is model depth and operating hardening:
 
-1. **Deepen Tier 1 models.** Replace generic screens with company-specific
-   segment economics, reinvestment logic, capital structure, dilution, event
-   timing, and explicit falsifiers.
+1. **Deepen Tier 1 models.** Work the governed Tier 1 queue from top to bottom,
+   replacing generic screens with company-specific segment economics,
+   reinvestment logic, capital structure, dilution, event timing, and explicit
+   falsifiers.
 2. **Add genuine forward economics where the thesis requires them.** Use dated
    per-share payoffs or cash-flow schedules so CAGR/IRR and hurdle prices are
    calculated from actual future economics, never reverse-engineered from PV.
