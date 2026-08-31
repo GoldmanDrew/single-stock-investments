@@ -1,7 +1,7 @@
 # Event triage — human review queue
 
 **Date:** 2026-08-31
-**Rows:** 2740
+**Rows:** 1676
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
@@ -34,6 +34,11 @@
 | 2026-08-31 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-31 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-31 | ZBRA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre` |
+| 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre_q2` |
+| 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `jefferies_2026-08-06` |
+| 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | McIntyre Partnerships |
+| 2026-08-31 | QDEL | third_party | context | 15 | rule_conflict, activist_cross_link, neutral_low_impact | VIC PDF intake - QDEL - QDEL VIC PDF |
 | 2026-08-30 | GTX | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | How Stronger 2026 Outlook And Diversification Beyond Turboch |
 | 2026-08-30 | ULTA | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Ulta Beauty (ULTA) On Raised Guidance And Buybacks Has Inves |
 | 2026-08-30 | JOE | third_party | context | 15 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | 01-Douglas-Dynamics |
@@ -140,9 +145,6 @@
 | 2026-08-26 | CORZ | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Two Seas Capital — DFAN14A (proxy solicitation) |
 | 2026-08-26 | INVH | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13G/A |
 | 2026-08-26 | GNRC | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | Generac Power Systems, Inc. — SC 13D |
-| 2026-08-26 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre` |
-| 2026-08-26 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre_q2` |
-| 2026-08-26 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `jefferies_2026-08-06` |
 | 2026-08-26 | EQT | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | DFAN14A 1 d669865ddfan14a.htm DFAN14A DFAN14A... — DFAN14A ( |
 | 2026-08-26 | EQT | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | DFAN14A (proxy solicitation) · EQT · 2019-01-22 |
 | 2026-08-26 | IVZ | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Trian Partners — SC 13D/A |
@@ -186,7 +188,6 @@
 | 2026-08-26 | BMY | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Starboard Value — DFAN14A (proxy solicitation) |
 | 2026-08-26 | MPWR | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Oct 9, 2019 |
 | 2026-08-26 | CHD | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 5, 2019 |
-| 2026-08-26 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, neutral_low_impact | McIntyre Partnerships |
 | 2026-08-26 | APLD | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Oasis Management (SC 13D/A) |
 | 2026-08-26 | APLD | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Wolfpack Research short cache (Jul 2023) |
 | 2026-08-26 | HSIC | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Sep 26, 2018 |
@@ -204,4 +205,3 @@
 | 2026-08-26 | BG | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Mar 25, 2026 |
 | 2026-08-26 | CART | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13D/A |
 | 2026-08-26 | GNRC | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Jun 22, 2022 |
-| 2026-08-26 | BB | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13D/A |
