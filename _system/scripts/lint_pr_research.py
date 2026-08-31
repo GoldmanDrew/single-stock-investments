@@ -150,6 +150,10 @@ def _is_committee_side_path(path: str) -> bool:
     return "/research/committee_work/" in path or path.endswith("/research/valuation_workbench.json")
 
 
+def _is_derived_path(path: str) -> bool:
+    return path.endswith("/research/lenses.json")
+
+
 def _is_mechanical_path(path: str, ticker: str, base: str) -> bool:
     if path.endswith("/research/valuation.json"):
         return valuation_overlay_only_diff(ticker, base) or valuation_insider_only_diff(ticker, base)
@@ -164,10 +168,12 @@ def _is_mechanical_path(path: str, ticker: str, base: str) -> bool:
 
 
 def research_diff_kind(ticker: str, paths: list[str], base: str) -> str:
-    """Per ticker: mechanical_only | committee_only | narrative | mixed."""
+    """Per ticker: derived_only | mechanical_only | committee_only | narrative | mixed."""
     tk_paths = [p for p in paths if p.startswith(f"{ticker}/research/")]
     if not tk_paths:
         return "narrative"
+    if all(_is_derived_path(p) for p in tk_paths):
+        return "derived_only"
     if all(_is_committee_side_path(p) for p in tk_paths):
         return "committee_only"
     non_mechanical = [p for p in tk_paths if not _is_mechanical_path(p, ticker, base)]
@@ -206,11 +212,34 @@ def main() -> int:
         dive = ROOT / ticker / "research"
         if not dive.is_dir():
             continue
+        kind = research_diff_kind(ticker, paths, args.base)
+        print(f"\n=== lint {ticker} ({kind}) ===")
+        if kind == "derived_only":
+            lenses_path = dive / "lenses.json"
+            try:
+                lenses = json.loads(lenses_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"FAIL {ticker}: invalid lenses.json: {exc}")
+                failed += 1
+                continue
+            required = {
+                "ticker": str,
+                "lenses": list,
+                "valuation_blend": dict,
+                "consensus": dict,
+            }
+            errors = [
+                key
+                for key, expected in required.items()
+                if not isinstance(lenses.get(key), expected)
+            ]
+            if errors:
+                print(f"FAIL {ticker}: lenses.json missing/invalid: {', '.join(errors)}")
+                failed += 1
+            continue
         if not list(dive.glob("deep_dive_*.md")):
             print(f"SKIP {ticker}: no deep dive")
             continue
-        kind = research_diff_kind(ticker, paths, args.base)
-        print(f"\n=== lint {ticker} ({kind}) ===")
         if kind == "committee_only":
             print(f"SKIP {ticker}: committee_work-only diff")
             continue
