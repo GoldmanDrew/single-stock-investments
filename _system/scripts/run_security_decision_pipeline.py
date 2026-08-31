@@ -27,6 +27,11 @@ from build_valuation_universe_tiers import (  # noqa: E402
     build as build_valuation_universe_tiers,
     render as render_valuation_universe_tiers,
 )
+from build_tier1_decision_readiness import (  # noqa: E402
+    OUTPUT_REL as TIER1_READINESS_REL,
+    build as build_tier1_decision_readiness,
+    render as render_tier1_decision_readiness,
+)
 from build_valuation_workbench import write as write_workbench  # noqa: E402
 from falsifier_specs import (  # noqa: E402
     anchor_errors as falsifier_anchor_errors,
@@ -128,6 +133,36 @@ def stage_universe_tiers(as_of: str, dry_run: bool) -> tuple[dict, dict]:
             "output": VALUATION_TIERS_REL.as_posix(),
             "errors": [f"{type(exc).__name__}: {exc}"],
         }, {})
+
+
+def stage_tier1_readiness(as_of: str, dry_run: bool) -> dict:
+    """Compile the operating order for every Tier 1 security."""
+    try:
+        payload = build_tier1_decision_readiness(as_of, ROOT)
+        validation = payload.get("validation") or {}
+        errors = list(validation.get("errors") or [])
+        if validation.get("status") != "pass" and not errors:
+            errors.append("Tier 1 decision-readiness validation did not pass")
+        if not dry_run and not errors:
+            path = ROOT / TIER1_READINESS_REL
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(render_tier1_decision_readiness(payload), encoding="utf-8")
+        return {
+            "status": "ready" if not errors else "failed",
+            "summary": payload.get("summary") or {},
+            "validation": validation,
+            "output": TIER1_READINESS_REL.as_posix(),
+            "errors": errors,
+        }
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        return {
+            "status": "failed",
+            "summary": {},
+            "validation": {"status": "fail", "errors": [error]},
+            "output": TIER1_READINESS_REL.as_posix(),
+            "errors": [error],
+        }
 
 
 def curated_evidence_blockers(ticker: str) -> list[str]:
@@ -581,13 +616,13 @@ def main() -> int:
     as_of = args.date[:10]
     universe_tiers, tier_manifest = stage_universe_tiers(as_of, args.dry_run)
     if universe_tiers["status"] == "failed":
-        print(f"[1/7] universe tiers: failed ({len(universe_tiers['errors'])} errors)")
+        print(f"[1/8] universe tiers: failed ({len(universe_tiers['errors'])} errors)")
         for error in universe_tiers["errors"]:
             print(f"  tier error: {error}")
         return 1
     tier_counts = (universe_tiers.get("summary") or {}).get("tier_counts") or {}
     print(
-        "[1/7] universe tiers: "
+        "[1/8] universe tiers: "
         f"T1={tier_counts.get('tier_1', 0)} "
         f"T2={tier_counts.get('tier_2', 0)} "
         f"T3={tier_counts.get('tier_3', 0)}"
@@ -596,7 +631,7 @@ def main() -> int:
     print(f"universe: scope={args.scope} tickers={len(tickers)}")
 
     routes = stage_routes(tickers, as_of, args.dry_run)
-    print(f"[2/7] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
+    print(f"[2/8] routes: {routes['processed']} processed, {len(routes['errors'])} errors")
     power_zones = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
     if not args.dry_run and not args.tickers:
         power_zones = run_script("_system/scripts/build_power_zones.py")
@@ -604,14 +639,14 @@ def main() -> int:
         power_zones["status"] = "targeted_route_only"
 
     contracts = stage_contracts(tickers, args.dry_run, as_of)
-    print(f"[3/7] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
+    print(f"[3/8] contracts: {len(contracts['written'])} ready, {len(contracts['scaffolded'])} model scaffolds, {len(contracts['missing_valuation'])} missing, {len(contracts['errors'])} errors")
 
     contract_tickers = [row["ticker"] for row in contracts["written"]]
     workbenches = stage_workbenches(contract_tickers, as_of, args.dry_run)
-    print(f"[4/7] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
+    print(f"[4/8] workbenches: {len(workbenches['written'])} built, {len(workbenches['skipped'])} skipped, {len(workbenches['errors'])} errors")
 
     pricing = stage_pricing(workbenches["written"], as_of, args.dry_run)
-    print(f"[5/7] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
+    print(f"[5/8] pricing: {len(pricing['priced'])} priced, {len(pricing['errors'])} errors")
     for row in pricing.get("errors") or []:
         print(f"  pricing error {row.get('ticker')}: {row.get('error')}")
 
@@ -625,10 +660,20 @@ def main() -> int:
         else stage_committees(workbenches["written"], as_of, args.dry_run, tier_manifest)
     )
     print(
-        f"[6/7] committees: {len(committees['initiated'])} initialized, "
+        f"[6/8] committees: {len(committees['initiated'])} initialized, "
         f"{len(committees['blocked'])} blocked, "
         f"{len(committees['triggered_evidence_tasks'])} evidence tasks, "
         f"{len(committees['tier_restricted'])} outside Tier 1"
+    )
+
+    tier_1_readiness = stage_tier1_readiness(as_of, args.dry_run)
+    readiness_summary = tier_1_readiness.get("summary") or {}
+    print(
+        "[7/8] Tier 1 readiness: "
+        f"{readiness_summary.get('tier_1_count', 0)} names, "
+        f"{readiness_summary.get('research_blocked_count', 0)} research blocked, "
+        f"{readiness_summary.get('model_deepening_required_count', 0)} need model depth, "
+        f"{readiness_summary.get('committee_ready_count', 0)} committee ready"
     )
 
     dashboard = {"status": "skipped", "returncode": 0, "command": None, "error_tail": None}
@@ -637,7 +682,7 @@ def main() -> int:
             dashboard = run_script("_system/scripts/refresh_valuation_dashboard_rows.py", "--tickers", *tickers)
         else:
             dashboard = run_script("_system/scripts/build_dashboard_data.py")
-    print(f"[7/7] dashboard: {dashboard['status']}")
+    print(f"[8/8] dashboard: {dashboard['status']}")
 
     stages = {
         "universe_tiers": universe_tiers,
@@ -647,12 +692,15 @@ def main() -> int:
         "workbenches": workbenches,
         "pricing": pricing,
         "committees": committees,
+        "tier_1_readiness": tier_1_readiness,
         "dashboard": dashboard,
     }
     summary = write_summary(as_of, args.scope, tickers, stages, args.dry_run, explicit=bool(args.tickers))
     if summary:
         print(f"summary: {summary.relative_to(ROOT).as_posix()}")
-    errors = sum(len(stage.get("errors") or []) for stage in (universe_tiers, routes, contracts, workbenches, pricing))
+    errors = sum(len(stage.get("errors") or []) for stage in (
+        universe_tiers, routes, contracts, workbenches, pricing, tier_1_readiness,
+    ))
     errors += int(power_zones["returncode"] != 0) + int(dashboard["returncode"] != 0)
     return 1 if errors else 0
 

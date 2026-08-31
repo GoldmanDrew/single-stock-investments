@@ -104,6 +104,10 @@ def refresh(path: Path, tickers: tuple[str, ...] | None = None) -> int:
         summary["valuation_queue_tickers"] = counts.get("tickers")
         summary["valuation_evidence_blocked"] = counts.get("evidence_blocked")
         summary["valuation_critical_gaps"] = counts.get("critical_gaps")
+        summary["valuation_tier_1_queue"] = counts.get("tier_1")
+        summary["valuation_model_deepening_required"] = counts.get("model_deepening_required")
+        summary["valuation_freshness_refresh_required"] = counts.get("freshness_refresh_required")
+        summary["valuation_committee_ready"] = counts.get("committee_ready")
     summary["with_property_register"] = sum(
         1 for r in (data.get("tickers") or []) if r.get("properties")
     )
@@ -155,6 +159,10 @@ def _refresh_summary(data: dict) -> None:
     summary["valuation_queue_tickers"] = counts.get("tickers")
     summary["valuation_evidence_blocked"] = counts.get("evidence_blocked")
     summary["valuation_critical_gaps"] = counts.get("critical_gaps")
+    summary["valuation_tier_1_queue"] = counts.get("tier_1")
+    summary["valuation_model_deepening_required"] = counts.get("model_deepening_required")
+    summary["valuation_freshness_refresh_required"] = counts.get("freshness_refresh_required")
+    summary["valuation_committee_ready"] = counts.get("committee_ready")
     summary["valuation_tier_counts"] = dict(sorted(Counter(
         str((row.get("valuation_tier") or {}).get("tier_id"))
         for row in rows
