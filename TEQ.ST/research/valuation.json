@@ -1,143 +1,49 @@
 {
   "ticker": "TEQ.ST",
-  "as_of": "2026-07-30",
+  "as_of": "2026-08-31",
   "schema_version": "3.0",
-  "method": "proof_first_automated",
+  "method": "issuer_specific_filing_reconciled",
   "classification_inputs": {
     "archetype": "compounder",
     "valuation_profile": "quality_reinvestment",
     "method_source": "power_zone_route"
   },
   "inputs": {
-    "price": 163.0,
-    "price_source": "Yahoo TEQ.ST close 2026-07-22",
-    "fcf_per_share": 10.08,
-    "fcf_source": "FY2025 FCF ex-acquisitions 173.1 MSEK \u00f7 17,165,756 shares (TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf; cross-check operating CF 184.6 MSEK less maintenance capex per TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf Note 27)",
-    "shares_millions": 17.166,
-    "normalization_note": "FY2025 FCF ex-acquisitions as run-rate base; Q1 2026 EBITA margin 14.3% above FY avg 11.3% \u2014 not fully inflated into starting FCF",
+    "price": 186.0,
+    "price_source": "Yahoo TEQ.ST close 2026-08-31",
+    "fcf_per_share": 11.9366,
+    "fcf_source": "R12 operating cash flow 213.5 MSEK less capex 8.6 MSEK (TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, page 18)",
+    "shares_millions": 17.165756,
+    "normalization_note": "R12 owner cash is converted to enterprise cash by adding back after-tax cash financing cost. Cases never capitalize future acquisition benefits without their purchase cost.",
     "shares_outstanding": 17165756,
-    "shares_source": "17,165,756 shares at 2025-12-31 (TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf)",
-    "price_as_of": "2026-07-22"
+    "shares_source": "Q2/YTD diluted and period-end shares 17,165,756 (TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, page 17)",
+    "price_as_of": "2026-08-31",
+    "cash_m": 171.5,
+    "total_debt_m": 898.8
   },
   "valuation_methodology": {
     "primary_method": "owner_earnings_reinvestment_dcf",
     "method_version": "1.0",
-    "automation": "revalidated_existing_approved_proofs",
+    "automation": "issuer_specific_filing_reconciled_model",
+    "model_level": "stock_specific",
+    "output_basis": "present_value_today",
+    "required_return_pct": 10.5,
+    "horizon_years": 7,
     "component_methods": [
-      "net_asset_value",
-      "owner_cash_or_dividend_discount",
-      "owner_earnings_reinvestment_dcf"
-    ]
+      "owner_earnings_reinvestment_dcf",
+      "net_asset_value"
+    ],
+    "non_double_counting_rule": "Value the current operating portfolio once on enterprise cash flow; then deduct all financing claims once. Assign zero to future acquisitions unless both future benefits and funding are modeled together."
   },
   "component_valuation_results": {
     "status": "compiled",
     "all_material_components_identified": true,
     "additive_components": [
       {
-        "id": "core_engine",
-        "label": "Operating-company portfolio owner cash",
+        "id": "operating_enterprise",
+        "label": "Owned operating-company portfolio enterprise value",
         "category": "operating_business",
-        "overlap_key": "core_engine",
-        "treatment": "additive",
-        "included_in_component_id": null,
-        "method": "owner_cash_or_dividend_discount",
-        "valuation_status": "bounded_estimate",
-        "calculation_proof": {
-          "schema_version": "1.0",
-          "method_id": "owner_cash_or_dividend_discount",
-          "method_version": "1.0",
-          "output_unit": "SEK_per_share",
-          "inputs": [
-            {
-              "id": "fcf_ex_acquisitions_m",
-              "label": "FY2025 free cash flow excluding acquisitions",
-              "kind": "fact",
-              "value": 173.1,
-              "unit": "SEK_m",
-              "source": {
-                "ref": "TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf",
-                "locator": "FY2025 FCF ex-acquisitions 173.1 MSEK (operating CF less maintenance capex; ex M&A)",
-                "as_of": "2025-12-31"
-              },
-              "locked": true
-            },
-            {
-              "id": "shares_m",
-              "label": "Shares outstanding (parent shareholders)",
-              "kind": "fact",
-              "value": 17.165756,
-              "unit": "million_shares",
-              "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                "as_of": "2025-12-31"
-              },
-              "locked": true
-            }
-          ],
-          "assumptions": [
-            {
-              "id": "owner_cash_capitalization_multiple",
-              "label": "Seven-year owner-cash capitalization multiple on normalized FCF per share",
-              "kind": "judgment",
-              "values": {
-                "low": 9.714,
-                "base": 12.534,
-                "high": 15.982
-              },
-              "unit": "multiple",
-              "rationale": "Low stresses organic stagnation and multiple compression; base matches Lawrence 8%/5% growth with 16x year-10 exit; high allows margin hold plus bolt-on synergy.",
-              "allowed_range": {
-                "min": 8.0,
-                "max": 20.0
-              }
-            }
-          ],
-          "calculations": [
-            {
-              "id": "fcf_per_share",
-              "label": "Normalized owner cash per share",
-              "op": "divide",
-              "args": [
-                "fcf_ex_acquisitions_m",
-                "shares_m"
-              ],
-              "unit": "SEK_per_share"
-            },
-            {
-              "id": "value_per_share",
-              "label": "Operating portfolio owner-cash value per share",
-              "op": "multiply",
-              "args": [
-                "fcf_per_share",
-                "owner_cash_capitalization_multiple"
-              ],
-              "unit": "SEK_per_share"
-            }
-          ],
-          "outputs": {
-            "low": "value_per_share",
-            "base": "value_per_share",
-            "high": "value_per_share"
-          }
-        },
-        "evidence_tier": "primary_derived",
-        "evidence": "FY2025: sales 1,800 MSEK, EBITA 203.1 MSEK, FCF ex-acquisitions 173.1 MSEK, cash 209.5 MSEK, net debt ex-leases 286.6 MSEK, contingent consideration 195.6 MSEK, 17,165,756 shares (TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf; TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf). Proof: 126.3932/sh base via owner_cash_or_dividend_discount@1.0.",
-        "cross_check": "Reconcile the range to primary filings, a reproducible owner-cash or NAV bridge, and the identified liability and capital claims before decision use.",
-        "driver_model_type": null,
-        "driver_model": null,
-        "assumption_summary": "Proof outputs {'low': 97.9563, 'base': 126.3932, 'high': 161.163}; see calculation_proof graph.",
-        "falsifier": "Primary evidence shows that the economic claim, cash conversion, ownership, or required capital is materially worse than this low case.",
-        "scenario_assumptions": null,
-        "low_per_share": 97.96,
-        "base_per_share": 126.39,
-        "high_per_share": 161.16
-      },
-      {
-        "id": "reinvestment_or_assets",
-        "label": "Acquisition reinvestment runway",
-        "category": "operating_business",
-        "overlap_key": "reinvestment_or_assets",
+        "overlap_key": "owned_operating_portfolio",
         "treatment": "additive",
         "included_in_component_id": null,
         "method": "owner_earnings_reinvestment_dcf",
@@ -149,412 +55,622 @@
           "output_unit": "SEK_per_share",
           "inputs": [
             {
-              "id": "acquisition_spend_m",
-              "label": "FY2025 cash spent on acquisitions (net of acquired cash)",
+              "id": "operating_cash_flow_m",
+              "label": "R12 cash flow from operating activities",
               "kind": "fact",
-              "value": 306.9,
+              "value": 213.5,
               "unit": "SEK_m",
               "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "F\u00f6retagsf\u00f6rv\u00e4rv -306,9 MSEK in investing cash flow (Note 27)",
-                "as_of": "2025-12-31"
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 18: R12 cash flow from operating activities 213.5 MSEK",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "maintenance_capex_m",
+              "label": "R12 net capital expenditure",
+              "kind": "fact",
+              "value": 8.6,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 18: R12 net capital expenditure 8.6 MSEK",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "cash_net_finance_m",
+              "label": "R12 cash interest and other financial items, net",
+              "kind": "fact",
+              "value": 31.7,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 18: R12 interest and other financial items, net -31.7 MSEK",
+                "as_of": "2026-06-30"
               },
               "locked": true
             },
             {
               "id": "shares_m",
-              "label": "Shares outstanding (parent shareholders)",
+              "label": "Diluted shares outstanding",
               "kind": "fact",
               "value": 17.165756,
               "unit": "million_shares",
               "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                "as_of": "2025-12-31"
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 17: Q2/YTD average shares after dilution and period-end shares 17,165,756",
+                "as_of": "2026-06-30"
               },
               "locked": true
             }
           ],
           "assumptions": [
             {
-              "id": "incremental_roic_multiple",
-              "label": "Present-value multiple on incremental acquisition capital deployed",
+              "id": "cash_tax_rate",
+              "label": "Normalized cash tax rate",
               "kind": "judgment",
               "values": {
-                "low": 0.706,
-                "base": 1.237,
-                "high": 2.119
+                "low": 0.28,
+                "base": 0.25,
+                "high": 0.22
+              },
+              "unit": "ratio",
+              "rationale": "Bounded around H1 2026 tax expense/profit before tax (26.2%) and the Swedish/UK operating mix.",
+              "allowed_range": {
+                "min": 0.18,
+                "max": 0.35
+              }
+            },
+            {
+              "id": "normalization_factor",
+              "label": "Starting cash-flow normalization",
+              "kind": "judgment",
+              "values": {
+                "low": 0.85,
+                "base": 0.95,
+                "high": 1.0
+              },
+              "unit": "ratio",
+              "rationale": "R12 cash conversion is filing-derived but follows a record margin period; no case starts above reported R12 cash flow.",
+              "allowed_range": {
+                "min": 0.7,
+                "max": 1.05
+              }
+            },
+            {
+              "id": "growth_y1_5",
+              "label": "Existing-portfolio cash-flow growth in years 1\u20135",
+              "kind": "judgment",
+              "values": {
+                "low": -0.02,
+                "base": 0.05,
+                "high": 0.08
+              },
+              "unit": "ratio",
+              "rationale": "Cases reflect organic/margin outcomes in the owned portfolio only. Future acquisition benefits and purchase prices are both excluded.",
+              "allowed_range": {
+                "min": -0.1,
+                "max": 0.15
+              }
+            },
+            {
+              "id": "growth_y6_7",
+              "label": "Existing-portfolio cash-flow growth in years 6\u20137",
+              "kind": "judgment",
+              "values": {
+                "low": 0.0,
+                "base": 0.03,
+                "high": 0.04
+              },
+              "unit": "ratio",
+              "rationale": "Growth fades toward mature industrial nominal growth.",
+              "allowed_range": {
+                "min": -0.05,
+                "max": 0.08
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Required return on enterprise cash flow",
+              "kind": "judgment",
+              "values": {
+                "low": 0.13,
+                "base": 0.105,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Scenario rates reflect First North liquidity, decentralized operating risk, cyclicality, and leverage.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.16
+              }
+            },
+            {
+              "id": "exit_fcff_multiple",
+              "label": "Year-7 enterprise free-cash-flow multiple",
+              "kind": "judgment",
+              "values": {
+                "low": 9.0,
+                "base": 14.0,
+                "high": 16.0
               },
               "unit": "multiple",
-              "rationale": "Low assumes indiscipline or goodwill impairment (73 MSEK Q3 2025); base reflects historical bolt-on returns; high assumes continued Nord/V\u00e4st pipeline at disciplined multiples.",
+              "rationale": "Terminal multiples are below or near the current enterprise/owner-cash cross-check and require the portfolio economics to persist.",
               "allowed_range": {
-                "min": 0.0,
-                "max": 3.0
+                "min": 6.0,
+                "max": 20.0
               }
             }
           ],
           "calculations": [
             {
-              "id": "acquisition_spend_per_share",
-              "label": "Acquisition capital deployed per share",
+              "id": "fcfe_ex_acquisitions_m",
+              "label": "R12 free cash flow excluding acquisitions",
+              "op": "subtract",
+              "args": [
+                "operating_cash_flow_m",
+                "maintenance_capex_m"
+              ],
+              "unit": "SEK_m"
+            },
+            {
+              "id": "after_tax_factor",
+              "label": "One minus normalized cash tax rate",
+              "op": "subtract",
+              "args": [
+                1,
+                "cash_tax_rate"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "after_tax_net_finance_m",
+              "label": "After-tax net financing cost added back",
+              "op": "multiply",
+              "args": [
+                "cash_net_finance_m",
+                "after_tax_factor"
+              ],
+              "unit": "SEK_m"
+            },
+            {
+              "id": "reported_fcff_m",
+              "label": "R12 enterprise free cash flow before acquisitions",
+              "op": "add",
+              "args": [
+                "fcfe_ex_acquisitions_m",
+                "after_tax_net_finance_m"
+              ],
+              "unit": "SEK_m"
+            },
+            {
+              "id": "normalized_fcff_m",
+              "label": "Scenario-normalized starting enterprise cash flow",
+              "op": "multiply",
+              "args": [
+                "reported_fcff_m",
+                "normalization_factor"
+              ],
+              "unit": "SEK_m"
+            },
+            {
+              "id": "normalized_fcff_per_share",
+              "label": "Starting enterprise cash flow per share",
               "op": "divide",
               "args": [
-                "acquisition_spend_m",
+                "normalized_fcff_m",
                 "shares_m"
               ],
               "unit": "SEK_per_share"
             },
             {
-              "id": "value_per_share",
-              "label": "Acquisition reinvestment runway value per share",
+              "id": "growth_factor_y1_5",
+              "label": "Growth factor in years 1\u20135",
+              "op": "add",
+              "args": [
+                1,
+                "growth_y1_5"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "growth_factor_y6_7",
+              "label": "Growth factor in years 6\u20137",
+              "op": "add",
+              "args": [
+                1,
+                "growth_y6_7"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "fcff_per_share_y1",
+              "label": "Enterprise cash flow per share in year 1",
               "op": "multiply",
               "args": [
-                "acquisition_spend_per_share",
-                "incremental_roic_multiple"
+                "normalized_fcff_per_share",
+                "growth_factor_y1_5"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y2",
+              "label": "Enterprise cash flow per share in year 2",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y1",
+                "growth_factor_y1_5"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y3",
+              "label": "Enterprise cash flow per share in year 3",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y2",
+                "growth_factor_y1_5"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y4",
+              "label": "Enterprise cash flow per share in year 4",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y3",
+                "growth_factor_y1_5"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y5",
+              "label": "Enterprise cash flow per share in year 5",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y4",
+                "growth_factor_y1_5"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y6",
+              "label": "Enterprise cash flow per share in year 6",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y5",
+                "growth_factor_y6_7"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "fcff_per_share_y7",
+              "label": "Enterprise cash flow per share in year 7",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y6",
+                "growth_factor_y6_7"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "explicit_cash_flow_pv",
+              "label": "Present value of years 1\u20136 enterprise cash flow",
+              "op": "present_value",
+              "args": [
+                "fcff_per_share_y1",
+                1,
+                "fcff_per_share_y2",
+                2,
+                "fcff_per_share_y3",
+                3,
+                "fcff_per_share_y4",
+                4,
+                "fcff_per_share_y5",
+                5,
+                "fcff_per_share_y6",
+                6,
+                "discount_rate"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "terminal_enterprise_value",
+              "label": "Year-7 terminal enterprise value",
+              "op": "multiply",
+              "args": [
+                "fcff_per_share_y7",
+                "exit_fcff_multiple"
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "terminal_enterprise_value_pv",
+              "label": "Present value of terminal enterprise value",
+              "op": "discount",
+              "args": [
+                "terminal_enterprise_value",
+                "discount_rate",
+                7
+              ],
+              "unit": "SEK_per_share"
+            },
+            {
+              "id": "enterprise_value_per_share",
+              "label": "Operating enterprise value per share",
+              "op": "add",
+              "args": [
+                "explicit_cash_flow_pv",
+                "terminal_enterprise_value_pv"
               ],
               "unit": "SEK_per_share"
             }
           ],
           "outputs": {
-            "low": "value_per_share",
-            "base": "value_per_share",
-            "high": "value_per_share"
+            "low": "enterprise_value_per_share",
+            "base": "enterprise_value_per_share",
+            "high": "enterprise_value_per_share"
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025: sales 1,800 MSEK, EBITA 203.1 MSEK, FCF ex-acquisitions 173.1 MSEK, cash 209.5 MSEK, net debt ex-leases 286.6 MSEK, contingent consideration 195.6 MSEK, 17,165,756 shares (TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf; TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf). Proof: 22.1159/sh base via owner_earnings_reinvestment_dcf@1.0.",
-        "cross_check": "Reconcile the range to primary filings, a reproducible owner-cash or NAV bridge, and the identified liability and capital claims before decision use.",
-        "driver_model_type": null,
-        "driver_model": null,
-        "assumption_summary": "Proof outputs {'low': 12.6223, 'base': 22.1159, 'high': 37.8848}; see calculation_proof graph.",
-        "falsifier": "Primary evidence shows that the economic claim, cash conversion, ownership, or required capital is materially worse than this low case.",
+        "evidence": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, pages 15\u201318 and 24; independently reconciled in TEQ.ST/research/evidence_reconciliation_2026-08-31.json.",
+        "cross_check": "R12 enterprise cash flow reconciles from CFO less capex plus after-tax cash financing cost; acquisition cash outlays and benefits from future deals are excluded together.",
+        "assumption_summary": "Low/base/high vary starting normalization, existing-portfolio growth, discount rate, and year-7 exit multiple.",
+        "falsifier": "R12 cash flow falls below 85% of the 2026-Q2 run rate without a temporary working-capital explanation, organic decline persists, or EBITA margin falls below 9%.",
         "scenario_assumptions": null,
-        "low_per_share": 12.62,
-        "base_per_share": 22.12,
-        "high_per_share": 37.88
+        "low_per_share": 81.42,
+        "base_per_share": 182.83,
+        "high_per_share": 263.33
       },
       {
-        "id": "net_financial_claims",
-        "label": "Cash, debt, and contingent-consideration claims",
-        "category": "financial_asset",
-        "overlap_key": "net_financial_claims",
+        "id": "financing_claims",
+        "label": "Cash less bank, lease, acquisition-payment, and minority claims",
+        "category": "liability_or_reserve",
+        "overlap_key": "net_financing_claims",
         "treatment": "additive",
         "included_in_component_id": null,
         "method": "net_asset_value",
-        "valuation_status": "bounded_estimate",
+        "valuation_status": "calculated",
         "calculation_proof": {
           "schema_version": "1.0",
           "method_id": "net_asset_value",
           "method_version": "1.0",
           "output_unit": "SEK_per_share",
           "inputs": [
+            {
+              "id": "bank_debt_m",
+              "label": "Bank debt",
+              "kind": "fact",
+              "value": 552.5,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 16: non-current liabilities to credit institutions 552.5 MSEK",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "lease_non_current_m",
+              "label": "Non-current lease liabilities",
+              "kind": "fact",
+              "value": 109.1,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 16: non-current lease liabilities 109.1 MSEK",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "lease_current_m",
+              "label": "Current lease liabilities",
+              "kind": "fact",
+              "value": 54.4,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 16: current lease liabilities 54.4 MSEK",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "other_financial_non_current_m",
+              "label": "Other non-current financial liabilities",
+              "kind": "fact",
+              "value": 132.3,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "pages 16 and 21: other non-current financial liabilities 132.3 MSEK; acquisition payments carried at fair value",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
+            {
+              "id": "other_financial_current_m",
+              "label": "Other current financial liabilities",
+              "kind": "fact",
+              "value": 50.5,
+              "unit": "SEK_m",
+              "source": {
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "pages 16 and 21: other current financial liabilities 50.5 MSEK; acquisition payments carried at fair value",
+                "as_of": "2026-06-30"
+              },
+              "locked": true
+            },
             {
               "id": "cash_m",
               "label": "Cash and cash equivalents",
               "kind": "fact",
-              "value": 209.5,
+              "value": 171.5,
               "unit": "SEK_m",
               "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Likvida medel 209,5 MSEK at 2025-12-31",
-                "as_of": "2025-12-31"
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 16: cash and cash equivalents 171.5 MSEK",
+                "as_of": "2026-06-30"
               },
               "locked": true
             },
             {
-              "id": "net_debt_ex_leases_m",
-              "label": "Net debt excluding lease liabilities",
+              "id": "non_controlling_interest_m",
+              "label": "Non-controlling interest",
               "kind": "fact",
-              "value": 286.6,
+              "value": 1.4,
               "unit": "SEK_m",
               "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Nettoskulden exklusive leasingskulder 286,6 MSEK at 2025-12-31",
-                "as_of": "2025-12-31"
-              },
-              "locked": true
-            },
-            {
-              "id": "contingent_consideration_m",
-              "label": "Contingent consideration liability (earn-outs)",
-              "kind": "fact",
-              "value": 195.6,
-              "unit": "SEK_m",
-              "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Villkorade k\u00f6peskillingar 195,6 MSEK at 2025-12-31",
-                "as_of": "2025-12-31"
-              },
-              "locked": true
-            },
-            {
-              "id": "unused_credit_m",
-              "label": "Unused credit facility headroom",
-              "kind": "fact",
-              "value": 77.0,
-              "unit": "SEK_m",
-              "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Outnyttjad del av kreditfacilitet ca 77,0 MSEK at 2025-12-31",
-                "as_of": "2025-12-31"
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "pages 16\u201317: non-controlling interests 1.4 MSEK",
+                "as_of": "2026-06-30"
               },
               "locked": true
             },
             {
               "id": "shares_m",
-              "label": "Shares outstanding (parent shareholders)",
+              "label": "Diluted shares outstanding",
               "kind": "fact",
               "value": 17.165756,
               "unit": "million_shares",
               "source": {
-                "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
-                "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                "as_of": "2025-12-31"
+                "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+                "locator": "page 17: Q2/YTD average shares after dilution and period-end shares 17,165,756",
+                "as_of": "2026-06-30"
               },
               "locked": true
             }
           ],
-          "assumptions": [
-            {
-              "id": "debt_charge_fraction",
-              "label": "Fraction of net debt charged against equity after operating DCF debt service",
-              "kind": "judgment",
-              "values": {
-                "low": 0.55,
-                "base": 0.05,
-                "high": 0.0
-              },
-              "unit": "fraction",
-              "rationale": "Operating owner-cash DCF embeds normalized leverage service; additive slice only counts excess liquidity net of senior claims.",
-              "allowed_range": {
-                "min": 0.0,
-                "max": 1.0
-              }
-            },
-            {
-              "id": "contingent_probability",
-              "label": "Probability-weighted payout on contingent consideration",
-              "kind": "judgment",
-              "values": {
-                "low": 0.55,
-                "base": 0.3,
-                "high": 0.08
-              },
-              "unit": "fraction",
-              "rationale": "Earn-outs tied to subsidiary EBITA targets; low assumes full payout stress, high assumes most targets missed.",
-              "allowed_range": {
-                "min": 0.0,
-                "max": 1.0
-              }
-            },
-            {
-              "id": "credit_access_fraction",
-              "label": "Fraction of unused credit facility counted as accessible liquidity",
-              "kind": "judgment",
-              "values": {
-                "low": 0.0,
-                "base": 0.0,
-                "high": 1.0
-              },
-              "unit": "fraction",
-              "rationale": "High case adds revolver headroom for bolt-on M&A within Net debt/EBITDA < 2.5 guardrail.",
-              "allowed_range": {
-                "min": 0.0,
-                "max": 1.0
-              }
-            }
-          ],
+          "assumptions": [],
           "calculations": [
             {
-              "id": "debt_charge_m",
-              "label": "Debt charge applied to net financial claims",
-              "op": "multiply",
+              "id": "gross_financing_claims_m",
+              "label": "Bank, lease, and acquisition-payment claims",
+              "op": "sum",
               "args": [
-                "net_debt_ex_leases_m",
-                "debt_charge_fraction"
+                "bank_debt_m",
+                "lease_non_current_m",
+                "lease_current_m",
+                "other_financial_non_current_m",
+                "other_financial_current_m",
+                "non_controlling_interest_m"
               ],
               "unit": "SEK_m"
             },
             {
-              "id": "contingent_charge_m",
-              "label": "Probability-weighted contingent consideration",
-              "op": "multiply",
-              "args": [
-                "contingent_consideration_m",
-                "contingent_probability"
-              ],
-              "unit": "SEK_m"
-            },
-            {
-              "id": "credit_add_m",
-              "label": "Accessible unused credit facility",
-              "op": "multiply",
-              "args": [
-                "unused_credit_m",
-                "credit_access_fraction"
-              ],
-              "unit": "SEK_m"
-            },
-            {
-              "id": "net_claim_m",
-              "label": "Net cash, debt, and contingent claims before per-share conversion",
+              "id": "net_financing_claims_m",
+              "label": "Financing claims net of cash",
               "op": "subtract",
               "args": [
-                "cash_m",
-                "debt_charge_m"
+                "gross_financing_claims_m",
+                "cash_m"
               ],
               "unit": "SEK_m"
             },
             {
-              "id": "net_claim_after_contingent_m",
-              "label": "Net claim after contingent consideration",
-              "op": "subtract",
-              "args": [
-                "net_claim_m",
-                "contingent_charge_m"
-              ],
-              "unit": "SEK_m"
-            },
-            {
-              "id": "net_claim_total_m",
-              "label": "Net claim including credit headroom",
-              "op": "add",
-              "args": [
-                "net_claim_after_contingent_m",
-                "credit_add_m"
-              ],
-              "unit": "SEK_m"
-            },
-            {
-              "id": "net_claim_floor_m",
-              "label": "Net claim floored at zero (no double-count of senior claims)",
-              "op": "maximum",
-              "args": [
-                "net_claim_total_m",
-                0
-              ],
-              "unit": "SEK_m"
-            },
-            {
-              "id": "value_per_share",
-              "label": "Cash, debt, and contingent-consideration claims per share",
+              "id": "net_financing_claims_per_share",
+              "label": "Net financing claims per share",
               "op": "divide",
               "args": [
-                "net_claim_floor_m",
+                "net_financing_claims_m",
                 "shares_m"
               ],
               "unit": "SEK_per_share"
-            }
-          ],
-          "outputs": {
-            "low": "value_per_share",
-            "base": "value_per_share",
-            "high": "value_per_share"
-          }
-        },
-        "evidence_tier": "primary_derived",
-        "evidence": "FY2025: sales 1,800 MSEK, EBITA 203.1 MSEK, FCF ex-acquisitions 173.1 MSEK, cash 209.5 MSEK, net debt ex-leases 286.6 MSEK, contingent consideration 195.6 MSEK, 17,165,756 shares (TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf; TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf). Proof: 7.9513/sh base via net_asset_value@1.0.",
-        "cross_check": "Reconcile the range to primary filings, a reproducible owner-cash or NAV bridge, and the identified liability and capital claims before decision use.",
-        "driver_model_type": null,
-        "driver_model": null,
-        "assumption_summary": "Proof outputs {'low': 0.0, 'base': 7.9513, 'high': 15.7786}; see calculation_proof graph.",
-        "falsifier": "Primary evidence shows that the economic claim, cash conversion, ownership, or required capital is materially worse than this low case.",
-        "scenario_assumptions": null,
-        "low_per_share": 0.0,
-        "base_per_share": 7.95,
-        "high_per_share": 15.78
-      },
-      {
-        "id": "downside_reserve",
-        "label": "Small-cap liquidity and execution reserve",
-        "category": "liability_or_reserve",
-        "overlap_key": "downside_reserve",
-        "treatment": "additive",
-        "included_in_component_id": null,
-        "method": "net_asset_value",
-        "valuation_status": "bounded_estimate",
-        "calculation_proof": {
-          "schema_version": "1.0",
-          "method_id": "net_asset_value",
-          "method_version": "1.0",
-          "output_unit": "SEK_per_share",
-          "inputs": [
-            {
-              "id": "price_per_share",
-              "label": "Market price per share (stance gate reference)",
-              "kind": "estimate",
-              "value": 158.0,
-              "unit": "SEK_per_share",
-              "source": {
-                "ref": "TEQ.ST/research/valuation.json",
-                "locator": "inputs.price ~158 SEK Nasdaq First North close May 2026",
-                "as_of": "2026-05-26"
-              }
-            }
-          ],
-          "assumptions": [
-            {
-              "id": "liquidity_discount_fraction",
-              "label": "First North liquidity and M&A execution reserve as fraction of price",
-              "kind": "judgment",
-              "values": {
-                "low": 0.2,
-                "base": 0.09,
-                "high": 0.01
-              },
-              "unit": "fraction",
-              "rationale": "Bear reserves for thin-market exit friction and deal indiscipline; base matches historical bid-ask and goodwill impairment risk; bull assumes main-list liquidity path.",
-              "allowed_range": {
-                "min": 0.0,
-                "max": 0.35
-              }
-            }
-          ],
-          "calculations": [
-            {
-              "id": "reserve_gross",
-              "label": "Gross liquidity and execution reserve",
-              "op": "multiply",
-              "args": [
-                "price_per_share",
-                "liquidity_discount_fraction"
-              ],
-              "unit": "SEK_per_share"
             },
             {
-              "id": "value_per_share",
-              "label": "Small-cap liquidity and execution reserve per share",
+              "id": "equity_bridge_per_share",
+              "label": "Equity bridge deduction per share",
               "op": "negative",
               "args": [
-                "reserve_gross"
+                "net_financing_claims_per_share"
               ],
               "unit": "SEK_per_share"
             }
           ],
           "outputs": {
-            "low": "value_per_share",
-            "base": "value_per_share",
-            "high": "value_per_share"
+            "low": "equity_bridge_per_share",
+            "base": "equity_bridge_per_share",
+            "high": "equity_bridge_per_share"
           }
         },
         "evidence_tier": "primary_derived",
-        "evidence": "FY2025: sales 1,800 MSEK, EBITA 203.1 MSEK, FCF ex-acquisitions 173.1 MSEK, cash 209.5 MSEK, net debt ex-leases 286.6 MSEK, contingent consideration 195.6 MSEK, 17,165,756 shares (TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf; TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf). Proof: -14.22/sh base via net_asset_value@1.0.",
-        "cross_check": "Reconcile the range to primary filings, a reproducible owner-cash or NAV bridge, and the identified liability and capital claims before decision use.",
-        "driver_model_type": null,
-        "driver_model": null,
-        "assumption_summary": "Proof outputs {'low': -31.6, 'base': -14.22, 'high': -1.58}; see calculation_proof graph.",
-        "falsifier": "Primary evidence shows that the economic claim, cash conversion, ownership, or required capital is materially worse than this low case.",
+        "evidence": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, pages 16\u201317 and 21; independently reconciled in TEQ.ST/research/evidence_reconciliation_2026-08-31.json.",
+        "cross_check": "All bank debt, leases, fair-valued acquisition-payment liabilities, cash, and minority interest are included once; unused credit is not an asset.",
+        "assumption_summary": "The latest reported balances are deducted at 100% of carrying value in every case.",
+        "falsifier": "Net debt/EBITDA approaches the 2.5x guardrail, acquisition-payment liabilities rise faster than acquired cash earnings, or material dilution is issued below intrinsic value.",
         "scenario_assumptions": null,
-        "low_per_share": -31.6,
-        "base_per_share": -14.22,
-        "high_per_share": -1.58
+        "low_per_share": -42.45,
+        "base_per_share": -42.45,
+        "high_per_share": -42.45
       }
     ],
-    "embedded_components": []
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 38.9656,
+      "base": 140.3803,
+      "high": 220.8749
+    }
   },
   "economic_value_analysis": {
     "status": "compiled",
-    "validation_errors": []
+    "validation_errors": [],
+    "filing_digest": "TEQ.ST/research/evidence_reconciliation_2026-08-31.json",
+    "evidence_citations": [
+      "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+      "TEQ.ST/official-reports/annual-reports/2026-03-21 - \u00c5rsredovisning 2025.pdf",
+      "TEQ.ST/research/evidence_reconciliation_2026-08-31.json"
+    ],
+    "last_verified": {
+      "deep_dive": "2026-08-31",
+      "human_approved": null,
+      "valuation_as_of": "2026-08-31"
+    },
+    "thesis": "Teqnion is a decentralized industrial serial acquirer whose owned portfolio produced 257.3 MSEK of R12 EBITA and 204.9 MSEK of R12 free cash flow excluding acquisition payments at 2026-Q2. The valuation gives no separate credit for unannounced acquisitions.",
+    "why_market_wrong": "The market may extrapolate the record 13.5% R12 EBITA margin and continued M&A. At 186 SEK, the quote is above the filing-reconciled 140.38 SEK base value and only below the 220.87 SEK high case.",
+    "key_assumptions": [
+      {
+        "input": "R12 free cash flow excluding acquisitions",
+        "value": "204.9 MSEK",
+        "source": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, page 18"
+      },
+      {
+        "input": "Base existing-portfolio growth",
+        "value": "5% years 1\u20135; 3% years 6\u20137",
+        "source": "Scenario judgment; future M&A excluded"
+      },
+      {
+        "input": "Base discount rate / exit multiple",
+        "value": "10.5% / 14x year-7 FCFF",
+        "source": "Stock-specific risk bounds"
+      },
+      {
+        "input": "Net financing claims",
+        "value": "728.7 MSEK",
+        "source": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf, pages 16\u201317 and 21"
+      }
+    ],
+    "scenarios": {
+      "low": {
+        "value_per_share": 38.97,
+        "operating_case": "85% cash normalization, -2% then 0% growth, 13% discount rate, 9x exit"
+      },
+      "base": {
+        "value_per_share": 140.38,
+        "operating_case": "95% cash normalization, 5% then 3% growth, 10.5% discount rate, 14x exit"
+      },
+      "high": {
+        "value_per_share": 220.87,
+        "operating_case": "100% cash normalization, 8% then 4% growth, 9% discount rate, 16x exit"
+      }
+    },
+    "open_questions": [
+      "Independent committee review remains required before any capital decision.",
+      "Track organic sales, EBITA margin, cash conversion, net debt/EBITDA, and acquisition-payment liabilities each quarter."
+    ]
   },
   "context_overlay": {
     "as_of": "2026-08-30",
@@ -705,5 +821,8 @@
     "contributor_count": 9,
     "in_base_irr": false,
     "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "human_review": {
+    "live_price_confirmed": false
   }
 }
