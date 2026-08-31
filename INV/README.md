@@ -1,16 +1,11 @@
-# Innventure, Inc. (INV)
+# Innventure, Inc.  (INV, INVLW)  (CIK 0002001557) contingent / CVR candidate (INV)
 
-**Ticker:** INV | **Market:** US | **Exchange:** NASDAQ
-**CIK:** 0002001557
-**IR:** https://ir.innventure.com/
-**Last updated:** 2026-07-28
+**Ticker:** INV | **Market:** US  
+**Last updated:** 2026-08-31  
+**Stage:** pre-close stub (discovery)
 
-Creates and operates technology companies commercializing MNC-sourced IP (Accelsius, AeroFlexx, Refinity; PureCycle spun previously).
+## Next actions
 
-> Identity note: folder was briefly mislabeled Innovex (now INVX). Correct issuer is Innventure.
-
-## Download
-
-```powershell
-python INV/investor-documents/download_inv_investor_docs.py
-```
+1. Pull merger 8-K / DEFM14A / CVR agreement into `investor-documents/sec/`.
+2. Fill `research/cvr_terms.json` (set `stub=false`, `terms_complete=true`).
+3. Nightly sync will sleeve onto the CVRs filter.
