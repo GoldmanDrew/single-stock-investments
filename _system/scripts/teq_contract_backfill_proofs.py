@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Inject validated calculation_proof graphs into TEQ.ST valuation.json."""
+"""Build TEQ.ST's filing-reconciled, stock-specific valuation model.
+
+The operating proof is an enterprise free-cash-flow DCF. The equity bridge
+then deducts every financing claim exactly once. Future acquisitions receive
+neither a cash cost nor a speculative benefit in the valuation; completed
+acquisitions are already present in the reported trailing cash flow and balance
+sheet. This prevents acquisition spend, debt capacity, and market price from
+being added to intrinsic value as if they were separate assets.
+"""
 from __future__ import annotations
 
 import json
@@ -9,364 +17,448 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VAL_PATH = ROOT / "TEQ.ST" / "research" / "valuation.json"
 AUTH_PATH = ROOT / "TEQ.ST" / "research" / "authorized_evidence.json"
+LEDGER_PATH = ROOT / "TEQ.ST" / "research" / "valuation_fact_ledger.json"
 
-ANNUAL_2025 = "TEQ.ST/official-reports/annual-reports/2026-03-21 - Årsredovisning 2025.pdf"
-YEAR_END_2025 = "TEQ.ST/official-reports/year-end-reports/2026-02-14 - Year-End Report 2025 - Teqnion AB.pdf"
-AS_OF = "2025-12-31"
+Q2_2026 = (
+    "TEQ.ST/official-reports/interim-reports/2026/"
+    "2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf"
+)
+ANNUAL_2025 = (
+    "TEQ.ST/official-reports/annual-reports/"
+    "2026-03-21 - Årsredovisning 2025.pdf"
+)
+RECONCILIATION = "TEQ.ST/research/evidence_reconciliation_2026-08-31.json"
+AS_OF = "2026-06-30"
 
-FCF_EX_ACQ_M = 173.1
+OPERATING_CASH_FLOW_M = 213.5
+CAPEX_M = 8.6
+CASH_NET_FINANCE_M = 31.7
 SHARES_M = 17.165756
-CASH_M = 209.5
-NET_DEBT_EX_LEASES_M = 286.6
-CONTINGENT_M = 195.6
-UNUSED_CREDIT_M = 77.0
-ACQUISITION_SPEND_M = 306.9
-PRICE = 158.0
+CASH_M = 171.5
+BANK_DEBT_M = 552.5
+LEASE_NON_CURRENT_M = 109.1
+LEASE_CURRENT_M = 54.4
+OTHER_FINANCIAL_NON_CURRENT_M = 132.3
+OTHER_FINANCIAL_CURRENT_M = 50.5
+NON_CONTROLLING_INTEREST_M = 1.4
 
-PROOFS = {
-    "core_engine": {
-        "schema_version": "1.0",
-        "method_id": "owner_cash_or_dividend_discount",
-        "method_version": "1.0",
-        "output_unit": "SEK_per_share",
-        "inputs": [
+
+def _source(locator: str) -> dict:
+    return {"ref": Q2_2026, "locator": locator, "as_of": AS_OF}
+
+
+def _fact(node_id: str, label: str, value: float, unit: str, locator: str) -> dict:
+    return {
+        "id": node_id,
+        "label": label,
+        "kind": "fact",
+        "value": value,
+        "unit": unit,
+        "source": _source(locator),
+        "locked": True,
+    }
+
+
+def _judgment(
+    node_id: str,
+    label: str,
+    values: dict,
+    unit: str,
+    rationale: str,
+    low: float,
+    high: float,
+) -> dict:
+    return {
+        "id": node_id,
+        "label": label,
+        "kind": "judgment",
+        "values": values,
+        "unit": unit,
+        "rationale": rationale,
+        "allowed_range": {"min": low, "max": high},
+    }
+
+
+def operating_enterprise_proof() -> dict:
+    calculations = [
+        {
+            "id": "fcfe_ex_acquisitions_m",
+            "label": "R12 free cash flow excluding acquisitions",
+            "op": "subtract",
+            "args": ["operating_cash_flow_m", "maintenance_capex_m"],
+            "unit": "SEK_m",
+        },
+        {
+            "id": "after_tax_factor",
+            "label": "One minus normalized cash tax rate",
+            "op": "subtract",
+            "args": [1, "cash_tax_rate"],
+            "unit": "ratio",
+        },
+        {
+            "id": "after_tax_net_finance_m",
+            "label": "After-tax net financing cost added back",
+            "op": "multiply",
+            "args": ["cash_net_finance_m", "after_tax_factor"],
+            "unit": "SEK_m",
+        },
+        {
+            "id": "reported_fcff_m",
+            "label": "R12 enterprise free cash flow before acquisitions",
+            "op": "add",
+            "args": ["fcfe_ex_acquisitions_m", "after_tax_net_finance_m"],
+            "unit": "SEK_m",
+        },
+        {
+            "id": "normalized_fcff_m",
+            "label": "Scenario-normalized starting enterprise cash flow",
+            "op": "multiply",
+            "args": ["reported_fcff_m", "normalization_factor"],
+            "unit": "SEK_m",
+        },
+        {
+            "id": "normalized_fcff_per_share",
+            "label": "Starting enterprise cash flow per share",
+            "op": "divide",
+            "args": ["normalized_fcff_m", "shares_m"],
+            "unit": "SEK_per_share",
+        },
+        {
+            "id": "growth_factor_y1_5",
+            "label": "Growth factor in years 1–5",
+            "op": "add",
+            "args": [1, "growth_y1_5"],
+            "unit": "ratio",
+        },
+        {
+            "id": "growth_factor_y6_7",
+            "label": "Growth factor in years 6–7",
+            "op": "add",
+            "args": [1, "growth_y6_7"],
+            "unit": "ratio",
+        },
+    ]
+    prior = "normalized_fcff_per_share"
+    for year in range(1, 8):
+        node_id = f"fcff_per_share_y{year}"
+        calculations.append(
             {
-                "id": "fcf_ex_acquisitions_m",
-                "label": "FY2025 free cash flow excluding acquisitions",
-                "kind": "fact",
-                "value": FCF_EX_ACQ_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": YEAR_END_2025,
-                    "locator": "FY2025 FCF ex-acquisitions 173.1 MSEK (operating CF less maintenance capex; ex M&A)",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "shares_m",
-                "label": "Shares outstanding (parent shareholders)",
-                "kind": "fact",
-                "value": SHARES_M,
-                "unit": "million_shares",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-        ],
-        "assumptions": [
-            {
-                "id": "owner_cash_capitalization_multiple",
-                "label": "Seven-year owner-cash capitalization multiple on normalized FCF per share",
-                "kind": "judgment",
-                "values": {"low": 9.714, "base": 12.534, "high": 15.982},
-                "unit": "multiple",
-                "rationale": "Low stresses organic stagnation and multiple compression; base matches Lawrence 8%/5% growth with 16x year-10 exit; high allows margin hold plus bolt-on synergy.",
-                "allowed_range": {"min": 8.0, "max": 20.0},
-            }
-        ],
-        "calculations": [
-            {
-                "id": "fcf_per_share",
-                "label": "Normalized owner cash per share",
-                "op": "divide",
-                "args": ["fcf_ex_acquisitions_m", "shares_m"],
-                "unit": "SEK_per_share",
-            },
-            {
-                "id": "value_per_share",
-                "label": "Operating portfolio owner-cash value per share",
+                "id": node_id,
+                "label": f"Enterprise cash flow per share in year {year}",
                 "op": "multiply",
-                "args": ["fcf_per_share", "owner_cash_capitalization_multiple"],
+                "args": [prior, "growth_factor_y1_5" if year <= 5 else "growth_factor_y6_7"],
+                "unit": "SEK_per_share",
+            }
+        )
+        prior = node_id
+    cash_flow_args: list[str | int] = []
+    for year in range(1, 7):
+        cash_flow_args.extend([f"fcff_per_share_y{year}", year])
+    calculations.extend(
+        [
+            {
+                "id": "explicit_cash_flow_pv",
+                "label": "Present value of years 1–6 enterprise cash flow",
+                "op": "present_value",
+                "args": [*cash_flow_args, "discount_rate"],
                 "unit": "SEK_per_share",
             },
-        ],
-        "outputs": {"low": "value_per_share", "base": "value_per_share", "high": "value_per_share"},
-    },
-    "reinvestment_or_assets": {
+            {
+                "id": "terminal_enterprise_value",
+                "label": "Year-7 terminal enterprise value",
+                "op": "multiply",
+                "args": ["fcff_per_share_y7", "exit_fcff_multiple"],
+                "unit": "SEK_per_share",
+            },
+            {
+                "id": "terminal_enterprise_value_pv",
+                "label": "Present value of terminal enterprise value",
+                "op": "discount",
+                "args": ["terminal_enterprise_value", "discount_rate", 7],
+                "unit": "SEK_per_share",
+            },
+            {
+                "id": "enterprise_value_per_share",
+                "label": "Operating enterprise value per share",
+                "op": "add",
+                "args": ["explicit_cash_flow_pv", "terminal_enterprise_value_pv"],
+                "unit": "SEK_per_share",
+            },
+        ]
+    )
+    return {
         "schema_version": "1.0",
         "method_id": "owner_earnings_reinvestment_dcf",
         "method_version": "1.0",
         "output_unit": "SEK_per_share",
         "inputs": [
-            {
-                "id": "acquisition_spend_m",
-                "label": "FY2025 cash spent on acquisitions (net of acquired cash)",
-                "kind": "fact",
-                "value": ACQUISITION_SPEND_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Företagsförvärv -306,9 MSEK in investing cash flow (Note 27)",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "shares_m",
-                "label": "Shares outstanding (parent shareholders)",
-                "kind": "fact",
-                "value": SHARES_M,
-                "unit": "million_shares",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
+            _fact(
+                "operating_cash_flow_m",
+                "R12 cash flow from operating activities",
+                OPERATING_CASH_FLOW_M,
+                "SEK_m",
+                "page 18: R12 cash flow from operating activities 213.5 MSEK",
+            ),
+            _fact(
+                "maintenance_capex_m",
+                "R12 net capital expenditure",
+                CAPEX_M,
+                "SEK_m",
+                "page 18: R12 net capital expenditure 8.6 MSEK",
+            ),
+            _fact(
+                "cash_net_finance_m",
+                "R12 cash interest and other financial items, net",
+                CASH_NET_FINANCE_M,
+                "SEK_m",
+                "page 18: R12 interest and other financial items, net -31.7 MSEK",
+            ),
+            _fact(
+                "shares_m",
+                "Diluted shares outstanding",
+                SHARES_M,
+                "million_shares",
+                "page 17: Q2/YTD average shares after dilution and period-end shares 17,165,756",
+            ),
         ],
         "assumptions": [
-            {
-                "id": "incremental_roic_multiple",
-                "label": "Present-value multiple on incremental acquisition capital deployed",
-                "kind": "judgment",
-                "values": {"low": 0.706, "base": 1.237, "high": 2.119},
-                "unit": "multiple",
-                "rationale": "Low assumes indiscipline or goodwill impairment (73 MSEK Q3 2025); base reflects historical bolt-on returns; high assumes continued Nord/Väst pipeline at disciplined multiples.",
-                "allowed_range": {"min": 0.0, "max": 3.0},
-            }
+            _judgment(
+                "cash_tax_rate",
+                "Normalized cash tax rate",
+                {"low": 0.28, "base": 0.25, "high": 0.22},
+                "ratio",
+                "Bounded around H1 2026 tax expense/profit before tax (26.2%) and the Swedish/UK operating mix.",
+                0.18,
+                0.35,
+            ),
+            _judgment(
+                "normalization_factor",
+                "Starting cash-flow normalization",
+                {"low": 0.85, "base": 0.95, "high": 1.0},
+                "ratio",
+                "R12 cash conversion is filing-derived but follows a record margin period; no case starts above reported R12 cash flow.",
+                0.70,
+                1.05,
+            ),
+            _judgment(
+                "growth_y1_5",
+                "Existing-portfolio cash-flow growth in years 1–5",
+                {"low": -0.02, "base": 0.05, "high": 0.08},
+                "ratio",
+                "Cases reflect organic/margin outcomes in the owned portfolio only. Future acquisition benefits and purchase prices are both excluded.",
+                -0.10,
+                0.15,
+            ),
+            _judgment(
+                "growth_y6_7",
+                "Existing-portfolio cash-flow growth in years 6–7",
+                {"low": 0.0, "base": 0.03, "high": 0.04},
+                "ratio",
+                "Growth fades toward mature industrial nominal growth.",
+                -0.05,
+                0.08,
+            ),
+            _judgment(
+                "discount_rate",
+                "Required return on enterprise cash flow",
+                {"low": 0.13, "base": 0.105, "high": 0.09},
+                "ratio",
+                "Scenario rates reflect First North liquidity, decentralized operating risk, cyclicality, and leverage.",
+                0.08,
+                0.16,
+            ),
+            _judgment(
+                "exit_fcff_multiple",
+                "Year-7 enterprise free-cash-flow multiple",
+                {"low": 9.0, "base": 14.0, "high": 16.0},
+                "multiple",
+                "Terminal multiples are below or near the current enterprise/owner-cash cross-check and require the portfolio economics to persist.",
+                6.0,
+                20.0,
+            ),
         ],
-        "calculations": [
-            {
-                "id": "acquisition_spend_per_share",
-                "label": "Acquisition capital deployed per share",
-                "op": "divide",
-                "args": ["acquisition_spend_m", "shares_m"],
-                "unit": "SEK_per_share",
-            },
-            {
-                "id": "value_per_share",
-                "label": "Acquisition reinvestment runway value per share",
-                "op": "multiply",
-                "args": ["acquisition_spend_per_share", "incremental_roic_multiple"],
-                "unit": "SEK_per_share",
-            },
-        ],
-        "outputs": {"low": "value_per_share", "base": "value_per_share", "high": "value_per_share"},
-    },
-    "net_financial_claims": {
+        "calculations": calculations,
+        "outputs": {
+            "low": "enterprise_value_per_share",
+            "base": "enterprise_value_per_share",
+            "high": "enterprise_value_per_share",
+        },
+    }
+
+
+def financing_claims_proof() -> dict:
+    return {
         "schema_version": "1.0",
         "method_id": "net_asset_value",
         "method_version": "1.0",
         "output_unit": "SEK_per_share",
         "inputs": [
-            {
-                "id": "cash_m",
-                "label": "Cash and cash equivalents",
-                "kind": "fact",
-                "value": CASH_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Likvida medel 209,5 MSEK at 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "net_debt_ex_leases_m",
-                "label": "Net debt excluding lease liabilities",
-                "kind": "fact",
-                "value": NET_DEBT_EX_LEASES_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Nettoskulden exklusive leasingskulder 286,6 MSEK at 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "contingent_consideration_m",
-                "label": "Contingent consideration liability (earn-outs)",
-                "kind": "fact",
-                "value": CONTINGENT_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Villkorade köpeskillingar 195,6 MSEK at 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "unused_credit_m",
-                "label": "Unused credit facility headroom",
-                "kind": "fact",
-                "value": UNUSED_CREDIT_M,
-                "unit": "SEK_m",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Outnyttjad del av kreditfacilitet ca 77,0 MSEK at 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
-            {
-                "id": "shares_m",
-                "label": "Shares outstanding (parent shareholders)",
-                "kind": "fact",
-                "value": SHARES_M,
-                "unit": "million_shares",
-                "source": {
-                    "ref": ANNUAL_2025,
-                    "locator": "Totalt antal aktier 17 165 756 as of 2025-12-31",
-                    "as_of": AS_OF,
-                },
-                "locked": True,
-            },
+            _fact("bank_debt_m", "Bank debt", BANK_DEBT_M, "SEK_m", "page 16: non-current liabilities to credit institutions 552.5 MSEK"),
+            _fact("lease_non_current_m", "Non-current lease liabilities", LEASE_NON_CURRENT_M, "SEK_m", "page 16: non-current lease liabilities 109.1 MSEK"),
+            _fact("lease_current_m", "Current lease liabilities", LEASE_CURRENT_M, "SEK_m", "page 16: current lease liabilities 54.4 MSEK"),
+            _fact("other_financial_non_current_m", "Other non-current financial liabilities", OTHER_FINANCIAL_NON_CURRENT_M, "SEK_m", "pages 16 and 21: other non-current financial liabilities 132.3 MSEK; acquisition payments carried at fair value"),
+            _fact("other_financial_current_m", "Other current financial liabilities", OTHER_FINANCIAL_CURRENT_M, "SEK_m", "pages 16 and 21: other current financial liabilities 50.5 MSEK; acquisition payments carried at fair value"),
+            _fact("cash_m", "Cash and cash equivalents", CASH_M, "SEK_m", "page 16: cash and cash equivalents 171.5 MSEK"),
+            _fact("non_controlling_interest_m", "Non-controlling interest", NON_CONTROLLING_INTEREST_M, "SEK_m", "pages 16–17: non-controlling interests 1.4 MSEK"),
+            _fact("shares_m", "Diluted shares outstanding", SHARES_M, "million_shares", "page 17: Q2/YTD average shares after dilution and period-end shares 17,165,756"),
         ],
-        "assumptions": [
-            {
-                "id": "debt_charge_fraction",
-                "label": "Fraction of net debt charged against equity after operating DCF debt service",
-                "kind": "judgment",
-                "values": {"low": 0.55, "base": 0.05, "high": 0.0},
-                "unit": "fraction",
-                "rationale": "Operating owner-cash DCF embeds normalized leverage service; additive slice only counts excess liquidity net of senior claims.",
-                "allowed_range": {"min": 0.0, "max": 1.0},
-            },
-            {
-                "id": "contingent_probability",
-                "label": "Probability-weighted payout on contingent consideration",
-                "kind": "judgment",
-                "values": {"low": 0.55, "base": 0.30, "high": 0.08},
-                "unit": "fraction",
-                "rationale": "Earn-outs tied to subsidiary EBITA targets; low assumes full payout stress, high assumes most targets missed.",
-                "allowed_range": {"min": 0.0, "max": 1.0},
-            },
-            {
-                "id": "credit_access_fraction",
-                "label": "Fraction of unused credit facility counted as accessible liquidity",
-                "kind": "judgment",
-                "values": {"low": 0.0, "base": 0.0, "high": 1.0},
-                "unit": "fraction",
-                "rationale": "High case adds revolver headroom for bolt-on M&A within Net debt/EBITDA < 2.5 guardrail.",
-                "allowed_range": {"min": 0.0, "max": 1.0},
-            },
-        ],
+        "assumptions": [],
         "calculations": [
             {
-                "id": "debt_charge_m",
-                "label": "Debt charge applied to net financial claims",
-                "op": "multiply",
-                "args": ["net_debt_ex_leases_m", "debt_charge_fraction"],
+                "id": "gross_financing_claims_m",
+                "label": "Bank, lease, and acquisition-payment claims",
+                "op": "sum",
+                "args": [
+                    "bank_debt_m",
+                    "lease_non_current_m",
+                    "lease_current_m",
+                    "other_financial_non_current_m",
+                    "other_financial_current_m",
+                    "non_controlling_interest_m",
+                ],
                 "unit": "SEK_m",
             },
             {
-                "id": "contingent_charge_m",
-                "label": "Probability-weighted contingent consideration",
-                "op": "multiply",
-                "args": ["contingent_consideration_m", "contingent_probability"],
-                "unit": "SEK_m",
-            },
-            {
-                "id": "credit_add_m",
-                "label": "Accessible unused credit facility",
-                "op": "multiply",
-                "args": ["unused_credit_m", "credit_access_fraction"],
-                "unit": "SEK_m",
-            },
-            {
-                "id": "net_claim_m",
-                "label": "Net cash, debt, and contingent claims before per-share conversion",
+                "id": "net_financing_claims_m",
+                "label": "Financing claims net of cash",
                 "op": "subtract",
-                "args": ["cash_m", "debt_charge_m"],
+                "args": ["gross_financing_claims_m", "cash_m"],
                 "unit": "SEK_m",
             },
             {
-                "id": "net_claim_after_contingent_m",
-                "label": "Net claim after contingent consideration",
-                "op": "subtract",
-                "args": ["net_claim_m", "contingent_charge_m"],
-                "unit": "SEK_m",
-            },
-            {
-                "id": "net_claim_total_m",
-                "label": "Net claim including credit headroom",
-                "op": "add",
-                "args": ["net_claim_after_contingent_m", "credit_add_m"],
-                "unit": "SEK_m",
-            },
-            {
-                "id": "net_claim_floor_m",
-                "label": "Net claim floored at zero (no double-count of senior claims)",
-                "op": "maximum",
-                "args": ["net_claim_total_m", 0],
-                "unit": "SEK_m",
-            },
-            {
-                "id": "value_per_share",
-                "label": "Cash, debt, and contingent-consideration claims per share",
+                "id": "net_financing_claims_per_share",
+                "label": "Net financing claims per share",
                 "op": "divide",
-                "args": ["net_claim_floor_m", "shares_m"],
-                "unit": "SEK_per_share",
-            },
-        ],
-        "outputs": {"low": "value_per_share", "base": "value_per_share", "high": "value_per_share"},
-    },
-    "downside_reserve": {
-        "schema_version": "1.0",
-        "method_id": "net_asset_value",
-        "method_version": "1.0",
-        "output_unit": "SEK_per_share",
-        "inputs": [
-            {
-                "id": "price_per_share",
-                "label": "Market price per share (stance gate reference)",
-                "kind": "estimate",
-                "value": PRICE,
-                "unit": "SEK_per_share",
-                "source": {
-                    "ref": "TEQ.ST/research/valuation.json",
-                    "locator": "inputs.price ~158 SEK Nasdaq First North close May 2026",
-                    "as_of": "2026-05-26",
-                },
-            },
-        ],
-        "assumptions": [
-            {
-                "id": "liquidity_discount_fraction",
-                "label": "First North liquidity and M&A execution reserve as fraction of price",
-                "kind": "judgment",
-                "values": {"low": 0.20, "base": 0.09, "high": 0.01},
-                "unit": "fraction",
-                "rationale": "Bear reserves for thin-market exit friction and deal indiscipline; base matches historical bid-ask and goodwill impairment risk; bull assumes main-list liquidity path.",
-                "allowed_range": {"min": 0.0, "max": 0.35},
-            }
-        ],
-        "calculations": [
-            {
-                "id": "reserve_gross",
-                "label": "Gross liquidity and execution reserve",
-                "op": "multiply",
-                "args": ["price_per_share", "liquidity_discount_fraction"],
+                "args": ["net_financing_claims_m", "shares_m"],
                 "unit": "SEK_per_share",
             },
             {
-                "id": "value_per_share",
-                "label": "Small-cap liquidity and execution reserve per share",
+                "id": "equity_bridge_per_share",
+                "label": "Equity bridge deduction per share",
                 "op": "negative",
-                "args": ["reserve_gross"],
+                "args": ["net_financing_claims_per_share"],
                 "unit": "SEK_per_share",
             },
         ],
-        "outputs": {"low": "value_per_share", "base": "value_per_share", "high": "value_per_share"},
-    },
+        "outputs": {
+            "low": "equity_bridge_per_share",
+            "base": "equity_bridge_per_share",
+            "high": "equity_bridge_per_share",
+        },
+    }
+
+
+PROOFS = {
+    "operating_enterprise": operating_enterprise_proof(),
+    "financing_claims": financing_claims_proof(),
 }
+
+
+def _component(component_id: str, proof: dict, evaluation: dict) -> dict:
+    operating = component_id == "operating_enterprise"
+    outputs = evaluation["outputs"]
+    return {
+        "id": component_id,
+        "label": (
+            "Owned operating-company portfolio enterprise value"
+            if operating
+            else "Cash less bank, lease, acquisition-payment, and minority claims"
+        ),
+        "category": "operating_business" if operating else "liability_or_reserve",
+        "overlap_key": "owned_operating_portfolio" if operating else "net_financing_claims",
+        "treatment": "additive",
+        "included_in_component_id": None,
+        "method": proof["method_id"],
+        "valuation_status": "bounded_estimate" if operating else "calculated",
+        "calculation_proof": deepcopy(proof),
+        "evidence_tier": "primary_derived",
+        "evidence": (
+            f"{Q2_2026}, pages 15–18 and 24; independently reconciled in {RECONCILIATION}."
+            if operating
+            else f"{Q2_2026}, pages 16–17 and 21; independently reconciled in {RECONCILIATION}."
+        ),
+        "cross_check": (
+            "R12 enterprise cash flow reconciles from CFO less capex plus after-tax cash financing cost; acquisition cash outlays and benefits from future deals are excluded together."
+            if operating
+            else "All bank debt, leases, fair-valued acquisition-payment liabilities, cash, and minority interest are included once; unused credit is not an asset."
+        ),
+        "assumption_summary": (
+            "Low/base/high vary starting normalization, existing-portfolio growth, discount rate, and year-7 exit multiple."
+            if operating
+            else "The latest reported balances are deducted at 100% of carrying value in every case."
+        ),
+        "falsifier": (
+            "R12 cash flow falls below 85% of the 2026-Q2 run rate without a temporary working-capital explanation, organic decline persists, or EBITA margin falls below 9%."
+            if operating
+            else "Net debt/EBITDA approaches the 2.5x guardrail, acquisition-payment liabilities rise faster than acquired cash earnings, or material dilution is issued below intrinsic value."
+        ),
+        "scenario_assumptions": None,
+        "low_per_share": round(outputs["low"], 2),
+        "base_per_share": round(outputs["base"], 2),
+        "high_per_share": round(outputs["high"], 2),
+    }
 
 
 def close_authorized_evidence() -> None:
     auth = json.loads(AUTH_PATH.read_text(encoding="utf-8"))
+    auth["authorized_at"] = "2026-08-31T16:00:00Z"
+    auth["cohort"] = "stock_specific"
     auth["contract_status"] = "decision_grade"
+    auth["component_coverage"] = {
+        "all_material_components_identified": True,
+        "material_component_count": 2,
+        "additive_component_count": 2,
+        "embedded_component_count": 0,
+        "unvalued_component_count": 0,
+        "double_counting_flags": [],
+    }
     auth["blockers"] = []
-    auth["component_coverage"]["unvalued_component_count"] = 0
-    auth["authorized_at"] = "2026-07-24T04:30:00Z"
+    auth["instruction"] = (
+        "Primary filing reconciliation complete. Preserve the enterprise/equity basis, "
+        "keep future acquisition costs and benefits paired, and require independent "
+        "committee review before any human capital decision."
+    )
     AUTH_PATH.write_text(json.dumps(auth, indent=2) + "\n", encoding="utf-8")
+
+
+def write_fact_ledger() -> None:
+    """Keep routed-method and falsifier fields current in their durable ledger."""
+    rows = [
+        ("normalized_owner_earnings_m", 204.9, "SEK millions", "page 18: R12 operating cash flow 213.5 less net capex 8.6 MSEK"),
+        ("fcf_ex_acquisitions_m", 204.9, "SEK millions", "page 18: R12 free cash flow excluding acquisitions 204.9 MSEK"),
+        ("operating_cash_flow_m", OPERATING_CASH_FLOW_M, "SEK millions", "page 18: R12 cash flow from operating activities 213.5 MSEK"),
+        ("cash_m", CASH_M, "SEK millions", "page 16: cash and cash equivalents 171.5 MSEK"),
+        ("debt_m", 898.8, "SEK millions", "pages 16 and 21: bank, lease, and other financial liabilities total 898.8 MSEK"),
+        ("shares_outstanding", int(SHARES_M * 1_000_000), "shares", "page 17: Q2/YTD diluted and period-end shares 17,165,756"),
+        ("net_debt_to_ebitda", 1.7, "times", "page 8: net debt/EBITDA 1.7x at 2026-Q2"),
+    ]
+    facts = []
+    for field_id, value, unit, locator in rows:
+        facts.append(
+            {
+                "field_id": field_id,
+                "value": value,
+                "unit": unit,
+                "source": {
+                    "ref": Q2_2026,
+                    "locator": locator,
+                    "as_of": AS_OF,
+                    "filed": "2026-07-18",
+                    "fiscal_period": "Q2",
+                },
+                "confidence": "high",
+                "locked": True,
+            }
+        )
+    ledger = {
+        "schema_version": "1.0",
+        "ticker": "TEQ.ST",
+        "as_of": "2026-08-31",
+        "facts": facts,
+        "source_count": 1,
+        "generated_at": "2026-08-31T16:00:00Z",
+    }
+    LEDGER_PATH.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
@@ -376,72 +468,110 @@ def main() -> int:
     from calculation_proof import evaluate_calculation_proof
 
     data = json.loads(VAL_PATH.read_text(encoding="utf-8-sig"))
-    data["as_of"] = "2026-07-24"
-    shares_source = f"17,165,756 shares at 2025-12-31 ({ANNUAL_2025})"
-    data["inputs"]["shares_outstanding"] = int(SHARES_M * 1_000_000)
-    data["inputs"]["shares_source"] = shares_source
-    data["inputs"]["fcf_source"] = (
-        f"FY2025 FCF ex-acquisitions {FCF_EX_ACQ_M} MSEK ÷ 17,165,756 shares ({YEAR_END_2025}; "
-        f"cross-check operating CF 184.6 MSEK less maintenance capex per {ANNUAL_2025} Note 27)"
+    data["as_of"] = "2026-08-31"
+    data["method"] = "issuer_specific_filing_reconciled"
+    data["inputs"].update(
+        {
+            "fcf_per_share": round((OPERATING_CASH_FLOW_M - CAPEX_M) / SHARES_M, 4),
+            "fcf_source": f"R12 operating cash flow {OPERATING_CASH_FLOW_M} MSEK less capex {CAPEX_M} MSEK ({Q2_2026}, page 18)",
+            "shares_millions": round(SHARES_M, 6),
+            "shares_outstanding": int(SHARES_M * 1_000_000),
+            "shares_source": f"Q2/YTD diluted and period-end shares 17,165,756 ({Q2_2026}, page 17)",
+            "cash_m": CASH_M,
+            "total_debt_m": round(
+                BANK_DEBT_M
+                + LEASE_NON_CURRENT_M
+                + LEASE_CURRENT_M
+                + OTHER_FINANCIAL_NON_CURRENT_M
+                + OTHER_FINANCIAL_CURRENT_M,
+                1,
+            ),
+            "normalization_note": (
+                "R12 owner cash is converted to enterprise cash by adding back after-tax cash financing cost. "
+                "Cases never capitalize future acquisition benefits without their purchase cost."
+            ),
+        }
     )
+    data["valuation_methodology"] = {
+        "primary_method": "owner_earnings_reinvestment_dcf",
+        "method_version": "1.0",
+        "automation": "issuer_specific_filing_reconciled_model",
+        "model_level": "stock_specific",
+        "output_basis": "present_value_today",
+        "required_return_pct": 10.5,
+        "horizon_years": 7,
+        "component_methods": ["owner_earnings_reinvestment_dcf", "net_asset_value"],
+        "non_double_counting_rule": (
+            "Value the current operating portfolio once on enterprise cash flow; then deduct all financing claims once. "
+            "Assign zero to future acquisitions unless both future benefits and funding are modeled together."
+        ),
+    }
 
-    filing_evidence = (
-        f"FY2025: sales 1,800 MSEK, EBITA 203.1 MSEK, FCF ex-acquisitions {FCF_EX_ACQ_M} MSEK, "
-        f"cash {CASH_M} MSEK, net debt ex-leases {NET_DEBT_EX_LEASES_M} MSEK, "
-        f"contingent consideration {CONTINGENT_M} MSEK, 17,165,756 shares "
-        f"({ANNUAL_2025}; {YEAR_END_2025})."
+    components = []
+    component_outputs = []
+    for component_id, proof in PROOFS.items():
+        evaluation = evaluate_calculation_proof(proof)
+        if evaluation["status"] != "valid":
+            raise SystemError(
+                f"{component_id} proof invalid: {evaluation['checks']['errors']}"
+            )
+        components.append(_component(component_id, proof, evaluation))
+        component_outputs.append(evaluation["outputs"])
+        print(f"{component_id}: {evaluation['outputs']}")
+    total_equity_value = {
+        case: round(sum(output[case] for output in component_outputs), 4)
+        for case in ("low", "base", "high")
+    }
+    data["component_valuation_results"] = {
+        "status": "compiled",
+        "all_material_components_identified": True,
+        "additive_components": components,
+        "embedded_components": [],
+        "total_equity_value_per_share": total_equity_value,
+    }
+
+    analysis = data.get("economic_value_analysis") or {}
+    analysis.update(
+        {
+            "filing_digest": RECONCILIATION,
+            "evidence_citations": [Q2_2026, ANNUAL_2025, RECONCILIATION],
+            "last_verified": {
+                "deep_dive": "2026-08-31",
+                "human_approved": None,
+                "valuation_as_of": "2026-08-31",
+            },
+            "thesis": (
+                "Teqnion is a decentralized industrial serial acquirer whose owned portfolio produced "
+                "257.3 MSEK of R12 EBITA and 204.9 MSEK of R12 free cash flow excluding acquisition payments at 2026-Q2. "
+                "The valuation gives no separate credit for unannounced acquisitions."
+            ),
+            "why_market_wrong": (
+                "The market may extrapolate the record 13.5% R12 EBITA margin and continued M&A. "
+                "At 186 SEK, the quote is above the filing-reconciled 140.38 SEK base value and only below the 220.87 SEK high case."
+            ),
+            "key_assumptions": [
+                {"input": "R12 free cash flow excluding acquisitions", "value": "204.9 MSEK", "source": f"{Q2_2026}, page 18"},
+                {"input": "Base existing-portfolio growth", "value": "5% years 1–5; 3% years 6–7", "source": "Scenario judgment; future M&A excluded"},
+                {"input": "Base discount rate / exit multiple", "value": "10.5% / 14x year-7 FCFF", "source": "Stock-specific risk bounds"},
+                {"input": "Net financing claims", "value": "728.7 MSEK", "source": f"{Q2_2026}, pages 16–17 and 21"},
+            ],
+            "scenarios": {
+                "low": {"value_per_share": 38.97, "operating_case": "85% cash normalization, -2% then 0% growth, 13% discount rate, 9x exit"},
+                "base": {"value_per_share": 140.38, "operating_case": "95% cash normalization, 5% then 3% growth, 10.5% discount rate, 14x exit"},
+                "high": {"value_per_share": 220.87, "operating_case": "100% cash normalization, 8% then 4% growth, 9% discount rate, 16x exit"},
+            },
+            "open_questions": [
+                "Independent committee review remains required before any capital decision.",
+                "Track organic sales, EBITA margin, cash conversion, net debt/EBITDA, and acquisition-payment liabilities each quarter.",
+            ],
+        }
     )
-
-    for component in data["component_valuation"]["components"]:
-        cid = component["id"]
-        if cid not in PROOFS:
-            continue
-        proof = deepcopy(PROOFS[cid])
-        ev = evaluate_calculation_proof(proof)
-        if ev["status"] != "valid":
-            raise SystemError(f"{cid} proof invalid: {ev['checks']['errors']}")
-        val = component["valuation"]
-        val["calculation_proof"] = proof
-        val["valuation_status"] = "bounded_estimate"
-        val["evidence_tier"] = "primary_derived"
-        for case in ("low", "base", "high"):
-            val[case] = ev["outputs"][case]
-        val["assumption_summary"] = (
-            f"Proof outputs {ev['outputs']}; see calculation_proof graph."
-        )
-        val["evidence"] = (
-            f"{filing_evidence} Proof: {ev['outputs']['base']}/sh base via "
-            f"{proof['method_id']}@1.0."
-        )
-
-    for block in ("economic_value", "economic_value_analysis"):
-        ev_block = data.get(block) or {}
-        claim = ev_block.get("economic_claim") or {}
-        claim["unit_count"] = int(SHARES_M * 1_000_000)
-        claim["unit_source"] = shares_source
-        claim["enterprise_to_equity_reconciliation"] = (
-            "Operating owner cash and reinvestment runway are valued once; net cash, debt, "
-            "contingent consideration, and liquidity reserve are separate non-overlapping components."
-        )
-        ev_block["economic_claim"] = claim
-        ev_block["accounting_reference"] = (
-            f"{ANNUAL_2025} consolidated balance sheet and cash-flow statement; "
-            f"{YEAR_END_2025} FCF ex-acquisitions bridge."
-        )
-        limitations = ev_block.get("limitations") or []
-        ev_block["limitations"] = [
-            item
-            for item in limitations
-            if "Universal followups remain open" not in item
-            and "Phase 3 schedule scaffold" not in item
-        ]
-        data[block] = ev_block
+    data["economic_value_analysis"] = analysis
+    data["human_review"] = {"live_price_confirmed": False}
 
     VAL_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     close_authorized_evidence()
-    for cid, proof in PROOFS.items():
-        ev = evaluate_calculation_proof(proof)
-        print(f"{cid}: {ev['outputs']}")
+    write_fact_ledger()
     return 0
 
 
