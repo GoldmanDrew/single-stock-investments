@@ -1,6 +1,6 @@
 # AXP — Pending third-party sources
 
-**Updated:** 2026-08-21
+**Updated:** 2026-08-31
 
 Approve in `_system/frameworks/third_party_sources.md` before using in base IRR.
 
