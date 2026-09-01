@@ -215,8 +215,23 @@ class SystemicDetectors(unittest.TestCase):
 
     def test_a_queue_whose_dives_landed_is_silent(self):
         """Every queued ticker has a dive newer than the queue entry."""
-        with self._queue({"updated": "2020-01-01T00:00:00Z", "tickers": ["APLD", "CSU"]}):
-            self.assertEqual(w.detect_stalled_dispatch_queue([], w.date(2026, 1, 20)), [])
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for ticker in ("APLD", "CSU"):
+                research = root / ticker / "research"
+                research.mkdir(parents=True)
+                (research / "deep_dive_2025-12-31.md").write_text(
+                    "fixture\n", encoding="utf-8"
+                )
+            original_root = w.ROOT
+            w.ROOT = root
+            try:
+                with self._queue({"updated": "2020-01-01T00:00:00Z", "tickers": ["APLD", "CSU"]}):
+                    self.assertEqual(
+                        w.detect_stalled_dispatch_queue([], w.date(2026, 1, 20)), []
+                    )
+            finally:
+                w.ROOT = original_root
 
     def test_a_queue_set_today_is_not_yet_a_failure(self):
         """A queue needs time to drain before absence of delivery means anything."""
