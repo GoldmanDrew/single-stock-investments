@@ -34,6 +34,30 @@ def good_sidecar(**overrides) -> dict:
     return doc
 
 
+def revision_spec(**overrides) -> dict:
+    spec = good_spec(
+        spec_id="cash-floor",
+        spec_revision=1,
+        authored_at="2026-01-01T00:00:00Z",
+        analysis_run_id="test-run",
+        contract_hash="a" * 64,
+        method_id="net_asset_value",
+        power_zone="asset_backed_optionality",
+        probability_fires=0.25,
+        calibration_eligible=False,
+        severity=3,
+        measurement_period_end="2026-06-30",
+        observable_after="2026-07-31",
+        resolution_deadline="2026-09-30",
+        supersedes_spec_id=None,
+        author="test",
+        model_id="test-model",
+        prompt_version="test-v1",
+    )
+    spec.update(overrides)
+    return spec
+
+
 class SpecValidationTests(unittest.TestCase):
     def test_valid_spec_accepted(self):
         self.assertEqual(fs.spec_errors(good_spec()), [])
@@ -102,6 +126,21 @@ class SpecValidationTests(unittest.TestCase):
         self.assertEqual(fs.parse_due("2026-06-30").isoformat(), "2026-06-30")
         self.assertIsNone(fs.parse_due("2026-13-01"))
         self.assertIsNone(fs.parse_due(None))
+
+    def test_revision_history_validates_and_only_latest_revision_is_active(self):
+        first = revision_spec()
+        second = revision_spec(
+            spec_id="cash-floor", spec_revision=2,
+            supersedes_spec_id="cash-floor", threshold=45000000,
+        )
+        doc = good_sidecar(specs=[first, second])
+        self.assertEqual(fs.validate_sidecar(doc, ticker="TST"), [])
+        self.assertEqual(fs.active_specs(doc["specs"]), [second])
+
+    def test_duplicate_immutable_revision_is_rejected(self):
+        first = revision_spec()
+        errors = fs.validate_sidecar(good_sidecar(specs=[first, dict(first)]), ticker="TST")
+        self.assertTrue(any("duplicate immutable identity" in error for error in errors))
 
 
 class ResolvabilityAndCoverageTests(unittest.TestCase):
@@ -194,6 +233,24 @@ class ResolvabilityAndCoverageTests(unittest.TestCase):
         self.assertEqual(coverage["prose_only"], 0)
         self.assertEqual(coverage["spec_ref"], "TST/research/falsifier_specs.json")
         self.assertFalse(coverage["enforcement_enabled"])
+
+    def test_superseding_testable_revision_removes_active_untestable_debt(self):
+        self.seed_evidence()
+        old = revision_spec(
+            spec_id="cash-floor", spec_revision=1, untestable=True,
+            due=None, source_hint=None, threshold=None, probability_fires=None,
+            measurement_period_end=None, observable_after=None, resolution_deadline=None,
+        )
+        repaired = revision_spec(
+            spec_id="cash-floor", spec_revision=2,
+            supersedes_spec_id="cash-floor",
+        )
+        self.write("TST/research/falsifier_specs.json", {
+            "schema_version": "3.0", "ticker": "TST", "specs": [old, repaired],
+        })
+        coverage = fs.coverage_summary("TST", self.contract(), root=self.root)
+        self.assertEqual(coverage["typed"], 1)
+        self.assertEqual(coverage["untestable"], 0)
 
     def test_coverage_without_sidecar(self):
         coverage = fs.coverage_summary("TST", self.contract(), root=self.root)

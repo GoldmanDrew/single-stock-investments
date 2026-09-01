@@ -182,6 +182,10 @@
     const stance = t.classification?.stance || '—';
     const stanceCls = (stanceBadgeClass && stanceBadgeClass[stance]) || 'badge-warn';
     const dates = d.dates || {};
+    const committee = wb.committee || {};
+    const progress = committee.analysis_progress || {};
+    const monitoring = (wb.valuation || {}).monitoring || {};
+    const falsifiers = monitoring.falsifiers || [];
     const asOf = dates.model_as_of || wb.as_of || t.classification?.analysis_as_of || '—';
     const hasWorkbench = !!t.valuation_workbench;
     const crit = Number(d.critical_gap_count || 0);
@@ -232,6 +236,33 @@
       ? `<details style="margin-top:9px"><summary class="tier-sub">Legacy calculation audit (non-actionable)</summary><div class="workbench-callout"><strong>Excluded result:</strong> ${legacyBase == null ? '—' : `${fmtPct(legacyBase)}/yr`}<br>${escapeHtml(legacy.reason_non_actionable || 'Legacy result is excluded from ranking and capital decisions.')}</div></details>`
       : '';
 
+    const proofState = d.proof_status === 'decision_grade' || d.status === 'decision_grade'
+      ? 'done'
+      : d.status === 'evidence_blocked' ? 'blocked' : 'active';
+    const committeeStatus = String(committee.status || 'not_started');
+    const committeeState = ['owner_decision_pending', 'outcome_tracking'].includes(committeeStatus)
+      ? 'done'
+      : committeeStatus === 'evidence_blocked' || committeeStatus === 'parked'
+        ? 'blocked'
+        : committeeStatus === 'not_started' ? 'pending' : 'active';
+    const ownerStatus = String(committee.owner_status || 'pending');
+    const ownerState = ['complete', 'decided'].includes(ownerStatus) ? 'done' : 'pending';
+    const railStep = (label, state, detail) => `<div class="decision-proof-step ${state}">
+      <span class="decision-proof-dot" aria-hidden="true"></span>
+      <div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(detail)}</small></div>
+    </div>`;
+    const proofRail = `<div class="decision-proof-rail" aria-label="Valuation decision authority">
+      ${railStep('Valuation contract', proofState, String(d.proof_status || d.status || 'missing').replace(/_/g, ' '))}
+      ${railStep('Independent committee', committeeState, `${Number(progress.completed || 0)}/${Number(progress.required || 0)} valid outputs · ${committeeStatus.replace(/_/g, ' ')}`)}
+      ${railStep('Owner authority', ownerState, ownerState === 'done' ? String(committee.owner_decision || ownerStatus) : 'capital decision pending')}
+    </div>`;
+    const falsifierText = (row) => typeof row === 'string'
+      ? row
+      : row.falsifier || row.metric || row.label || row.id || JSON.stringify(row);
+    const falsifierPreview = falsifiers.length
+      ? `<div class="decision-falsifiers"><div class="decision-falsifiers-head"><strong>What breaks the case</strong><span>${falsifiers.length} monitored</span></div><ul>${falsifiers.slice(0, 3).map((row) => `<li>${escapeHtml(falsifierText(row))}</li>`).join('')}</ul></div>`
+      : '<div class="decision-falsifiers empty"><div class="decision-falsifiers-head"><strong>What breaks the case</strong><span>not specified</span></div></div>';
+
     return `<div class="detail-section valuation-decision-strip decision-hero">
       <h3>Decision</h3>
       <div class="metric-grid metric-grid-3 decision-band">
@@ -245,6 +276,7 @@
         <div class="metric"><div class="k">PV today low / high</div><div class="v mono">${fmtQuote(rangeLow)} / ${fmtQuote(rangeHigh)}</div></div>
       </div>
       ${trackHtml}
+      ${proofRail}
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
         <div class="metric"><div class="k">${escapeHtml(ret.label)}</div><div class="v mono">${escapeHtml(retDisplay)}<div class="tier-sub">${escapeHtml(ret.sub)}</div></div></div>
         <div class="metric"><div class="k">Required return</div><div class="v mono">${d.required_return_pct == null ? '—' : fmtPct(d.required_return_pct)}<div class="tier-sub">${escapeHtml(String(d.output_basis || 'basis not declared').replace(/_/g, ' '))}</div></div></div>
@@ -252,9 +284,10 @@
       </div>
       <div class="metric-grid metric-grid-3 decision-band" style="margin-top:9px">
         ${gapsHtml}
-        <div class="metric"><div class="k">Power zone</div><div class="v" style="font-size:12px">${escapeHtml(zoneLabel)}</div></div>
-        <div class="metric"><div class="k">Output basis</div><div class="v" style="font-size:12px">${escapeHtml(String(d.output_basis || 'not declared').replace(/_/g, ' '))}</div></div>
+        <div class="metric"><div class="k">Primary method</div><div class="v" style="font-size:12px">${escapeHtml(String(d.method_profile || (wb.method_fit || {}).profile_id || 'not declared').replace(/_/g, ' '))}<div class="tier-sub">${escapeHtml(zoneLabel)}</div></div></div>
+        <div class="metric"><div class="k">Committee state</div><div class="v" style="font-size:12px">${workbenchStatusBadge(committee.status || 'not_started', escapeHtml)}<div class="tier-sub">${Number(progress.completed || 0)} / ${Number(progress.required || 0)} valid outputs</div></div></div>
       </div>
+      ${falsifierPreview}
       <div class="workbench-callout"><strong>Next:</strong> ${escapeHtml(nextAction)}${d.next_gap_id ? `<div class="tier-sub" style="margin-top:4px">Next gap: ${escapeHtml(d.next_gap_id)}</div>` : ''}</div>
       ${legacyAudit}
       ${provisional ? '<p class="tier-sub" style="margin-top:8px">Ranges are provisional until acceptance tests are met. Do not treat them as IC-approved targets.</p>' : ''}
@@ -609,7 +642,7 @@
   }
 
   function renderQueuePanel(queue, helpers) {
-    const { escapeHtml, fmtNum } = helpers;
+    const { escapeHtml, fmtNum, fmtPct } = helpers;
     // The queue mixes listings, so each row resolves its own units.
     const fmtQuote = (v, row, d) => helpers.fmtQuote(v, helpers.quoteUnitsOf(row), d);
     if (!queue || !(queue.items || []).length) {
@@ -650,6 +683,11 @@
       const freshnessText = row.queue_scope === 'tier_1'
         ? `price ${priceFreshness.age_days == null ? 'missing' : `${priceFreshness.age_days}d`} · facts ${factFreshness.age_days == null ? 'missing' : `${factFreshness.age_days}d`}`
         : 'curated follow-up';
+      const margin = row.margin_of_safety_pct?.base;
+      const committee = row.committee || {};
+      const committeeText = committee.required
+        ? `${Number(committee.completed || 0)}/${Number(committee.required || 0)}`
+        : 'not started';
       return `<tr class="clickable-row" data-valuation-queue-ticker="${escapeHtml(row.ticker)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(row.ticker)} evidence">
         <td><strong>${escapeHtml(row.ticker)}</strong><div class="tier-sub">${escapeHtml(row.company || '')}</div></td>
         <td>${escapeHtml(String(row.method_profile || '—').replace(/_/g, ' '))}</td>
@@ -657,7 +695,9 @@
         <td><span class="badge ${priorityClass}">${escapeHtml(readinessLabel)}</span><div class="tier-sub">${escapeHtml(String(priority.bucket || '').replace(/_/g, ' '))} · ${escapeHtml(freshnessText)}</div></td>
         <td class="mono">${Number(row.critical_gap_count || 0)} / ${Number(row.open_gap_count || 0)}<div class="tier-sub">${Number((row.blocker_codes || []).length)} blockers</div></td>
         <td>${escapeHtml(row.next_action || row.next_gap_question || row.next_gap_id || '—')}${progress}</td>
-        <td class="mono">${values.base == null ? '—' : fmtQuote(values.base, 0)}</td>
+        <td class="mono">${row.price_per_share == null ? '—' : fmtQuote(row.price_per_share, row, 0)} / ${values.base == null ? '—' : fmtQuote(values.base, row, 0)}</td>
+        <td class="mono ${margin == null ? '' : Number(margin) >= 0 ? 'irr-pass' : 'irr-fail'}">${margin == null ? '—' : `${Number(margin) > 0 ? '+' : ''}${fmtPct(margin)}`}</td>
+        <td><span class="mono">${committeeText}</span><div class="tier-sub">${escapeHtml(String(committee.current_phase || committee.status || 'pending').replace(/_/g, ' '))}</div></td>
         <td>${technical}</td>
       </tr>`;
     }).join('');
@@ -678,7 +718,7 @@
       <p class="subhead">Tier 1 is ordered by evidence, model depth, freshness, then independent review. Curated Tier 2/3 followups remain below it. Click a row to open its Evidence tab.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Ticker</th><th>Method</th><th>Model</th><th>Readiness priority</th><th>Crit / open</th><th>Next action</th><th>Base / sh</th><th>Technical setup</th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Method</th><th>Model</th><th>Readiness priority</th><th>Crit / open</th><th>Next action</th><th>Price / base</th><th>MoS</th><th>Committee</th><th>Technical setup</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;

@@ -248,6 +248,14 @@ def build(as_of: str | None = None, root: Path = ROOT) -> dict:
                 "owner_status": committee.get("owner_status") or "pending",
                 "completed": (committee.get("analysis_progress") or {}).get("completed", 0),
                 "required": (committee.get("analysis_progress") or {}).get("required", 0),
+                "remaining": max(
+                    0,
+                    int((committee.get("analysis_progress") or {}).get("required", 0) or 0)
+                    - int((committee.get("analysis_progress") or {}).get("completed", 0) or 0),
+                ),
+                "invalid_output_count": len(committee.get("invalid_outputs") or []),
+                "current_phase": committee.get("current_phase"),
+                "next_outputs": committee.get("next_outputs") or [],
             },
             "readiness_state": state,
             "priority": {"rank": rank, "bucket": bucket},
@@ -260,7 +268,15 @@ def build(as_of: str | None = None, root: Path = ROOT) -> dict:
             },
         })
 
-    items.sort(key=lambda row: (row["priority"]["rank"], -row["critical_gap_count"], row["ticker"]))
+    items.sort(key=lambda row: (
+        row["priority"]["rank"],
+        -row["critical_gap_count"],
+        # Within the active committee bucket, repair invalid legacy outputs
+        # first, then finish the packets with the least valid work remaining.
+        0 if (row.get("committee") or {}).get("invalid_output_count") else 1,
+        int((row.get("committee") or {}).get("remaining") or 999),
+        row["ticker"],
+    ))
     states = Counter(row["readiness_state"] for row in items)
     buckets = Counter(row["priority"]["bucket"] for row in items)
     tier_1_count = sum(

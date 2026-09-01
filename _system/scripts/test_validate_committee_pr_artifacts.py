@@ -106,6 +106,7 @@ class ValidateCommitteePrArtifactsTests(unittest.TestCase):
                     "forensic_checks": ["check"],
                     "short_source_coverage": "partial",
                     "unresolved_items": [],
+                    "evidence_packet_hash": "",
                 }
             )
             + "\n",

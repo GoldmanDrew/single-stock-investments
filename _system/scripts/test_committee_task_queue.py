@@ -80,11 +80,12 @@ class CommitteeTaskQueueTests(unittest.TestCase):
             self.assertEqual(len(first), 4)
             self.assertNotIn("proposer", {row["task_id"] for row in first})
             self.assertTrue((self.work / "proposer.json").exists())
+            manifest = json.loads((self.work / "manifest.json").read_text())
             self.write(self.work / "pre_mortem.json", {
                 "status": "complete", "failure_story": "cycle breaks", "earliest_warning_signals": [],
                 "forensic_checks": ["cash conversion"], "short_source_coverage": "partial", "unresolved_items": [],
+                "evidence_packet_hash": manifest["packet_hash"],
             })
-            manifest = json.loads((self.work / "manifest.json").read_text())
             for row in manifest["selected_raters"]:
                 self.write(self.work / "round_1" / f"{row['persona']}.json", self.vote(row["persona"], row["independence_group"]))
             second = committee_task_queue.next_tasks("AAA", "2026-07-18")
@@ -96,6 +97,11 @@ class CommitteeTaskQueueTests(unittest.TestCase):
                 "status": "complete", "primary_method": "quality_reinvestment",
                 "weighting_rationale": "method fit", "agreed_facts": [], "disputed_facts": [],
                 "recommendation": "watch",
+                "evidence_packet_hash": manifest["packet_hash"],
+                "vote_set_hash": investment_committee_pipeline.vote_set_hash(
+                    [self.vote(row["persona"], row["independence_group"]) for row in manifest["selected_raters"]],
+                    manifest["packet_hash"],
+                ),
                 "monitoring_plan": {
                     "operational_milestones": [], "evidence_refresh_dates": [],
                     "valuation_refresh_triggers": ["filing"], "price_review_thresholds": [],
@@ -107,6 +113,54 @@ class CommitteeTaskQueueTests(unittest.TestCase):
             output = investment_committee_pipeline.assemble(self.work)
             schema = json.loads((Path(__file__).resolve().parents[1] / "templates" / "committee_schema.json").read_text())
             jsonschema.validate(json.loads(output.read_text()), schema)
+
+    def test_hash_bound_packet_requeues_legacy_unbound_vote(self):
+        manifest_path = self.work / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["evidence_snapshot"] = (
+            "AAA/research/committee_work/2026-07-18/evidence_snapshot"
+        )
+        self.write(manifest_path, manifest)
+        self.write(self.work / "pre_mortem.json", {
+            "status": "complete", "failure_story": "cycle breaks",
+            "earliest_warning_signals": [], "forensic_checks": ["cash conversion"],
+            "short_source_coverage": "partial", "unresolved_items": [],
+            "evidence_packet_hash": manifest["packet_hash"],
+        })
+        first = manifest["selected_raters"][0]
+        self.write(
+            self.work / "round_1" / f"{first['persona']}.json",
+            self.vote(first["persona"], first["independence_group"]),
+        )
+        with patch.object(committee_task_queue, "ROOT", self.root), patch.object(
+            investment_committee_pipeline, "ROOT", self.root
+        ):
+            tasks = committee_task_queue.next_tasks("AAA", "2026-07-18")
+        self.assertIn(f"round1-{first['persona']}", {row["task_id"] for row in tasks})
+
+    def test_stale_chair_is_requeued_after_final_votes_exist(self):
+        manifest = json.loads((self.work / "manifest.json").read_text())
+        self.write(self.work / "pre_mortem.json", {
+            "status": "complete", "failure_story": "cycle breaks",
+            "earliest_warning_signals": [], "forensic_checks": ["cash conversion"],
+            "short_source_coverage": "partial", "unresolved_items": [],
+            "evidence_packet_hash": manifest["packet_hash"],
+        })
+        for row in manifest["selected_raters"]:
+            vote = self.vote(row["persona"], row["independence_group"])
+            self.write(self.work / "round_1" / f"{row['persona']}.json", vote)
+        self.write(self.work / "chair_synthesis.json", {
+            "status": "complete", "primary_method": "old", "weighting_rationale": "old",
+            "agreed_facts": [], "disputed_facts": [], "recommendation": "watch",
+            "monitoring_plan": {},
+        })
+        with patch.object(committee_task_queue, "ROOT", self.root), patch.object(
+            investment_committee_pipeline, "ROOT", self.root
+        ):
+            tasks = committee_task_queue.next_tasks("AAA", "2026-07-18")
+        self.assertEqual([row["task_id"] for row in tasks], ["chair-synthesis"])
+        support = json.loads((self.work / "committee_support.json").read_text())
+        self.assertEqual(support["final_vote_count"], 3)
 
     def test_auto_selector_derives_company_and_date_from_manifest_path(self):
         expected = [{"task_id": "pre_mortem"}]

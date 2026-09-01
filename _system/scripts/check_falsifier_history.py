@@ -59,7 +59,9 @@ def history_errors(base_docs: dict[str, dict], current_docs: dict[str, dict]) ->
 
 
 def _git(root: Path, *args: str) -> str:
-    result = subprocess.run(["git", "-C", str(root), *args], text=True,
+    # Git object payloads are UTF-8. Pin the decoder so immutable hashes are
+    # identical on Windows hosts whose process locale is otherwise cp1252.
+    result = subprocess.run(["git", "-C", str(root), *args], text=True, encoding="utf-8",
                             capture_output=True, check=False)
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or "git command failed")

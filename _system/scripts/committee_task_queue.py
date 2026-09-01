@@ -12,6 +12,11 @@ from investment_committee_pipeline import (
     deterministic_proposer,
     escalation_decision,
     load_round,
+    validate_chair_binding,
+    validate_pre_mortem_binding,
+    validate_vote,
+    vote_binding,
+    vote_set_hash,
     write_json,
 )
 
@@ -49,12 +54,15 @@ def first_round_tasks(ticker: str, as_of: str, work: Path, manifest: dict) -> li
     packet = manifest["packet_hash"]
     rows = []
     pre_mortem = work / "pre_mortem.json"
-    if not pre_mortem.exists():
+    pre_mortem_payload = read_json(pre_mortem) if pre_mortem.exists() else {}
+    if (not pre_mortem.exists()
+            or validate_pre_mortem_binding(pre_mortem_payload, packet)):
         rows.append(task(ticker, as_of, "pre_mortem", work / "pre_mortem.prompt.md", pre_mortem, packet))
     for rater in manifest.get("selected_raters") or []:
         persona = rater["persona"]
         output = work / "round_1" / f"{persona}.json"
-        if not output.exists():
+        payload = read_json(output) if output.exists() else {}
+        if not output.exists() or validate_vote(payload, {**rater, **vote_binding(work)}):
             rows.append(task(ticker, as_of, f"round1-{persona}", work / "round_1" / f"{persona}.prompt.md", output, packet))
     return rows
 
@@ -87,7 +95,8 @@ def next_tasks(ticker: str, as_of: str) -> list[dict]:
         for rater in raters:
             persona = rater["persona"]
             output = work / "round_2" / f"{persona}.json"
-            if not output.exists():
+            payload = read_json(output) if output.exists() else {}
+            if not output.exists() or validate_vote(payload, {**rater, **vote_binding(work)}):
                 second.append(task(ticker, as_of, f"round2-{persona}", work / "round_2" / f"{persona}.prompt.md", output, packet))
         if second:
             return second
@@ -99,7 +108,13 @@ def next_tasks(ticker: str, as_of: str) -> list[dict]:
         raise ValueError("invalid final vote round:\n- " + "\n- ".join(errors))
     deterministic_committee_support(work, final_votes, escalation)
     chair = work / "chair_synthesis.json"
-    if not chair.exists():
+    chair_payload = read_json(chair) if chair.exists() else {}
+    chair_errors = validate_chair_binding(
+        chair_payload,
+        packet,
+        vote_set_hash(final_votes, packet),
+    ) if chair.exists() else ["missing chair_synthesis"]
+    if chair_errors:
         return [task(ticker, as_of, "chair-synthesis", work / "chair_synthesis.prompt.md", chair, packet)]
     manifest = read_json(work / "manifest.json")
     manifest["stage"] = "ready_to_assemble"

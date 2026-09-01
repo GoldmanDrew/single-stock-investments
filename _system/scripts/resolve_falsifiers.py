@@ -45,6 +45,7 @@ SCRIPTS = ROOT / "_system" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from falsifier_specs import (  # noqa: E402
+    active_specs,
     anchor_errors,
     calibration_eligibility,
     forecast_dates,
@@ -448,7 +449,7 @@ def run(root: Path, today: date, apply: bool) -> dict:
     for ticker, _path in find_sidecars(root):
         counts["sidecars"] += 1
         doc = read_json(root / ticker / "research" / "falsifier_specs.json")
-        specs = doc.get("specs") if isinstance(doc.get("specs"), list) else []
+        specs = active_specs(doc.get("specs") if isinstance(doc.get("specs"), list) else [])
         for index, spec in enumerate(specs):
             counts["specs"] += 1
             errors = spec_errors(spec, index)

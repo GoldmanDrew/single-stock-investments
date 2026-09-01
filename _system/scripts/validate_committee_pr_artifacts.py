@@ -8,7 +8,14 @@ import re
 import sys
 from pathlib import Path
 
-from investment_committee_pipeline import has_snapshot, validate_vote
+from investment_committee_pipeline import (
+    has_snapshot,
+    load_round,
+    validate_chair_binding,
+    validate_pre_mortem_binding,
+    validate_vote,
+    vote_set_hash,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 COMMITTEE_RE = re.compile(
@@ -41,7 +48,7 @@ def read_json(path: Path) -> dict:
     return value
 
 
-def validate_pre_mortem(payload: dict) -> list[str]:
+def validate_pre_mortem(payload: dict, manifest: dict) -> list[str]:
     errors: list[str] = []
     for key in (
         "failure_story",
@@ -58,10 +65,13 @@ def validate_pre_mortem(payload: dict) -> list[str]:
         errors.append("pre_mortem forensic_checks must be a list")
     if not isinstance(payload.get("unresolved_items"), list):
         errors.append("pre_mortem unresolved_items must be a list")
+    errors.extend(validate_pre_mortem_binding(
+        payload, str(manifest.get("packet_hash") or "")
+    ))
     return errors
 
 
-def validate_chair(payload: dict) -> list[str]:
+def validate_chair(payload: dict, manifest: dict, work: Path) -> list[str]:
     errors: list[str] = []
     for key in (
         "primary_method",
@@ -80,6 +90,13 @@ def validate_chair(payload: dict) -> list[str]:
     plan = payload.get("monitoring_plan")
     if not isinstance(plan, dict):
         errors.append("chair_synthesis monitoring_plan must be an object")
+    raters = manifest.get("selected_raters") or []
+    votes, vote_errors = load_round(work, 2, raters)
+    if vote_errors:
+        errors.append("chair_synthesis cannot land before three valid final isolated votes")
+    else:
+        packet = str(manifest.get("packet_hash") or "")
+        errors.extend(validate_chair_binding(payload, packet, vote_set_hash(votes, packet)))
     return errors
 
 
@@ -94,9 +111,9 @@ def validate_research_response(payload: dict) -> list[str]:
 def validate_artifact(path: Path, rel: str, manifest: dict) -> list[str]:
     payload = read_json(path)
     if rel == "pre_mortem.json":
-        return validate_pre_mortem(payload)
+        return validate_pre_mortem(payload, manifest)
     if rel == "chair_synthesis.json":
-        return validate_chair(payload)
+        return validate_chair(payload, manifest, path.parent)
     if rel == "research_response.json":
         return validate_research_response(payload)
     match = ROUND_RE.match(rel)

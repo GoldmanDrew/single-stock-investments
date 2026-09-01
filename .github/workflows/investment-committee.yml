@@ -99,6 +99,9 @@ jobs:
         # not.
         if: always() && (steps.pending.outputs.action != 'refresh' || vars.COMMITTEE_AGENTS_ENABLED == 'true')
         run: python _system/scripts/select_committee_work.py --parked >> "$GITHUB_STEP_SUMMARY"
+      - name: Report the ordered Tier 1 execution queue
+        if: always()
+        run: python _system/scripts/build_committee_execution_queue.py --markdown >> "$GITHUB_STEP_SUMMARY"
 
   review-required:
     needs: prepare

@@ -1527,6 +1527,11 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
         for row in (tier_1_queue.get("items") or [])
         if row.get("ticker")
     }
+    tier_1_order = {
+        str(row.get("ticker") or "").upper(): index
+        for index, row in enumerate(tier_1_queue.get("items") or [])
+        if row.get("ticker")
+    }
     items = []
     candidate_tickers = sorted(
         set(str(ticker).upper() for ticker in (followups.get("tickers") or {}))
@@ -1572,6 +1577,7 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
             "next_gap_progress_note": progress_note or None,
             "next_gap_progress_tier": progress_tier,
             "value_per_share": decision.get("value_per_share"),
+            "price_per_share": decision.get("price_per_share"),
             "margin_of_safety_pct": decision.get("margin_of_safety_pct"),
             "forward_return_at_price_pct": decision.get("forward_return_at_price_pct"),
             "required_return_pct": decision.get("required_return_pct"),
@@ -1581,6 +1587,7 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
             "primary_power_zone": decision.get("primary_power_zone"),
             "in_validation_cohort": bool(decision.get("in_validation_cohort")),
             "queue_scope": "tier_1" if readiness else "curated_followup",
+            "queue_position": tier_1_order.get(ticker),
             "readiness_state": readiness.get("readiness_state"),
             "priority": readiness.get("priority") or {
                 "rank": 200,
@@ -1597,6 +1604,8 @@ def valuation_queue_summary(rows: list[dict]) -> dict:
             "tier_reason_codes": readiness.get("tier_reason_codes") or [],
         })
     items.sort(key=lambda r: (
+        0 if r.get("queue_scope") == "tier_1" else 1,
+        int(r.get("queue_position")) if r.get("queue_position") is not None else 9999,
         int((r.get("priority") or {}).get("rank") or 999),
         0 if r.get("in_validation_cohort") else 1,
         -(r.get("critical_gap_count") or 0),

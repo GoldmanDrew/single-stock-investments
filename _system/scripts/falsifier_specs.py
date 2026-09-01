@@ -129,6 +129,39 @@ def load_sidecar(ticker: str, root: Path = ROOT) -> dict:
     return read_json(sidecar_path(ticker, root))
 
 
+def active_specs(specs: list[dict]) -> list[dict]:
+    """Return the current immutable revision of each non-superseded forecast.
+
+    History remains in the sidecar for audit. Runtime coverage and resolution
+    operate only on the latest revision, otherwise an explicitly repaired
+    untestable forecast would remain permanent coverage debt and could be
+    scored alongside its replacement.
+    """
+    rows = [row for row in specs if isinstance(row, dict)]
+    legacy_rows = [row for row in rows if not row.get("spec_id")]
+    latest_by_id: dict[str, dict] = {}
+    order: dict[int, int] = {id(row): index for index, row in enumerate(rows)}
+    for row in rows:
+        spec_id = str(row.get("spec_id") or "")
+        if not spec_id:
+            continue
+        current = latest_by_id.get(spec_id)
+        if current is None or int(row.get("spec_revision") or 1) > int(
+            current.get("spec_revision") or 1
+        ):
+            latest_by_id[spec_id] = row
+    superseded_ids = {
+        str(row.get("supersedes_spec_id"))
+        for row in latest_by_id.values()
+        if row.get("supersedes_spec_id")
+        and str(row.get("supersedes_spec_id")) != str(row.get("spec_id"))
+    }
+    active = legacy_rows + [
+        row for spec_id, row in latest_by_id.items() if spec_id not in superseded_ids
+    ]
+    return sorted(active, key=lambda row: order[id(row)])
+
+
 def parse_due(value) -> date | None:
     """Parse an ISO YYYY-MM-DD due date; None when missing or malformed."""
     if not isinstance(value, str):
@@ -458,14 +491,17 @@ def validate_sidecar(doc, ticker: str | None = None) -> list[str]:
     if not isinstance(specs, list):
         errors.append("specs: list required")
         return errors
-    seen_ids = set()
+    seen_identities = set()
     for index, spec in enumerate(specs):
         errors.extend(spec_errors(spec, index))
         spec_id = spec.get("spec_id") if isinstance(spec, dict) else None
         if spec_id:
-            if spec_id in seen_ids:
-                errors.append(f"specs[{index}].spec_id: duplicate {spec_id}")
-            seen_ids.add(spec_id)
+            identity = (str(spec_id), int(spec.get("spec_revision") or 1))
+            if identity in seen_identities:
+                errors.append(
+                    f"specs[{index}]: duplicate immutable identity {identity[0]} revision {identity[1]}"
+                )
+            seen_identities.add(identity)
     return errors
 
 
@@ -551,7 +587,7 @@ def coverage_summary(ticker: str, contract: dict, root: Path = ROOT) -> dict:
     """
     path = sidecar_path(ticker, root)
     doc = read_json(path)
-    specs = doc.get("specs") if isinstance(doc.get("specs"), list) else []
+    specs = active_specs(doc.get("specs") if isinstance(doc.get("specs"), list) else [])
     typed = untestable = invalid = unanchored = resolvable = unresolvable = 0
     eligible = diagnostic = 0
     typed_prose = set()

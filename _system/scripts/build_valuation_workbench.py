@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import calendar
+import hashlib
 import json
 import re
 from collections import defaultdict
@@ -78,21 +79,130 @@ def authoritative_owner_decision(research: Path, record: dict) -> dict:
     return record.get("human_decision") or {}
 
 
+def _committee_vote_valid(work: Path, manifest: dict, round_number: int,
+                          rater: dict) -> tuple[bool, str | None, dict]:
+    persona = str(rater.get("persona") or "")
+    path = work / f"round_{round_number}" / f"{persona}.json"
+    vote = read_json(path)
+    if not path.exists():
+        return False, "missing", {}
+    if vote.get("persona") != persona:
+        return False, "persona_mismatch", vote
+    if vote.get("independence_group") != rater.get("independence_group"):
+        return False, "independence_group_mismatch", vote
+    if manifest.get("evidence_snapshot") and vote.get("evidence_hash") != manifest.get("packet_hash"):
+        return False, "unbound_or_stale_evidence_hash", vote
+    return True, None, vote
+
+
+def _committee_vote_set_hash(votes: list[dict], packet: str) -> str:
+    canonical = {
+        "evidence_packet_hash": packet,
+        "votes": sorted(votes, key=lambda row: (
+            str(row.get("independence_group") or ""),
+            str(row.get("persona") or ""),
+        )),
+    }
+    return hashlib.sha256(
+        json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
 def committee_view(research: Path) -> dict:
     manifests = sorted(research.glob("committee_work/????-??-??/manifest.json"))
     manifest_path = manifests[-1] if manifests else None
     manifest = read_json(manifest_path) if manifest_path else {}
     work = manifest_path.parent if manifest_path else None
     raters = manifest.get("selected_raters") or []
-    required = []
-    for round_number in (1, 2):
-        required.extend(f"round_{round_number}/{row.get('persona')}.json" for row in raters if row.get("persona"))
-    required.extend([
-        "proposer.json", "pre_mortem.json", "evidence_tribunal.json", "research_response.json",
-        "valuation_reconciliation.json", "adversarial_review.json", "chair_synthesis.json",
-    ])
-    completed = [name for name in required if work and (work / name).exists()]
+    round_one_names = [
+        f"round_1/{row.get('persona')}.json" for row in raters if row.get("persona")
+    ]
+    round_two_names = [
+        f"round_2/{row.get('persona')}.json" for row in raters if row.get("persona")
+    ]
+    required = ["proposer.json", "pre_mortem.json", *round_one_names,
+                "research_response.json", *round_two_names, "evidence_tribunal.json",
+                "valuation_reconciliation.json", "adversarial_review.json", "chair_synthesis.json"]
+    completed: list[str] = []
+    invalid: list[dict] = []
+    packet = str(manifest.get("packet_hash") or "")
+    final_votes: list[dict] = []
+    final_votes_valid = bool(work and raters)
+    if work:
+        for name in ("proposer.json",):
+            if (work / name).exists():
+                completed.append(name)
+        pre_mortem = read_json(work / "pre_mortem.json")
+        if ((work / "pre_mortem.json").exists()
+                and pre_mortem.get("evidence_packet_hash") == packet):
+            completed.append("pre_mortem.json")
+        elif (work / "pre_mortem.json").exists():
+            invalid.append({"path": "pre_mortem.json", "reason": "unbound_or_stale_evidence_hash"})
+        for round_number in (1, 2):
+            for rater in raters:
+                name = f"round_{round_number}/{rater.get('persona')}.json"
+                valid, reason, vote = _committee_vote_valid(work, manifest, round_number, rater)
+                if valid:
+                    completed.append(name)
+                    if round_number == 2:
+                        final_votes.append(vote)
+                elif (work / name).exists():
+                    invalid.append({"path": name, "reason": reason})
+                    if round_number == 2:
+                        final_votes_valid = False
+                elif round_number == 2:
+                    final_votes_valid = False
+        support = read_json(work / "committee_support.json")
+        expected_vote_hash = _committee_vote_set_hash(final_votes, packet) if final_votes_valid else None
+        support_valid = bool(
+            final_votes_valid
+            and support.get("evidence_packet_hash") == packet
+            and support.get("vote_set_hash") == expected_vote_hash
+        )
+        for name in ("evidence_tribunal.json", "research_response.json",
+                     "valuation_reconciliation.json", "adversarial_review.json"):
+            path = work / name
+            if not path.exists():
+                continue
+            if name == "research_response.json":
+                response = read_json(path)
+                valid = response.get("evidence_hash_after") == packet
+            else:
+                valid = support_valid
+            if valid:
+                completed.append(name)
+            else:
+                invalid.append({"path": name, "reason": "upstream_vote_set_not_bound"})
+        chair = read_json(work / "chair_synthesis.json")
+        if (work / "chair_synthesis.json").exists() and support_valid and (
+            chair.get("evidence_packet_hash") == packet
+            and chair.get("vote_set_hash") == expected_vote_hash
+        ):
+            completed.append("chair_synthesis.json")
+        elif (work / "chair_synthesis.json").exists():
+            invalid.append({"path": "chair_synthesis.json", "reason": "stale_or_unbound_synthesis"})
     missing = [name for name in required if name not in completed]
+    if any(name == "pre_mortem.json" or name.startswith("round_1/") for name in missing):
+        current_phase = "isolated_round_one"
+        next_outputs = [
+            name for name in missing
+            if name == "pre_mortem.json" or name.startswith("round_1/")
+        ]
+    elif "research_response.json" in missing:
+        current_phase = "targeted_research"
+        next_outputs = ["research_response.json"]
+    elif any(name.startswith("round_2/") for name in missing):
+        current_phase = "isolated_round_two"
+        next_outputs = [name for name in missing if name.startswith("round_2/")]
+    elif "chair_synthesis.json" in missing:
+        current_phase = "chair_synthesis"
+        next_outputs = ["chair_synthesis.json"]
+    elif missing:
+        current_phase = "deterministic_support"
+        next_outputs = missing[:3]
+    else:
+        current_phase = "ready_to_assemble"
+        next_outputs = []
     record_path, record = latest_committee_record(research)
     record_date = str((record.get("review") or {}).get("as_of") or "")[:10]
     manifest_date = str(manifest.get("as_of") or "")[:10]
@@ -130,7 +240,20 @@ def committee_view(research: Path) -> dict:
         next_action = "Validate and assemble the independent rounds, then route the synthesis to the owner."
     elif manifest:
         status = "independent_review_open"
-        next_action = "Complete isolated rater outputs, proposer case, pre-mortem, and research response without sharing peer votes."
+        if invalid:
+            names = ", ".join(row["path"] for row in invalid[:3])
+            next_action = (
+                f"Replace stale or unbound outputs ({names}) against the frozen packet; "
+                "keep each rater isolated from peer votes."
+            )
+        elif next_outputs:
+            next_action = (
+                "Complete the next hash-bound isolated outputs: "
+                + ", ".join(next_outputs[:4])
+                + "."
+            )
+        else:
+            next_action = "Advance the validated committee packet to assembly."
     else:
         status = "not_started"
         next_action = "Freeze the evidence packet and select three method-independent raters."
@@ -144,6 +267,9 @@ def committee_view(research: Path) -> dict:
         "analysis_progress": {"completed": len(completed), "required": len(required)},
         "completed_outputs": completed,
         "missing_outputs": missing,
+        "invalid_outputs": invalid,
+        "current_phase": current_phase,
+        "next_outputs": next_outputs,
         "owner_status": owner.get("status") or "pending",
         "owner_decision": owner.get("decision"),
         "strongest_dissent": (active_record.get("synthesis") or {}).get("strongest_dissent"),
@@ -380,6 +506,7 @@ def valuation_view(valuation: dict) -> dict:
         "scenario_contract": contract.get("scenario_contract") or {},
         "calculation_proof_summary": contract.get("calculation_proof_summary") or {},
         "model_checks": contract.get("model_checks") or {},
+        "monitoring": contract.get("monitoring") or {},
         "source_lineage": contract.get("source_lineage") or [],
         "change_control": contract.get("change_control") or {},
     }
