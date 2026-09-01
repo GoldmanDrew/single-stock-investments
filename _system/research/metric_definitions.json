@@ -1,18 +1,26 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-08-17",
+  "updated": "2026-09-01",
   "definitions": {
     "cash_and_equivalents_usd": {
       "version": "1.0",
       "observation_type": "instant",
       "duration_basis": "instant",
       "canonical_unit": "USD",
-      "source_adapters": ["sec_companyfacts", "sec_filing_xbrl"],
+      "source_adapters": [
+        "sec_companyfacts",
+        "sec_filing_xbrl"
+      ],
       "concepts": [
         "us-gaap:CashAndCashEquivalentsAtCarryingValue",
         "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
       ],
-      "accepted_forms": ["10-Q", "10-K", "20-F", "40-F"],
+      "accepted_forms": [
+        "10-Q",
+        "10-K",
+        "20-F",
+        "40-F"
+      ],
       "requires_fiscal_period_identity": true
     },
     "normalized_owner_earnings_ttm_m": {
@@ -20,7 +28,10 @@
       "observation_type": "duration",
       "duration_basis": "TTM",
       "canonical_unit": "USD millions",
-      "source_adapters": ["sec_companyfacts_ttm", "sec_filing_xbrl"],
+      "source_adapters": [
+        "sec_companyfacts_ttm",
+        "sec_filing_xbrl"
+      ],
       "formula": "TTM operating cash flow - abs(TTM capital expenditures)",
       "ttm_formula": "prior_fy + current_ytd - prior_year_comparable_ytd",
       "operating_cash_flow_concepts": [
@@ -30,7 +41,10 @@
         "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
         "us-gaap:PaymentsForProceedsFromOtherPropertyPlantAndEquipment"
       ],
-      "accepted_forms": ["10-Q", "10-K"],
+      "accepted_forms": [
+        "10-Q",
+        "10-K"
+      ],
       "requires_fiscal_period_identity": true
     },
     "normalized_owner_cash_usd_m": {
@@ -38,8 +52,14 @@
       "observation_type": "duration",
       "duration_basis": "FY",
       "canonical_unit": "USD millions",
-      "source_adapters": ["fact_ledger"],
-      "accepted_forms": ["10-Q", "10-K", "earnings_release"],
+      "source_adapters": [
+        "fact_ledger"
+      ],
+      "accepted_forms": [
+        "10-Q",
+        "10-K",
+        "earnings_release"
+      ],
       "requires_fiscal_period_identity": false
     },
     "normalized_owner_cash_gbp_m": {
@@ -47,8 +67,13 @@
       "observation_type": "duration",
       "duration_basis": "FY",
       "canonical_unit": "GBP millions",
-      "source_adapters": ["fact_ledger"],
-      "accepted_forms": ["annual_report", "earnings_release"],
+      "source_adapters": [
+        "fact_ledger"
+      ],
+      "accepted_forms": [
+        "annual_report",
+        "earnings_release"
+      ],
       "requires_fiscal_period_identity": false
     },
     "market_total_return": {
@@ -56,9 +81,137 @@
       "observation_type": "market_interval",
       "duration_basis": "horizon",
       "canonical_unit": "percent",
-      "source_adapters": ["market_total_return"],
-      "adjustments": ["dividend", "split", "merger", "delisting"],
+      "source_adapters": [
+        "market_total_return"
+      ],
+      "adjustments": [
+        "dividend",
+        "split",
+        "merger",
+        "delisting"
+      ],
       "requires_fiscal_period_identity": false
+    },
+    "centene_managed_care_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "centene_managed_care_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "copart_operating_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "copart_operating_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "danaher_core_growth": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "danaher_core_growth_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "everforth_segment_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "everforth_segment_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "ford_segment_and_credit_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "ford_segment_and_credit_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "fiserv_segment_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "fiserv_segment_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "fox_segment_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "fox_segment_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "ice_segment_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "ice_segment_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "lseg_equity_fcf_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "lseg_equity_fcf_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "spgi_segment_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "spgi_segment_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
+    },
+    "viatris_cash_and_deleveraging_kpi": {
+      "version": "1.0",
+      "observation_type": "duration",
+      "duration_basis": "issuer_bridge",
+      "canonical_unit": "percent",
+      "source_adapters": [
+        "viatris_cash_and_deleveraging_kpi_adapter"
+      ],
+      "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+      "requires_fiscal_period_identity": true
     }
   }
 }

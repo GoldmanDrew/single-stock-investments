@@ -101,6 +101,38 @@ def packet_hash(refs: list[dict]) -> str:
     return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+def vote_set_hash(votes: list[dict], frozen_packet_hash: str) -> str:
+    """Bind the chair to the exact final votes as well as the evidence packet."""
+    canonical = {
+        "evidence_packet_hash": frozen_packet_hash,
+        "votes": sorted(votes, key=lambda row: (
+            str(row.get("independence_group") or ""),
+            str(row.get("persona") or ""),
+        )),
+    }
+    return hashlib.sha256(
+        json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def validate_chair_binding(chair: dict, frozen_packet_hash: str,
+                           final_vote_hash: str) -> list[str]:
+    """Reject a synthesis written before the final isolated vote set existed."""
+    errors = []
+    if chair.get("evidence_packet_hash") != frozen_packet_hash:
+        errors.append("chair_synthesis evidence_packet_hash must match the frozen packet")
+    if chair.get("vote_set_hash") != final_vote_hash:
+        errors.append("chair_synthesis vote_set_hash must match the final isolated vote set")
+    return errors
+
+
+def validate_pre_mortem_binding(pre_mortem: dict, frozen_packet_hash: str) -> list[str]:
+    """A pre-mortem is independent work and must identify the packet it tested."""
+    if pre_mortem.get("evidence_packet_hash") != frozen_packet_hash:
+        return ["pre_mortem evidence_packet_hash must match the frozen packet"]
+    return []
+
+
 def snapshot_name(ticker: str, path: Path) -> str:
     """Flatten a research-relative evidence path into one snapshot filename."""
     try:
@@ -133,7 +165,9 @@ def freeze_evidence(ticker: str, work: Path, paths: list[Path]) -> list[dict]:
 
 
 def has_snapshot(manifest: dict) -> bool:
-    return any(row.get("snapshot_path") for row in manifest.get("evidence") or [])
+    return bool(manifest.get("evidence_snapshot")) or any(
+        row.get("snapshot_path") for row in manifest.get("evidence") or []
+    )
 
 
 def packet_refs(manifest: dict) -> list[dict]:
@@ -416,7 +450,10 @@ def carry_round_one_forward(work: Path, raters: list[dict]) -> None:
     for row in raters:
         source = work / "round_1" / f"{row['persona']}.json"
         target = work / "round_2" / f"{row['persona']}.json"
-        if source.exists() and not target.exists():
+        # No-escalation round two is defined as the validated round-one vote.
+        # Always refresh it so an unbound legacy file cannot shadow a current,
+        # hash-bound round-one answer merely because the path already exists.
+        if source.exists():
             write_json(target, read_json(source))
 
 
@@ -424,6 +461,7 @@ def deterministic_committee_support(work: Path, votes: list[dict], escalation: d
     """Assemble factual/reconciliation/adversarial support without agent calls."""
     manifest = read_json(work / "manifest.json")
     packet = manifest["packet_hash"]
+    final_vote_hash = vote_set_hash(votes, packet)
     evidence_paths = [row["path"] for row in manifest.get("evidence") or []]
     missing = sorted({
         str(vote.get("most_important_missing_fact") or "").strip()
@@ -471,6 +509,16 @@ def deterministic_committee_support(work: Path, votes: list[dict], escalation: d
         "strongest_failure_path": pre_mortem.get("failure_story") or "No completed pre-mortem failure path.",
         "source": "independent_pre_mortem",
     })
+    write_json(work / "committee_support.json", {
+        "schema_version": "1.0",
+        "evidence_packet_hash": packet,
+        "vote_set_hash": final_vote_hash,
+        "final_vote_count": len(votes),
+        "independence_groups": sorted({
+            str(vote.get("independence_group") or "") for vote in votes
+        }),
+        "rule": "The chair must copy both hashes; synthesis created before this vote set is invalid.",
+    })
 
 
 def write_prompts(ticker: str, work: Path, frozen_hash: str, refs: list[dict], raters: list[dict]) -> None:
@@ -486,7 +534,7 @@ def write_prompts(ticker: str, work: Path, frozen_hash: str, refs: list[dict], r
             prompt = rater_prompt(ticker, row["persona"], row["independence_group"], frozen_hash, refs, round_number)
             (round_dir / f"{row['persona']}.prompt.md").write_text(prompt, encoding="utf-8")
     (work / "pre_mortem.prompt.md").write_text(
-        f"# {ticker} mandatory pre-mortem\n\nPacket `{frozen_hash}`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Return the committee schema pre_mortem object only.\n",
+        f"# {ticker} mandatory pre-mortem\n\nPacket `{frozen_hash}`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Include `\"evidence_packet_hash\": \"{frozen_hash}\"`. Return the committee schema pre_mortem object only.\n",
         encoding="utf-8",
     )
     (work / "evidence_tribunal.prompt.md").write_text(
@@ -506,7 +554,7 @@ def write_prompts(ticker: str, work: Path, frozen_hash: str, refs: list[dict], r
         encoding="utf-8",
     )
     (work / "chair_synthesis.prompt.md").write_text(
-        f"# {ticker} chair synthesis\n\nSelect the primary method, explain why it dominates corroborating methods, preserve dissent, state agreed and disputed facts, value and entry ranges, recommendation, and monitoring plan. Never average methods solely to create consensus. Return chair_synthesis.json only.\n",
+        f"# {ticker} chair synthesis\n\nPacket `{frozen_hash}`. Read only `committee_support.json`, the frozen packet, the final isolated votes in `round_2/`, and the deterministic support files. Select the primary method, explain why it dominates corroborating methods, preserve dissent, state agreed and disputed facts, value and entry ranges, recommendation, and monitoring plan. Never average methods solely to create consensus. Copy `evidence_packet_hash` and `vote_set_hash` exactly from `committee_support.json`. Return chair_synthesis.json only.\n",
         encoding="utf-8",
     )
 
@@ -694,10 +742,24 @@ def validate_work(work: Path) -> list[str]:
         errors.extend(round_errors)
     for name in (
         "proposer.json", "pre_mortem.json", "evidence_tribunal.json", "research_response.json",
-        "valuation_reconciliation.json", "adversarial_review.json", "chair_synthesis.json",
+        "valuation_reconciliation.json", "adversarial_review.json", "committee_support.json",
+        "chair_synthesis.json",
     ):
         if not (work / name).exists():
             errors.append(f"missing {name}")
+    if (work / "pre_mortem.json").exists():
+        errors.extend(validate_pre_mortem_binding(
+            read_json(work / "pre_mortem.json"),
+            str(manifest.get("packet_hash") or ""),
+        ))
+    final_votes, final_vote_errors = load_round(work, 2, raters)
+    if not final_vote_errors and (work / "chair_synthesis.json").exists():
+        chair = read_json(work / "chair_synthesis.json")
+        errors.extend(validate_chair_binding(
+            chair,
+            str(manifest.get("packet_hash") or ""),
+            vote_set_hash(final_votes, str(manifest.get("packet_hash") or "")),
+        ))
     if not verify_packet(manifest):
         errors.append(
             "frozen evidence copies changed after freezing"

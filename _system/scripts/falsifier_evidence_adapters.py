@@ -7,6 +7,7 @@ They never alter a forecast, threshold, probability, or contract.
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import date
 from pathlib import Path
 
@@ -14,11 +15,29 @@ from falsifier_specs import forecast_dates, is_v3_spec, parse_due, read_json
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFINITIONS_REL = Path("_system/research/metric_definitions.json")
-SUPPORTED_ADAPTERS = {"fact_ledger", "sec_companyfacts", "sec_companyfacts_ttm"}
+ISSUER_ADAPTERS_REL = Path("_system/research/issuer_kpi_adapters.json")
+BASE_SUPPORTED_ADAPTERS = {"fact_ledger", "sec_companyfacts", "sec_companyfacts_ttm"}
 
 
 def metric_definitions(root: Path = ROOT) -> dict:
     return (read_json(root / DEFINITIONS_REL).get("definitions") or {})
+
+
+def issuer_adapters(root: Path = ROOT) -> dict:
+    return (read_json(root / ISSUER_ADAPTERS_REL).get("adapters") or {})
+
+
+def _definition_hash(value: dict) -> str:
+    payload = {key: item for key, item in value.items() if key != "definition_hash"}
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _issuer_adapter_variant(ticker: str, adapter: str, root: Path) -> dict | None:
+    entry = issuer_adapters(root).get(adapter) or {}
+    variant = (entry.get("variants") or {}).get(ticker.upper())
+    return variant if isinstance(variant, dict) else None
 
 
 def _empty(reason: str, adapter: str | None = None, **details) -> dict:
@@ -55,13 +74,22 @@ def preflight_spec(ticker: str, spec: dict, root: Path = ROOT) -> dict:
     if str(plan.get("metric_definition_version") or "") != str(definition.get("version") or ""):
         return {"ok": False, "reason": "metric_definition_version_mismatch"}
     adapter = str(plan.get("source_adapter") or "")
-    if adapter not in SUPPORTED_ADAPTERS:
+    supported = BASE_SUPPORTED_ADAPTERS | set(issuer_adapters(root))
+    if adapter not in supported:
         return {"ok": False, "reason": f"adapter_missing:{adapter}"}
     if adapter not in set(definition.get("source_adapters") or []) and not (
             adapter == "fact_ledger" and spec.get("source_hint")):
         return {"ok": False, "reason": "adapter_not_allowed_by_metric_definition"}
     if plan.get("canonical_unit") != spec.get("unit"):
         return {"ok": False, "reason": "unit_mismatch"}
+    if adapter not in BASE_SUPPORTED_ADAPTERS:
+        variant = _issuer_adapter_variant(ticker, adapter, root)
+        if not variant:
+            return {"ok": False, "reason": "issuer_adapter_ticker_mismatch"}
+        if plan.get("adapter_definition_hash") != variant.get("definition_hash"):
+            return {"ok": False, "reason": "issuer_adapter_definition_hash_mismatch"}
+        if _definition_hash(variant) != variant.get("definition_hash"):
+            return {"ok": False, "reason": "issuer_adapter_definition_changed"}
     expected = parse_due(plan.get("expected_publication_date"))
     _measurement, _observable, deadline = forecast_dates(spec)
     if expected is None or deadline is None or expected > deadline:
@@ -300,6 +328,74 @@ def _resolve_ledger(ticker: str, spec: dict, root: Path, today: date,
     }
 
 
+def _resolve_issuer_bridge(ticker: str, spec: dict, root: Path, today: date,
+                           adapter: str, plan: dict) -> dict:
+    """Normalize one issuer's cash bridge to a 100% registered low-case floor.
+
+    The adapter definition freezes the exact underlying metric, source recipe,
+    and floor. Named causal drivers remain visible in the definition, while the
+    scored observation is a reproducible financial outcome rather than an
+    unscorable prose composite.
+    """
+    variant = _issuer_adapter_variant(ticker, adapter, root)
+    if not variant:
+        return _empty("issuer_adapter_ticker_mismatch", adapter)
+    floor = variant.get("bridge_floor")
+    if not isinstance(floor, (int, float)) or isinstance(floor, bool) or floor == 0:
+        return _empty("issuer_adapter_floor_invalid", adapter)
+    underlying_plan = dict(variant.get("underlying_observation_plan") or {})
+    underlying_spec = {
+        **spec,
+        "unit": variant.get("underlying_unit"),
+        "source_hint": variant.get("underlying_source_hint"),
+        "observation_plan": underlying_plan,
+    }
+    underlying_adapter = str(underlying_plan.get("source_adapter") or "")
+    definition = metric_definitions(root).get(
+        str(underlying_plan.get("metric_definition_id") or "")
+    ) or {}
+    if underlying_adapter == "fact_ledger":
+        result = _resolve_ledger(ticker, underlying_spec, root, today, underlying_plan)
+    elif underlying_adapter == "sec_companyfacts_ttm":
+        result = _resolve_owner_earnings_ttm(
+            ticker, underlying_spec, root, today, definition, underlying_plan
+        )
+    elif underlying_adapter == "sec_companyfacts":
+        result = _resolve_companyfacts(
+            ticker, underlying_spec, root, today, definition, underlying_plan
+        )
+    else:
+        return _empty("issuer_adapter_underlying_source_unsupported", adapter)
+    if result.get("value") is None:
+        return {
+            **result,
+            "adapter": adapter,
+            "details": {
+                **(result.get("details") or {}),
+                "underlying_adapter": underlying_adapter,
+                "driver_metric": variant.get("driver_metric"),
+            },
+        }
+    observed = float(result["value"])
+    return {
+        "value": round(observed / float(floor) * 100.0, 6),
+        "unit": "percent",
+        "as_of": result.get("as_of"),
+        "evidence_ref": result.get("evidence_ref"),
+        "adapter": adapter,
+        "blocker_reason": None,
+        "formula": "observed issuer owner-cash bridge / registered low-case floor * 100",
+        "formula_inputs": {
+            "observed_value": observed,
+            "observed_unit": result.get("unit"),
+            "registered_floor": floor,
+            "driver_metric": variant.get("driver_metric"),
+            "underlying_adapter": underlying_adapter,
+        },
+        "raw_observation": result.get("raw_observation") or result.get("formula_inputs"),
+    }
+
+
 def resolve_spec(ticker: str, spec: dict, root: Path, today: date) -> dict:
     """Resolve a v3 spec through its frozen adapter plan."""
     check = preflight_spec(ticker, spec, root)
@@ -308,6 +404,8 @@ def resolve_spec(ticker: str, spec: dict, root: Path, today: date) -> dict:
     plan = spec["observation_plan"]
     definition = metric_definitions(root)[plan["metric_definition_id"]]
     adapter = plan["source_adapter"]
+    if adapter not in BASE_SUPPORTED_ADAPTERS:
+        return _resolve_issuer_bridge(ticker, spec, root, today, adapter, plan)
     if adapter == "fact_ledger":
         return _resolve_ledger(ticker, spec, root, today, plan)
     if adapter == "sec_companyfacts_ttm":

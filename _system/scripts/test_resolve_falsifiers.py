@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import resolve_falsifiers as resolver  # noqa: E402
+import falsifier_evidence_adapters as adapters  # noqa: E402
 
 TODAY = date(2026, 8, 10)
 
@@ -46,6 +47,70 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(resolver.compare(15, "outside_range", [10, 20]), "miss")
         with self.assertRaises(ValueError):
             resolver.compare(1, "ne", 2)
+
+
+class IssuerAdapterTests(unittest.TestCase):
+    def test_hash_bound_issuer_bridge_returns_floor_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            def write(relative: str, value: dict) -> None:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(value), encoding="utf-8")
+
+            variant = {
+                "ticker": "TST",
+                "driver_metric": "retention and cash conversion",
+                "bridge_floor": 80.0,
+                "underlying_unit": "USD millions",
+                "underlying_source_hint": "owner_cash_m",
+                "underlying_observation_plan": {
+                    "metric_definition_id": "owner_cash",
+                    "metric_definition_version": "1.0",
+                    "source_adapter": "fact_ledger",
+                    "fiscal_period": "ANY",
+                    "observation_type": "duration",
+                    "duration_basis": "FY",
+                    "canonical_unit": "USD millions",
+                    "expected_publication_date": "2027-02-15",
+                    "accepted_forms": ["10-K"],
+                    "maximum_source_lag_days": 60,
+                    "historical_replay": {"status": "passed", "evidence_ref": "fixture:owner-cash"},
+                },
+                "source_refs": ["fixture:owner-cash"],
+            }
+            variant["definition_hash"] = adapters._definition_hash(variant)
+            write("_system/research/issuer_kpi_adapters.json", {
+                "adapters": {"test_issuer_adapter": {"variants": {"TST": variant}}},
+            })
+            write("_system/research/metric_definitions.json", {"definitions": {
+                "test_driver": {"version": "1.0", "canonical_unit": "percent",
+                                "source_adapters": ["test_issuer_adapter"]},
+                "owner_cash": {"version": "1.0", "canonical_unit": "USD millions",
+                               "source_adapters": ["fact_ledger"]},
+            }})
+            write("TST/research/valuation_fact_ledger.json", {"facts": [{
+                "field_id": "owner_cash_m", "value": 100.0, "unit": "USD millions",
+                "locked": True, "source": {"as_of": "2026-12-31", "filed": "2027-02-10"},
+            }]})
+            spec = {
+                "spec_schema_version": "3.0", "spec_id": "test-driver", "unit": "percent",
+                "source_hint": "owner_cash_m", "measurement_period_end": "2026-12-31",
+                "observable_after": "2027-02-15", "resolution_deadline": "2027-04-15",
+                "observation_plan": {
+                    "metric_definition_id": "test_driver", "metric_definition_version": "1.0",
+                    "source_adapter": "test_issuer_adapter", "fiscal_period": "ANY",
+                    "observation_type": "duration", "duration_basis": "issuer_bridge",
+                    "canonical_unit": "percent", "expected_publication_date": "2027-02-15",
+                    "accepted_forms": ["10-K"], "maximum_source_lag_days": 60,
+                    "historical_replay": {"status": "passed", "evidence_ref": "fixture:owner-cash"},
+                    "adapter_definition_hash": variant["definition_hash"],
+                },
+            }
+            result = adapters.resolve_spec("TST", spec, root, date(2027, 2, 20))
+            self.assertEqual(result["value"], 125.0, result)
+            self.assertEqual(result["adapter"], "test_issuer_adapter")
+            self.assertEqual(result["formula_inputs"]["registered_floor"], 80.0)
 
 
 class ResolverTests(unittest.TestCase):

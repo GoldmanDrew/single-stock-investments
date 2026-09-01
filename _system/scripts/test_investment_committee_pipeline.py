@@ -4,7 +4,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from investment_committee_pipeline import escalation_decision, packet_hash, select_raters, validate_vote
+from investment_committee_pipeline import (
+    escalation_decision,
+    packet_hash,
+    select_raters,
+    validate_chair_binding,
+    validate_vote,
+    vote_set_hash,
+)
 
 
 class InvestmentCommitteePipelineTests(unittest.TestCase):
@@ -14,6 +21,20 @@ class InvestmentCommitteePipelineTests(unittest.TestCase):
             {"path": "A", "sha256": "a" * 64, "bytes": 1},
         ]
         self.assertEqual(packet_hash(rows), packet_hash(list(reversed(rows))))
+
+    def test_vote_set_hash_is_order_independent_and_chair_bound(self):
+        votes = [
+            {"persona": "b", "independence_group": "two", "vote": "watch"},
+            {"persona": "a", "independence_group": "one", "vote": "approve"},
+        ]
+        packet = "a" * 64
+        digest = vote_set_hash(votes, packet)
+        self.assertEqual(digest, vote_set_hash(list(reversed(votes)), packet))
+        self.assertEqual(validate_chair_binding({
+            "evidence_packet_hash": packet,
+            "vote_set_hash": digest,
+        }, packet, digest), [])
+        self.assertTrue(validate_chair_binding({}, packet, digest))
 
     def test_raters_have_three_distinct_error_profiles(self):
         valuation = {"component_review_queue": {"items": [

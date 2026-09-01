@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from automate_valuation_readiness import build_fact_ledger, fetch_companyfacts  # noqa: E402
-from falsifier_specs import forecast_dates, read_json, spec_payload_hash  # noqa: E402
+from falsifier_specs import active_specs, forecast_dates, read_json, spec_payload_hash  # noqa: E402
 from resolve_falsifiers import ATTEMPTS_REL, append_unique_jsonl, load_outcomes  # noqa: E402
 
 
@@ -27,7 +27,7 @@ def due_tickers(root: Path, today: date) -> list[str]:
                and spec_payload_hash(spec) not in resolved_hashes
                and forecast_dates(spec)[1]
                and forecast_dates(spec)[1] <= today
-               for spec in doc.get("specs") or []):
+               for spec in active_specs(doc.get("specs") or [])):
             tickers.append(path.parents[1].name.upper())
     return tickers
 
