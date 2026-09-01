@@ -68,6 +68,29 @@ class GeneralizedValuationSystemTests(unittest.TestCase):
         self.assertEqual(incomplete["universal_valuation_contract"]["status"], "evidence_blocked")
         self.assertIn("unvalued_component_count must equal zero", strict_contract_errors(incomplete))
 
+    def test_embedded_sensitivity_does_not_block_additive_proof_completeness(self):
+        fixture = component_fixture()
+        fixture["component_valuation"]["components"].append({
+            "id": "embedded_option",
+            "label": "Embedded option sensitivity",
+            "category": "optionality",
+            "overlap_key": "embedded_option",
+            "treatment": "embedded",
+            "included_in_component_id": "asset",
+            "valuation": {
+                "method": "legacy_sensitivity",
+                "evidence_tier": "primary_derived",
+                "evidence": "Included in the additive asset value.",
+                "low": 0,
+                "base": 0,
+                "high": 2,
+            },
+        })
+        contract = compute_valuation(fixture)["universal_valuation_contract"]
+        self.assertEqual(contract["component_coverage"]["unvalued_component_count"], 0)
+        self.assertTrue(contract["calculation_proof_summary"]["all_material_components_priced"])
+        self.assertEqual(contract["status"], "decision_grade")
+
     def test_universal_contract_blocks_decision_grade_without_market_price(self):
         fixture = component_fixture()
         fixture["inputs"]["price"] = None

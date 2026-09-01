@@ -290,6 +290,15 @@ class SecurityDecisionPipelineTests(unittest.TestCase):
         self.assertEqual(gated["falsifier_coverage"]["prospective_gate"]
                          ["missing_components"], ["ops"])
 
+        retry = {"status": "decision_grade", "economic_ownership_map": [component],
+                 "evidence": {"blockers": [], "unresolved_count": 0},
+                 "falsifier_coverage": {}}
+        still_gated = pipeline.apply_prospective_falsifier_gate(
+            "AAA", retry, gated, "2026-08-13")
+        self.assertEqual(still_gated["status"], "evidence_blocked")
+        self.assertEqual(still_gated["falsifier_coverage"]["prospective_gate"]
+                         ["missing_components"], ["ops"])
+
         unchanged = {"status": "decision_grade",
                      "economic_ownership_map": [component],
                      "evidence": {"blockers": [], "unresolved_count": 0},

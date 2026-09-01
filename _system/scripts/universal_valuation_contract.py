@@ -557,7 +557,12 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
         records.append(record)
         evaluated_rows.append(record)
 
-    proof_summary = proof_completeness(evaluated_rows)
+    # Embedded rows disclose sensitivities that are already captured inside an
+    # additive component.  They must not make the proof summary disagree with
+    # component coverage: only additive rows contribute independent value to
+    # the security total and therefore require standalone calculation proof.
+    additive_rows = [row for row in evaluated_rows if row.get("treatment") == "additive"]
+    proof_summary = proof_completeness(additive_rows)
     unvalued_count = sum(
         1 for row in evaluated_rows
         if row.get("treatment") == "additive" and row.get("valuation_status") not in PRICED_STATUSES
@@ -569,7 +574,7 @@ def build_universal_valuation_contract(data: dict, explicit_profile: str | None 
     evidence_blockers.extend(double_counting_flags)
     evidence_blockers.extend(basis_errors)
 
-    priced = _sum_priced([row for row in evaluated_rows if row.get("treatment") == "additive"])
+    priced = _sum_priced(additive_rows)
     # Keep priced_components_per_share as the raw additive sum for audit.
     # Security value_per_share floors at 0 (limited liability of equity).
     total = floor_equity_value_range(priced, ndigits=4) if unvalued_count == 0 else {case: None for case in CASES}

@@ -33,21 +33,41 @@ class ValuationWorkbenchTests(unittest.TestCase):
             self.assertEqual(result["status"], "evidence_blocked")
             self.assertIn("primary-evidence blockers", result["next_action"])
 
-    def test_live_names_build_truthful_waiting_schedules(self):
-        # These Power Zone names now have a priced baseline, but still carry
-        # unresolved primary-evidence blockers — so decision stays blocked while
-        # attribution can be baseline_established or complete.
+    def test_superseded_record_questions_do_not_shadow_fresh_committee(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            research = Path(tmp)
+            work = research / "committee_work/2026-07-18"
+            work.mkdir(parents=True)
+            (work / "manifest.json").write_text(json.dumps({
+                "ticker": "AAA", "as_of": "2026-07-18", "stage": "round_one_open",
+                "selected_raters": [], "packet_hash": "a" * 64,
+            }), encoding="utf-8")
+            (research / "committee_2026-07-17.json").write_text(json.dumps({
+                "review": {"as_of": "2026-07-17"},
+                "synthesis": {"unresolved_items": ["Old unanswered question"]},
+            }), encoding="utf-8")
+
+            with patch.object(workbench, "ROOT", research):
+                result = workbench.committee_view(research)
+
+            self.assertEqual(result["status"], "independent_review_open")
+            self.assertEqual(result["unresolved_items"], [])
+            self.assertIsNone(result["record_ref"])
+            self.assertTrue(result["previous_record_ref"].endswith("committee_2026-07-17.json"))
+
+    def test_refreshed_live_names_build_truthful_open_committee_schedules(self):
+        # These Power Zone names now have proof-complete, stock-specific models
+        # and fresh committees. Prior unanswered questions are preserved inside
+        # the new packet, not misreported as current resolved findings.
         for ticker in ("TPL", "LB", "WBI", "AZLCZ"):
             with self.subTest(ticker=ticker):
-                row = workbench.build(ticker, "2026-07-15")
+                row = workbench.build(ticker, "2026-09-01")
                 self.assertEqual(row["ticker"], ticker)
-                self.assertEqual(row["decision"]["status"], "evidence_blocked")
-                self.assertGreater(row["decision"]["unresolved_evidence_count"], 0)
-                self.assertIn(
-                    row["committee"]["status"],
-                    {"evidence_blocked", "independent_review_open", "owner_decision_pending"},
-                )
-                self.assertGreater(row["evidence"]["open_count"], 0)
+                self.assertEqual(row["decision"]["status"], "decision_grade")
+                self.assertEqual(row["decision"]["model_level"], "stock_specific")
+                self.assertEqual(row["decision"]["unresolved_evidence_count"], 0)
+                self.assertEqual(row["committee"]["status"], "independent_review_open")
+                self.assertEqual(row["evidence"]["open_count"], 0)
                 self.assertEqual(row["outcomes"]["status"], "waiting_for_owner_decision")
                 self.assertTrue(all(slot["target_date"] is None for slot in row["outcomes"]["schedule"]))
                 self.assertIn(
@@ -57,7 +77,7 @@ class ValuationWorkbenchTests(unittest.TestCase):
                 self.assertIsNotNone(row["decision"]["value_per_share"].get("base"))
                 self.assertGreater(row["valuation"]["calculation_proof_summary"]["proof_complete_pct"], 0.0)
 
-    def test_cross_power_zone_cohort_values_every_component_but_stays_blocked(self):
+    def test_cross_power_zone_cohort_is_proof_complete_and_in_committee(self):
         expected = {
             "MSB": "scarce_asset_optionality",
             "C": "credit_and_normalized_returns",
@@ -67,10 +87,12 @@ class ValuationWorkbenchTests(unittest.TestCase):
         }
         for ticker, profile in expected.items():
             with self.subTest(ticker=ticker):
-                row = workbench.build(ticker, "2026-07-15")
-                self.assertEqual(row["decision"]["status"], "evidence_blocked")
-                self.assertGreaterEqual(row["decision"]["unvalued_component_count"], 0)
-                self.assertGreater(row["decision"]["unresolved_evidence_count"], 0)
+                row = workbench.build(ticker, "2026-09-01")
+                self.assertEqual(row["decision"]["status"], "decision_grade")
+                self.assertEqual(row["decision"]["model_level"], "stock_specific")
+                self.assertEqual(row["decision"]["unvalued_component_count"], 0)
+                self.assertEqual(row["decision"]["unresolved_evidence_count"], 0)
+                self.assertEqual(row["committee"]["status"], "independent_review_open")
                 self.assertEqual(row["method_fit"]["profile_id"], profile)
                 if row["valuation"].get("calculation_proof_summary"):
                     self.assertLessEqual(row["valuation"]["calculation_proof_summary"]["proof_complete_pct"], 100)

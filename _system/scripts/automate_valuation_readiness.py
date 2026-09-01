@@ -134,7 +134,7 @@ def fetch_companyfacts(ticker: str, cik: str | None) -> dict:
 def _latest_companyfact(payload: dict, namespace: str, tags: list[str], annual: bool) -> tuple[str, dict] | None:
     namespace_facts = (payload.get("facts") or {}).get(namespace) or {}
     candidates = []
-    for tag in tags:
+    for priority, tag in enumerate(tags):
         record = namespace_facts.get(tag) or {}
         for unit, rows in (record.get("units") or {}).items():
             for row in rows:
@@ -143,11 +143,24 @@ def _latest_companyfact(payload: dict, namespace: str, tags: list[str], annual: 
                     continue
                 if row.get("val") is None or not row.get("end"):
                     continue
-                candidates.append((str(row.get("end")), str(row.get("filed") or ""), tag, unit, row))
+                candidates.append((
+                    str(row.get("end")),
+                    str(row.get("filed") or ""),
+                    -priority,
+                    tag,
+                    unit,
+                    row,
+                ))
     if not candidates:
         return None
     # Sort only on comparable keys; the raw row dict is not orderable.
-    _end, _filed, tag, unit, row = max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))
+    # The tag list is ordered by semantic preference.  When two concepts have
+    # the same observation date (common for cash), prefer the first tag rather
+    # than a lexicographically later aggregate such as cash plus restricted
+    # clearing balances.
+    _end, _filed, _priority, tag, unit, row = max(
+        candidates, key=lambda item: (item[0], item[1], item[2], item[3], item[4])
+    )
     return tag, {**row, "unit": unit}
 
 

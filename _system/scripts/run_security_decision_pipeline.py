@@ -227,6 +227,16 @@ def apply_prospective_falsifier_gate(ticker: str, contract: dict,
         or _material_component_signature(component)
         != _material_component_signature(before[component_id])
     }
+    # A failed prospective gate is not a reviewed economic baseline.  The
+    # blocked contract is persisted for visibility, so carry its still-missing
+    # components forward on the next build; otherwise an unchanged retry could
+    # clear its own blocker without any falsifier disposition landing.
+    prior_gate = ((reviewed.get("falsifier_coverage") or {}).get("prospective_gate") or {})
+    changed.update(
+        str(component_id)
+        for component_id in (prior_gate.get("missing_components") or [])
+        if str(component_id) in now
+    )
     if not changed:
         return contract
     sidecar = load_falsifier_sidecar(ticker, ROOT)

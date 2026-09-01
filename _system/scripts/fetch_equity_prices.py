@@ -7,7 +7,7 @@ import json
 import re
 import sys
 import urllib.request
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +49,10 @@ def fetch_stooq_close(symbol: str) -> tuple[float | None, str | None, str | None
 
 def fetch_yahoo_close(symbol: str) -> tuple[float | None, str | None, str | None]:
     end = datetime.now(timezone.utc)
-    start = end.replace(day=max(1, end.day - 14))
+    # Calendar-day replacement collapses the window to zero at the start of a
+    # month (for example, September 1 -> September 1).  Use date arithmetic so
+    # the request always covers the prior two trading weeks.
+    start = end - timedelta(days=14)
     url = (
         f"{YAHOO_CHART_URL}/{symbol}?period1={int(start.timestamp())}"
         f"&period2={int(end.timestamp())}&interval=1d"
@@ -115,6 +118,12 @@ def fetch_price(ticker: str) -> tuple[float | None, str | None, str]:
     ysym = yahoo_symbol_for(ticker, market, exchange)
     close, qd, err = fetch_yahoo_close(ysym)
     if close is not None:
+        # Yahoo quotes London listings in GBX/pence while the valuation models
+        # use GBP per share.  Normalize at the ingestion boundary so a 9,000p
+        # quote cannot enter a model as GBP 9,000.
+        if ysym.upper().endswith(".L"):
+            close /= 100.0
+            return close, qd, f"Yahoo {ysym} close {qd} (GBX converted to GBP)"
         return close, qd, f"Yahoo {ysym} close {qd}"
     return None, None, f"fetch failed (stooq={sym}, yahoo={ysym}, err={err})"
 
@@ -172,7 +181,9 @@ def merge_ticker(ticker: str, *, force: bool = False, create_stub: bool = False)
         hr = {}
         val["human_review"] = hr
     hr["live_price_confirmed"] = False
-    val["as_of"] = TODAY
+    # A market mark is not a model refresh.  Preserve the underwriting as-of
+    # date so changing only the price cannot make every economic component look
+    # newly authored to the prospective falsifier gate.
     vpath.write_text(json.dumps(val, indent=2) + "\n", encoding="utf-8")
     print(f"OK {t}: ${inputs['price']} ({source})")
     return True

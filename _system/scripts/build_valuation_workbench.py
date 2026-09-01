@@ -147,7 +147,11 @@ def committee_view(research: Path) -> dict:
         "owner_status": owner.get("status") or "pending",
         "owner_decision": owner.get("decision"),
         "strongest_dissent": (active_record.get("synthesis") or {}).get("strongest_dissent"),
-        "unresolved_items": (record.get("synthesis") or {}).get("unresolved_items") or [],
+        # A superseded assembled record remains visible as previous_record_ref,
+        # but its unresolved list must not shadow the fresh hash-bound review.
+        # Those questions survive in committee_gap_carryforward.json inside the
+        # new packet and are adjudicated there; they are not current findings.
+        "unresolved_items": (active_record.get("synthesis") or {}).get("unresolved_items") or [],
         "next_action": next_action,
         "record_ref": record_path.relative_to(ROOT).as_posix() if record_path and record_is_current else None,
         "previous_record_ref": record_path.relative_to(ROOT).as_posix() if record_path and not record_is_current else None,

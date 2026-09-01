@@ -656,6 +656,46 @@ class UnparkTests(CommitteeFixture):
             json.loads((archives[0] / "manifest.json").read_text(encoding="utf-8"))["stage"], "superseded"
         )
 
+    def test_discard_carries_unresolved_questions_into_the_successor_packet(self):
+        with patch.object(pipeline, "ROOT", self.root), patch.object(select_committee_work, "ROOT", self.root):
+            manifest = self.park_with_votes()
+            self.write(self.research / "committee_2026-07-18.json", {
+                "ticker": "AAA",
+                "evidence_packet": {"packet_hash": manifest["packet_hash"]},
+                "synthesis": {"unresolved_items": ["Reconcile customer churn to the low case."]},
+                "round_two": {"votes": []},
+                "evidence_tribunal": {"unresolved_material_facts": []},
+            })
+            work = select_committee_work.unpark("AAA", "2026-07-18", "discard")
+            fresh = json.loads((work / "manifest.json").read_text(encoding="utf-8"))
+        carry = json.loads((self.research / "committee_gap_carryforward.json").read_text(encoding="utf-8"))
+        self.assertEqual(carry["status"], "requires_fresh_committee_adjudication")
+        self.assertEqual([row["question"] for row in carry["items"]], ["Reconcile customer churn to the low case."])
+        frozen = [row for row in fresh["evidence"] if row["path"].endswith("committee_gap_carryforward.json")]
+        self.assertEqual(len(frozen), 1)
+        self.assertTrue((work / pipeline.SNAPSHOT_DIR / "committee_gap_carryforward.json").exists())
+        self.assertFalse((self.research / "committee_2026-07-18.json").exists())
+        archives = list(self.research.glob("committee_2026-07-18-superseded-*.json"))
+        self.assertEqual(len(archives), 1)
+        self.assertEqual(fresh["superseded_assembled_record"], archives[0].relative_to(self.root).as_posix())
+
+    def test_discard_recovers_after_interruption_between_archive_and_initialize(self):
+        with patch.object(pipeline, "ROOT", self.root), patch.object(select_committee_work, "ROOT", self.root):
+            manifest = self.park_with_votes()
+            with patch.object(select_committee_work, "initialize", side_effect=RuntimeError("interrupted")):
+                with self.assertRaisesRegex(RuntimeError, "interrupted"):
+                    select_committee_work.unpark("AAA", "2026-07-18", "discard")
+            self.assertFalse(self.work.exists())
+            archives = list(self.research.glob("committee_work/2026-07-18-parked-discarded-*"))
+            self.assertEqual(len(archives), 1)
+            recovered = select_committee_work.unpark("AAA", "2026-07-18", "discard")
+            fresh = json.loads((recovered / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(fresh["stage"], "round_one_open")
+        self.assertEqual(fresh["unparked"]["mode"], "discard")
+        self.assertEqual(fresh["unparked"]["discarded_packet_hash"], manifest["packet_hash"])
+        self.assertEqual(fresh["unparked"]["discarded_votes"], 3)
+        self.assertEqual(len(list((archives[0] / "round_1").glob("*.json"))), 3)
+
     def test_unpark_refuses_a_committee_that_is_not_parked(self):
         with patch.object(pipeline, "ROOT", self.root), patch.object(select_committee_work, "ROOT", self.root):
             self.initialize()
