@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 
 from persona_lens_common import (  # noqa: E402
+    build_consensus,
     build_universe_stats,
     build_valuation_blend,
     extract_shared_context,
@@ -30,6 +31,29 @@ class PersonaLensTests(unittest.TestCase):
         ]
         blend = build_valuation_blend(lenses)
         self.assertAlmostEqual(blend["blended_return_pct"], 10.0, places=1)
+
+    def test_single_contributor_cannot_publish_consensus_stance(self):
+        lenses = [
+            {
+                "persona": "greenblatt",
+                "label": "Joel Greenblatt",
+                "relevance": 0.5,
+                "return_pct": 21.72,
+                "verdict": "watch",
+            }
+        ]
+        blend = build_valuation_blend(lenses)
+
+        consensus = build_consensus(
+            lenses,
+            blend,
+            portfolio_bar=15.0,
+            ctx={"moat": "none", "dhando": "none"},
+        )
+
+        self.assertTrue(blend["low_coverage"])
+        self.assertEqual(consensus["stance"], "pending")
+        self.assertEqual(consensus["agreement_pct"], 0)
 
     def test_nvda_rebuild_deterministic(self):
         val_path = ROOT / "NVDA" / "research" / "valuation.json"
