@@ -1,3 +1,3 @@
 # WBI mandatory pre-mortem
 
-Packet `f58ba6e5797381357fda24726b50515c38ba2e283f5e4c9576c33706a8f593ac`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Return the committee schema pre_mortem object only.
+Packet `b658829e280e8164cf1fb253b9d1b2b76c150158fc7a3062350d0624364b2301`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Return the committee schema pre_mortem object only.

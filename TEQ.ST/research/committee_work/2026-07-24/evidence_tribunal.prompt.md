@@ -1,3 +1,3 @@
 # TEQ.ST evidence tribunal
 
-Packet `6755abcd60d4d84bc6343827fa7614299894b6979a666d775252ef07fd65775f`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.
+Packet `dfe9d898e9c839de358ca623eaddd0906a1bfb7bbe69b8c150fb194c1e4a53a9`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.

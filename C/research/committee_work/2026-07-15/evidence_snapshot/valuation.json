@@ -1,0 +1,1172 @@
+{
+  "ticker": "C",
+  "as_of": "2026-08-13",
+  "schema_version": "3.0",
+  "method": "proof_first_automated",
+  "classification_inputs": {
+    "archetype": "compounder",
+    "valuation_profile": "credit_and_normalized_returns",
+    "method_source": "power_zone_route"
+  },
+  "inputs": {
+    "price": 131.62,
+    "price_source": "Yahoo C close 2026-08-31",
+    "shares_outstanding": 1747500000,
+    "price_as_of": "2026-08-31"
+  },
+  "valuation_methodology": {
+    "primary_method": "capital_structure_and_excess_return",
+    "method_version": "1.0",
+    "automation": "revalidated_existing_approved_proofs",
+    "component_methods": [
+      "capital_structure_and_excess_return",
+      "net_asset_value",
+      "probability_weighted_catalyst_nav"
+    ]
+  },
+  "component_valuation_results": {
+    "status": "compiled",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "tangible_common_equity",
+        "label": "Tangible common equity",
+        "category": "financial_asset",
+        "overlap_key": "tangible_common_equity",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "tce_m",
+              "label": "Tangible common equity at December 31, 2025",
+              "kind": "fact",
+              "value": 169618.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics: TCE $169,618 million; CSO 1,747.5 million; TBVPS $97.06",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding (CSO)",
+              "kind": "fact",
+              "value": 1747.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics table: CSO 1,747.5 million shares",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "credit_quality_adjustment",
+              "label": "Bounded haircut or uplift to filing tangible book for credit, funding, and realization friction",
+              "kind": "judgment",
+              "values": {
+                "low": 0.741809190191634,
+                "base": 0.9993818256748402,
+                "high": 1.1024108798681227
+              },
+              "unit": "ratio",
+              "rationale": "Low stresses consumer ACL adequacy and trapped capital; base equals filing TBVPS; high allows modest franchise uplift not yet in reported RoTCE.",
+              "allowed_range": {
+                "min": 0.65,
+                "max": 1.15
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "filing_tbvps",
+              "label": "Filing tangible book value per share",
+              "op": "divide",
+              "args": [
+                "tce_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "value_per_share",
+              "label": "Adjusted tangible common equity per share",
+              "op": "multiply",
+              "args": [
+                "filing_tbvps",
+                "credit_quality_adjustment"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
+        "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Proof outputs {'low': 72.0024, 'base': 97.0032, 'high': 107.0036}; see calculation_proof graph.",
+        "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+        "scenario_assumptions": null,
+        "low_per_share": 72.0024,
+        "base_per_share": 97.0032,
+        "high_per_share": 107.0036
+      },
+      {
+        "id": "normalized_franchise_returns",
+        "label": "Normalized franchise return value",
+        "category": "operating_business",
+        "overlap_key": "normalized_franchise_returns",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "capital_structure_and_excess_return",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "capital_structure_and_excess_return",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "reported_rotce_pct",
+              "label": "Reported return on tangible common equity FY2025",
+              "kind": "fact",
+              "value": 7.7,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics: RoTCE 7.7% (2025); 8.8% excluding Russia-related notable item per MD&A",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "tbvps",
+              "label": "Tangible book value per share anchor",
+              "kind": "fact",
+              "value": 97.06,
+              "unit": "USD_per_share",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics: TBVPS $97.06",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "tce_m",
+              "label": "Tangible common equity at December 31, 2025",
+              "kind": "fact",
+              "value": 169618.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Key metrics: TCE $169,618 million",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "segment_core_income_m",
+              "label": "Income from continuing operations for five operating segments FY2025",
+              "kind": "fact",
+              "value": 19978.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Segment table: Services $7,139M + Markets $5,928M + Banking $2,324M + Wealth $1,490M + USPB $3,097M",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "segment_core_rev_m",
+              "label": "Revenues for five operating segments FY2025 (XBRL segment members)",
+              "kind": "fact",
+              "value": 80971.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "XBRL Revenues: Services $21,256M, Markets $21,970M, Banking $8,215M, Wealth $8,559M, USPB $20,971M",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "total_segment_rev_m",
+              "label": "Total segment revenues including All Other FY2025",
+              "kind": "fact",
+              "value": 85577.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Segment revenue sum including Corporate Non-Segment $4,430M and reconciling items",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "normalized_rotce",
+              "label": "Through-cycle normalized RoTCE anchored to revenue-weighted segment returns",
+              "kind": "judgment",
+              "values": {
+                "low": 0.0994,
+                "base": 0.122,
+                "high": 0.148
+              },
+              "unit": "ratio",
+              "rationale": "Base 12.2% matches revenue-weighted five-segment income on allocated TCE; low/high stress credit and transformation drag on US Personal Banking and All Other.",
+              "allowed_range": {
+                "min": 0.04,
+                "max": 0.16
+              }
+            },
+            {
+              "id": "cost_of_equity",
+              "label": "Required return on tangible common equity",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.1,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Global systemically important bank equity hurdle; not the stance gate.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.14
+              }
+            },
+            {
+              "id": "excess_return_duration",
+              "label": "Years of excess (or deficient) return capitalization",
+              "kind": "judgment",
+              "values": {
+                "low": 5.0,
+                "base": 7.0,
+                "high": 8.0
+              },
+              "unit": "years",
+              "rationale": "Finite duration; terminal reverts toward cost of equity.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 10.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "segment_rev_weight",
+              "label": "Five-segment revenue share of total segment revenues",
+              "op": "divide",
+              "args": [
+                "segment_core_rev_m",
+                "total_segment_rev_m"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "segment_core_tce_alloc_m",
+              "label": "Revenue-weighted tangible capital for five operating segments",
+              "op": "multiply",
+              "args": [
+                "tce_m",
+                "segment_rev_weight"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "segment_core_return",
+              "label": "Revenue-weighted segment return on allocated tangible capital",
+              "op": "divide",
+              "args": [
+                "segment_core_income_m",
+                "segment_core_tce_alloc_m"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "excess_spread",
+              "label": "Normalized RoTCE minus cost of equity",
+              "op": "subtract",
+              "args": [
+                "normalized_rotce",
+                "cost_of_equity"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "spread_times_tbvps",
+              "label": "Excess spread applied to tangible book",
+              "op": "multiply",
+              "args": [
+                "excess_spread",
+                "tbvps"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "value_per_share",
+              "label": "Normalized franchise return value per share",
+              "op": "multiply",
+              "args": [
+                "spread_times_tbvps",
+                "excess_return_duration"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
+        "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Proof outputs {'low': -9.9972, 'base': 14.9472, 'high': 45.0358}; see calculation_proof graph.",
+        "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+        "scenario_assumptions": null,
+        "low_per_share": -9.9972,
+        "base_per_share": 14.9472,
+        "high_per_share": 45.0358
+      },
+      {
+        "id": "transformation_and_excess_capital",
+        "label": "Transformation and excess-capital realization",
+        "category": "real_option",
+        "overlap_key": "transformation_and_excess_capital",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "probability_weighted_catalyst_nav",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "probability_weighted_catalyst_nav",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "rwa_m",
+              "label": "Standardized risk-weighted assets",
+              "kind": "fact",
+              "value": 1192174.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Capital resources: RWA $1,192,174 million under Standardized Approach",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "cet1_ratio_pct",
+              "label": "Standardized CET1 ratio",
+              "kind": "fact",
+              "value": 13.2,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "CET1 ratio 13.2% vs regulatory minimum 11.6% (Standardized Approach)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "cet1_required_pct",
+              "label": "Regulatory CET1 minimum including SCB and GSIB surcharge",
+              "kind": "fact",
+              "value": 11.6,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Required CET1 11.6% = 4.5% minimum + 3.6% SCB + 3.5% GSIB surcharge",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "scb_pct",
+              "label": "Stress Capital Buffer requirement",
+              "kind": "fact",
+              "value": 3.6,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Capital Resources: 3.6% SCB under current Fed stress-test framework",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "gsib_surcharge_pct",
+              "label": "GSIB surcharge (method 2)",
+              "kind": "fact",
+              "value": 3.5,
+              "unit": "percent",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "GSIB surcharge 3.5% for 2025 under method 2",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "capital_return_m",
+              "label": "Common capital returned FY2025",
+              "kind": "fact",
+              "value": 17600.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "MD&A: returned $17.6 billion to common shareholders (repurchases $13.3B + dividends)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "transformation_expense_m",
+              "label": "Transformation and technology expense FY2025",
+              "kind": "fact",
+              "value": 3300.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "MD&A: transformation expense approximately $3.3 billion, up 14% YoY",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 1747.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "CSO 1,747.5 million",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "management_buffer_bps",
+              "label": "Discretionary capital held above binding regulatory stack",
+              "kind": "judgment",
+              "values": {
+                "low": 180.0,
+                "base": 120.0,
+                "high": 80.0
+              },
+              "unit": "basis_points",
+              "rationale": "SCB and GSIB are in cet1_required_pct; this row is incremental management cushion only.",
+              "allowed_range": {
+                "min": 50.0,
+                "max": 250.0
+              }
+            },
+            {
+              "id": "realization_probability",
+              "label": "Probability-weighted share of net excess capital returned to common over five years",
+              "kind": "judgment",
+              "values": {
+                "low": 0.0,
+                "base": 0.55,
+                "high": 0.8
+              },
+              "unit": "ratio",
+              "rationale": "Low assumes transformation spend and RWA growth absorb headroom; base/high anchored to FY2025 $17.6B actual return.",
+              "allowed_range": {
+                "min": 0.0,
+                "max": 1.0
+              }
+            },
+            {
+              "id": "release_horizon_years",
+              "label": "Years over which excess headroom converts to common distributions",
+              "kind": "judgment",
+              "values": {
+                "low": 5.0,
+                "base": 5.0,
+                "high": 5.0
+              },
+              "unit": "years",
+              "rationale": "Five-year window matches management capital-return planning horizon.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 7.0
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Discount rate for timing of excess-capital release",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.1,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Matches cost-of-equity band; not the stance gate.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.14
+              }
+            },
+            {
+              "id": "release_npv_factor",
+              "label": "Present value factor for a five-year distribution stream",
+              "kind": "judgment",
+              "values": {
+                "low": 3.6047762023450076,
+                "base": 3.7907867694084505,
+                "high": 3.8896512633517197
+              },
+              "unit": "ratio",
+              "rationale": "Annuity factor (1-(1+r)^-n)/r with release_horizon_years=5.",
+              "allowed_range": {
+                "min": 3.0,
+                "max": 5.0
+              }
+            },
+            {
+              "id": "transformation_completion_uplift",
+              "label": "Bounded uplift when simplification converts headroom to sustained buybacks",
+              "kind": "judgment",
+              "values": {
+                "low": 1.0,
+                "base": 1.757622086315411,
+                "high": 1.4720647312831685
+              },
+              "unit": "ratio",
+              "rationale": "Bridges one-year CET1 headroom to component range; falsified if FY2025-scale return cannot repeat.",
+              "allowed_range": {
+                "min": 1.0,
+                "max": 2.5
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "headroom_bps",
+              "label": "CET1 headroom above regulatory minimum",
+              "op": "subtract",
+              "args": [
+                "cet1_ratio_pct",
+                "cet1_required_pct"
+              ],
+              "unit": "percent"
+            },
+            {
+              "id": "headroom_bps_scaled",
+              "label": "Headroom in basis points",
+              "op": "multiply",
+              "args": [
+                "headroom_bps",
+                100
+              ],
+              "unit": "basis_points"
+            },
+            {
+              "id": "net_headroom_bps",
+              "label": "Net distributable headroom after management buffer",
+              "op": "subtract",
+              "args": [
+                "headroom_bps_scaled",
+                "management_buffer_bps"
+              ],
+              "unit": "basis_points"
+            },
+            {
+              "id": "gross_excess_capital_m",
+              "label": "Gross excess CET1 capital",
+              "op": "multiply",
+              "args": [
+                "net_headroom_bps",
+                "rwa_m"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "bps_to_ratio",
+              "label": "Convert basis points to ratio",
+              "op": "divide",
+              "args": [
+                "gross_excess_capital_m",
+                10000
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "risked_excess_m",
+              "label": "Probability-weighted excess capital",
+              "op": "multiply",
+              "args": [
+                "bps_to_ratio",
+                "realization_probability"
+              ],
+              "unit": "USD_m"
+            },
+            {
+              "id": "raw_per_share",
+              "label": "One-year excess capital per share before timing",
+              "op": "divide",
+              "args": [
+                "risked_excess_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "timed_per_share",
+              "label": "NPV-adjusted excess capital per share",
+              "op": "multiply",
+              "args": [
+                "raw_per_share",
+                "release_npv_factor"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "value_per_share",
+              "label": "Transformation and excess-capital per share",
+              "op": "multiply",
+              "args": [
+                "timed_per_share",
+                "transformation_completion_uplift"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
+        "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Proof outputs {'low': -0.0, 'base': 10.0, 'high': 25.0}; see calculation_proof graph.",
+        "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+        "scenario_assumptions": null,
+        "low_per_share": -0.0,
+        "base_per_share": 10.0,
+        "high_per_share": 25.0
+      },
+      {
+        "id": "credit_funding_and_regulatory_reserve",
+        "label": "Credit, funding, and regulatory reserve",
+        "category": "liability_or_reserve",
+        "overlap_key": "credit_funding_and_regulatory_reserve",
+        "treatment": "additive",
+        "included_in_component_id": null,
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "net_asset_value",
+          "method_version": "1.0",
+          "output_unit": "USD_per_share",
+          "inputs": [
+            {
+              "id": "acl_m",
+              "label": "Allowance for credit losses at December 31, 2025",
+              "kind": "fact",
+              "value": 21373.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "Credit quality: total ACL $21.373 billion (consumer ACL $16.194 billion)",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Common shares outstanding",
+              "kind": "fact",
+              "value": 1747.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm",
+                "locator": "CSO 1,747.5 million",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "incremental_stress_multiple",
+              "label": "Incremental severe-cycle loss above reported ACL as fraction of ACL per share",
+              "kind": "judgment",
+              "values": {
+                "low": 2.4528610864174425,
+                "base": 1.2264305432087212,
+                "high": 0.4088101810695738
+              },
+              "unit": "multiple",
+              "rationale": "Low assumes correlated consumer, corporate, funding, and legal stress exceeds ACL; high assumes reported ACL largely adequate.",
+              "allowed_range": {
+                "min": 0.2,
+                "max": 3.0
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "acl_per_share",
+              "label": "Reported ACL per share",
+              "op": "divide",
+              "args": [
+                "acl_m",
+                "shares_m"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "reserve_gross",
+              "label": "Gross stress reserve before sign",
+              "op": "multiply",
+              "args": [
+                "acl_per_share",
+                "incremental_stress_multiple"
+              ],
+              "unit": "USD_per_share"
+            },
+            {
+              "id": "value_per_share",
+              "label": "Credit, funding, and regulatory reserve per share",
+              "op": "negative",
+              "args": [
+                "reserve_gross"
+              ],
+              "unit": "USD_per_share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 10-K: TCE $169.618B, TBVPS $97.06, RoTCE 7.7%, CET1 13.2% vs 11.6% req (SCB 3.6% + GSIB 3.5%), ACL $21.373B, RWA $1192B.",
+        "cross_check": "Range must be reconciled to primary filings, normalized economics, and relevant transaction or public-market evidence before IC approval.",
+        "driver_model_type": null,
+        "driver_model": null,
+        "assumption_summary": "Proof outputs {'low': -30.0, 'base': -15.0, 'high': -5.0}; see calculation_proof graph.",
+        "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+        "scenario_assumptions": null,
+        "low_per_share": -30.0,
+        "base_per_share": -15.0,
+        "high_per_share": -5.0
+      }
+    ],
+    "embedded_components": []
+  },
+  "economic_value_analysis": {
+    "status": "compiled",
+    "validation_errors": [],
+    "ownership_waterfall": {
+      "net_economic_claim": "One Citigroup common share claim on adjusted tangible common equity, normalized franchise returns, probability-weighted excess-capital release, less credit/funding/regulatory reserve.",
+      "excluded_claims": [
+        "Goodwill and other intangibles excluded from tangible common equity anchor.",
+        "Regulatory capital headroom is not counted both in tangible book and distributable excess.",
+        "Reported ACL is a fact; incremental stress reserve is a separate overlap key."
+      ],
+      "reconciliation": "Segment bridge: core segment income $20.0B on revenue-weighted TCE; CET1 walk: 13.2% actual vs 11.6% required; base proof sum 106.95/sh.",
+      "evidence_ref": "C/research/evidence_reconciliation_2026-08-13.md"
+    },
+    "segment_rotce_bridge": {
+      "segment_revenues_m": {
+        "services": 21256.0,
+        "markets": 21970.0,
+        "banking": 8215.0,
+        "wealth": 8559.0,
+        "uspb": 20971.0
+      },
+      "segment_income_m": {
+        "services": 7139.0,
+        "markets": 5928.0,
+        "banking": 2324.0,
+        "wealth": 1490.0,
+        "uspb": 3097.0
+      },
+      "segment_core_return_pct": 12.45,
+      "income_continuing_m": 14455.0,
+      "normalized_rotce_anchor_pct": 12.2,
+      "evidence_ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm"
+    },
+    "distributable_capital_walk": {
+      "cet1_actual_pct": 13.2,
+      "cet1_required_pct": 11.6,
+      "scb_pct": 3.6,
+      "gsib_surcharge_pct": 3.5,
+      "capital_return_fy2025_m": 17600.0,
+      "capital_return_per_share": 10.07,
+      "transformation_expense_m": 3300.0,
+      "evidence_ref": "C/investor-documents/sec-edgar/10-K_20260220_rpt20251231_acc0000831001_26_000011.htm"
+    }
+  },
+  "context_overlay": {
+    "as_of": "2026-08-31",
+    "disclaimer": "Context only. Tailwinds inform stance and overlay sizing; they do not auto-inflate Lawrence base IRR. Promotion to base case requires [HUMAN REVIEW].",
+    "themes": [
+      {
+        "theme_id": "macro_regime",
+        "label": "Macro risk regime",
+        "indicators": [
+          {
+            "id": "hy_oas",
+            "label": "High-yield OAS credit spread (%)",
+            "latest": 0.58,
+            "as_of": "2026-08-31",
+            "yoy_pct": 1550.0,
+            "direction": "up",
+            "good_for": "risk_regime",
+            "source": "spread:HYG-LQD:21d (HYG-LQD 1m spread proxy, not OAS)",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_10y",
+            "label": "US Treasury 10Y yield (%)",
+            "latest": 4.758000373840332,
+            "as_of": "2026-08-31",
+            "yoy_pct": 12.6,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^TNX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_2y",
+            "label": "US Treasury 2Y yield (%)",
+            "latest": 4.506999969482422,
+            "as_of": "2026-08-31",
+            "yoy_pct": 21.8,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^FVX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "dxy_broad",
+            "label": "Trade-weighted USD index (broad)",
+            "latest": 99.41500091552734,
+            "as_of": "2026-08-31",
+            "yoy_pct": 1.7,
+            "direction": "up",
+            "good_for": "dollar_regime",
+            "source": "yahoo:DX-Y.NYB",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "vix_level",
+            "label": "VIX index level",
+            "latest": 15.0600004196167,
+            "as_of": "2026-08-31",
+            "yoy_pct": -2.0,
+            "direction": "down",
+            "good_for": "vol_regime",
+            "source": "yahoo:^VIX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "credit_impulse_1m",
+            "label": "HYG vs TLT 1-month return spread (%)",
+            "latest": 0.86,
+            "as_of": "2026-08-31",
+            "yoy_pct": -84.9,
+            "direction": "down",
+            "good_for": "credit_impulse",
+            "source": "spread:HYG-TLT:21d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "spy_20d_realized_vol",
+            "label": "SPY 20-day realized vol (annualized %)",
+            "latest": 9.24,
+            "as_of": "2026-08-31",
+            "yoy_pct": -83.9,
+            "direction": "down",
+            "good_for": "equity_vol",
+            "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "agi_years_ahead",
+            "label": "AGI expert-horizon years ahead (public quotes)",
+            "latest": 5.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:agi",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "robotaxi_years_ahead",
+            "label": "Robotaxi expert-horizon years ahead (public quotes)",
+            "latest": 2.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:robotaxi",
+            "stale": false,
+            "in_base_irr": false
+          }
+        ]
+      }
+    ]
+  },
+  "insider_signal": {
+    "as_of": "2026-08-31",
+    "disclaimer": "Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].",
+    "in_base_irr": false,
+    "window_days": 365,
+    "ics": 10.0,
+    "band": "exceptional",
+    "bull_case_support": "moderate",
+    "scenario_confidence": {
+      "priors": {
+        "bear": 0.2,
+        "base": 0.55,
+        "bull": 0.25
+      },
+      "tilted": {
+        "bear": 0.2,
+        "base": 0.4,
+        "bull": 0.4
+      },
+      "bull_delta": 0.15,
+      "bear_delta": 0.0,
+      "note": "Scenario weights are qualitative confidence only; Lawrence base IRR unchanged."
+    },
+    "factors": {
+      "buy_score": 42.171,
+      "sell_score": -1.0,
+      "cluster_bonus": 0.0,
+      "net_buy_usd": 6149315.16,
+      "net_sell_usd": 116154102.48,
+      "price_today": 138.73
+    },
+    "top_buys": [
+      {
+        "insider": "MOULDS JONATHAN PAUL",
+        "date": "2026-07-01",
+        "shares": 222,
+        "price": 142.556,
+        "value_usd": 31647.43,
+        "shares_owned_after": 1040,
+        "contrib": 1.846
+      },
+      {
+        "insider": "DUGAN JOHN CUNNINGHAM",
+        "date": "2026-07-01",
+        "shares": 438,
+        "price": 142.556,
+        "value_usd": 62439.53,
+        "shares_owned_after": 32842,
+        "contrib": 1.342
+      },
+      {
+        "insider": "REINER GARY M",
+        "date": "2026-07-01",
+        "shares": 385,
+        "price": 142.556,
+        "value_usd": 54884.06,
+        "shares_owned_after": 49731,
+        "contrib": 1.241
+      },
+      {
+        "insider": "MOULDS JONATHAN PAUL",
+        "date": "2025-10-01",
+        "shares": 270,
+        "price": 102.368,
+        "value_usd": 27639.36,
+        "shares_owned_after": 338,
+        "contrib": 1.094
+      },
+      {
+        "insider": "TAYLOR DIANA L",
+        "date": "2026-07-01",
+        "shares": 253,
+        "price": 142.556,
+        "value_usd": 36066.67,
+        "shares_owned_after": 60489,
+        "contrib": 1.092
+      }
+    ],
+    "top_sells": [
+      {
+        "insider": "Fraser Jane Nind",
+        "date": "2026-01-20",
+        "shares": 67967,
+        "price": 118.04,
+        "value_usd": 8022824.68,
+        "is_10b5_1": false,
+        "contrib": -0.129
+      },
+      {
+        "insider": "Mason Mark",
+        "date": "2026-01-20",
+        "shares": 29209,
+        "price": 118.04,
+        "value_usd": 3447830.36,
+        "is_10b5_1": false,
+        "contrib": -0.101
+      },
+      {
+        "insider": "Mason Mark",
+        "date": "2026-02-20",
+        "shares": 1627,
+        "price": 114.3998,
+        "value_usd": 186128.47,
+        "is_10b5_1": false,
+        "contrib": -0.096
+      },
+      {
+        "insider": "Mason Mark",
+        "date": "2026-02-20",
+        "shares": 2000,
+        "price": 114.9583,
+        "value_usd": 229916.6,
+        "is_10b5_1": false,
+        "contrib": -0.096
+      },
+      {
+        "insider": "DUGAN JOHN CUNNINGHAM",
+        "date": "2026-05-08",
+        "shares": 2117,
+        "price": 125.3,
+        "value_usd": 265260.1,
+        "is_10b5_1": false,
+        "contrib": -0.09
+      }
+    ],
+    "narrative_hooks": [],
+    "transaction_count": 140
+  },
+  "lens_consensus": {
+    "as_of": "2026-08-13",
+    "shared_inputs_ref": "valuation.json@2026-08-13",
+    "valuation_richness": 1.0,
+    "blended_return_pct": -5.75,
+    "band_pct": [
+      -18.9,
+      -3.1
+    ],
+    "weighted_median_pct": -3.65,
+    "median_mean_flag": false,
+    "stance": "pass",
+    "agreement_pct": 100,
+    "dissent_count": 0,
+    "lawrence_divergence": false,
+    "top_dissents": [],
+    "contributor_count": 6,
+    "in_base_irr": false,
+    "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "option_scan": [
+    {
+      "q": 0,
+      "question": "Material options after scan?",
+      "answer": "No",
+      "treatment": "n/a",
+      "evidence": "Operating compounder / croupier \u2014 Lawrence full cash-flow path sufficient"
+    }
+  ],
+  "human_review": {
+    "live_price_confirmed": false
+  },
+  "total_return_panel": {
+    "schema_version": "3.0",
+    "ticker": "C",
+    "as_of": "2026-08-13",
+    "status": "partial",
+    "error": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+    "price_source": "yahoo:C",
+    "currency": "USD",
+    "return_currency": "USD",
+    "fx_basis": "listing_currency_nominal",
+    "history_start": "1977-01-03",
+    "history_end": "2026-08-13",
+    "price_points": 12506,
+    "price_interval": "1d",
+    "history_basis": "earliest_available_vendor_trading_history",
+    "chart_scale": "logarithmic",
+    "chart_y_axis": "cumulative_return_pct",
+    "chart_series": [
+      "total_return",
+      "price_only"
+    ],
+    "return_contract": "split-adjusted close excluding dividends; event amounts normalized for later splits; cash reinvested at ex-date close; pre-tax nominal",
+    "coverage": {
+      "status": "vendor_only",
+      "start": null,
+      "end": null,
+      "note": "Vendor events are discovery evidence; primary-source completeness has not been established.",
+      "ledger_path": null
+    },
+    "event_count": 161,
+    "event_counts": {
+      "split": 10,
+      "regular_dividend": 151
+    },
+    "cash_distributions_on_initial_share_path": 12703.9225,
+    "distribution_contribution_by_type": {
+      "regular_dividend": 12703.922539
+    },
+    "cumulative_distributions_per_share": 12703.9225,
+    "start_price": 16.2369,
+    "end_price": 138.65,
+    "price_index_end": 853.92,
+    "total_return_index_end": 41662.76,
+    "cumulative_price_return_pct": 753.92,
+    "cumulative_total_return_pct": 41562.76,
+    "price_only_annualized_pct": 4.42,
+    "total_return_annualized_pct": 12.93,
+    "market_cap_m": 242430.67,
+    "shares_outstanding": 1747500000,
+    "price_for_market_cap": 138.73,
+    "chart": "C/research/charts/total_return_2026-08-13.svg",
+    "panel_json": "C/research/total_return_panel.json"
+  }
+}

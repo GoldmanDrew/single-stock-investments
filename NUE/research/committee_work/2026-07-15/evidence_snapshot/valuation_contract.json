@@ -1,0 +1,2614 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "NUE",
+  "as_of": "2026-07-21",
+  "dates": {
+    "model_as_of": "2026-07-21",
+    "latest_fact_as_of": "2025-12-31",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -16.95,
+      "base": -4.64,
+      "high": 4.25
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "steel_mills",
+      "label": "Steel mills through-cycle value",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Steel mills through-cycle value",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 70.0,
+        "base": 110.0,
+        "high": 170.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 70.0,
+        "base": 110.0,
+        "high": 170.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 70.0,
+          "base": 110.0,
+          "high": 170.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel mills pretax earnings",
+              "kind": "fact",
+              "value": 2383.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel mills pretax earnings $2.383 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "d1eec23736bbadda677aba0a9a94e3e1b73c3f8a1b84db94c169b54ee68fc729"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 6.78262694,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel mills pretax per share",
+              "kind": "calculation",
+              "value": 10.32048506,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "2383 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel mills through-cycle value per share",
+              "kind": "calculation",
+              "value": 70.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "10.320485 \u00d7 6.7826269",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel mills pretax earnings",
+              "kind": "fact",
+              "value": 2383.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel mills pretax earnings $2.383 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "d1eec23736bbadda677aba0a9a94e3e1b73c3f8a1b84db94c169b54ee68fc729"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 10.65841376,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel mills pretax per share",
+              "kind": "calculation",
+              "value": 10.32048506,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "2383 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel mills through-cycle value per share",
+              "kind": "calculation",
+              "value": 110.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "10.320485 \u00d7 10.658414",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel mills pretax earnings",
+              "kind": "fact",
+              "value": 2383.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel mills pretax earnings $2.383 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "d1eec23736bbadda677aba0a9a94e3e1b73c3f8a1b84db94c169b54ee68fc729"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 16.472094,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel mills pretax per share",
+              "kind": "calculation",
+              "value": 10.32048506,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "2383 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel mills through-cycle value per share",
+              "kind": "calculation",
+              "value": 170.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "10.320485 \u00d7 16.472094",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "230.9 million diluted shares in FY2025 results",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+          },
+          {
+            "node_id": "segment_pretax_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "2025 steel mills pretax earnings $2.383 billion",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "d1eec23736bbadda677aba0a9a94e3e1b73c3f8a1b84db94c169b54ee68fc729"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "a575f84be174a731b54d2a439b5942c65350b41d40539a30adc48003b081974d"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 110.0/sh via midcycle_capacity_value@1.0.",
+      "scenario_assumptions": "Normalize shipments, spread, utilization, maintenance capital, and tax across a full steel cycle rather than capitalizing 2025 or spot margins.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "steel_mills",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "steel_products",
+      "label": "Downstream steel products",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Downstream steel products",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 35.0,
+        "base": 65.0,
+        "high": 105.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 35.0,
+        "base": 65.0,
+        "high": 105.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 35.0,
+          "base": 65.0,
+          "high": 105.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel products pretax earnings",
+              "kind": "fact",
+              "value": 1229.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel products pretax earnings $1.229 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "912f44a9171f9468a53ac12630538f5a1d6838c207edb933651b6267216286b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 6.57567128,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel products pretax per share",
+              "kind": "calculation",
+              "value": 5.3226505,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "1229 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel products through-cycle value per share",
+              "kind": "calculation",
+              "value": 35.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "5.3226505 \u00d7 6.5756713",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel products pretax earnings",
+              "kind": "fact",
+              "value": 1229.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel products pretax earnings $1.229 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "912f44a9171f9468a53ac12630538f5a1d6838c207edb933651b6267216286b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 12.21196094,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel products pretax per share",
+              "kind": "calculation",
+              "value": 5.3226505,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "1229 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel products through-cycle value per share",
+              "kind": "calculation",
+              "value": 65.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "5.3226505 \u00d7 12.211961",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Steel products pretax earnings",
+              "kind": "fact",
+              "value": 1229.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 steel products pretax earnings $1.229 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "912f44a9171f9468a53ac12630538f5a1d6838c207edb933651b6267216286b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 19.72701383,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Steel products pretax per share",
+              "kind": "calculation",
+              "value": 5.3226505,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "1229 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Steel products through-cycle value per share",
+              "kind": "calculation",
+              "value": 105.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "5.3226505 \u00d7 19.727014",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "230.9 million diluted shares in FY2025 results",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+          },
+          {
+            "node_id": "segment_pretax_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "2025 steel products pretax earnings $1.229 billion",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "912f44a9171f9468a53ac12630538f5a1d6838c207edb933651b6267216286b9"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "295d2a5ae06870a1f58d59ced60aa42e9e59e00751671cbe85d02f1ebdc9d60a"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 65.0/sh via midcycle_capacity_value@1.0.",
+      "scenario_assumptions": "Value downstream earnings separately using normalized backlog, margins, and maintenance capital.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "steel_products",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "raw_materials",
+      "label": "Raw materials and recycling",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Raw materials and recycling",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.0,
+        "base": 8.0,
+        "high": 20.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.0,
+        "base": 8.0,
+        "high": 20.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.0,
+          "base": 8.0,
+          "high": 20.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Raw materials pretax earnings",
+              "kind": "fact",
+              "value": 153.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 raw materials pretax earnings $153 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2b44d9415046a4761fefa65120416e9b91bfc520c0af75af4a9ef45d31188b21"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Raw materials pretax per share",
+              "kind": "calculation",
+              "value": 0.66262451,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "153 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Raw materials through-cycle value per share",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "0.66262451 \u00d7 0",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Raw materials pretax earnings",
+              "kind": "fact",
+              "value": 153.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 raw materials pretax earnings $153 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2b44d9415046a4761fefa65120416e9b91bfc520c0af75af4a9ef45d31188b21"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 12.07320261,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Raw materials pretax per share",
+              "kind": "calculation",
+              "value": 0.66262451,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "153 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Raw materials through-cycle value per share",
+              "kind": "calculation",
+              "value": 8.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "0.66262451 \u00d7 12.073203",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "segment_pretax_m",
+              "label": "Raw materials pretax earnings",
+              "kind": "fact",
+              "value": 153.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 raw materials pretax earnings $153 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2b44d9415046a4761fefa65120416e9b91bfc520c0af75af4a9ef45d31188b21"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_capitalization_multiple",
+              "label": "Through-cycle capitalization multiple on segment pretax per share",
+              "kind": "judgment",
+              "value": 30.18300654,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Converts filing segment pretax into per-share economic value after normalizing utilization, spread, maintenance capital, tax, and corporate allocation across a full steel cycle; not peak-2025 capitalization."
+            },
+            {
+              "id": "pretax_per_share",
+              "label": "Raw materials pretax per share",
+              "kind": "calculation",
+              "value": 0.66262451,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "segment_pretax_m \u00f7 shares_m",
+              "substituted_formula": "153 \u00f7 230.9",
+              "dependencies": [
+                "segment_pretax_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Raw materials through-cycle value per share",
+              "kind": "calculation",
+              "value": 20.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "pretax_per_share \u00d7 midcycle_capitalization_multiple",
+              "substituted_formula": "0.66262451 \u00d7 30.183007",
+              "dependencies": [
+                "pretax_per_share",
+                "midcycle_capitalization_multiple"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "230.9 million diluted shares in FY2025 results",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+          },
+          {
+            "node_id": "segment_pretax_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "2025 raw materials pretax earnings $153 million",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "2b44d9415046a4761fefa65120416e9b91bfc520c0af75af4a9ef45d31188b21"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "ce4dfe13478739464271383b7c89d84d6c61bb78696e1f4a9a4f7c393f557cbf"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 8.0/sh via midcycle_capacity_value@1.0.",
+      "scenario_assumptions": "Use through-cycle DRI, scrap, and brokerage economics after sustaining capital.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "raw_materials",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_debt_and_leases",
+      "label": "Net debt and lease claims",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net debt and lease claims",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -22.0,
+        "base": -19.0,
+        "high": -16.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -22.0,
+        "base": -19.0,
+        "high": -16.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -22.0,
+          "base": -19.0,
+          "high": -16.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 2699.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Year-end cash and short-term investments $2.699 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "bd540a4a11de43b34efb1e1365de420d7c26f0e4564f8a231de23dd6982ea99b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_m",
+              "label": "Debt and lease obligations",
+              "kind": "fact",
+              "value": 7121.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Debt and lease obligations $7.121 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2543c913de45bec86e2b7020332339c35b3f967e875e7bb1fe5a44c87d5eee1c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_liquidity_adjustment_m",
+              "label": "Additional operating liquidity retained above filing net debt",
+              "kind": "judgment",
+              "value": 657.8,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case keeps extra liquidity inside the enterprise; high case assumes surplus cash above working-capital needs."
+            },
+            {
+              "id": "net_debt_m",
+              "label": "Net debt and leases",
+              "kind": "calculation",
+              "value": 4422.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "debt_m - cash_m",
+              "substituted_formula": "7121 - 2699",
+              "dependencies": [
+                "debt_m",
+                "cash_m"
+              ]
+            },
+            {
+              "id": "adjusted_net_debt_m",
+              "label": "Net debt plus liquidity adjustment",
+              "kind": "calculation",
+              "value": 5079.8,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_debt_m + operating_liquidity_adjustment_m",
+              "substituted_formula": "4422 + 657.8",
+              "dependencies": [
+                "net_debt_m",
+                "operating_liquidity_adjustment_m"
+              ]
+            },
+            {
+              "id": "net_debt_per_share",
+              "label": "Net debt per share",
+              "kind": "calculation",
+              "value": 22.0,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_net_debt_m \u00f7 shares_m",
+              "substituted_formula": "5079.8 \u00f7 230.9",
+              "dependencies": [
+                "adjusted_net_debt_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net debt claim per share (senior to equity)",
+              "kind": "calculation",
+              "value": -22.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(net_debt_per_share)",
+              "substituted_formula": "-(22)",
+              "dependencies": [
+                "net_debt_per_share"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 2699.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Year-end cash and short-term investments $2.699 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "bd540a4a11de43b34efb1e1365de420d7c26f0e4564f8a231de23dd6982ea99b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_m",
+              "label": "Debt and lease obligations",
+              "kind": "fact",
+              "value": 7121.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Debt and lease obligations $7.121 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2543c913de45bec86e2b7020332339c35b3f967e875e7bb1fe5a44c87d5eee1c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_liquidity_adjustment_m",
+              "label": "Additional operating liquidity retained above filing net debt",
+              "kind": "judgment",
+              "value": -34.9,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case keeps extra liquidity inside the enterprise; high case assumes surplus cash above working-capital needs."
+            },
+            {
+              "id": "net_debt_m",
+              "label": "Net debt and leases",
+              "kind": "calculation",
+              "value": 4422.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "debt_m - cash_m",
+              "substituted_formula": "7121 - 2699",
+              "dependencies": [
+                "debt_m",
+                "cash_m"
+              ]
+            },
+            {
+              "id": "adjusted_net_debt_m",
+              "label": "Net debt plus liquidity adjustment",
+              "kind": "calculation",
+              "value": 4387.1,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_debt_m + operating_liquidity_adjustment_m",
+              "substituted_formula": "4422 + -34.9",
+              "dependencies": [
+                "net_debt_m",
+                "operating_liquidity_adjustment_m"
+              ]
+            },
+            {
+              "id": "net_debt_per_share",
+              "label": "Net debt per share",
+              "kind": "calculation",
+              "value": 19.0,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_net_debt_m \u00f7 shares_m",
+              "substituted_formula": "4387.1 \u00f7 230.9",
+              "dependencies": [
+                "adjusted_net_debt_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net debt claim per share (senior to equity)",
+              "kind": "calculation",
+              "value": -19.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(net_debt_per_share)",
+              "substituted_formula": "-(19)",
+              "dependencies": [
+                "net_debt_per_share"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 2699.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Year-end cash and short-term investments $2.699 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "bd540a4a11de43b34efb1e1365de420d7c26f0e4564f8a231de23dd6982ea99b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_m",
+              "label": "Debt and lease obligations",
+              "kind": "fact",
+              "value": 7121.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Debt and lease obligations $7.121 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "2543c913de45bec86e2b7020332339c35b3f967e875e7bb1fe5a44c87d5eee1c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "operating_liquidity_adjustment_m",
+              "label": "Additional operating liquidity retained above filing net debt",
+              "kind": "judgment",
+              "value": -727.6,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case keeps extra liquidity inside the enterprise; high case assumes surplus cash above working-capital needs."
+            },
+            {
+              "id": "net_debt_m",
+              "label": "Net debt and leases",
+              "kind": "calculation",
+              "value": 4422.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "debt_m - cash_m",
+              "substituted_formula": "7121 - 2699",
+              "dependencies": [
+                "debt_m",
+                "cash_m"
+              ]
+            },
+            {
+              "id": "adjusted_net_debt_m",
+              "label": "Net debt plus liquidity adjustment",
+              "kind": "calculation",
+              "value": 3694.4,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_debt_m + operating_liquidity_adjustment_m",
+              "substituted_formula": "4422 + -727.6",
+              "dependencies": [
+                "net_debt_m",
+                "operating_liquidity_adjustment_m"
+              ]
+            },
+            {
+              "id": "net_debt_per_share",
+              "label": "Net debt per share",
+              "kind": "calculation",
+              "value": 16.0,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_net_debt_m \u00f7 shares_m",
+              "substituted_formula": "3694.4 \u00f7 230.9",
+              "dependencies": [
+                "adjusted_net_debt_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net debt claim per share (senior to equity)",
+              "kind": "calculation",
+              "value": -16.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(net_debt_per_share)",
+              "substituted_formula": "-(16)",
+              "dependencies": [
+                "net_debt_per_share"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "230.9 million diluted shares in FY2025 results",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+          },
+          {
+            "node_id": "cash_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "Year-end cash and short-term investments $2.699 billion",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "bd540a4a11de43b34efb1e1365de420d7c26f0e4564f8a231de23dd6982ea99b"
+          },
+          {
+            "node_id": "debt_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "Debt and lease obligations $7.121 billion",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "2543c913de45bec86e2b7020332339c35b3f967e875e7bb1fe5a44c87d5eee1c"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "6ba41ad2dd011c7d7a5d97ad4e9003ac1a1ed41e2c163d7d1f4fa91bf6cdd4e7"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base -19.0/sh via net_asset_value@1.0.",
+      "scenario_assumptions": "Deduct all debt and finance leases net of cash and short-term investments; range reflects required operating liquidity.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "net_debt_and_leases",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "label": "New-project ramp and replacement-cost optionality",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "New-project ramp and replacement-cost optionality",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risk_adjusted_milestone_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 5.0,
+        "base": 25.0,
+        "high": 55.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 5.0,
+        "base": 25.0,
+        "high": 55.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 5.0,
+          "base": 25.0,
+          "high": 55.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_net_m",
+              "label": "West Virginia sheet mill net project cost",
+              "kind": "fact",
+              "value": 3650.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill expected to cost about $3.65 billion net of state commitment",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "00ac7613e3b3ef3c9e05ae911ec7dbd729c3605e8d446dd7e94e04c8f53672fd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_tons_m",
+              "label": "West Virginia sheet mill annual capacity",
+              "kind": "fact",
+              "value": 3.0,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill to provide about 3 million tons of annual capacity",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "09d8b812f1fb1af417e26b94a550d571d0455ecc8d2dd2754207a523cf01d1ec"
+              },
+              "rationale": null
+            },
+            {
+              "id": "startup_costs_m",
+              "label": "2025 pre-operating and start-up costs",
+              "kind": "fact",
+              "value": 496.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 pre-operating and start-up costs approximately $496 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a5abbc4be1cf78469a5d66768a850582c65371e44360375869c34096fdeadf29"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_2026_m",
+              "label": "Estimated 2026 capital expenditures",
+              "kind": "fact",
+              "value": 2500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Estimated 2026 capex $2.5 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "216a11ef1acc682978f5890acca54300bd817af8c4dcf2496a625cb5fd0fd6e0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_incremental_value_per_share",
+              "label": "Probability-weighted incremental value net of remaining spend and ramp losses",
+              "kind": "judgment",
+              "value": 13.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Credits only after-tax returns above the cost of capital on disclosed projects (West Virginia sheet, Kentucky plate ramp, Arizona melt shop, towers, coatings) after deducting remaining owner-funded spend not yet in normalized segment earnings."
+            },
+            {
+              "id": "remaining_spend_per_share",
+              "label": "Remaining project spend deducted inside the option proof",
+              "kind": "judgment",
+              "value": 8.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Owner-funded completion and ramp spend still ahead of mature utilization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental project value per share",
+              "kind": "calculation",
+              "value": 5.0,
+              "unit": "USD_per_share",
+              "operation": "subtract",
+              "formula": "risked_incremental_value_per_share - remaining_spend_per_share",
+              "substituted_formula": "13 - 8",
+              "dependencies": [
+                "risked_incremental_value_per_share",
+                "remaining_spend_per_share"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_net_m",
+              "label": "West Virginia sheet mill net project cost",
+              "kind": "fact",
+              "value": 3650.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill expected to cost about $3.65 billion net of state commitment",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "00ac7613e3b3ef3c9e05ae911ec7dbd729c3605e8d446dd7e94e04c8f53672fd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_tons_m",
+              "label": "West Virginia sheet mill annual capacity",
+              "kind": "fact",
+              "value": 3.0,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill to provide about 3 million tons of annual capacity",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "09d8b812f1fb1af417e26b94a550d571d0455ecc8d2dd2754207a523cf01d1ec"
+              },
+              "rationale": null
+            },
+            {
+              "id": "startup_costs_m",
+              "label": "2025 pre-operating and start-up costs",
+              "kind": "fact",
+              "value": 496.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 pre-operating and start-up costs approximately $496 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a5abbc4be1cf78469a5d66768a850582c65371e44360375869c34096fdeadf29"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_2026_m",
+              "label": "Estimated 2026 capital expenditures",
+              "kind": "fact",
+              "value": 2500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Estimated 2026 capex $2.5 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "216a11ef1acc682978f5890acca54300bd817af8c4dcf2496a625cb5fd0fd6e0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_incremental_value_per_share",
+              "label": "Probability-weighted incremental value net of remaining spend and ramp losses",
+              "kind": "judgment",
+              "value": 30.5,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Credits only after-tax returns above the cost of capital on disclosed projects (West Virginia sheet, Kentucky plate ramp, Arizona melt shop, towers, coatings) after deducting remaining owner-funded spend not yet in normalized segment earnings."
+            },
+            {
+              "id": "remaining_spend_per_share",
+              "label": "Remaining project spend deducted inside the option proof",
+              "kind": "judgment",
+              "value": 5.5,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Owner-funded completion and ramp spend still ahead of mature utilization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental project value per share",
+              "kind": "calculation",
+              "value": 25.0,
+              "unit": "USD_per_share",
+              "operation": "subtract",
+              "formula": "risked_incremental_value_per_share - remaining_spend_per_share",
+              "substituted_formula": "30.5 - 5.5",
+              "dependencies": [
+                "risked_incremental_value_per_share",
+                "remaining_spend_per_share"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 230.9,
+              "unit": "million_shares",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "230.9 million diluted shares in FY2025 results",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_net_m",
+              "label": "West Virginia sheet mill net project cost",
+              "kind": "fact",
+              "value": 3650.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill expected to cost about $3.65 billion net of state commitment",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "00ac7613e3b3ef3c9e05ae911ec7dbd729c3605e8d446dd7e94e04c8f53672fd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "wv_mill_tons_m",
+              "label": "West Virginia sheet mill annual capacity",
+              "kind": "fact",
+              "value": 3.0,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "West Virginia sheet mill to provide about 3 million tons of annual capacity",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "09d8b812f1fb1af417e26b94a550d571d0455ecc8d2dd2754207a523cf01d1ec"
+              },
+              "rationale": null
+            },
+            {
+              "id": "startup_costs_m",
+              "label": "2025 pre-operating and start-up costs",
+              "kind": "fact",
+              "value": 496.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "2025 pre-operating and start-up costs approximately $496 million",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a5abbc4be1cf78469a5d66768a850582c65371e44360375869c34096fdeadf29"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_2026_m",
+              "label": "Estimated 2026 capital expenditures",
+              "kind": "fact",
+              "value": 2500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Estimated 2026 capex $2.5 billion",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "216a11ef1acc682978f5890acca54300bd817af8c4dcf2496a625cb5fd0fd6e0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_incremental_value_per_share",
+              "label": "Probability-weighted incremental value net of remaining spend and ramp losses",
+              "kind": "judgment",
+              "value": 58.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Credits only after-tax returns above the cost of capital on disclosed projects (West Virginia sheet, Kentucky plate ramp, Arizona melt shop, towers, coatings) after deducting remaining owner-funded spend not yet in normalized segment earnings."
+            },
+            {
+              "id": "remaining_spend_per_share",
+              "label": "Remaining project spend deducted inside the option proof",
+              "kind": "judgment",
+              "value": 3.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Owner-funded completion and ramp spend still ahead of mature utilization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental project value per share",
+              "kind": "calculation",
+              "value": 55.0,
+              "unit": "USD_per_share",
+              "operation": "subtract",
+              "formula": "risked_incremental_value_per_share - remaining_spend_per_share",
+              "substituted_formula": "58 - 3",
+              "dependencies": [
+                "risked_incremental_value_per_share",
+                "remaining_spend_per_share"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "230.9 million diluted shares in FY2025 results",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+          },
+          {
+            "node_id": "wv_mill_net_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "West Virginia sheet mill expected to cost about $3.65 billion net of state commitment",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "00ac7613e3b3ef3c9e05ae911ec7dbd729c3605e8d446dd7e94e04c8f53672fd"
+          },
+          {
+            "node_id": "wv_mill_tons_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "West Virginia sheet mill to provide about 3 million tons of annual capacity",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "09d8b812f1fb1af417e26b94a550d571d0455ecc8d2dd2754207a523cf01d1ec"
+          },
+          {
+            "node_id": "startup_costs_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "2025 pre-operating and start-up costs approximately $496 million",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "a5abbc4be1cf78469a5d66768a850582c65371e44360375869c34096fdeadf29"
+          },
+          {
+            "node_id": "capex_2026_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "Estimated 2026 capex $2.5 billion",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "216a11ef1acc682978f5890acca54300bd817af8c4dcf2496a625cb5fd0fd6e0"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "5ff49ca5117058a3351de30e107dd92e99bb96126458311a99e96a2abfe70ac1"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 25.0/sh via risk_adjusted_milestone_value@1.0.",
+      "scenario_assumptions": "Credit only probability-weighted after-tax cash returns above the cost of capital, net of remaining spend and ramp losses.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Scenario range includes delay and failure outcomes.",
+        "probability_basis": "Starter probability is an explicit analyst judgment pending base-rate and milestone reconciliation.",
+        "remaining_capital_basis": "Remaining capital and financing are deducted in the stated option range."
+      },
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "new_project_ramp",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "supply_response_and_downcycle_reserve",
+      "label": "Supply-response and downcycle reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Supply-response and downcycle reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "midcycle_capacity_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "midcycle_capacity_value",
+        "version": "1.0",
+        "label": "Capital-cycle normalized capacity value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "capital_cycle"
+        ],
+        "equation": "equity = ((capacity*utilization*revenue_per_unit*margin - maintenance_capex)*(1-tax))*multiple - net_debt - downcycle_reserve",
+        "sources": [
+          {
+            "ref": "_system/frameworks/power_zones.json",
+            "locator": "capital_cycle profile"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -20.0,
+        "base": -10.0,
+        "high": -0.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -20.0,
+        "base": -10.0,
+        "high": -0.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "midcycle_capacity_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -20.0,
+          "base": -10.0,
+          "high": -0.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "steel_mill_shipments_m",
+              "label": "Steel-mill shipments",
+              "kind": "fact",
+              "value": 25.271,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill shipments 25.271 million tons in 2025",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a542ce0af32e961c64769d61fff789f9b3cfb100e4faa63436450fc9ab7f5142"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steel_mill_utilization",
+              "label": "Steel-mill capacity utilization",
+              "kind": "fact",
+              "value": 0.83,
+              "unit": "ratio",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill utilization 83% versus 76% in 2024",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "15300d2162912f59168b0ef7f300fe8bf1f3693621beaa42492ace1d581a428f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "supply_response_reserve_per_share",
+              "label": "Explicit downcycle reserve for supply response and margin mean reversion",
+              "kind": "judgment",
+              "value": 20.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Deducts for domestic/global capacity additions, import pressure, and projects that may earn below their cost of capital; kept separate from normalized segment multiples to avoid double-counting cyclical risk."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Supply-response reserve per share",
+              "kind": "calculation",
+              "value": -20.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(supply_response_reserve_per_share)",
+              "substituted_formula": "-(20)",
+              "dependencies": [
+                "supply_response_reserve_per_share"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "steel_mill_shipments_m",
+              "label": "Steel-mill shipments",
+              "kind": "fact",
+              "value": 25.271,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill shipments 25.271 million tons in 2025",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a542ce0af32e961c64769d61fff789f9b3cfb100e4faa63436450fc9ab7f5142"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steel_mill_utilization",
+              "label": "Steel-mill capacity utilization",
+              "kind": "fact",
+              "value": 0.83,
+              "unit": "ratio",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill utilization 83% versus 76% in 2024",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "15300d2162912f59168b0ef7f300fe8bf1f3693621beaa42492ace1d581a428f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "supply_response_reserve_per_share",
+              "label": "Explicit downcycle reserve for supply response and margin mean reversion",
+              "kind": "judgment",
+              "value": 10.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Deducts for domestic/global capacity additions, import pressure, and projects that may earn below their cost of capital; kept separate from normalized segment multiples to avoid double-counting cyclical risk."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Supply-response reserve per share",
+              "kind": "calculation",
+              "value": -10.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(supply_response_reserve_per_share)",
+              "substituted_formula": "-(10)",
+              "dependencies": [
+                "supply_response_reserve_per_share"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "steel_mill_shipments_m",
+              "label": "Steel-mill shipments",
+              "kind": "fact",
+              "value": 25.271,
+              "unit": "million_tons",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill shipments 25.271 million tons in 2025",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "a542ce0af32e961c64769d61fff789f9b3cfb100e4faa63436450fc9ab7f5142"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steel_mill_utilization",
+              "label": "Steel-mill capacity utilization",
+              "kind": "fact",
+              "value": 0.83,
+              "unit": "ratio",
+              "source": {
+                "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+                "locator": "Steel-mill utilization 83% versus 76% in 2024",
+                "as_of": "2025-12-31",
+                "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+                "source_id": "15300d2162912f59168b0ef7f300fe8bf1f3693621beaa42492ace1d581a428f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "supply_response_reserve_per_share",
+              "label": "Explicit downcycle reserve for supply response and margin mean reversion",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Deducts for domestic/global capacity additions, import pressure, and projects that may earn below their cost of capital; kept separate from normalized segment multiples to avoid double-counting cyclical risk."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Supply-response reserve per share",
+              "kind": "calculation",
+              "value": -0.0,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(supply_response_reserve_per_share)",
+              "substituted_formula": "-(0)",
+              "dependencies": [
+                "supply_response_reserve_per_share"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "steel_mill_shipments_m",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "Steel-mill shipments 25.271 million tons in 2025",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "a542ce0af32e961c64769d61fff789f9b3cfb100e4faa63436450fc9ab7f5142"
+          },
+          {
+            "node_id": "steel_mill_utilization",
+            "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+            "locator": "Steel-mill utilization 83% versus 76% in 2024",
+            "as_of": "2025-12-31",
+            "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+            "source_id": "15300d2162912f59168b0ef7f300fe8bf1f3693621beaa42492ace1d581a428f"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "89e95cc2e2be72fa919e7b810791e553af59204354f9ab7f2898dc6b66d9b5ce"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base -10.0/sh via midcycle_capacity_value@1.0.",
+      "scenario_assumptions": "Explicitly deduct for margin mean reversion, supply response, and projects earning below their cost of capital.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "supply_response_and_downcycle_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 6,
+    "additive_component_count": 6,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "steel_mills",
+        "label": "Steel mills through-cycle value",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 110.0/sh via midcycle_capacity_value@1.0.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "steel_products",
+        "label": "Downstream steel products",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 65.0/sh via midcycle_capacity_value@1.0.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "raw_materials",
+        "label": "Raw materials and recycling",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 8.0/sh via midcycle_capacity_value@1.0.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_debt_and_leases",
+        "label": "Net debt and lease claims",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base -19.0/sh via net_asset_value@1.0.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "new_project_ramp",
+        "label": "New-project ramp and replacement-cost optionality",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base 25.0/sh via risk_adjusted_milestone_value@1.0.",
+        "method": "risk_adjusted_milestone_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "supply_response_and_downcycle_reserve",
+        "label": "Supply-response and downcycle reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 segment and balance-sheet bridge via NUE/research/evidence_reconciliation_2026-07-15.json; proof base -10.0/sh via midcycle_capacity_value@1.0.",
+        "method": "midcycle_capacity_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "capital_cycle",
+    "label": "Capital cycle and normalized industry economics",
+    "score": 12.0,
+    "reasons": [
+      "component categories=operating_business",
+      "existing methods=cycle",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "midcycle_capacity_value"
+    ],
+    "corroborating_methods": [
+      "replacement_cost",
+      "downcycle_liquidity_stress"
+    ],
+    "primary_personas": [
+      "marathon_capital_cycle"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle",
+      "pabrai"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hk",
+      "hohn",
+      "klarman_asset_value",
+      "munger",
+      "stahl"
+    ],
+    "required_evidence": [
+      "industry capacity and additions",
+      "utilization",
+      "normalized unit margins",
+      "maintenance versus growth capital",
+      "low-case liquidity"
+    ],
+    "failure_modes": [
+      "peak margins capitalized",
+      "supply response ignored",
+      "replacement cost used for assets that cannot earn their cost of capital"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "scarce_asset_optionality",
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "capital_cycle": {
+        "score": 12.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=cycle",
+          "explicit reviewed profile"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "binary_milestone": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "NUE",
+    "as_of": "2026-07-20",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "capital_cycle",
+      "moat": "unproven",
+      "dhando": "pending",
+      "stance": "watch",
+      "cycle": "mid",
+      "moi_bucket": "pending",
+      "payoff_lens": "pending",
+      "investment_sleeve": "-"
+    },
+    "specialist_power_zones": [],
+    "committee": {
+      "candidate_count": 3,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "marathon_capital_cycle",
+          "independence_group": "capital_cycle"
+        },
+        {
+          "persona": "marks_credit_cycle",
+          "independence_group": "credit_cycle"
+        },
+        {
+          "persona": "pabrai",
+          "independence_group": "asymmetry_downside"
+        }
+      ]
+    },
+    "input_hash": "315683f1bafef048fe0191387b25061ee64e41bdc6f7e5dd86e3bec9e7d7f728",
+    "generated_at": "2026-07-20T17:13:55.889683+00:00"
+  },
+  "market": {
+    "price_per_share": 249.64,
+    "fully_diluted_shares": 230900000,
+    "market_cap_m": 57641.88,
+    "enterprise_value_m": null,
+    "price_source": "Yahoo NUE close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 68.0,
+      "base": 179.0,
+      "high": 334.0
+    },
+    "value_per_share": {
+      "low": 68.0,
+      "base": 179.0,
+      "high": 334.0
+    },
+    "present_value_today_per_share": {
+      "low": 68.0,
+      "base": 179.0,
+      "high": 334.0
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": 68.0,
+      "base": 179.0,
+      "high": 334.0
+    },
+    "legacy_value_per_share": {
+      "low": 68.0,
+      "base": 179.0,
+      "high": 334.0
+    },
+    "probability_weighted_value_per_share": 179.0,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": -267.12,
+      "base": -39.46,
+      "high": 25.26
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -72.76,
+      "base": -28.3,
+      "high": 33.79
+    },
+    "downside_to_low_pct": -72.76,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "steel_mills",
+        "label": "Steel mills through-cycle value",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 110.0,
+        "legacy_base_per_share": 110.0,
+        "range_width_per_share": 100.0,
+        "scenario_assumptions": "Normalize shipments, spread, utilization, maintenance capital, and tax across a full steel cycle rather than capitalizing 2025 or spot margins."
+      },
+      {
+        "component_id": "steel_products",
+        "label": "Downstream steel products",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 65.0,
+        "legacy_base_per_share": 65.0,
+        "range_width_per_share": 70.0,
+        "scenario_assumptions": "Value downstream earnings separately using normalized backlog, margins, and maintenance capital."
+      },
+      {
+        "component_id": "new_project_ramp",
+        "label": "New-project ramp and replacement-cost optionality",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 25.0,
+        "legacy_base_per_share": 25.0,
+        "range_width_per_share": 50.0,
+        "scenario_assumptions": "Credit only probability-weighted after-tax cash returns above the cost of capital, net of remaining spend and ramp losses."
+      },
+      {
+        "component_id": "raw_materials",
+        "label": "Raw materials and recycling",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 8.0,
+        "legacy_base_per_share": 8.0,
+        "range_width_per_share": 20.0,
+        "scenario_assumptions": "Use through-cycle DRI, scrap, and brokerage economics after sustaining capital."
+      },
+      {
+        "component_id": "supply_response_and_downcycle_reserve",
+        "label": "Supply-response and downcycle reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -10.0,
+        "legacy_base_per_share": -10.0,
+        "range_width_per_share": 20.0,
+        "scenario_assumptions": "Explicitly deduct for margin mean reversion, supply response, and projects earning below their cost of capital."
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 6,
+    "priced_component_count": 6,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 6,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "6e60156d09e3e44dd98af4dcb6575e3d14f7bea742340271b81c68ab4004f0f8"
+  },
+  "source_lineage": [
+    {
+      "component_id": "steel_mills",
+      "node_id": "shares_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "230.9 million diluted shares in FY2025 results",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+    },
+    {
+      "component_id": "steel_mills",
+      "node_id": "segment_pretax_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "2025 steel mills pretax earnings $2.383 billion",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "d1eec23736bbadda677aba0a9a94e3e1b73c3f8a1b84db94c169b54ee68fc729"
+    },
+    {
+      "component_id": "steel_products",
+      "node_id": "shares_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "230.9 million diluted shares in FY2025 results",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+    },
+    {
+      "component_id": "steel_products",
+      "node_id": "segment_pretax_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "2025 steel products pretax earnings $1.229 billion",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "912f44a9171f9468a53ac12630538f5a1d6838c207edb933651b6267216286b9"
+    },
+    {
+      "component_id": "raw_materials",
+      "node_id": "shares_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "230.9 million diluted shares in FY2025 results",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+    },
+    {
+      "component_id": "raw_materials",
+      "node_id": "segment_pretax_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "2025 raw materials pretax earnings $153 million",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "2b44d9415046a4761fefa65120416e9b91bfc520c0af75af4a9ef45d31188b21"
+    },
+    {
+      "component_id": "net_debt_and_leases",
+      "node_id": "shares_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "230.9 million diluted shares in FY2025 results",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+    },
+    {
+      "component_id": "net_debt_and_leases",
+      "node_id": "cash_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "Year-end cash and short-term investments $2.699 billion",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "bd540a4a11de43b34efb1e1365de420d7c26f0e4564f8a231de23dd6982ea99b"
+    },
+    {
+      "component_id": "net_debt_and_leases",
+      "node_id": "debt_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "Debt and lease obligations $7.121 billion",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "2543c913de45bec86e2b7020332339c35b3f967e875e7bb1fe5a44c87d5eee1c"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "node_id": "shares_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "230.9 million diluted shares in FY2025 results",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "1dada8adb0aa4b4495659cf64614a7c539f921567d9cb2efe6c83225fce4b1b1"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "node_id": "wv_mill_net_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "West Virginia sheet mill expected to cost about $3.65 billion net of state commitment",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "00ac7613e3b3ef3c9e05ae911ec7dbd729c3605e8d446dd7e94e04c8f53672fd"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "node_id": "wv_mill_tons_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "West Virginia sheet mill to provide about 3 million tons of annual capacity",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "09d8b812f1fb1af417e26b94a550d571d0455ecc8d2dd2754207a523cf01d1ec"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "node_id": "startup_costs_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "2025 pre-operating and start-up costs approximately $496 million",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "a5abbc4be1cf78469a5d66768a850582c65371e44360375869c34096fdeadf29"
+    },
+    {
+      "component_id": "new_project_ramp",
+      "node_id": "capex_2026_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "Estimated 2026 capex $2.5 billion",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "216a11ef1acc682978f5890acca54300bd817af8c4dcf2496a625cb5fd0fd6e0"
+    },
+    {
+      "component_id": "supply_response_and_downcycle_reserve",
+      "node_id": "steel_mill_shipments_m",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "Steel-mill shipments 25.271 million tons in 2025",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "a542ce0af32e961c64769d61fff789f9b3cfb100e4faa63436450fc9ab7f5142"
+    },
+    {
+      "component_id": "supply_response_and_downcycle_reserve",
+      "node_id": "steel_mill_utilization",
+      "ref": "NUE/research/evidence_reconciliation_2026-07-15.json",
+      "locator": "Steel-mill utilization 83% versus 76% in 2024",
+      "as_of": "2025-12-31",
+      "content_sha256": "4884a11e6b6188aad9ef07ce003cd6e7aded735f431403fbda7e9ec43bc26477",
+      "source_id": "15300d2162912f59168b0ef7f300fe8bf1f3693621beaa42492ace1d581a428f"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "d5bc7f3baab945b68baf3b6e08f1de8ce9845141c4775fc08989e08d70e9acb7",
+    "method_versions": [
+      "midcycle_capacity_value@1.0",
+      "net_asset_value@1.0",
+      "risk_adjusted_milestone_value@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "cohort_expected_profile": "capital_cycle",
+  "cohort_purpose": "Capacity, normalized margins, supply response, replacement cost, and low-case liquidity.",
+  "profile_match": true,
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 1,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

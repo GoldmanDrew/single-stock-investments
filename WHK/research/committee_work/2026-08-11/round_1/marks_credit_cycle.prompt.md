@@ -2,7 +2,7 @@
 
 You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `d2072696333dffbce6d48e7e9190d57c70d5fe78eac936c339f8442b3d292ff4`
+Evidence packet: `de2a7103f567dc7e3ca9ab4b1c87bb3eeaf50caaa7c4d3fca971a03f0db14244`
 
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/deep_dive_2026-08-05.md`
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/adversarial_2026-08-05.md`
@@ -11,8 +11,10 @@ Evidence packet: `d2072696333dffbce6d48e7e9190d57c70d5fe78eac936c339f8442b3d292f
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/valuation.json`
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/thesis.md`
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/cross_check_third_party_2026-08-05.md`
+- `WHK/research/committee_work/2026-08-11/evidence_snapshot/committee_gap_carryforward.json`
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/evidence__filing_facts_2026-08-11.json`
 - `WHK/research/committee_work/2026-08-11/evidence_snapshot/evidence__management_facts_2026-08-05.json`
+- `WHK/research/committee_work/2026-08-11/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -23,4 +25,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "d2072696333dffbce6d48e7e9190d57c70d5fe78eac936c339f8442b3d292ff4"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "de2a7103f567dc7e3ca9ab4b1c87bb3eeaf50caaa7c4d3fca971a03f0db14244"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

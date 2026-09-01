@@ -1,0 +1,1737 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "AAL",
+  "as_of": "2026-08-04",
+  "dates": {
+    "model_as_of": "2026-08-04",
+    "latest_fact_as_of": "2026-03-31",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": 9.98
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "midcycle_passenger_network",
+      "label": "Mid-cycle U.S. network passenger and cargo operations",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Mid-cycle U.S. network passenger and cargo operations",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_cash_or_dividend_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 21.1701,
+        "base": 33.88,
+        "high": 49.4099
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 21.17,
+        "base": 33.88,
+        "high": 49.41
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 21.1701,
+          "base": 33.88,
+          "high": 49.4099
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 net cash from operating activities",
+              "kind": "fact",
+              "value": 3099.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $3,099M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "b797118a95e0a2c20bd57d6d59996ce0d35f5e98b101d35d44ddd84565d702ae"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_operating_income_m",
+              "label": "Two-year average operating income (FY2024\u2013FY2025)",
+              "kind": "fact",
+              "value": 2040.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (2025) and $2614.0M (2024); midpoint normalization",
+                "as_of": "2025-12-31",
+                "source_id": "c2fcfccd8004bda6ad281e0f099e626b2f5e017bdb1fa9b8516dc2089186c1b0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares (net income / diluted EPS)",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "owner_cash_per_share",
+              "label": "Normalized owner cash per diluted share (OCF proxy)",
+              "kind": "judgment",
+              "value": 4.7053,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "FY2025 operating cash flow per share anchors mid-cycle network cash generation; capital spending exceeds GAAP free cash flow but OCF reflects ticket and loyalty economics."
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted owner-cash capitalization multiple",
+              "kind": "judgment",
+              "value": 4.4992,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear stresses fare wars and higher fuel; base mid-cycle seven-year path; bull modest network recovery without peak-cycle heroics."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mid-cycle passenger network per share",
+              "kind": "calculation",
+              "value": 21.17008576,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_per_share \u00d7 capitalization_multiple",
+              "substituted_formula": "4.7053 \u00d7 4.4992",
+              "dependencies": [
+                "owner_cash_per_share",
+                "capitalization_multiple"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 net cash from operating activities",
+              "kind": "fact",
+              "value": 3099.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $3,099M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "b797118a95e0a2c20bd57d6d59996ce0d35f5e98b101d35d44ddd84565d702ae"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_operating_income_m",
+              "label": "Two-year average operating income (FY2024\u2013FY2025)",
+              "kind": "fact",
+              "value": 2040.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (2025) and $2614.0M (2024); midpoint normalization",
+                "as_of": "2025-12-31",
+                "source_id": "c2fcfccd8004bda6ad281e0f099e626b2f5e017bdb1fa9b8516dc2089186c1b0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares (net income / diluted EPS)",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "owner_cash_per_share",
+              "label": "Normalized owner cash per diluted share (OCF proxy)",
+              "kind": "judgment",
+              "value": 4.7053,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "FY2025 operating cash flow per share anchors mid-cycle network cash generation; capital spending exceeds GAAP free cash flow but OCF reflects ticket and loyalty economics."
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted owner-cash capitalization multiple",
+              "kind": "judgment",
+              "value": 7.2004,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear stresses fare wars and higher fuel; base mid-cycle seven-year path; bull modest network recovery without peak-cycle heroics."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mid-cycle passenger network per share",
+              "kind": "calculation",
+              "value": 33.88004212,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_per_share \u00d7 capitalization_multiple",
+              "substituted_formula": "4.7053 \u00d7 7.2004",
+              "dependencies": [
+                "owner_cash_per_share",
+                "capitalization_multiple"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "operating_cash_flow_m",
+              "label": "FY2025 net cash from operating activities",
+              "kind": "fact",
+              "value": 3099.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $3,099M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "b797118a95e0a2c20bd57d6d59996ce0d35f5e98b101d35d44ddd84565d702ae"
+              },
+              "rationale": null
+            },
+            {
+              "id": "midcycle_operating_income_m",
+              "label": "Two-year average operating income (FY2024\u2013FY2025)",
+              "kind": "fact",
+              "value": 2040.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (2025) and $2614.0M (2024); midpoint normalization",
+                "as_of": "2025-12-31",
+                "source_id": "c2fcfccd8004bda6ad281e0f099e626b2f5e017bdb1fa9b8516dc2089186c1b0"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares (net income / diluted EPS)",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "owner_cash_per_share",
+              "label": "Normalized owner cash per diluted share (OCF proxy)",
+              "kind": "judgment",
+              "value": 4.7053,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "FY2025 operating cash flow per share anchors mid-cycle network cash generation; capital spending exceeds GAAP free cash flow but OCF reflects ticket and loyalty economics."
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted owner-cash capitalization multiple",
+              "kind": "judgment",
+              "value": 10.5009,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear stresses fare wars and higher fuel; base mid-cycle seven-year path; bull modest network recovery without peak-cycle heroics."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mid-cycle passenger network per share",
+              "kind": "calculation",
+              "value": 49.40988477,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "owner_cash_per_share \u00d7 capitalization_multiple",
+              "substituted_formula": "4.7053 \u00d7 10.5009",
+              "dependencies": [
+                "owner_cash_per_share",
+                "capitalization_multiple"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "operating_cash_flow_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "NetCashProvidedByUsedInOperatingActivities $3,099M (FY2025)",
+            "as_of": "2025-12-31",
+            "source_id": "b797118a95e0a2c20bd57d6d59996ce0d35f5e98b101d35d44ddd84565d702ae"
+          },
+          {
+            "node_id": "midcycle_operating_income_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "OperatingIncomeLoss $1467.0M (2025) and $2614.0M (2024); midpoint normalization",
+            "as_of": "2025-12-31",
+            "source_id": "c2fcfccd8004bda6ad281e0f099e626b2f5e017bdb1fa9b8516dc2089186c1b0"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+            "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+            "as_of": "2026-03-31",
+            "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "e97320f38a82e43a6110c27d37ad3c05512c44d80d8c83cd47bc290e9b98fddf"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+      "scenario_assumptions": "Proof outputs {'low': 21.1701, 'base': 33.88, 'high': 49.4099}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Reconcile to FY2025 10-K and Q1 2026 10-Q before decision use.",
+      "falsifier": "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "overlap_key": "midcycle_passenger_network",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "aadvantage_co_brand_option",
+      "label": "AAdvantage co-brand and partner loyalty economics",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "AAdvantage co-brand and partner loyalty economics",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risk_adjusted_milestone_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.0,
+        "base": 8.0,
+        "high": 20.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.0,
+        "base": 8.0,
+        "high": 20.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.0,
+          "base": 8.0,
+          "high": 20.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "total_revenue_m",
+              "label": "FY2025 total operating revenue",
+              "kind": "fact",
+              "value": 54633.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "RevenueFromContractWithCustomerExcludingAssessedTax $54,633M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "f755a21ca4ce438ac3c00287b873ca4d5277c85a0bbc17ba44aa247b8a2b1523"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "co_brand_milestone_m",
+              "label": "Risk-adjusted incremental AAdvantage co-brand and partner economics",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Non-overlapping claim on partner-funded loyalty economics not fully captured in normalized owner-cash multiple; base is judgment band pending standalone disclosure."
+            },
+            {
+              "id": "value_per_share",
+              "label": "AAdvantage co-brand option per share",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "co_brand_milestone_m \u00f7 shares_m",
+              "substituted_formula": "0 \u00f7 658.621",
+              "dependencies": [
+                "co_brand_milestone_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "total_revenue_m",
+              "label": "FY2025 total operating revenue",
+              "kind": "fact",
+              "value": 54633.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "RevenueFromContractWithCustomerExcludingAssessedTax $54,633M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "f755a21ca4ce438ac3c00287b873ca4d5277c85a0bbc17ba44aa247b8a2b1523"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "co_brand_milestone_m",
+              "label": "Risk-adjusted incremental AAdvantage co-brand and partner economics",
+              "kind": "judgment",
+              "value": 5269.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Non-overlapping claim on partner-funded loyalty economics not fully captured in normalized owner-cash multiple; base is judgment band pending standalone disclosure."
+            },
+            {
+              "id": "value_per_share",
+              "label": "AAdvantage co-brand option per share",
+              "kind": "calculation",
+              "value": 8.00004859,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "co_brand_milestone_m \u00f7 shares_m",
+              "substituted_formula": "5269 \u00f7 658.621",
+              "dependencies": [
+                "co_brand_milestone_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "total_revenue_m",
+              "label": "FY2025 total operating revenue",
+              "kind": "fact",
+              "value": 54633.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "RevenueFromContractWithCustomerExcludingAssessedTax $54,633M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "f755a21ca4ce438ac3c00287b873ca4d5277c85a0bbc17ba44aa247b8a2b1523"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "co_brand_milestone_m",
+              "label": "Risk-adjusted incremental AAdvantage co-brand and partner economics",
+              "kind": "judgment",
+              "value": 13172.4,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Non-overlapping claim on partner-funded loyalty economics not fully captured in normalized owner-cash multiple; base is judgment band pending standalone disclosure."
+            },
+            {
+              "id": "value_per_share",
+              "label": "AAdvantage co-brand option per share",
+              "kind": "calculation",
+              "value": 19.99996963,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "co_brand_milestone_m \u00f7 shares_m",
+              "substituted_formula": "13172.4 \u00f7 658.621",
+              "dependencies": [
+                "co_brand_milestone_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "total_revenue_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "RevenueFromContractWithCustomerExcludingAssessedTax $54,633M (FY2025)",
+            "as_of": "2025-12-31",
+            "source_id": "f755a21ca4ce438ac3c00287b873ca4d5277c85a0bbc17ba44aa247b8a2b1523"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+            "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+            "as_of": "2026-03-31",
+            "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "605a58c19388d05135a6269a85c79c2002060245837e76430608af8a7d728c48"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+      "scenario_assumptions": "Proof outputs {'low': 0.0, 'base': 8.0, 'high': 20.0}; see calculation_proof graph.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Co-brand and partner mile contracts renew over 3 to 7 years; base case assumes continued monetization through FY2030.",
+        "probability_basis": "Judgment from industry loyalty precedents; American does not disclose standalone AAdvantage segment economics in SEC filings.",
+        "remaining_capital_basis": "Partner-funded mile sales require no incremental owner capital in base case."
+      },
+      "tax_and_realization_adjustments": "Reconcile to FY2025 10-K and Q1 2026 10-Q before decision use.",
+      "falsifier": "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "overlap_key": "aadvantage_co_brand_option",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "label": "Net cash and debt claims on common equity",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net cash and debt claims on common equity",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -44.8747,
+        "base": -42.6725,
+        "high": -40.2649
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -44.87,
+        "base": -42.67,
+        "high": -40.26
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -44.8747,
+          "base": -42.6725,
+          "high": -40.2649
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "cash_m",
+              "label": "Cash and restricted cash (FY2025)",
+              "kind": "fact",
+              "value": 902.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $902M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "875f09dd55555dee57d23a5b4217ec2bade052f969a2a2894905bbf42a3e3aa9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_lt_m",
+              "label": "Long-term debt and finance lease obligations",
+              "kind": "fact",
+              "value": 25254.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligations $25,254M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "0ca5e63d2e53d03cfab8d8679f223012fe268a0f6ea07c600f57b798f84967c2"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_cur_m",
+              "label": "Current debt and finance lease obligations",
+              "kind": "fact",
+              "value": 3753.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligationsCurrent $3,753M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "b095a9994d614e51fc180d78ca83aa025536a5c899a7a4d0a6e4309d7129479a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_corporate_claim_m",
+              "label": "Net financial claim after cash and total debt",
+              "kind": "judgment",
+              "value": -29555.4,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Filing-locked cash less total debt and capital lease obligations; low/high stress debt +5% / cash +15% with modest debt paydown."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": -44.87466995,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_corporate_claim_m \u00f7 shares_m",
+              "substituted_formula": "-29555.4 \u00f7 658.621",
+              "dependencies": [
+                "net_corporate_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "cash_m",
+              "label": "Cash and restricted cash (FY2025)",
+              "kind": "fact",
+              "value": 902.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $902M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "875f09dd55555dee57d23a5b4217ec2bade052f969a2a2894905bbf42a3e3aa9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_lt_m",
+              "label": "Long-term debt and finance lease obligations",
+              "kind": "fact",
+              "value": 25254.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligations $25,254M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "0ca5e63d2e53d03cfab8d8679f223012fe268a0f6ea07c600f57b798f84967c2"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_cur_m",
+              "label": "Current debt and finance lease obligations",
+              "kind": "fact",
+              "value": 3753.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligationsCurrent $3,753M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "b095a9994d614e51fc180d78ca83aa025536a5c899a7a4d0a6e4309d7129479a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_corporate_claim_m",
+              "label": "Net financial claim after cash and total debt",
+              "kind": "judgment",
+              "value": -28105.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Filing-locked cash less total debt and capital lease obligations; low/high stress debt +5% / cash +15% with modest debt paydown."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": -42.67249298,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_corporate_claim_m \u00f7 shares_m",
+              "substituted_formula": "-28105 \u00f7 658.621",
+              "dependencies": [
+                "net_corporate_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "cash_m",
+              "label": "Cash and restricted cash (FY2025)",
+              "kind": "fact",
+              "value": 902.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $902M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "875f09dd55555dee57d23a5b4217ec2bade052f969a2a2894905bbf42a3e3aa9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_lt_m",
+              "label": "Long-term debt and finance lease obligations",
+              "kind": "fact",
+              "value": 25254.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligations $25,254M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "0ca5e63d2e53d03cfab8d8679f223012fe268a0f6ea07c600f57b798f84967c2"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_cur_m",
+              "label": "Current debt and finance lease obligations",
+              "kind": "fact",
+              "value": 3753.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "LongTermDebtAndCapitalLeaseObligationsCurrent $3,753M at December 31, 2025",
+                "as_of": "2025-12-31",
+                "source_id": "b095a9994d614e51fc180d78ca83aa025536a5c899a7a4d0a6e4309d7129479a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_corporate_claim_m",
+              "label": "Net financial claim after cash and total debt",
+              "kind": "judgment",
+              "value": -26519.3,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Filing-locked cash less total debt and capital lease obligations; low/high stress debt +5% / cash +15% with modest debt paydown."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net financial claims per share",
+              "kind": "calculation",
+              "value": -40.26488679,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_corporate_claim_m \u00f7 shares_m",
+              "substituted_formula": "-26519.3 \u00f7 658.621",
+              "dependencies": [
+                "net_corporate_claim_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "cash_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $902M at December 31, 2025",
+            "as_of": "2025-12-31",
+            "source_id": "875f09dd55555dee57d23a5b4217ec2bade052f969a2a2894905bbf42a3e3aa9"
+          },
+          {
+            "node_id": "debt_lt_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "LongTermDebtAndCapitalLeaseObligations $25,254M at December 31, 2025",
+            "as_of": "2025-12-31",
+            "source_id": "0ca5e63d2e53d03cfab8d8679f223012fe268a0f6ea07c600f57b798f84967c2"
+          },
+          {
+            "node_id": "debt_cur_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "LongTermDebtAndCapitalLeaseObligationsCurrent $3,753M at December 31, 2025",
+            "as_of": "2025-12-31",
+            "source_id": "b095a9994d614e51fc180d78ca83aa025536a5c899a7a4d0a6e4309d7129479a"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+            "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+            "as_of": "2026-03-31",
+            "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "fb8509b915317edde4f8e5a791a8e72836d5e8672cad394d39afae33824450a6"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+      "scenario_assumptions": "Proof outputs {'low': -44.8747, 'base': -42.6725, 'high': -40.2649}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Reconcile to FY2025 10-K and Q1 2026 10-Q before decision use.",
+      "falsifier": "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "overlap_key": "net_financial_claims",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "cycle_leverage_reserve",
+      "label": "Fuel, recession, and leverage stress reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Fuel, recession, and leverage stress reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -18.0,
+        "base": -9.0,
+        "high": -3.0001
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -18.0,
+        "base": -9.0,
+        "high": -3.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -18.0,
+          "base": -9.0,
+          "high": -3.0001
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "operating_income_m",
+              "label": "FY2025 operating income",
+              "kind": "fact",
+              "value": 1467.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (FY2025, down from $2614.0M prior year)",
+                "as_of": "2025-12-31",
+                "source_id": "42d3dd867e89dd2218344aea89417bae28f3751e5e2178faa558e13bc1ab828f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 payments to acquire productive assets",
+              "kind": "fact",
+              "value": 3779.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "PaymentsToAcquireProductiveAssets $3,779M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "ede70fadaab98fd93f54690bb626a339492be8c752fb1808923267c062b16013"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Fuel, recession, and leverage stress reserve",
+              "kind": "judgment",
+              "value": -11855.2,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Negative reserve for cyclical fare pressure, fuel volatility, and debt-service burden not fully embedded in mid-cycle owner-cash multiple."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Cycle and leverage reserve per share",
+              "kind": "calculation",
+              "value": -18.0000334,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-11855.2 \u00f7 658.621",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "operating_income_m",
+              "label": "FY2025 operating income",
+              "kind": "fact",
+              "value": 1467.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (FY2025, down from $2614.0M prior year)",
+                "as_of": "2025-12-31",
+                "source_id": "42d3dd867e89dd2218344aea89417bae28f3751e5e2178faa558e13bc1ab828f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 payments to acquire productive assets",
+              "kind": "fact",
+              "value": 3779.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "PaymentsToAcquireProductiveAssets $3,779M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "ede70fadaab98fd93f54690bb626a339492be8c752fb1808923267c062b16013"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Fuel, recession, and leverage stress reserve",
+              "kind": "judgment",
+              "value": -5927.6,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Negative reserve for cyclical fare pressure, fuel volatility, and debt-service burden not fully embedded in mid-cycle owner-cash multiple."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Cycle and leverage reserve per share",
+              "kind": "calculation",
+              "value": -9.0000167,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-5927.6 \u00f7 658.621",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "operating_income_m",
+              "label": "FY2025 operating income",
+              "kind": "fact",
+              "value": 1467.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "OperatingIncomeLoss $1467.0M (FY2025, down from $2614.0M prior year)",
+                "as_of": "2025-12-31",
+                "source_id": "42d3dd867e89dd2218344aea89417bae28f3751e5e2178faa558e13bc1ab828f"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 payments to acquire productive assets",
+              "kind": "fact",
+              "value": 3779.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+                "locator": "PaymentsToAcquireProductiveAssets $3,779M (FY2025)",
+                "as_of": "2025-12-31",
+                "source_id": "ede70fadaab98fd93f54690bb626a339492be8c752fb1808923267c062b16013"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Q1 2026 diluted shares",
+              "kind": "fact",
+              "value": 658.621,
+              "unit": "million_shares",
+              "source": {
+                "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+                "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+                "as_of": "2026-03-31",
+                "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Fuel, recession, and leverage stress reserve",
+              "kind": "judgment",
+              "value": -1975.9,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Negative reserve for cyclical fare pressure, fuel volatility, and debt-service burden not fully embedded in mid-cycle owner-cash multiple."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Cycle and leverage reserve per share",
+              "kind": "calculation",
+              "value": -3.00005618,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-1975.9 \u00f7 658.621",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "operating_income_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "OperatingIncomeLoss $1467.0M (FY2025, down from $2614.0M prior year)",
+            "as_of": "2025-12-31",
+            "source_id": "42d3dd867e89dd2218344aea89417bae28f3751e5e2178faa558e13bc1ab828f"
+          },
+          {
+            "node_id": "capex_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+            "locator": "PaymentsToAcquireProductiveAssets $3,779M (FY2025)",
+            "as_of": "2025-12-31",
+            "source_id": "ede70fadaab98fd93f54690bb626a339492be8c752fb1808923267c062b16013"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+            "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+            "as_of": "2026-03-31",
+            "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "55fb50d2a04ba27d6e06b59c16d3aa5199411d0f694ed6b4822ea4970630fd9b"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+      "scenario_assumptions": "Proof outputs {'low': -18.0, 'base': -9.0, 'high': -3.0001}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Reconcile to FY2025 10-K and Q1 2026 10-Q before decision use.",
+      "falsifier": "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "overlap_key": "cycle_leverage_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 4,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "midcycle_passenger_network",
+        "label": "Mid-cycle U.S. network passenger and cargo operations",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "aadvantage_co_brand_option",
+        "label": "AAdvantage co-brand and partner loyalty economics",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+        "method": "risk_adjusted_milestone_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and debt claims on common equity",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "cycle_leverage_reserve",
+        "label": "Fuel, recession, and leverage stress reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Primary bridge from AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm: FY2025 revenue $54633.0M, OCF $3099.0M, cash $902.0M, total debt $29007.0M; contract backfill 2026-07-21.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "predictable_cash_flow",
+    "label": "Predictable cash-flow security",
+    "score": 3.0,
+    "reasons": [
+      "component categories=operating_business",
+      "existing methods=dividend, owner_cash"
+    ],
+    "primary_methods": [
+      "owner_cash_or_dividend_discount"
+    ],
+    "corroborating_methods": [
+      "regulated_asset_base",
+      "yield_and_reverse_dcf"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "cash-flow durability",
+      "maintenance capital",
+      "funding plan",
+      "distribution policy",
+      "contract or regulatory reset terms"
+    ],
+    "failure_modes": [
+      "dividend treated as earning power",
+      "growth capital and dilution omitted",
+      "contract renewal or regulatory reset ignored"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "binary_milestone",
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, risk_adjusted"
+        ]
+      },
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 3.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
+      },
+      "binary_milestone": {
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, risk_adjusted"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "AAL",
+    "as_of": "2026-07-21",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "capital_cycle",
+      "moat": "none",
+      "dhando": "none",
+      "stance": "watch",
+      "cycle": "mid",
+      "moi_bucket": "pending",
+      "payoff_lens": "levered",
+      "investment_sleeve": "ls_algo_underlying",
+      "predictive_attribute": "complexity_discount"
+    },
+    "specialist_power_zones": [],
+    "committee": {
+      "candidate_count": 3,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "buffett_weschler",
+          "independence_group": "quality_reinvestment"
+        },
+        {
+          "persona": "hohn",
+          "independence_group": "competitive_advantage"
+        },
+        {
+          "persona": "marks_credit_cycle",
+          "independence_group": "credit_cycle"
+        }
+      ]
+    },
+    "input_hash": "3523f66c6ffc33e74e7fef02a4adbea8efd9d3f0fcb8edb30c5d5cb3a844ca87",
+    "generated_at": "2026-07-21T05:11:23.341512+00:00"
+  },
+  "market": {
+    "price_per_share": 13.43,
+    "fully_diluted_shares": 658621000,
+    "market_cap_m": 8845.28,
+    "enterprise_value_m": 36950.28,
+    "price_source": "Yahoo AAL close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 0.0,
+      "base": 0.0,
+      "high": 26.1449
+    },
+    "value_per_share": {
+      "low": 0.0,
+      "base": 0.0,
+      "high": 26.1449
+    },
+    "present_value_today_per_share": {
+      "low": 0.0,
+      "base": 0.0,
+      "high": 26.1449
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": -41.7046,
+      "base": -9.7925,
+      "high": 26.1449
+    },
+    "legacy_value_per_share": {
+      "low": 0.0,
+      "base": 0.0,
+      "high": 26.15
+    },
+    "probability_weighted_value_per_share": 0.0,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": null,
+      "base": null,
+      "high": 48.63
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -100.0,
+      "base": -100.0,
+      "high": 94.68
+    },
+    "downside_to_low_pct": -100.0,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "midcycle_passenger_network",
+        "label": "Mid-cycle U.S. network passenger and cargo operations",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 33.88,
+        "legacy_base_per_share": 33.88,
+        "range_width_per_share": 28.2398,
+        "scenario_assumptions": "Proof outputs {'low': 21.1701, 'base': 33.88, 'high': 49.4099}; see calculation_proof graph."
+      },
+      {
+        "component_id": "aadvantage_co_brand_option",
+        "label": "AAdvantage co-brand and partner loyalty economics",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 8.0,
+        "legacy_base_per_share": 8.0,
+        "range_width_per_share": 20.0,
+        "scenario_assumptions": "Proof outputs {'low': 0.0, 'base': 8.0, 'high': 20.0}; see calculation_proof graph."
+      },
+      {
+        "component_id": "cycle_leverage_reserve",
+        "label": "Fuel, recession, and leverage stress reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -9.0,
+        "legacy_base_per_share": -9.0,
+        "range_width_per_share": 14.9999,
+        "scenario_assumptions": "Proof outputs {'low': -18.0, 'base': -9.0, 'high': -3.0001}; see calculation_proof graph."
+      },
+      {
+        "component_id": "net_financial_claims",
+        "label": "Net cash and debt claims on common equity",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -42.6725,
+        "legacy_base_per_share": -42.67,
+        "range_width_per_share": 4.6098,
+        "scenario_assumptions": "Proof outputs {'low': -44.8747, 'base': -42.6725, 'high': -40.2649}; see calculation_proof graph."
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 4,
+    "priced_component_count": 4,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 4,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "8492349ee6b87fba32e455c5fcab00fba0e7caf61af77bd822a9a5cff020d800"
+  },
+  "source_lineage": [
+    {
+      "component_id": "midcycle_passenger_network",
+      "node_id": "operating_cash_flow_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "NetCashProvidedByUsedInOperatingActivities $3,099M (FY2025)",
+      "as_of": "2025-12-31",
+      "source_id": "b797118a95e0a2c20bd57d6d59996ce0d35f5e98b101d35d44ddd84565d702ae"
+    },
+    {
+      "component_id": "midcycle_passenger_network",
+      "node_id": "midcycle_operating_income_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "OperatingIncomeLoss $1467.0M (2025) and $2614.0M (2024); midpoint normalization",
+      "as_of": "2025-12-31",
+      "source_id": "c2fcfccd8004bda6ad281e0f099e626b2f5e017bdb1fa9b8516dc2089186c1b0"
+    },
+    {
+      "component_id": "midcycle_passenger_network",
+      "node_id": "shares_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+      "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+      "as_of": "2026-03-31",
+      "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+    },
+    {
+      "component_id": "aadvantage_co_brand_option",
+      "node_id": "total_revenue_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "RevenueFromContractWithCustomerExcludingAssessedTax $54,633M (FY2025)",
+      "as_of": "2025-12-31",
+      "source_id": "f755a21ca4ce438ac3c00287b873ca4d5277c85a0bbc17ba44aa247b8a2b1523"
+    },
+    {
+      "component_id": "aadvantage_co_brand_option",
+      "node_id": "shares_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+      "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+      "as_of": "2026-03-31",
+      "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "cash_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $902M at December 31, 2025",
+      "as_of": "2025-12-31",
+      "source_id": "875f09dd55555dee57d23a5b4217ec2bade052f969a2a2894905bbf42a3e3aa9"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "debt_lt_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "LongTermDebtAndCapitalLeaseObligations $25,254M at December 31, 2025",
+      "as_of": "2025-12-31",
+      "source_id": "0ca5e63d2e53d03cfab8d8679f223012fe268a0f6ea07c600f57b798f84967c2"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "debt_cur_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "LongTermDebtAndCapitalLeaseObligationsCurrent $3,753M at December 31, 2025",
+      "as_of": "2025-12-31",
+      "source_id": "b095a9994d614e51fc180d78ca83aa025536a5c899a7a4d0a6e4309d7129479a"
+    },
+    {
+      "component_id": "net_financial_claims",
+      "node_id": "shares_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+      "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+      "as_of": "2026-03-31",
+      "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+    },
+    {
+      "component_id": "cycle_leverage_reserve",
+      "node_id": "operating_income_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "OperatingIncomeLoss $1467.0M (FY2025, down from $2614.0M prior year)",
+      "as_of": "2025-12-31",
+      "source_id": "42d3dd867e89dd2218344aea89417bae28f3751e5e2178faa558e13bc1ab828f"
+    },
+    {
+      "component_id": "cycle_leverage_reserve",
+      "node_id": "capex_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-K_20260218_rpt20251231_acc0000006201_26_000014.htm",
+      "locator": "PaymentsToAcquireProductiveAssets $3,779M (FY2025)",
+      "as_of": "2025-12-31",
+      "source_id": "ede70fadaab98fd93f54690bb626a339492be8c752fb1808923267c062b16013"
+    },
+    {
+      "component_id": "cycle_leverage_reserve",
+      "node_id": "shares_m",
+      "ref": "AAL/investor-documents/sec-edgar/10-Q_20260423_rpt20260331_acc0000006201_26_000032.htm",
+      "locator": "Q1 2026 net income $382M / diluted EPS $0.58",
+      "as_of": "2026-03-31",
+      "source_id": "1f189f58f3e84aa0f5fcb6236b03784536f60778ca02c17cb695630152cbd2c5"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case.",
+      "Primary evidence shows claim, cash conversion, or capital structure is materially worse than low case."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "08b37630e0d49965e082c17b297632895343871e8421474deb57b89c5ea6fc80",
+    "method_versions": [
+      "net_asset_value@1.0",
+      "owner_cash_or_dividend_discount@1.0",
+      "risk_adjusted_milestone_value@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 1,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

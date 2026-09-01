@@ -1,0 +1,3211 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "AZLCZ",
+  "as_of": "2026-07-21",
+  "dates": {
+    "model_as_of": "2026-07-21",
+    "latest_fact_as_of": "2025-12-31",
+    "oldest_fact_as_of": "2024-12-31",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -13.49,
+      "base": -3.86,
+      "high": 7.73
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "current_lease_cash",
+      "label": "Current renewable, grazing, and access lease cash",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Current and incremental renewable lease portfolio",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "normalized_owner_cash_capitalization",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 128.0479,
+        "base": 241.0313,
+        "high": 354.0147
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 127.0,
+        "base": 241.0,
+        "high": 354.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 128.0479,
+          "base": 241.0313,
+          "high": 354.0147
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash (FY2024 run-rate)",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "Statements of revenues and expenses; excess revenues over expenses $2,134,121 for year ended 2024-12-31",
+                "as_of": "2024-12-31",
+                "source_id": "4039d8db93525a2c60c825f4370a50d6515e52b7b179f411ff1fd0de2d6490f9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares issued and outstanding at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "4432b65a415cfeb67d2ea5c3b5a4ebed831a0a24c4d39a315a2bf717d3f987bd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cap_multiple",
+              "label": "Owner-cash capitalization multiple on current leases only",
+              "kind": "judgment",
+              "value": 8.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bounded range for contracted ground-rent durability; excludes incremental project rent already modeled separately."
+            },
+            {
+              "id": "capitalized_m",
+              "label": "Capitalized current lease cash",
+              "kind": "calculation",
+              "value": 18.1400285,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 cap_multiple",
+              "substituted_formula": "2.134121 \u00d7 8.5",
+              "dependencies": [
+                "owner_cash_m",
+                "cap_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Current lease value per share",
+              "kind": "calculation",
+              "value": 128.04786258,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "capitalized_m \u00f7 shares_m",
+              "substituted_formula": "18.140028 \u00f7 0.141666",
+              "dependencies": [
+                "capitalized_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash (FY2024 run-rate)",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "Statements of revenues and expenses; excess revenues over expenses $2,134,121 for year ended 2024-12-31",
+                "as_of": "2024-12-31",
+                "source_id": "4039d8db93525a2c60c825f4370a50d6515e52b7b179f411ff1fd0de2d6490f9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares issued and outstanding at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "4432b65a415cfeb67d2ea5c3b5a4ebed831a0a24c4d39a315a2bf717d3f987bd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cap_multiple",
+              "label": "Owner-cash capitalization multiple on current leases only",
+              "kind": "judgment",
+              "value": 16.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bounded range for contracted ground-rent durability; excludes incremental project rent already modeled separately."
+            },
+            {
+              "id": "capitalized_m",
+              "label": "Capitalized current lease cash",
+              "kind": "calculation",
+              "value": 34.145936,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 cap_multiple",
+              "substituted_formula": "2.134121 \u00d7 16",
+              "dependencies": [
+                "owner_cash_m",
+                "cap_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Current lease value per share",
+              "kind": "calculation",
+              "value": 241.03127074,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "capitalized_m \u00f7 shares_m",
+              "substituted_formula": "34.145936 \u00f7 0.141666",
+              "dependencies": [
+                "capitalized_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash (FY2024 run-rate)",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "Statements of revenues and expenses; excess revenues over expenses $2,134,121 for year ended 2024-12-31",
+                "as_of": "2024-12-31",
+                "source_id": "4039d8db93525a2c60c825f4370a50d6515e52b7b179f411ff1fd0de2d6490f9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares issued and outstanding at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "4432b65a415cfeb67d2ea5c3b5a4ebed831a0a24c4d39a315a2bf717d3f987bd"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cap_multiple",
+              "label": "Owner-cash capitalization multiple on current leases only",
+              "kind": "judgment",
+              "value": 23.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bounded range for contracted ground-rent durability; excludes incremental project rent already modeled separately."
+            },
+            {
+              "id": "capitalized_m",
+              "label": "Capitalized current lease cash",
+              "kind": "calculation",
+              "value": 50.1518435,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 cap_multiple",
+              "substituted_formula": "2.134121 \u00d7 23.5",
+              "dependencies": [
+                "owner_cash_m",
+                "cap_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Current lease value per share",
+              "kind": "calculation",
+              "value": 354.01467889,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "capitalized_m \u00f7 shares_m",
+              "substituted_formula": "50.151843 \u00f7 0.141666",
+              "dependencies": [
+                "capitalized_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "owner_cash_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+            "locator": "Statements of revenues and expenses; excess revenues over expenses $2,134,121 for year ended 2024-12-31",
+            "as_of": "2024-12-31",
+            "source_id": "4039d8db93525a2c60c825f4370a50d6515e52b7b179f411ff1fd0de2d6490f9"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares issued and outstanding at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "4432b65a415cfeb67d2ea5c3b5a4ebed831a0a24c4d39a315a2bf717d3f987bd"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "69c0c957899b5154636625a95dd00f05f2f76e8ae7aa8be60d16ff4113a86bae"
+      },
+      "evidence_tier": "fy2024_fy2025_financials",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Normalized owner cash is approximately $2.13M; values apply 8.5x, 16x, and 23.5x to current cash without future project rent.",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+      "overlap_key": "azlcz_current_leases",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "incremental_renewable_projects",
+      "label": "Incremental renewable projects in development or construction",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Current and incremental renewable lease portfolio",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "timing_and_completion_discounted_renewable_nav",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "probability_weighted_catalyst_nav",
+        "version": "1.0",
+        "label": "Mutually exclusive catalyst event tree",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "catalyst_asset_value"
+        ],
+        "equation": "value = sum(probability_i*(payoff_i-cost_i)/(1+r_i)^years_i)",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Probability, beneficiary, timing and failure cases"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 422.6562,
+        "base": 609.5787,
+        "high": 1046.0322
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 423.0,
+        "base": 609.0,
+        "high": 1046.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "probability_weighted_catalyst_nav",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 422.6562,
+          "base": 609.5787,
+          "high": 1046.0322
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash baseline",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "FY2024 excess revenues over expenses $2,134,121",
+                "as_of": "2024-12-31",
+                "source_id": "2220a3baf1e4124f309fdb8737485a07b7884270ab8302915df05792f9edab02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steady_state_m",
+              "label": "Steady-state renewable owner cash",
+              "kind": "judgment",
+              "value": 6.8,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Approved Groundbreaker project ramp cross-check; bounded pending full contract disclosure."
+            },
+            {
+              "id": "steady_multiple",
+              "label": "Steady-state capitalization multiple",
+              "kind": "judgment",
+              "value": 15.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Groundbreaker comparable lease portfolio capitalization."
+            },
+            {
+              "id": "current_multiple",
+              "label": "Current lease capitalization multiple",
+              "kind": "judgment",
+              "value": 8.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Matches current_lease_cash component to avoid double counting."
+            },
+            {
+              "id": "completion_discount",
+              "label": "Completion and timing discount on incremental rent",
+              "kind": "judgment",
+              "value": 0.714,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Discount for projects still in cancellable development or construction terms per Note 10."
+            },
+            {
+              "id": "portfolio_m",
+              "label": "Steady-state capitalized portfolio",
+              "kind": "calculation",
+              "value": 102.0,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "steady_state_m \u00d7 steady_multiple",
+              "substituted_formula": "6.8 \u00d7 15",
+              "dependencies": [
+                "steady_state_m",
+                "steady_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_ps",
+              "label": "Steady-state portfolio per share",
+              "kind": "calculation",
+              "value": 720.00338825,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "portfolio_m \u00f7 shares_m",
+              "substituted_formula": "102 \u00f7 0.141666",
+              "dependencies": [
+                "portfolio_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "current_cap_m",
+              "label": "Current capitalized lease cash",
+              "kind": "calculation",
+              "value": 18.1400285,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 current_multiple",
+              "substituted_formula": "2.134121 \u00d7 8.5",
+              "dependencies": [
+                "owner_cash_m",
+                "current_multiple"
+              ]
+            },
+            {
+              "id": "current_ps",
+              "label": "Current lease per share",
+              "kind": "calculation",
+              "value": 128.04786258,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "current_cap_m \u00f7 shares_m",
+              "substituted_formula": "18.140028 \u00f7 0.141666",
+              "dependencies": [
+                "current_cap_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "undiscounted_ps",
+              "label": "Undiscounted incremental per share",
+              "kind": "calculation",
+              "value": 591.95552567,
+              "unit": "USD per share",
+              "operation": "subtract",
+              "formula": "portfolio_ps - current_ps",
+              "substituted_formula": "720.00339 - 128.04786",
+              "dependencies": [
+                "portfolio_ps",
+                "current_ps"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental renewable per share",
+              "kind": "calculation",
+              "value": 422.65624533,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "undiscounted_ps \u00d7 completion_discount",
+              "substituted_formula": "591.95553 \u00d7 0.714",
+              "dependencies": [
+                "undiscounted_ps",
+                "completion_discount"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash baseline",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "FY2024 excess revenues over expenses $2,134,121",
+                "as_of": "2024-12-31",
+                "source_id": "2220a3baf1e4124f309fdb8737485a07b7884270ab8302915df05792f9edab02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steady_state_m",
+              "label": "Steady-state renewable owner cash",
+              "kind": "judgment",
+              "value": 9.9,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Approved Groundbreaker project ramp cross-check; bounded pending full contract disclosure."
+            },
+            {
+              "id": "steady_multiple",
+              "label": "Steady-state capitalization multiple",
+              "kind": "judgment",
+              "value": 16.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Groundbreaker comparable lease portfolio capitalization."
+            },
+            {
+              "id": "current_multiple",
+              "label": "Current lease capitalization multiple",
+              "kind": "judgment",
+              "value": 16.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Matches current_lease_cash component to avoid double counting."
+            },
+            {
+              "id": "completion_discount",
+              "label": "Completion and timing discount on incremental rent",
+              "kind": "judgment",
+              "value": 0.695,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Discount for projects still in cancellable development or construction terms per Note 10."
+            },
+            {
+              "id": "portfolio_m",
+              "label": "Steady-state capitalized portfolio",
+              "kind": "calculation",
+              "value": 158.4,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "steady_state_m \u00d7 steady_multiple",
+              "substituted_formula": "9.9 \u00d7 16",
+              "dependencies": [
+                "steady_state_m",
+                "steady_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_ps",
+              "label": "Steady-state portfolio per share",
+              "kind": "calculation",
+              "value": 1118.12290881,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "portfolio_m \u00f7 shares_m",
+              "substituted_formula": "158.4 \u00f7 0.141666",
+              "dependencies": [
+                "portfolio_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "current_cap_m",
+              "label": "Current capitalized lease cash",
+              "kind": "calculation",
+              "value": 34.145936,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 current_multiple",
+              "substituted_formula": "2.134121 \u00d7 16",
+              "dependencies": [
+                "owner_cash_m",
+                "current_multiple"
+              ]
+            },
+            {
+              "id": "current_ps",
+              "label": "Current lease per share",
+              "kind": "calculation",
+              "value": 241.03127074,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "current_cap_m \u00f7 shares_m",
+              "substituted_formula": "34.145936 \u00f7 0.141666",
+              "dependencies": [
+                "current_cap_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "undiscounted_ps",
+              "label": "Undiscounted incremental per share",
+              "kind": "calculation",
+              "value": 877.09163808,
+              "unit": "USD per share",
+              "operation": "subtract",
+              "formula": "portfolio_ps - current_ps",
+              "substituted_formula": "1118.1229 - 241.03127",
+              "dependencies": [
+                "portfolio_ps",
+                "current_ps"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental renewable per share",
+              "kind": "calculation",
+              "value": 609.57868846,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "undiscounted_ps \u00d7 completion_discount",
+              "substituted_formula": "877.09164 \u00d7 0.695",
+              "dependencies": [
+                "undiscounted_ps",
+                "completion_discount"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "owner_cash_m",
+              "label": "Normalized owner cash baseline",
+              "kind": "fact",
+              "value": 2.134121,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+                "locator": "FY2024 excess revenues over expenses $2,134,121",
+                "as_of": "2024-12-31",
+                "source_id": "2220a3baf1e4124f309fdb8737485a07b7884270ab8302915df05792f9edab02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "steady_state_m",
+              "label": "Steady-state renewable owner cash",
+              "kind": "judgment",
+              "value": 12.9,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Approved Groundbreaker project ramp cross-check; bounded pending full contract disclosure."
+            },
+            {
+              "id": "steady_multiple",
+              "label": "Steady-state capitalization multiple",
+              "kind": "judgment",
+              "value": 18.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Groundbreaker comparable lease portfolio capitalization."
+            },
+            {
+              "id": "current_multiple",
+              "label": "Current lease capitalization multiple",
+              "kind": "judgment",
+              "value": 23.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Matches current_lease_cash component to avoid double counting."
+            },
+            {
+              "id": "completion_discount",
+              "label": "Completion and timing discount on incremental rent",
+              "kind": "judgment",
+              "value": 0.814,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Discount for projects still in cancellable development or construction terms per Note 10."
+            },
+            {
+              "id": "portfolio_m",
+              "label": "Steady-state capitalized portfolio",
+              "kind": "calculation",
+              "value": 232.2,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "steady_state_m \u00d7 steady_multiple",
+              "substituted_formula": "12.9 \u00d7 18",
+              "dependencies": [
+                "steady_state_m",
+                "steady_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_ps",
+              "label": "Steady-state portfolio per share",
+              "kind": "calculation",
+              "value": 1639.06653678,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "portfolio_m \u00f7 shares_m",
+              "substituted_formula": "232.2 \u00f7 0.141666",
+              "dependencies": [
+                "portfolio_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "current_cap_m",
+              "label": "Current capitalized lease cash",
+              "kind": "calculation",
+              "value": 50.1518435,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 current_multiple",
+              "substituted_formula": "2.134121 \u00d7 23.5",
+              "dependencies": [
+                "owner_cash_m",
+                "current_multiple"
+              ]
+            },
+            {
+              "id": "current_ps",
+              "label": "Current lease per share",
+              "kind": "calculation",
+              "value": 354.01467889,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "current_cap_m \u00f7 shares_m",
+              "substituted_formula": "50.151843 \u00f7 0.141666",
+              "dependencies": [
+                "current_cap_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "undiscounted_ps",
+              "label": "Undiscounted incremental per share",
+              "kind": "calculation",
+              "value": 1285.05185789,
+              "unit": "USD per share",
+              "operation": "subtract",
+              "formula": "portfolio_ps - current_ps",
+              "substituted_formula": "1639.0665 - 354.01468",
+              "dependencies": [
+                "portfolio_ps",
+                "current_ps"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked incremental renewable per share",
+              "kind": "calculation",
+              "value": 1046.03221232,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "undiscounted_ps \u00d7 completion_discount",
+              "substituted_formula": "1285.0519 \u00d7 0.814",
+              "dependencies": [
+                "undiscounted_ps",
+                "completion_discount"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "owner_cash_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+            "locator": "FY2024 excess revenues over expenses $2,134,121",
+            "as_of": "2024-12-31",
+            "source_id": "2220a3baf1e4124f309fdb8737485a07b7884270ab8302915df05792f9edab02"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "c0acb68f9a8b32ce1c12369f744fea3edfd0b0d26db4e9e465f47a1f90951665"
+      },
+      "evidence_tier": "approved_groundbreaker_crosscheck_plus_project_disclosures",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Groundbreaker's complete renewable portfolio is worth approximately $720/$1,115/$1,638 per share from $6.8M/$9.9M/$12.9M steady-state cash at 15x/16x/18x. After subtracting current lease value, the remainder is discounted for time to operation and completion risk.",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Discounting, realization friction, and the component assumptions reflect the time required to contract, develop, or monetize the claim.",
+        "probability_basis": "The component low/base/high range or milestone driver explicitly risks realization; uncertainty widens the range rather than creating a zero.",
+        "remaining_capital_basis": "Remaining owner-funded capital is deducted in the driver where disclosed; otherwise the range and realization reserve reflect the unresolved capital burden."
+      },
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "azlcz_incremental_renewables",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "residual_surface_acreage",
+      "label": "Residual surface acreage after lease overlap",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Segmented residual surface land",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "segmented_comparable_land_nav_with_realization_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 423.7558,
+        "base": 949.8672,
+        "high": 2270.9963
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 425.0,
+        "base": 950.0,
+        "high": 2270.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 423.7558,
+          "base": 949.8672,
+          "high": 2270.9963
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "residual_acres",
+              "label": "Residual surface acres after panel overlap",
+              "kind": "estimate",
+              "value": 234800.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1 ~239,000 surface acres minus ~4,200 Hashknife solar panel acres per Groundbreaker segmentation cross-check",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "4b1331ae3651a00488c7b2311c60d2a33c026440ccd368e78aa11f240e65a331"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "per_acre_mark",
+              "label": "Segmented comparable per-acre mark",
+              "kind": "judgment",
+              "value": 603.0,
+              "unit": "USD per acre",
+              "source": null,
+              "rationale": "Approved Groundbreaker transaction ladder by parcel class; not a single portfolio average."
+            },
+            {
+              "id": "realization_discount",
+              "label": "Checkerboard, control, and transaction friction discount",
+              "kind": "judgment",
+              "value": 0.424,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Converts gross comparable land NAV to risked present value for minority OTC holders."
+            },
+            {
+              "id": "gross_value_dollars",
+              "label": "Gross land NAV dollars",
+              "kind": "calculation",
+              "value": 141584400.0,
+              "unit": "USD",
+              "operation": "multiply",
+              "formula": "residual_acres \u00d7 per_acre_mark",
+              "substituted_formula": "234800 \u00d7 603",
+              "dependencies": [
+                "residual_acres",
+                "per_acre_mark"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "Gross land NAV millions",
+              "kind": "calculation",
+              "value": 141.5844,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_value_dollars \u00d7 1e-06",
+              "substituted_formula": "1.415844e+08 \u00d7 1e-06",
+              "dependencies": [
+                "gross_value_dollars",
+                1e-06
+              ]
+            },
+            {
+              "id": "gross_ps",
+              "label": "Gross land NAV per share",
+              "kind": "calculation",
+              "value": 999.42399729,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "141.5844 \u00f7 0.141666",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked residual land per share",
+              "kind": "calculation",
+              "value": 423.75577485,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "gross_ps \u00d7 realization_discount",
+              "substituted_formula": "999.424 \u00d7 0.424",
+              "dependencies": [
+                "gross_ps",
+                "realization_discount"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "residual_acres",
+              "label": "Residual surface acres after panel overlap",
+              "kind": "estimate",
+              "value": 234800.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1 ~239,000 surface acres minus ~4,200 Hashknife solar panel acres per Groundbreaker segmentation cross-check",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "4b1331ae3651a00488c7b2311c60d2a33c026440ccd368e78aa11f240e65a331"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "per_acre_mark",
+              "label": "Segmented comparable per-acre mark",
+              "kind": "judgment",
+              "value": 1100.0,
+              "unit": "USD per acre",
+              "source": null,
+              "rationale": "Approved Groundbreaker transaction ladder by parcel class; not a single portfolio average."
+            },
+            {
+              "id": "realization_discount",
+              "label": "Checkerboard, control, and transaction friction discount",
+              "kind": "judgment",
+              "value": 0.521,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Converts gross comparable land NAV to risked present value for minority OTC holders."
+            },
+            {
+              "id": "gross_value_dollars",
+              "label": "Gross land NAV dollars",
+              "kind": "calculation",
+              "value": 258280000.0,
+              "unit": "USD",
+              "operation": "multiply",
+              "formula": "residual_acres \u00d7 per_acre_mark",
+              "substituted_formula": "234800 \u00d7 1100",
+              "dependencies": [
+                "residual_acres",
+                "per_acre_mark"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "Gross land NAV millions",
+              "kind": "calculation",
+              "value": 258.28,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_value_dollars \u00d7 1e-06",
+              "substituted_formula": "2.5828e+08 \u00d7 1e-06",
+              "dependencies": [
+                "gross_value_dollars",
+                1e-06
+              ]
+            },
+            {
+              "id": "gross_ps",
+              "label": "Gross land NAV per share",
+              "kind": "calculation",
+              "value": 1823.16152076,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "258.28 \u00f7 0.141666",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked residual land per share",
+              "kind": "calculation",
+              "value": 949.86715232,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "gross_ps \u00d7 realization_discount",
+              "substituted_formula": "1823.1615 \u00d7 0.521",
+              "dependencies": [
+                "gross_ps",
+                "realization_discount"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "residual_acres",
+              "label": "Residual surface acres after panel overlap",
+              "kind": "estimate",
+              "value": 234800.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1 ~239,000 surface acres minus ~4,200 Hashknife solar panel acres per Groundbreaker segmentation cross-check",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "4b1331ae3651a00488c7b2311c60d2a33c026440ccd368e78aa11f240e65a331"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "per_acre_mark",
+              "label": "Segmented comparable per-acre mark",
+              "kind": "judgment",
+              "value": 2015.0,
+              "unit": "USD per acre",
+              "source": null,
+              "rationale": "Approved Groundbreaker transaction ladder by parcel class; not a single portfolio average."
+            },
+            {
+              "id": "realization_discount",
+              "label": "Checkerboard, control, and transaction friction discount",
+              "kind": "judgment",
+              "value": 0.68,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Converts gross comparable land NAV to risked present value for minority OTC holders."
+            },
+            {
+              "id": "gross_value_dollars",
+              "label": "Gross land NAV dollars",
+              "kind": "calculation",
+              "value": 473122000.0,
+              "unit": "USD",
+              "operation": "multiply",
+              "formula": "residual_acres \u00d7 per_acre_mark",
+              "substituted_formula": "234800 \u00d7 2015",
+              "dependencies": [
+                "residual_acres",
+                "per_acre_mark"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "Gross land NAV millions",
+              "kind": "calculation",
+              "value": 473.122,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_value_dollars \u00d7 1e-06",
+              "substituted_formula": "4.73122e+08 \u00d7 1e-06",
+              "dependencies": [
+                "gross_value_dollars",
+                1e-06
+              ]
+            },
+            {
+              "id": "gross_ps",
+              "label": "Gross land NAV per share",
+              "kind": "calculation",
+              "value": 3339.70042212,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "473.122 \u00f7 0.141666",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Risked residual land per share",
+              "kind": "calculation",
+              "value": 2270.99628704,
+              "unit": "USD per share",
+              "operation": "multiply",
+              "formula": "gross_ps \u00d7 realization_discount",
+              "substituted_formula": "3339.7004 \u00d7 0.68",
+              "dependencies": [
+                "gross_ps",
+                "realization_discount"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "residual_acres",
+            "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+            "locator": "Note 1 ~239,000 surface acres minus ~4,200 Hashknife solar panel acres per Groundbreaker segmentation cross-check",
+            "as_of": "2025-12-31",
+            "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+            "source_id": "4b1331ae3651a00488c7b2311c60d2a33c026440ccd368e78aa11f240e65a331"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "6c7fc6c05937249e3918acc0887e17e003e6b41b5c0c9d4b5fec375a66d7bdad"
+      },
+      "evidence_tier": "approved_groundbreaker_transaction_ladder",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Groundbreaker segments approximately 234,800 residual acres at weighted $603/$1,100/$2,015 per acre, producing $1,002/$1,821/$3,339 per share of gross land NAV. Risked values retain substantial discounts for checkerboard geometry, minority control, timing, and transaction friction.",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Discounting, realization friction, and the component assumptions reflect the time required to contract, develop, or monetize the claim.",
+        "probability_basis": "The component low/base/high range or milestone driver explicitly risks realization; uncertainty widens the range rather than creating a zero.",
+        "remaining_capital_basis": "Remaining owner-funded capital is deducted in the driver where disclosed; otherwise the range and realization reserve reflect the unresolved capital burden."
+      },
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "azlcz_residual_surface",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "mineral_option",
+      "label": "Mineral and helium option",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Holbrook Basin minerals and helium option",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risked_comparable_option_nav",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 5.0012,
+        "base": 35.0119,
+        "high": 149.8242
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 5.0,
+        "base": 35.0,
+        "high": 150.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 5.0012,
+          "base": 35.0119,
+          "high": 149.8242
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "mineral_acres",
+              "label": "Mineral acres disclosed",
+              "kind": "fact",
+              "value": 318000.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1; approximately 318,000 acres of mineral rights",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "44363f5c714d48a7144ed2ecaffe673ac137f66690dd52fe70b5591be89a3416"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable mineral option value",
+              "kind": "judgment",
+              "value": 5.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker Holbrook Basin option marks; no production royalties in filings yet."
+            },
+            {
+              "id": "success_probability",
+              "label": "Realization probability",
+              "kind": "judgment",
+              "value": 0.1417,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Permitting, deposit overlap, and absence of operator reduce probability; widened range in high case."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked mineral option value",
+              "kind": "calculation",
+              "value": 0.7085,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 success_probability",
+              "substituted_formula": "5 \u00d7 0.1417",
+              "dependencies": [
+                "gross_option_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mineral option per share",
+              "kind": "calculation",
+              "value": 5.00120001,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "0.7085 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "mineral_acres",
+              "label": "Mineral acres disclosed",
+              "kind": "fact",
+              "value": 318000.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1; approximately 318,000 acres of mineral rights",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "44363f5c714d48a7144ed2ecaffe673ac137f66690dd52fe70b5591be89a3416"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable mineral option value",
+              "kind": "judgment",
+              "value": 20.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker Holbrook Basin option marks; no production royalties in filings yet."
+            },
+            {
+              "id": "success_probability",
+              "label": "Realization probability",
+              "kind": "judgment",
+              "value": 0.248,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Permitting, deposit overlap, and absence of operator reduce probability; widened range in high case."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked mineral option value",
+              "kind": "calculation",
+              "value": 4.96,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 success_probability",
+              "substituted_formula": "20 \u00d7 0.248",
+              "dependencies": [
+                "gross_option_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mineral option per share",
+              "kind": "calculation",
+              "value": 35.01192947,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "4.96 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "mineral_acres",
+              "label": "Mineral acres disclosed",
+              "kind": "fact",
+              "value": 318000.0,
+              "unit": "acres",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 1; approximately 318,000 acres of mineral rights",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "44363f5c714d48a7144ed2ecaffe673ac137f66690dd52fe70b5591be89a3416"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable mineral option value",
+              "kind": "judgment",
+              "value": 75.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker Holbrook Basin option marks; no production royalties in filings yet."
+            },
+            {
+              "id": "success_probability",
+              "label": "Realization probability",
+              "kind": "judgment",
+              "value": 0.283,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Permitting, deposit overlap, and absence of operator reduce probability; widened range in high case."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked mineral option value",
+              "kind": "calculation",
+              "value": 21.225,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 success_probability",
+              "substituted_formula": "75 \u00d7 0.283",
+              "dependencies": [
+                "gross_option_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Mineral option per share",
+              "kind": "calculation",
+              "value": 149.82423447,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "21.225 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "mineral_acres",
+            "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+            "locator": "Note 1; approximately 318,000 acres of mineral rights",
+            "as_of": "2025-12-31",
+            "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+            "source_id": "44363f5c714d48a7144ed2ecaffe673ac137f66690dd52fe70b5591be89a3416"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "2e2a8c0d915b207b7f697af83ea89d6f3af356a3fed0d6f6fe7813d0f89a8449"
+      },
+      "evidence_tier": "approved_groundbreaker_geology_crosscheck",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Groundbreaker marks the mineral estate at approximately $35/$141/$529 per share. The risked schedule discounts heavily for unmapped deposit overlap, commodity economics, permitting, and absence of an operator.",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Discounting, realization friction, and the component assumptions reflect the time required to contract, develop, or monetize the claim.",
+        "probability_basis": "The component low/base/high range or milestone driver explicitly risks realization; uncertainty widens the range rather than creating a zero.",
+        "remaining_capital_basis": "Remaining owner-funded capital is deducted in the driver where disclosed; otherwise the range and realization reserve reflect the unresolved capital burden."
+      },
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "azlcz_minerals",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "water_option",
+      "label": "Little Colorado water-right option",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Water rights and groundwater",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risked_legal_and_transaction_nav",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 15.0036,
+        "base": 99.9534,
+        "high": 350.0487
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 15.0,
+        "base": 100.0,
+        "high": 350.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 15.0036,
+          "base": 99.9534,
+          "high": 350.0487
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "south_well_af",
+              "label": "South Well Field entitlement",
+              "kind": "fact",
+              "value": 13490.0,
+              "unit": "acre-feet per year",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 17; Corporation entitled to 13,490 acre feet per year from South Well Field",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "eab55782588dc8c3fe755d4e2e7646907f7cd59d7546be05150e94183b9a17bb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable water option value",
+              "kind": "judgment",
+              "value": 15.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker pre-adjudication marks; western water transactions are contextual only."
+            },
+            {
+              "id": "realization_probability",
+              "label": "Transferable and adjudicated realization probability",
+              "kind": "judgment",
+              "value": 0.1417,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Little Colorado adjudication unresolved; base uses fraction of entitlement, not full 13,490 AF mark."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked water option value",
+              "kind": "calculation",
+              "value": 2.1255,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 realization_probability",
+              "substituted_formula": "15 \u00d7 0.1417",
+              "dependencies": [
+                "gross_option_m",
+                "realization_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Water option per share",
+              "kind": "calculation",
+              "value": 15.00360002,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "2.1255 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "south_well_af",
+              "label": "South Well Field entitlement",
+              "kind": "fact",
+              "value": 13490.0,
+              "unit": "acre-feet per year",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 17; Corporation entitled to 13,490 acre feet per year from South Well Field",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "eab55782588dc8c3fe755d4e2e7646907f7cd59d7546be05150e94183b9a17bb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable water option value",
+              "kind": "judgment",
+              "value": 40.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker pre-adjudication marks; western water transactions are contextual only."
+            },
+            {
+              "id": "realization_probability",
+              "label": "Transferable and adjudicated realization probability",
+              "kind": "judgment",
+              "value": 0.354,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Little Colorado adjudication unresolved; base uses fraction of entitlement, not full 13,490 AF mark."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked water option value",
+              "kind": "calculation",
+              "value": 14.16,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 realization_probability",
+              "substituted_formula": "40 \u00d7 0.354",
+              "dependencies": [
+                "gross_option_m",
+                "realization_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Water option per share",
+              "kind": "calculation",
+              "value": 99.95341155,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "14.16 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "south_well_af",
+              "label": "South Well Field entitlement",
+              "kind": "fact",
+              "value": 13490.0,
+              "unit": "acre-feet per year",
+              "source": {
+                "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+                "locator": "Note 17; Corporation entitled to 13,490 acre feet per year from South Well Field",
+                "as_of": "2025-12-31",
+                "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+                "source_id": "eab55782588dc8c3fe755d4e2e7646907f7cd59d7546be05150e94183b9a17bb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "gross_option_m",
+              "label": "Gross comparable water option value",
+              "kind": "judgment",
+              "value": 90.0,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker pre-adjudication marks; western water transactions are contextual only."
+            },
+            {
+              "id": "realization_probability",
+              "label": "Transferable and adjudicated realization probability",
+              "kind": "judgment",
+              "value": 0.551,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Little Colorado adjudication unresolved; base uses fraction of entitlement, not full 13,490 AF mark."
+            },
+            {
+              "id": "risked_m",
+              "label": "Risked water option value",
+              "kind": "calculation",
+              "value": 49.59,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "gross_option_m \u00d7 realization_probability",
+              "substituted_formula": "90 \u00d7 0.551",
+              "dependencies": [
+                "gross_option_m",
+                "realization_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Water option per share",
+              "kind": "calculation",
+              "value": 350.04870611,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "risked_m \u00f7 shares_m",
+              "substituted_formula": "49.59 \u00f7 0.141666",
+              "dependencies": [
+                "risked_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "south_well_af",
+            "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+            "locator": "Note 17; Corporation entitled to 13,490 acre feet per year from South Well Field",
+            "as_of": "2025-12-31",
+            "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+            "source_id": "eab55782588dc8c3fe755d4e2e7646907f7cd59d7546be05150e94183b9a17bb"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "23c5859d57f223ba276740e4f4eed3664820080d11290d2ae26f033cf0b9895f"
+      },
+      "evidence_tier": "company_update_plus_approved_water_comparables",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Groundbreaker marks water at approximately $106/$282/$635 per share. The risked value discounts for unresolved adjudication, transferability, seniority, and the danger of transplanting Colorado or California prices into rural Arizona.",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Discounting, realization friction, and the component assumptions reflect the time required to contract, develop, or monetize the claim.",
+        "probability_basis": "The component low/base/high range or milestone driver explicitly risks realization; uncertainty widens the range rather than creating a zero.",
+        "remaining_capital_basis": "Remaining owner-funded capital is deducted in the driver where disclosed; otherwise the range and realization reserve reflect the unresolved capital burden."
+      },
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "azlcz_water",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "railway_and_notes",
+      "label": "Apache Railway interest and related-party notes",
+      "category": "financial_asset",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Apache Railway and related-party notes",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "strategic_right_of_way_plus_collectible_notes",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": 30.0001,
+        "base": 74.9651,
+        "high": 162.4015
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 30.0,
+        "base": 75.0,
+        "high": 150.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 30.0001,
+          "base": 74.9651,
+          "high": 162.4015
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "railway_book_m",
+              "label": "Investment in Apache Railroad Company LLC",
+              "kind": "fact",
+              "value": 3.592687,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Investment in The Apache Railroad Company, LLC $3,592,687",
+                "as_of": "2025-12-31",
+                "source_id": "381e4fe000a189f9f334810d1f83f0fcce41ec0bf6c1ebf9e8ad8901939c67c1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "notes_m",
+              "label": "Notes receivable, related parties",
+              "kind": "fact",
+              "value": 5.01936,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Notes receivable, related parties $5,019,360",
+                "as_of": "2025-12-31",
+                "source_id": "ab89aebda50464cdbc6b6e7ce4e58a48ba22e7be766cce1ef318c37607bee920"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "railway_strategic_m",
+              "label": "Strategic railway replacement value",
+              "kind": "judgment",
+              "value": 4.25,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker replacement difficulty and BNSF interchange; base equals risked $75/sh total before note haircuts."
+            },
+            {
+              "id": "notes_collectability",
+              "label": "Related-party notes collectability",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case values strategic railway only; high case adds partial note recovery after illiquidity haircut."
+            },
+            {
+              "id": "notes_risked_m",
+              "label": "Collectible notes",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "notes_m \u00d7 notes_collectability",
+              "substituted_formula": "5.01936 \u00d7 0",
+              "dependencies": [
+                "notes_m",
+                "notes_collectability"
+              ]
+            },
+            {
+              "id": "total_m",
+              "label": "Railway and notes economic value",
+              "kind": "calculation",
+              "value": 4.25,
+              "unit": "USD millions",
+              "operation": "add",
+              "formula": "railway_strategic_m + notes_risked_m",
+              "substituted_formula": "4.25 + 0",
+              "dependencies": [
+                "railway_strategic_m",
+                "notes_risked_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Railway and notes per share",
+              "kind": "calculation",
+              "value": 30.00014118,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "total_m \u00f7 shares_m",
+              "substituted_formula": "4.25 \u00f7 0.141666",
+              "dependencies": [
+                "total_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "railway_book_m",
+              "label": "Investment in Apache Railroad Company LLC",
+              "kind": "fact",
+              "value": 3.592687,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Investment in The Apache Railroad Company, LLC $3,592,687",
+                "as_of": "2025-12-31",
+                "source_id": "381e4fe000a189f9f334810d1f83f0fcce41ec0bf6c1ebf9e8ad8901939c67c1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "notes_m",
+              "label": "Notes receivable, related parties",
+              "kind": "fact",
+              "value": 5.01936,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Notes receivable, related parties $5,019,360",
+                "as_of": "2025-12-31",
+                "source_id": "ab89aebda50464cdbc6b6e7ce4e58a48ba22e7be766cce1ef318c37607bee920"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "railway_strategic_m",
+              "label": "Strategic railway replacement value",
+              "kind": "judgment",
+              "value": 10.62,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker replacement difficulty and BNSF interchange; base equals risked $75/sh total before note haircuts."
+            },
+            {
+              "id": "notes_collectability",
+              "label": "Related-party notes collectability",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case values strategic railway only; high case adds partial note recovery after illiquidity haircut."
+            },
+            {
+              "id": "notes_risked_m",
+              "label": "Collectible notes",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "notes_m \u00d7 notes_collectability",
+              "substituted_formula": "5.01936 \u00d7 0",
+              "dependencies": [
+                "notes_m",
+                "notes_collectability"
+              ]
+            },
+            {
+              "id": "total_m",
+              "label": "Railway and notes economic value",
+              "kind": "calculation",
+              "value": 10.62,
+              "unit": "USD millions",
+              "operation": "add",
+              "formula": "railway_strategic_m + notes_risked_m",
+              "substituted_formula": "10.62 + 0",
+              "dependencies": [
+                "railway_strategic_m",
+                "notes_risked_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Railway and notes per share",
+              "kind": "calculation",
+              "value": 74.96505866,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "total_m \u00f7 shares_m",
+              "substituted_formula": "10.62 \u00f7 0.141666",
+              "dependencies": [
+                "total_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "railway_book_m",
+              "label": "Investment in Apache Railroad Company LLC",
+              "kind": "fact",
+              "value": 3.592687,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Investment in The Apache Railroad Company, LLC $3,592,687",
+                "as_of": "2025-12-31",
+                "source_id": "381e4fe000a189f9f334810d1f83f0fcce41ec0bf6c1ebf9e8ad8901939c67c1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "notes_m",
+              "label": "Notes receivable, related parties",
+              "kind": "fact",
+              "value": 5.01936,
+              "unit": "USD millions",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; Notes receivable, related parties $5,019,360",
+                "as_of": "2025-12-31",
+                "source_id": "ab89aebda50464cdbc6b6e7ce4e58a48ba22e7be766cce1ef318c37607bee920"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "railway_strategic_m",
+              "label": "Strategic railway replacement value",
+              "kind": "judgment",
+              "value": 21.25,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "Groundbreaker replacement difficulty and BNSF interchange; base equals risked $75/sh total before note haircuts."
+            },
+            {
+              "id": "notes_collectability",
+              "label": "Related-party notes collectability",
+              "kind": "judgment",
+              "value": 0.35,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case values strategic railway only; high case adds partial note recovery after illiquidity haircut."
+            },
+            {
+              "id": "notes_risked_m",
+              "label": "Collectible notes",
+              "kind": "calculation",
+              "value": 1.756776,
+              "unit": "USD millions",
+              "operation": "multiply",
+              "formula": "notes_m \u00d7 notes_collectability",
+              "substituted_formula": "5.01936 \u00d7 0.35",
+              "dependencies": [
+                "notes_m",
+                "notes_collectability"
+              ]
+            },
+            {
+              "id": "total_m",
+              "label": "Railway and notes economic value",
+              "kind": "calculation",
+              "value": 23.006776,
+              "unit": "USD millions",
+              "operation": "add",
+              "formula": "railway_strategic_m + notes_risked_m",
+              "substituted_formula": "21.25 + 1.756776",
+              "dependencies": [
+                "railway_strategic_m",
+                "notes_risked_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Railway and notes per share",
+              "kind": "calculation",
+              "value": 162.40153601,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "total_m \u00f7 shares_m",
+              "substituted_formula": "23.006776 \u00f7 0.141666",
+              "dependencies": [
+                "total_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "railway_book_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; Investment in The Apache Railroad Company, LLC $3,592,687",
+            "as_of": "2025-12-31",
+            "source_id": "381e4fe000a189f9f334810d1f83f0fcce41ec0bf6c1ebf9e8ad8901939c67c1"
+          },
+          {
+            "node_id": "notes_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; Notes receivable, related parties $5,019,360",
+            "as_of": "2025-12-31",
+            "source_id": "ab89aebda50464cdbc6b6e7ce4e58a48ba22e7be766cce1ef318c37607bee920"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "dcc980794e03e2bc14605d105e82499ea758cd31363eeea48d893f3eeee0274f"
+      },
+      "evidence_tier": "fy2025_financials_and_approved_groundbreaker_crosscheck",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Groundbreaker values the railway at $5M/$15M/$30M based on replacement difficulty and the BNSF interchange; disclosed notes are added only after collectability haircuts.",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+      "overlap_key": "azlcz_railway_notes",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "realization_reserve",
+      "label": "Tax, governance, and illiquidity reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net liabilities and realization reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "realization_reserve",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [
+        "azlcz_groundbreaker_2026"
+      ],
+      "range_per_share": {
+        "low": -99.9534,
+        "base": -74.9651,
+        "high": -40.0237
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -100.0,
+        "base": -75.0,
+        "high": -40.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -99.9534,
+          "base": -74.9651,
+          "high": -40.0237
+        },
+        "output_unit": "USD per share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Tax, governance, and illiquidity reserve",
+              "kind": "judgment",
+              "value": -14.16,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "OTC minority control, related-party friction, and realization taxes beyond filing liabilities."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Realization reserve per share",
+              "kind": "calculation",
+              "value": -99.95341155,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-14.16 \u00f7 0.141666",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Tax, governance, and illiquidity reserve",
+              "kind": "judgment",
+              "value": -10.62,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "OTC minority control, related-party friction, and realization taxes beyond filing liabilities."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Realization reserve per share",
+              "kind": "calculation",
+              "value": -74.96505866,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-10.62 \u00f7 0.141666",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Shares outstanding",
+              "kind": "fact",
+              "value": 0.141666,
+              "unit": "million shares",
+              "source": {
+                "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+                "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+                "as_of": "2025-12-31",
+                "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Tax, governance, and illiquidity reserve",
+              "kind": "judgment",
+              "value": -5.67,
+              "unit": "USD millions",
+              "source": null,
+              "rationale": "OTC minority control, related-party friction, and realization taxes beyond filing liabilities."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Realization reserve per share",
+              "kind": "calculation",
+              "value": -40.02371776,
+              "unit": "USD per share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "-5.67 \u00f7 0.141666",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+            "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+            "as_of": "2025-12-31",
+            "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "b537297bf96434c1c0e47bd0d248db2056dd3648360cfd40d0350dc916164ede"
+      },
+      "evidence_tier": "analyst_stress",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Reserve for taxes, OTC illiquidity, minority control, related-party leakage, and transaction friction beyond Groundbreaker's stated net liabilities.",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Apply the production, contract, location, capital-intensity, ownership, timing, and realization adjustments described in _system/reviews/economic_value_comparable_audit_2026-07-15.md.",
+      "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+      "overlap_key": "azlcz_realization_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 7,
+    "additive_component_count": 7,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "current_lease_cash",
+        "label": "Current renewable, grazing, and access lease cash",
+        "kind": "judgment",
+        "evidence_tier": "fy2024_fy2025_financials",
+        "evidence": "Normalized owner cash is approximately $2.13M; values apply 8.5x, 16x, and 23.5x to current cash without future project rent.",
+        "method": "normalized_owner_cash_capitalization",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "incremental_renewable_projects",
+        "label": "Incremental renewable projects in development or construction",
+        "kind": "judgment",
+        "evidence_tier": "approved_groundbreaker_crosscheck_plus_project_disclosures",
+        "evidence": "Groundbreaker's complete renewable portfolio is worth approximately $720/$1,115/$1,638 per share from $6.8M/$9.9M/$12.9M steady-state cash at 15x/16x/18x. After subtracting current lease value, the remainder is discounted for time to operation and completion risk.",
+        "method": "timing_and_completion_discounted_renewable_nav",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "residual_surface_acreage",
+        "label": "Residual surface acreage after lease overlap",
+        "kind": "judgment",
+        "evidence_tier": "approved_groundbreaker_transaction_ladder",
+        "evidence": "Groundbreaker segments approximately 234,800 residual acres at weighted $603/$1,100/$2,015 per acre, producing $1,002/$1,821/$3,339 per share of gross land NAV. Risked values retain substantial discounts for checkerboard geometry, minority control, timing, and transaction friction.",
+        "method": "segmented_comparable_land_nav_with_realization_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "mineral_option",
+        "label": "Mineral and helium option",
+        "kind": "judgment",
+        "evidence_tier": "approved_groundbreaker_geology_crosscheck",
+        "evidence": "Groundbreaker marks the mineral estate at approximately $35/$141/$529 per share. The risked schedule discounts heavily for unmapped deposit overlap, commodity economics, permitting, and absence of an operator.",
+        "method": "risked_comparable_option_nav",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "water_option",
+        "label": "Little Colorado water-right option",
+        "kind": "judgment",
+        "evidence_tier": "company_update_plus_approved_water_comparables",
+        "evidence": "Groundbreaker marks water at approximately $106/$282/$635 per share. The risked value discounts for unresolved adjudication, transferability, seniority, and the danger of transplanting Colorado or California prices into rural Arizona.",
+        "method": "risked_legal_and_transaction_nav",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "railway_and_notes",
+        "label": "Apache Railway interest and related-party notes",
+        "kind": "judgment",
+        "evidence_tier": "fy2025_financials_and_approved_groundbreaker_crosscheck",
+        "evidence": "Groundbreaker values the railway at $5M/$15M/$30M based on replacement difficulty and the BNSF interchange; disclosed notes are added only after collectability haircuts.",
+        "method": "strategic_right_of_way_plus_collectible_notes",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "realization_reserve",
+        "label": "Tax, governance, and illiquidity reserve",
+        "kind": "judgment",
+        "evidence_tier": "analyst_stress",
+        "evidence": "Reserve for taxes, OTC illiquidity, minority control, related-party leakage, and transaction friction beyond Groundbreaker's stated net liabilities.",
+        "method": "realization_reserve",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
+    "score": 21.0,
+    "reasons": [
+      "archetype=optionality",
+      "component categories=real_option",
+      "existing methods=land, option",
+      "investment_sleeve=real_assets_land",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "component_owner_cash_and_unit_nav"
+    ],
+    "corroborating_methods": [
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
+    ],
+    "primary_personas": [
+      "hk",
+      "stahl"
+    ],
+    "cross_check_personas": [
+      "klarman_asset_value",
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hohn",
+      "lawrence",
+      "marathon_capital_cycle",
+      "moi",
+      "munger",
+      "pabrai"
+    ],
+    "required_evidence": [
+      "legal economic claim",
+      "non-overlapping physical inventory",
+      "unit economics",
+      "realization timing",
+      "remaining owner capital"
+    ],
+    "failure_modes": [
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      {
+        "profile_id": "credit_and_normalized_returns",
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 21.0,
+        "reasons": [
+          "archetype=optionality",
+          "component categories=real_option",
+          "existing methods=land, option",
+          "investment_sleeve=real_assets_land",
+          "explicit reviewed profile"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset",
+          "existing methods=transaction_nav"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      "binary_milestone": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "AZLCZ",
+    "as_of": "2026-08-25",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "optionality",
+      "moat": "narrow",
+      "dhando": "partial",
+      "stance": "watch",
+      "cycle": "mid",
+      "moi_bucket": "dormant_asset",
+      "payoff_lens": "asset",
+      "investment_sleeve": "real_assets_land"
+    },
+    "specialist_power_zones": [
+      {
+        "persona": "hk",
+        "label": "Horizon Kinetics",
+        "independence_group": "scarce_assets",
+        "in_power_zone": true,
+        "fit": 1.0,
+        "matched": 2,
+        "known_fields": 2,
+        "matched_fields": [
+          "archetype",
+          "investment_sleeve"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 85
+      },
+      {
+        "persona": "stahl",
+        "label": "Murray Stahl",
+        "independence_group": "scarce_assets",
+        "in_power_zone": true,
+        "fit": 1.0,
+        "matched": 2,
+        "known_fields": 2,
+        "matched_fields": [
+          "archetype",
+          "investment_sleeve"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 85
+      },
+      {
+        "persona": "pabrai",
+        "label": "Mohnish Pabrai",
+        "independence_group": "asymmetry_downside",
+        "in_power_zone": true,
+        "fit": 0.75,
+        "matched": 3,
+        "known_fields": 4,
+        "matched_fields": [
+          "dhando",
+          "archetype",
+          "investment_sleeve"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 64
+      },
+      {
+        "persona": "greenblatt",
+        "label": "Joel Greenblatt",
+        "independence_group": "special_situations",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "dhando"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      },
+      {
+        "persona": "klarman_asset_value",
+        "label": "Klarman / Baupost",
+        "independence_group": "asset_realization",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "dhando"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      },
+      {
+        "persona": "moi",
+        "label": "MOI / Mihaljevic",
+        "independence_group": "special_situations",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "dhando"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      }
+    ],
+    "committee": {
+      "candidate_count": 4,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "hk",
+          "independence_group": "scarce_assets"
+        },
+        {
+          "persona": "stahl",
+          "independence_group": "scarce_assets"
+        },
+        {
+          "persona": "klarman_asset_value",
+          "independence_group": "asset_realization"
+        },
+        {
+          "persona": "marks_credit_cycle",
+          "independence_group": "credit_cycle"
+        }
+      ]
+    },
+    "input_hash": "a738976fa9e9be6d239a09bd92c17b4d82699e78be6bba5195b7ce8f603c25f4",
+    "generated_at": "2026-08-25T01:59:56.719134+00:00"
+  },
+  "market": {
+    "price_per_share": 2550.0,
+    "fully_diluted_shares": 141666,
+    "market_cap_m": 361.25,
+    "enterprise_value_m": null,
+    "price_source": "Yahoo AZLCZ close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 924.5114,
+      "base": 1935.4425,
+      "high": 4293.2939
+    },
+    "value_per_share": {
+      "low": 924.5114,
+      "base": 1935.4425,
+      "high": 4293.2939
+    },
+    "present_value_today_per_share": {
+      "low": 924.5114,
+      "base": 1935.4425,
+      "high": 4293.2939
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": 924.5114,
+      "base": 1935.4425,
+      "high": 4293.2939
+    },
+    "legacy_value_per_share": {
+      "low": 925.0,
+      "base": 1935.0,
+      "high": 4280.0
+    },
+    "probability_weighted_value_per_share": 1935.4425,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": -175.82,
+      "base": -31.75,
+      "high": 40.61
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -63.74,
+      "base": -24.1,
+      "high": 68.36
+    },
+    "downside_to_low_pct": -63.74,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "residual_surface_acreage",
+        "label": "Residual surface acreage after lease overlap",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 949.8672,
+        "legacy_base_per_share": 950.0,
+        "range_width_per_share": 1847.2405,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "incremental_renewable_projects",
+        "label": "Incremental renewable projects in development or construction",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 609.5787,
+        "legacy_base_per_share": 609.0,
+        "range_width_per_share": 623.376,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "water_option",
+        "label": "Little Colorado water-right option",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 99.9534,
+        "legacy_base_per_share": 100.0,
+        "range_width_per_share": 335.0451,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "current_lease_cash",
+        "label": "Current renewable, grazing, and access lease cash",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 241.0313,
+        "legacy_base_per_share": 241.0,
+        "range_width_per_share": 225.9668,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "mineral_option",
+        "label": "Mineral and helium option",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 35.0119,
+        "legacy_base_per_share": 35.0,
+        "range_width_per_share": 144.823,
+        "scenario_assumptions": null
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 7,
+    "priced_component_count": 7,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 7,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "95c4cf355bfc8573d870e0084f782a5b884cb7abbd06cc0c1495de48b1f4f6b1"
+  },
+  "source_lineage": [
+    {
+      "component_id": "current_lease_cash",
+      "node_id": "owner_cash_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+      "locator": "Statements of revenues and expenses; excess revenues over expenses $2,134,121 for year ended 2024-12-31",
+      "as_of": "2024-12-31",
+      "source_id": "4039d8db93525a2c60c825f4370a50d6515e52b7b179f411ff1fd0de2d6490f9"
+    },
+    {
+      "component_id": "current_lease_cash",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares issued and outstanding at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "4432b65a415cfeb67d2ea5c3b5a4ebed831a0a24c4d39a315a2bf717d3f987bd"
+    },
+    {
+      "component_id": "incremental_renewable_projects",
+      "node_id": "owner_cash_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2024-12-31_Annual_Report.pdf",
+      "locator": "FY2024 excess revenues over expenses $2,134,121",
+      "as_of": "2024-12-31",
+      "source_id": "2220a3baf1e4124f309fdb8737485a07b7884270ab8302915df05792f9edab02"
+    },
+    {
+      "component_id": "incremental_renewable_projects",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    },
+    {
+      "component_id": "residual_surface_acreage",
+      "node_id": "residual_acres",
+      "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+      "locator": "Note 1 ~239,000 surface acres minus ~4,200 Hashknife solar panel acres per Groundbreaker segmentation cross-check",
+      "as_of": "2025-12-31",
+      "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+      "source_id": "4b1331ae3651a00488c7b2311c60d2a33c026440ccd368e78aa11f240e65a331"
+    },
+    {
+      "component_id": "residual_surface_acreage",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    },
+    {
+      "component_id": "mineral_option",
+      "node_id": "mineral_acres",
+      "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+      "locator": "Note 1; approximately 318,000 acres of mineral rights",
+      "as_of": "2025-12-31",
+      "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+      "source_id": "44363f5c714d48a7144ed2ecaffe673ac137f66690dd52fe70b5591be89a3416"
+    },
+    {
+      "component_id": "mineral_option",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    },
+    {
+      "component_id": "water_option",
+      "node_id": "south_well_af",
+      "ref": "AZLCZ/research/evidence/_text/2025-12-31_Annual_Report.pdf.txt",
+      "locator": "Note 17; Corporation entitled to 13,490 acre feet per year from South Well Field",
+      "as_of": "2025-12-31",
+      "content_sha256": "a5b6d921d36529818f04d35e052cf24d366e963dac7910fd4768bc2c729089c3",
+      "source_id": "eab55782588dc8c3fe755d4e2e7646907f7cd59d7546be05150e94183b9a17bb"
+    },
+    {
+      "component_id": "water_option",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    },
+    {
+      "component_id": "railway_and_notes",
+      "node_id": "railway_book_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; Investment in The Apache Railroad Company, LLC $3,592,687",
+      "as_of": "2025-12-31",
+      "source_id": "381e4fe000a189f9f334810d1f83f0fcce41ec0bf6c1ebf9e8ad8901939c67c1"
+    },
+    {
+      "component_id": "railway_and_notes",
+      "node_id": "notes_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; Notes receivable, related parties $5,019,360",
+      "as_of": "2025-12-31",
+      "source_id": "ab89aebda50464cdbc6b6e7ce4e58a48ba22e7be766cce1ef318c37607bee920"
+    },
+    {
+      "component_id": "railway_and_notes",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    },
+    {
+      "component_id": "realization_reserve",
+      "node_id": "shares_m",
+      "ref": "AZLCZ/investor-documents/ir-azlcz/2025-12-31_Annual_Report.pdf",
+      "locator": "Balance sheet; 141,666 shares at 2025-12-31",
+      "as_of": "2025-12-31",
+      "source_id": "2f35a3f48f8ae28a5df13eb8397b967520c195b25eb4a5688db3f44dbc0458d7"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "Owner cash, reinvestment economics, or competitive position remains below the low-case path for two reporting periods.",
+      "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "35a651538f845fc27e15123c21217baca284d4d4654c927a9892bf2f3877220b",
+    "method_versions": [
+      "normalized_owner_cash_capitalization@1.0",
+      "realization_reserve@1.0",
+      "risked_comparable_option_nav@1.0",
+      "risked_legal_and_transaction_nav@1.0",
+      "segmented_comparable_land_nav_with_realization_discount@1.0",
+      "strategic_right_of_way_plus_collectible_notes@1.0",
+      "timing_and_completion_discounted_renewable_nav@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "cohort_expected_profile": "scarce_asset_optionality",
+  "cohort_purpose": "Project ownership waterfalls, residual land, and water rights.",
+  "profile_match": true,
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 3,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

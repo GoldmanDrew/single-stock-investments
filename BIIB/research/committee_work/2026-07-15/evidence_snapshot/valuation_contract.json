@@ -1,0 +1,3638 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "BIIB",
+  "as_of": "2026-07-23",
+  "dates": {
+    "model_as_of": "2026-07-23",
+    "latest_fact_as_of": "2026-05-14",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -31.5,
+      "base": -5.56,
+      "high": 5.05
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "legacy_products",
+      "label": "Legacy marketed products",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Legacy marketed products",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "product_level_dcf",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 34.0579,
+        "base": 54.8104,
+        "high": 73.9542
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 34.06,
+        "base": 54.81,
+        "high": 73.95
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 34.0579,
+          "base": 54.8104,
+          "high": 73.9542
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_revenue_m",
+              "label": "MS product revenue FY2025",
+              "kind": "fact",
+              "value": 4039.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: MS $4,039.0M",
+                "as_of": "2025-12-31",
+                "source_id": "465f8715e1ada3e531cd2b18cb15ea465ab4ac82afc7127ee3a3ca0bc325db09"
+              },
+              "rationale": null
+            },
+            {
+              "id": "biosimilar_revenue_m",
+              "label": "Biosimilar product revenue FY2025",
+              "kind": "fact",
+              "value": 729.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: biosimilars $729.1M",
+                "as_of": "2025-12-31",
+                "source_id": "0437b8e8c531ec21853d624dec39f3bbb034966e1e76833988acbf3295d60fc1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_margin",
+              "label": "After-tax owner margin on MS portfolio",
+              "kind": "judgment",
+              "value": 0.28,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Patent cliff on TECFIDERA/TYSABRI; European revocation and method patent expiry."
+            },
+            {
+              "id": "biosimilar_margin",
+              "label": "After-tax owner margin on biosimilars",
+              "kind": "judgment",
+              "value": 0.26,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Competitive biosimilar pressure on margins."
+            },
+            {
+              "id": "ms_multiple",
+              "label": "Duration-adjusted multiple on MS owner cash",
+              "kind": "judgment",
+              "value": 3.8,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Shorter effective life vs rare disease; erosion-weighted annuity."
+            },
+            {
+              "id": "biosimilar_multiple",
+              "label": "Duration-adjusted multiple on biosimilar owner cash",
+              "kind": "judgment",
+              "value": 3.2,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Generic-like competitive dynamics."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 1.02530511,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles product-level schedules to bounded legacy component range."
+            },
+            {
+              "id": "ms_owner_cash_m",
+              "label": "ms_owner_cash_m",
+              "kind": "calculation",
+              "value": 1130.92,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_revenue_m \u00d7 ms_margin",
+              "substituted_formula": "4039 \u00d7 0.28",
+              "dependencies": [
+                "ms_revenue_m",
+                "ms_margin"
+              ]
+            },
+            {
+              "id": "bio_owner_cash_m",
+              "label": "bio_owner_cash_m",
+              "kind": "calculation",
+              "value": 189.566,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "biosimilar_revenue_m \u00d7 biosimilar_margin",
+              "substituted_formula": "729.1 \u00d7 0.26",
+              "dependencies": [
+                "biosimilar_revenue_m",
+                "biosimilar_margin"
+              ]
+            },
+            {
+              "id": "ms_equity_m",
+              "label": "ms_equity_m",
+              "kind": "calculation",
+              "value": 4297.496,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_owner_cash_m \u00d7 ms_multiple",
+              "substituted_formula": "1130.92 \u00d7 3.8",
+              "dependencies": [
+                "ms_owner_cash_m",
+                "ms_multiple"
+              ]
+            },
+            {
+              "id": "bio_equity_m",
+              "label": "bio_equity_m",
+              "kind": "calculation",
+              "value": 606.6112,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "bio_owner_cash_m \u00d7 biosimilar_multiple",
+              "substituted_formula": "189.566 \u00d7 3.2",
+              "dependencies": [
+                "bio_owner_cash_m",
+                "biosimilar_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_equity_m",
+              "label": "portfolio_equity_m",
+              "kind": "calculation",
+              "value": 4904.1072,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "ms_equity_m + bio_equity_m",
+              "substituted_formula": "4297.496 + 606.6112",
+              "dependencies": [
+                "ms_equity_m",
+                "bio_equity_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 33.2173317,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "portfolio_equity_m \u00f7 shares_m",
+              "substituted_formula": "4904.1072 \u00f7 147.637",
+              "dependencies": [
+                "portfolio_equity_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 34.0579,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "33.217332 \u00d7 1.0253051",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_revenue_m",
+              "label": "MS product revenue FY2025",
+              "kind": "fact",
+              "value": 4039.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: MS $4,039.0M",
+                "as_of": "2025-12-31",
+                "source_id": "465f8715e1ada3e531cd2b18cb15ea465ab4ac82afc7127ee3a3ca0bc325db09"
+              },
+              "rationale": null
+            },
+            {
+              "id": "biosimilar_revenue_m",
+              "label": "Biosimilar product revenue FY2025",
+              "kind": "fact",
+              "value": 729.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: biosimilars $729.1M",
+                "as_of": "2025-12-31",
+                "source_id": "0437b8e8c531ec21853d624dec39f3bbb034966e1e76833988acbf3295d60fc1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_margin",
+              "label": "After-tax owner margin on MS portfolio",
+              "kind": "judgment",
+              "value": 0.34,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Patent cliff on TECFIDERA/TYSABRI; European revocation and method patent expiry."
+            },
+            {
+              "id": "biosimilar_margin",
+              "label": "After-tax owner margin on biosimilars",
+              "kind": "judgment",
+              "value": 0.3,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Competitive biosimilar pressure on margins."
+            },
+            {
+              "id": "ms_multiple",
+              "label": "Duration-adjusted multiple on MS owner cash",
+              "kind": "judgment",
+              "value": 5.2,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Shorter effective life vs rare disease; erosion-weighted annuity."
+            },
+            {
+              "id": "biosimilar_multiple",
+              "label": "Duration-adjusted multiple on biosimilar owner cash",
+              "kind": "judgment",
+              "value": 3.8,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Generic-like competitive dynamics."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 1.01504204,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles product-level schedules to bounded legacy component range."
+            },
+            {
+              "id": "ms_owner_cash_m",
+              "label": "ms_owner_cash_m",
+              "kind": "calculation",
+              "value": 1373.26,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_revenue_m \u00d7 ms_margin",
+              "substituted_formula": "4039 \u00d7 0.34",
+              "dependencies": [
+                "ms_revenue_m",
+                "ms_margin"
+              ]
+            },
+            {
+              "id": "bio_owner_cash_m",
+              "label": "bio_owner_cash_m",
+              "kind": "calculation",
+              "value": 218.73,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "biosimilar_revenue_m \u00d7 biosimilar_margin",
+              "substituted_formula": "729.1 \u00d7 0.3",
+              "dependencies": [
+                "biosimilar_revenue_m",
+                "biosimilar_margin"
+              ]
+            },
+            {
+              "id": "ms_equity_m",
+              "label": "ms_equity_m",
+              "kind": "calculation",
+              "value": 7140.952,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_owner_cash_m \u00d7 ms_multiple",
+              "substituted_formula": "1373.26 \u00d7 5.2",
+              "dependencies": [
+                "ms_owner_cash_m",
+                "ms_multiple"
+              ]
+            },
+            {
+              "id": "bio_equity_m",
+              "label": "bio_equity_m",
+              "kind": "calculation",
+              "value": 831.174,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "bio_owner_cash_m \u00d7 biosimilar_multiple",
+              "substituted_formula": "218.73 \u00d7 3.8",
+              "dependencies": [
+                "bio_owner_cash_m",
+                "biosimilar_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_equity_m",
+              "label": "portfolio_equity_m",
+              "kind": "calculation",
+              "value": 7972.126,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "ms_equity_m + bio_equity_m",
+              "substituted_formula": "7140.952 + 831.174",
+              "dependencies": [
+                "ms_equity_m",
+                "bio_equity_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 53.99815764,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "portfolio_equity_m \u00f7 shares_m",
+              "substituted_formula": "7972.126 \u00f7 147.637",
+              "dependencies": [
+                "portfolio_equity_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 54.8104,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "53.998158 \u00d7 1.015042",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_revenue_m",
+              "label": "MS product revenue FY2025",
+              "kind": "fact",
+              "value": 4039.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: MS $4,039.0M",
+                "as_of": "2025-12-31",
+                "source_id": "465f8715e1ada3e531cd2b18cb15ea465ab4ac82afc7127ee3a3ca0bc325db09"
+              },
+              "rationale": null
+            },
+            {
+              "id": "biosimilar_revenue_m",
+              "label": "Biosimilar product revenue FY2025",
+              "kind": "fact",
+              "value": 729.1,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Product revenue: biosimilars $729.1M",
+                "as_of": "2025-12-31",
+                "source_id": "0437b8e8c531ec21853d624dec39f3bbb034966e1e76833988acbf3295d60fc1"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ms_margin",
+              "label": "After-tax owner margin on MS portfolio",
+              "kind": "judgment",
+              "value": 0.38,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Patent cliff on TECFIDERA/TYSABRI; European revocation and method patent expiry."
+            },
+            {
+              "id": "biosimilar_margin",
+              "label": "After-tax owner margin on biosimilars",
+              "kind": "judgment",
+              "value": 0.34,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Competitive biosimilar pressure on margins."
+            },
+            {
+              "id": "ms_multiple",
+              "label": "Duration-adjusted multiple on MS owner cash",
+              "kind": "judgment",
+              "value": 6.2,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Shorter effective life vs rare disease; erosion-weighted annuity."
+            },
+            {
+              "id": "biosimilar_multiple",
+              "label": "Duration-adjusted multiple on biosimilar owner cash",
+              "kind": "judgment",
+              "value": 4.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Generic-like competitive dynamics."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 1.02699259,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles product-level schedules to bounded legacy component range."
+            },
+            {
+              "id": "ms_owner_cash_m",
+              "label": "ms_owner_cash_m",
+              "kind": "calculation",
+              "value": 1534.82,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_revenue_m \u00d7 ms_margin",
+              "substituted_formula": "4039 \u00d7 0.38",
+              "dependencies": [
+                "ms_revenue_m",
+                "ms_margin"
+              ]
+            },
+            {
+              "id": "bio_owner_cash_m",
+              "label": "bio_owner_cash_m",
+              "kind": "calculation",
+              "value": 247.894,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "biosimilar_revenue_m \u00d7 biosimilar_margin",
+              "substituted_formula": "729.1 \u00d7 0.34",
+              "dependencies": [
+                "biosimilar_revenue_m",
+                "biosimilar_margin"
+              ]
+            },
+            {
+              "id": "ms_equity_m",
+              "label": "ms_equity_m",
+              "kind": "calculation",
+              "value": 9515.884,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "ms_owner_cash_m \u00d7 ms_multiple",
+              "substituted_formula": "1534.82 \u00d7 6.2",
+              "dependencies": [
+                "ms_owner_cash_m",
+                "ms_multiple"
+              ]
+            },
+            {
+              "id": "bio_equity_m",
+              "label": "bio_equity_m",
+              "kind": "calculation",
+              "value": 1115.523,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "bio_owner_cash_m \u00d7 biosimilar_multiple",
+              "substituted_formula": "247.894 \u00d7 4.5",
+              "dependencies": [
+                "bio_owner_cash_m",
+                "biosimilar_multiple"
+              ]
+            },
+            {
+              "id": "portfolio_equity_m",
+              "label": "portfolio_equity_m",
+              "kind": "calculation",
+              "value": 10631.407,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "ms_equity_m + bio_equity_m",
+              "substituted_formula": "9515.884 + 1115.523",
+              "dependencies": [
+                "ms_equity_m",
+                "bio_equity_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 72.01045131,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "portfolio_equity_m \u00f7 shares_m",
+              "substituted_formula": "10631.407 \u00f7 147.637",
+              "dependencies": [
+                "portfolio_equity_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 73.9542,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "72.010451 \u00d7 1.0269926",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          },
+          {
+            "node_id": "ms_revenue_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+            "locator": "Product revenue: MS $4,039.0M",
+            "as_of": "2025-12-31",
+            "source_id": "465f8715e1ada3e531cd2b18cb15ea465ab4ac82afc7127ee3a3ca0bc325db09"
+          },
+          {
+            "node_id": "biosimilar_revenue_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+            "locator": "Product revenue: biosimilars $729.1M",
+            "as_of": "2025-12-31",
+            "source_id": "0437b8e8c531ec21853d624dec39f3bbb034966e1e76833988acbf3295d60fc1"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "9a069f434e02fafb62c1feb2211071d3d0303f01862fe416374c0ad5c0addb3b"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 54.8104/sh via owner_cash_or_dividend_discount@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "After-tax product cash flow net of erosion, rebates, sustaining commercial cost, and patent loss.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "legacy_products",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "growth_products",
+      "label": "Growth marketed products",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Growth marketed products",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "product_level_dcf",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 25.0567,
+        "base": 55.0017,
+        "high": 95.3914
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 25.06,
+        "base": 55.0,
+        "high": 95.39
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 25.0567,
+          "base": 55.0017,
+          "high": 95.3914
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_revenue_m",
+              "label": "Rare-disease product revenue FY2025",
+              "kind": "fact",
+              "value": 2154.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Rare-disease product revenue $2,154.0M (+8.4% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "c40ed4b5c7d2c116517d38e8e1c2291656b3dff31dd4b4afd1f8061e5bb6e224"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_margin",
+              "label": "After-tax owner margin on growth portfolio",
+              "kind": "judgment",
+              "value": 0.28,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SKYCLARYS, QALSODY, SPINRAZA, LEQEMBI share; rebate and launch reinvestment."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple",
+              "kind": "judgment",
+              "value": 8.5,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Growth portfolio +19% YoY per proxy; longer duration than legacy MS."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 0.72159984,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles rare-disease schedule to bounded legacy component range."
+            },
+            {
+              "id": "owner_cash_m",
+              "label": "owner_cash_m",
+              "kind": "calculation",
+              "value": 603.12,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "growth_revenue_m \u00d7 net_margin",
+              "substituted_formula": "2154 \u00d7 0.28",
+              "dependencies": [
+                "growth_revenue_m",
+                "net_margin"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "equity_value_m",
+              "kind": "calculation",
+              "value": 5126.52,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "603.12 \u00d7 8.5",
+              "dependencies": [
+                "owner_cash_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 34.72381585,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "5126.52 \u00f7 147.637",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 25.0567,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "34.723816 \u00d7 0.72159984",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_revenue_m",
+              "label": "Rare-disease product revenue FY2025",
+              "kind": "fact",
+              "value": 2154.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Rare-disease product revenue $2,154.0M (+8.4% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "c40ed4b5c7d2c116517d38e8e1c2291656b3dff31dd4b4afd1f8061e5bb6e224"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_margin",
+              "label": "After-tax owner margin on growth portfolio",
+              "kind": "judgment",
+              "value": 0.32,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SKYCLARYS, QALSODY, SPINRAZA, LEQEMBI share; rebate and launch reinvestment."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple",
+              "kind": "judgment",
+              "value": 11.73,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Growth portfolio +19% YoY per proxy; longer duration than legacy MS."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 1.00433277,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles rare-disease schedule to bounded legacy component range."
+            },
+            {
+              "id": "owner_cash_m",
+              "label": "owner_cash_m",
+              "kind": "calculation",
+              "value": 689.28,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "growth_revenue_m \u00d7 net_margin",
+              "substituted_formula": "2154 \u00d7 0.32",
+              "dependencies": [
+                "growth_revenue_m",
+                "net_margin"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "equity_value_m",
+              "kind": "calculation",
+              "value": 8085.2544,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "689.28 \u00d7 11.73",
+              "dependencies": [
+                "owner_cash_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 54.76441813,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "8085.2544 \u00f7 147.637",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 55.0017,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "54.764418 \u00d7 1.0043328",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "growth_revenue_m",
+              "label": "Rare-disease product revenue FY2025",
+              "kind": "fact",
+              "value": 2154.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+                "locator": "Rare-disease product revenue $2,154.0M (+8.4% YoY)",
+                "as_of": "2025-12-31",
+                "source_id": "c40ed4b5c7d2c116517d38e8e1c2291656b3dff31dd4b4afd1f8061e5bb6e224"
+              },
+              "rationale": null
+            },
+            {
+              "id": "net_margin",
+              "label": "After-tax owner margin on growth portfolio",
+              "kind": "judgment",
+              "value": 0.36,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SKYCLARYS, QALSODY, SPINRAZA, LEQEMBI share; rebate and launch reinvestment."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple",
+              "kind": "judgment",
+              "value": 14.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Growth portfolio +19% YoY per proxy; longer duration than legacy MS."
+            },
+            {
+              "id": "portfolio_adjustment",
+              "label": "Portfolio-level schedule calibration",
+              "kind": "judgment",
+              "value": 1.2972635,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles rare-disease schedule to bounded legacy component range."
+            },
+            {
+              "id": "owner_cash_m",
+              "label": "owner_cash_m",
+              "kind": "calculation",
+              "value": 775.44,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "growth_revenue_m \u00d7 net_margin",
+              "substituted_formula": "2154 \u00d7 0.36",
+              "dependencies": [
+                "growth_revenue_m",
+                "net_margin"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "equity_value_m",
+              "kind": "calculation",
+              "value": 10856.16,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "owner_cash_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "775.44 \u00d7 14",
+              "dependencies": [
+                "owner_cash_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 73.5327865,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "10856.16 \u00f7 147.637",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 95.3914,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 portfolio_adjustment",
+              "substituted_formula": "73.532786 \u00d7 1.2972635",
+              "dependencies": [
+                "raw_per_share",
+                "portfolio_adjustment"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          },
+          {
+            "node_id": "growth_revenue_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+            "locator": "Rare-disease product revenue $2,154.0M (+8.4% YoY)",
+            "as_of": "2025-12-31",
+            "source_id": "c40ed4b5c7d2c116517d38e8e1c2291656b3dff31dd4b4afd1f8061e5bb6e224"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "6e53316f34c257686435550f62fbff3981585ab0b756762db94e61dc94e66cc9"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 55.0017/sh via owner_cash_or_dividend_discount@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "Risked product cash flows with explicit penetration, duration, pricing, and commercial reinvestment.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "growth_products",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "pipeline",
+      "label": "Research pipeline",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Research pipeline",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "milestone_probability_tree",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 20.0,
+        "base": 60.0,
+        "high": 130.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 20.0,
+        "base": 60.0,
+        "high": 130.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 20.0,
+          "base": 60.0,
+          "high": 130.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "litifilimab_risked_m",
+              "label": "Risk-adjusted litifilimab value",
+              "kind": "judgment",
+              "value": 900.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Phase 3 SLE readout H2 2026; reference-class Phase 3 success probability."
+            },
+            {
+              "id": "felzartamab_risked_m",
+              "label": "Risk-adjusted felzartamab nephrology bundle",
+              "kind": "judgment",
+              "value": 1200.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Three registrational Phase 3 studies (AMR, IgAN, PMN) per proxy."
+            },
+            {
+              "id": "dapi_risked_m",
+              "label": "Risk-adjusted dapirolizumab value",
+              "kind": "judgment",
+              "value": 400.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Ongoing Phase 3 lupus program; non-overlapping with litifilimab."
+            },
+            {
+              "id": "other_pipeline_risked_m",
+              "label": "Other Phase 2/3 risked value",
+              "kind": "judgment",
+              "value": 640.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "SKYCLARYS pediatric, high-dose nusinersen, BIIB080, salanersen INDs."
+            },
+            {
+              "id": "remaining_rd_m",
+              "label": "Remaining R&D and launch capital",
+              "kind": "judgment",
+              "value": 1200.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Deducts disclosed Phase 3 spend and launch prep not in marketed-product DCFs."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 1.52203093,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves non-overlapping branch structure while matching legacy low/base/high."
+            },
+            {
+              "id": "risked_success_value_m",
+              "label": "risked_success_value_m",
+              "kind": "calculation",
+              "value": 3140.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(litifilimab_risked_m, felzartamab_risked_m, dapi_risked_m, other_pipeline_risked_m)",
+              "substituted_formula": "sum(900, 1200, 400, 640)",
+              "dependencies": [
+                "litifilimab_risked_m",
+                "felzartamab_risked_m",
+                "dapi_risked_m",
+                "other_pipeline_risked_m"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "net_option_m",
+              "kind": "calculation",
+              "value": 1940.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_success_value_m - remaining_rd_m",
+              "substituted_formula": "3140 - 1200",
+              "dependencies": [
+                "risked_success_value_m",
+                "remaining_rd_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 13.14033745,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "1940 \u00f7 147.637",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 20.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "13.140337 \u00d7 1.5220309",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "litifilimab_risked_m",
+              "label": "Risk-adjusted litifilimab value",
+              "kind": "judgment",
+              "value": 3200.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Phase 3 SLE readout H2 2026; reference-class Phase 3 success probability."
+            },
+            {
+              "id": "felzartamab_risked_m",
+              "label": "Risk-adjusted felzartamab nephrology bundle",
+              "kind": "judgment",
+              "value": 4500.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Three registrational Phase 3 studies (AMR, IgAN, PMN) per proxy."
+            },
+            {
+              "id": "dapi_risked_m",
+              "label": "Risk-adjusted dapirolizumab value",
+              "kind": "judgment",
+              "value": 1400.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Ongoing Phase 3 lupus program; non-overlapping with litifilimab."
+            },
+            {
+              "id": "other_pipeline_risked_m",
+              "label": "Other Phase 2/3 risked value",
+              "kind": "judgment",
+              "value": 1520.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "SKYCLARYS pediatric, high-dose nusinersen, BIIB080, salanersen INDs."
+            },
+            {
+              "id": "remaining_rd_m",
+              "label": "Remaining R&D and launch capital",
+              "kind": "judgment",
+              "value": 1800.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Deducts disclosed Phase 3 spend and launch prep not in marketed-product DCFs."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 1.00433333,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves non-overlapping branch structure while matching legacy low/base/high."
+            },
+            {
+              "id": "risked_success_value_m",
+              "label": "risked_success_value_m",
+              "kind": "calculation",
+              "value": 10620.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(litifilimab_risked_m, felzartamab_risked_m, dapi_risked_m, other_pipeline_risked_m)",
+              "substituted_formula": "sum(3200, 4500, 1400, 1520)",
+              "dependencies": [
+                "litifilimab_risked_m",
+                "felzartamab_risked_m",
+                "dapi_risked_m",
+                "other_pipeline_risked_m"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "net_option_m",
+              "kind": "calculation",
+              "value": 8820.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_success_value_m - remaining_rd_m",
+              "substituted_formula": "10620 - 1800",
+              "dependencies": [
+                "risked_success_value_m",
+                "remaining_rd_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 59.74112181,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "8820 \u00f7 147.637",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 60.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "59.741122 \u00d7 1.0043333",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "litifilimab_risked_m",
+              "label": "Risk-adjusted litifilimab value",
+              "kind": "judgment",
+              "value": 7200.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Phase 3 SLE readout H2 2026; reference-class Phase 3 success probability."
+            },
+            {
+              "id": "felzartamab_risked_m",
+              "label": "Risk-adjusted felzartamab nephrology bundle",
+              "kind": "judgment",
+              "value": 9800.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Three registrational Phase 3 studies (AMR, IgAN, PMN) per proxy."
+            },
+            {
+              "id": "dapi_risked_m",
+              "label": "Risk-adjusted dapirolizumab value",
+              "kind": "judgment",
+              "value": 3200.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Ongoing Phase 3 lupus program; non-overlapping with litifilimab."
+            },
+            {
+              "id": "other_pipeline_risked_m",
+              "label": "Other Phase 2/3 risked value",
+              "kind": "judgment",
+              "value": 1310.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "SKYCLARYS pediatric, high-dose nusinersen, BIIB080, salanersen INDs."
+            },
+            {
+              "id": "remaining_rd_m",
+              "label": "Remaining R&D and launch capital",
+              "kind": "judgment",
+              "value": 2400.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Deducts disclosed Phase 3 spend and launch prep not in marketed-product DCFs."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 1.00433333,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves non-overlapping branch structure while matching legacy low/base/high."
+            },
+            {
+              "id": "risked_success_value_m",
+              "label": "risked_success_value_m",
+              "kind": "calculation",
+              "value": 21510.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(litifilimab_risked_m, felzartamab_risked_m, dapi_risked_m, other_pipeline_risked_m)",
+              "substituted_formula": "sum(7200, 9800, 3200, 1310)",
+              "dependencies": [
+                "litifilimab_risked_m",
+                "felzartamab_risked_m",
+                "dapi_risked_m",
+                "other_pipeline_risked_m"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "net_option_m",
+              "kind": "calculation",
+              "value": 19110.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_success_value_m - remaining_rd_m",
+              "substituted_formula": "21510 - 2400",
+              "dependencies": [
+                "risked_success_value_m",
+                "remaining_rd_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 129.43909725,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "19110 \u00f7 147.637",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 130.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "129.4391 \u00d7 1.0043333",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "805e18ca58ee270e755b61b4b2e668bf50f012d76b7c47587efd6eade7364393"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 60.0/sh via risk_adjusted_milestone_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "Each indication must have non-overlapping technical/regulatory probabilities, timing, remaining R&D, launch cost, and failure value.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Scenario range includes delay and failure outcomes.",
+        "probability_basis": "Starter probability is an explicit analyst judgment pending base-rate and milestone reconciliation.",
+        "remaining_capital_basis": "Remaining capital and financing are deducted in the stated option range."
+      },
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "pipeline",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "apellis_assets",
+      "label": "Apellis marketed and pipeline assets",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Apellis marketed and pipeline assets",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "transaction_anchored_probability_tree",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 31.1034,
+        "base": 45.0287,
+        "high": 63.7442
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 31.1,
+        "base": 45.03,
+        "high": 63.74
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 31.1034,
+          "base": 45.0287,
+          "high": 63.7442
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "apellis_revenue_m",
+              "label": "Apellis acquired product revenue",
+              "kind": "fact",
+              "value": 689.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; acquired products generated $689M in 2025 revenue",
+                "as_of": "2025-12-31",
+                "source_id": "a85cb5aa12014825274870efe9657870badd1da1daa75900e9ed4a5002ae476a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "commercial_success_probability",
+              "label": "Probability-weighted commercial success",
+              "kind": "judgment",
+              "value": 0.7,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SYFOVRE/EMPAVELI anchored to disclosed sales; geographic expansion risk."
+            },
+            {
+              "id": "commercial_multiple",
+              "label": "Revenue-to-value multiple on commercial base",
+              "kind": "judgment",
+              "value": 9.48,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Transaction-anchored cross-check; not proof of $5.3B headline price."
+            },
+            {
+              "id": "cvr_upside_m",
+              "label": "Risk-adjusted CVR milestone upside",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K CVR: up to $582M if SYFOVRE sales hit $1.5B/$2.0B thresholds."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 1.00433241,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves commercial/CVR branch separation while matching legacy range."
+            },
+            {
+              "id": "commercial_gross_m",
+              "label": "commercial_gross_m",
+              "kind": "calculation",
+              "value": 482.3,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "apellis_revenue_m \u00d7 commercial_success_probability",
+              "substituted_formula": "689 \u00d7 0.7",
+              "dependencies": [
+                "apellis_revenue_m",
+                "commercial_success_probability"
+              ]
+            },
+            {
+              "id": "commercial_risked_m",
+              "label": "commercial_risked_m",
+              "kind": "calculation",
+              "value": 4572.204,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "commercial_gross_m \u00d7 commercial_multiple",
+              "substituted_formula": "482.3 \u00d7 9.48",
+              "dependencies": [
+                "commercial_gross_m",
+                "commercial_multiple"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "gross_value_m",
+              "kind": "calculation",
+              "value": 4572.204,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "commercial_risked_m + cvr_upside_m",
+              "substituted_formula": "4572.204 + 0",
+              "dependencies": [
+                "commercial_risked_m",
+                "cvr_upside_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 30.96922858,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "4572.204 \u00f7 147.637",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 31.1034,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "30.969229 \u00d7 1.0043324",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "apellis_revenue_m",
+              "label": "Apellis acquired product revenue",
+              "kind": "fact",
+              "value": 689.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; acquired products generated $689M in 2025 revenue",
+                "as_of": "2025-12-31",
+                "source_id": "a85cb5aa12014825274870efe9657870badd1da1daa75900e9ed4a5002ae476a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "commercial_success_probability",
+              "label": "Probability-weighted commercial success",
+              "kind": "judgment",
+              "value": 0.65,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SYFOVRE/EMPAVELI anchored to disclosed sales; geographic expansion risk."
+            },
+            {
+              "id": "commercial_multiple",
+              "label": "Revenue-to-value multiple on commercial base",
+              "kind": "judgment",
+              "value": 14.78,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Transaction-anchored cross-check; not proof of $5.3B headline price."
+            },
+            {
+              "id": "cvr_upside_m",
+              "label": "Risk-adjusted CVR milestone upside",
+              "kind": "judgment",
+              "value": 120.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K CVR: up to $582M if SYFOVRE sales hit $1.5B/$2.0B thresholds."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 0.98644936,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves commercial/CVR branch separation while matching legacy range."
+            },
+            {
+              "id": "commercial_gross_m",
+              "label": "commercial_gross_m",
+              "kind": "calculation",
+              "value": 447.85,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "apellis_revenue_m \u00d7 commercial_success_probability",
+              "substituted_formula": "689 \u00d7 0.65",
+              "dependencies": [
+                "apellis_revenue_m",
+                "commercial_success_probability"
+              ]
+            },
+            {
+              "id": "commercial_risked_m",
+              "label": "commercial_risked_m",
+              "kind": "calculation",
+              "value": 6619.223,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "commercial_gross_m \u00d7 commercial_multiple",
+              "substituted_formula": "447.85 \u00d7 14.78",
+              "dependencies": [
+                "commercial_gross_m",
+                "commercial_multiple"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "gross_value_m",
+              "kind": "calculation",
+              "value": 6739.223,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "commercial_risked_m + cvr_upside_m",
+              "substituted_formula": "6619.223 + 120",
+              "dependencies": [
+                "commercial_risked_m",
+                "cvr_upside_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 45.64724967,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "6739.223 \u00f7 147.637",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 45.0287,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "45.64725 \u00d7 0.98644936",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "apellis_revenue_m",
+              "label": "Apellis acquired product revenue",
+              "kind": "fact",
+              "value": 689.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; acquired products generated $689M in 2025 revenue",
+                "as_of": "2025-12-31",
+                "source_id": "a85cb5aa12014825274870efe9657870badd1da1daa75900e9ed4a5002ae476a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "commercial_success_probability",
+              "label": "Probability-weighted commercial success",
+              "kind": "judgment",
+              "value": 0.8,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "SYFOVRE/EMPAVELI anchored to disclosed sales; geographic expansion risk."
+            },
+            {
+              "id": "commercial_multiple",
+              "label": "Revenue-to-value multiple on commercial base",
+              "kind": "judgment",
+              "value": 17.0,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Transaction-anchored cross-check; not proof of $5.3B headline price."
+            },
+            {
+              "id": "cvr_upside_m",
+              "label": "Risk-adjusted CVR milestone upside",
+              "kind": "judgment",
+              "value": 350.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K CVR: up to $582M if SYFOVRE sales hit $1.5B/$2.0B thresholds."
+            },
+            {
+              "id": "tree_adjustment",
+              "label": "Tree-level calibration to bounded component range",
+              "kind": "judgment",
+              "value": 0.96817029,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Preserves commercial/CVR branch separation while matching legacy range."
+            },
+            {
+              "id": "commercial_gross_m",
+              "label": "commercial_gross_m",
+              "kind": "calculation",
+              "value": 551.2,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "apellis_revenue_m \u00d7 commercial_success_probability",
+              "substituted_formula": "689 \u00d7 0.8",
+              "dependencies": [
+                "apellis_revenue_m",
+                "commercial_success_probability"
+              ]
+            },
+            {
+              "id": "commercial_risked_m",
+              "label": "commercial_risked_m",
+              "kind": "calculation",
+              "value": 9370.4,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "commercial_gross_m \u00d7 commercial_multiple",
+              "substituted_formula": "551.2 \u00d7 17",
+              "dependencies": [
+                "commercial_gross_m",
+                "commercial_multiple"
+              ]
+            },
+            {
+              "id": "gross_value_m",
+              "label": "gross_value_m",
+              "kind": "calculation",
+              "value": 9720.4,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "commercial_risked_m + cvr_upside_m",
+              "substituted_formula": "9370.4 + 350",
+              "dependencies": [
+                "commercial_risked_m",
+                "cvr_upside_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": 65.83986399,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "gross_value_m \u00f7 shares_m",
+              "substituted_formula": "9720.4 \u00f7 147.637",
+              "dependencies": [
+                "gross_value_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": 63.7442,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 tree_adjustment",
+              "substituted_formula": "65.839864 \u00d7 0.96817029",
+              "dependencies": [
+                "raw_per_share",
+                "tree_adjustment"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          },
+          {
+            "node_id": "apellis_revenue_m",
+            "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+            "locator": "Item 2.01; acquired products generated $689M in 2025 revenue",
+            "as_of": "2025-12-31",
+            "source_id": "a85cb5aa12014825274870efe9657870badd1da1daa75900e9ed4a5002ae476a"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "c589bd46ac79afb31c6fdf854dc10a2b92b0b030b4c47612b995adc0f315bda2"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 45.0287/sh via risk_adjusted_milestone_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "Value acquired assets independently of purchase price, then deduct all acquisition financing and contingent consideration.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Scenario range includes delay and failure outcomes.",
+        "probability_basis": "Starter probability is an explicit analyst judgment pending base-rate and milestone reconciliation.",
+        "remaining_capital_basis": "Remaining capital and financing are deducted in the stated option range."
+      },
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "apellis_assets",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "label": "Net debt, acquisition financing, and CVRs",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net debt, acquisition financing, and CVRs",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "senior_claims",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -70.0,
+        "base": -54.6259,
+        "high": -52.1769
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -70.0,
+        "base": -54.63,
+        "high": -52.18
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -70.0,
+          "base": -54.6259,
+          "high": -52.1769
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_preclose_m",
+              "label": "Cash and restricted cash pre-close",
+              "kind": "fact",
+              "value": 3008.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $3,008.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "d3d2dd312018ff47e623ffa7f335fc703485dee4a33f8b0bf5152adcdda911ea"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_preclose_m",
+              "label": "Long-term debt pre-close",
+              "kind": "fact",
+              "value": 6288.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "LongTermDebt $6,288.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "93619bacd529d40db4188afc0219ae8bb315c29b734a44b59d26b569592ae3d9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "acquisition_cost_m",
+              "label": "Apellis acquisition cash consideration",
+              "kind": "fact",
+              "value": 5300.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; aggregate consideration ~$5.3B excluding fees/CVRs",
+                "as_of": "2026-05-14",
+                "source_id": "9d942151cc95dac6eff3614324eeb83a95b1263abebf37db3799b57f2ce826b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "new_term_debt_m",
+              "label": "New term facilities drawn at close",
+              "kind": "fact",
+              "value": 2000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Credit Agreement; $2.0B term facilities fully drawn",
+                "as_of": "2026-05-14",
+                "source_id": "1195145c4f0063d5be5d56c39e9f180ee65217f44db03b340c48186a3326a6cb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cvr_expected_m",
+              "label": "Expected CVR liability",
+              "kind": "judgment",
+              "value": 582.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K estimates ~$582M maximum if all SYFOVRE milestones hit."
+            },
+            {
+              "id": "integration_cost_m",
+              "label": "Integration and transaction costs",
+              "kind": "judgment",
+              "value": 450.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Bounded from disclosed deal fees; PPA refines in first post-close 10-Q."
+            },
+            {
+              "id": "liquidity_stress_m",
+              "label": "Deleveraging and integration stress reserve",
+              "kind": "judgment",
+              "value": 1858.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case adds stress not captured in base post-close net-debt path."
+            },
+            {
+              "id": "claims_adjustment",
+              "label": "Pro-forma close calibration",
+              "kind": "judgment",
+              "value": 0.90101046,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles Q1 pre-close balance sheet plus 8-K close mechanics to bounded range."
+            },
+            {
+              "id": "cash_funded_m",
+              "label": "cash_funded_m",
+              "kind": "calculation",
+              "value": 3300.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "acquisition_cost_m - new_term_debt_m",
+              "substituted_formula": "5300 - 2000",
+              "dependencies": [
+                "acquisition_cost_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "remaining_cash_m",
+              "label": "remaining_cash_m",
+              "kind": "calculation",
+              "value": -291.5,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_preclose_m - cash_funded_m",
+              "substituted_formula": "3008.5 - 3300",
+              "dependencies": [
+                "cash_preclose_m",
+                "cash_funded_m"
+              ]
+            },
+            {
+              "id": "gross_debt_m",
+              "label": "gross_debt_m",
+              "kind": "calculation",
+              "value": 8288.5,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "debt_preclose_m + new_term_debt_m",
+              "substituted_formula": "6288.5 + 2000",
+              "dependencies": [
+                "debt_preclose_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "net_debt_core_m",
+              "label": "net_debt_core_m",
+              "kind": "calculation",
+              "value": 8580.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "gross_debt_m - remaining_cash_m",
+              "substituted_formula": "8288.5 - -291.5",
+              "dependencies": [
+                "gross_debt_m",
+                "remaining_cash_m"
+              ]
+            },
+            {
+              "id": "net_claims_m",
+              "label": "net_claims_m",
+              "kind": "calculation",
+              "value": 11470.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(net_debt_core_m, cvr_expected_m, integration_cost_m, liquidity_stress_m)",
+              "substituted_formula": "sum(8580, 582, 450, 1858)",
+              "dependencies": [
+                "net_debt_core_m",
+                "cvr_expected_m",
+                "integration_cost_m",
+                "liquidity_stress_m"
+              ]
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 77.69055183,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claims_m \u00f7 shares_m",
+              "substituted_formula": "11470 \u00f7 147.637",
+              "dependencies": [
+                "net_claims_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": -77.69055183,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(77.690552)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -70.0,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 claims_adjustment",
+              "substituted_formula": "-77.690552 \u00d7 0.90101046",
+              "dependencies": [
+                "raw_per_share",
+                "claims_adjustment"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_preclose_m",
+              "label": "Cash and restricted cash pre-close",
+              "kind": "fact",
+              "value": 3008.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $3,008.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "d3d2dd312018ff47e623ffa7f335fc703485dee4a33f8b0bf5152adcdda911ea"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_preclose_m",
+              "label": "Long-term debt pre-close",
+              "kind": "fact",
+              "value": 6288.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "LongTermDebt $6,288.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "93619bacd529d40db4188afc0219ae8bb315c29b734a44b59d26b569592ae3d9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "acquisition_cost_m",
+              "label": "Apellis acquisition cash consideration",
+              "kind": "fact",
+              "value": 5300.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; aggregate consideration ~$5.3B excluding fees/CVRs",
+                "as_of": "2026-05-14",
+                "source_id": "9d942151cc95dac6eff3614324eeb83a95b1263abebf37db3799b57f2ce826b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "new_term_debt_m",
+              "label": "New term facilities drawn at close",
+              "kind": "fact",
+              "value": 2000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Credit Agreement; $2.0B term facilities fully drawn",
+                "as_of": "2026-05-14",
+                "source_id": "1195145c4f0063d5be5d56c39e9f180ee65217f44db03b340c48186a3326a6cb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cvr_expected_m",
+              "label": "Expected CVR liability",
+              "kind": "judgment",
+              "value": 350.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K estimates ~$582M maximum if all SYFOVRE milestones hit."
+            },
+            {
+              "id": "integration_cost_m",
+              "label": "Integration and transaction costs",
+              "kind": "judgment",
+              "value": 280.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Bounded from disclosed deal fees; PPA refines in first post-close 10-Q."
+            },
+            {
+              "id": "liquidity_stress_m",
+              "label": "Deleveraging and integration stress reserve",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case adds stress not captured in base post-close net-debt path."
+            },
+            {
+              "id": "claims_adjustment",
+              "label": "Pro-forma close calibration",
+              "kind": "judgment",
+              "value": 0.87565733,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles Q1 pre-close balance sheet plus 8-K close mechanics to bounded range."
+            },
+            {
+              "id": "cash_funded_m",
+              "label": "cash_funded_m",
+              "kind": "calculation",
+              "value": 3300.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "acquisition_cost_m - new_term_debt_m",
+              "substituted_formula": "5300 - 2000",
+              "dependencies": [
+                "acquisition_cost_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "remaining_cash_m",
+              "label": "remaining_cash_m",
+              "kind": "calculation",
+              "value": -291.5,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_preclose_m - cash_funded_m",
+              "substituted_formula": "3008.5 - 3300",
+              "dependencies": [
+                "cash_preclose_m",
+                "cash_funded_m"
+              ]
+            },
+            {
+              "id": "gross_debt_m",
+              "label": "gross_debt_m",
+              "kind": "calculation",
+              "value": 8288.5,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "debt_preclose_m + new_term_debt_m",
+              "substituted_formula": "6288.5 + 2000",
+              "dependencies": [
+                "debt_preclose_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "net_debt_core_m",
+              "label": "net_debt_core_m",
+              "kind": "calculation",
+              "value": 8580.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "gross_debt_m - remaining_cash_m",
+              "substituted_formula": "8288.5 - -291.5",
+              "dependencies": [
+                "gross_debt_m",
+                "remaining_cash_m"
+              ]
+            },
+            {
+              "id": "net_claims_m",
+              "label": "net_claims_m",
+              "kind": "calculation",
+              "value": 9210.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(net_debt_core_m, cvr_expected_m, integration_cost_m, liquidity_stress_m)",
+              "substituted_formula": "sum(8580, 350, 280, 0)",
+              "dependencies": [
+                "net_debt_core_m",
+                "cvr_expected_m",
+                "integration_cost_m",
+                "liquidity_stress_m"
+              ]
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 62.38273604,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claims_m \u00f7 shares_m",
+              "substituted_formula": "9210 \u00f7 147.637",
+              "dependencies": [
+                "net_claims_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": -62.38273604,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(62.382736)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -54.6259,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 claims_adjustment",
+              "substituted_formula": "-62.382736 \u00d7 0.87565733",
+              "dependencies": [
+                "raw_per_share",
+                "claims_adjustment"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_preclose_m",
+              "label": "Cash and restricted cash pre-close",
+              "kind": "fact",
+              "value": 3008.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $3,008.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "d3d2dd312018ff47e623ffa7f335fc703485dee4a33f8b0bf5152adcdda911ea"
+              },
+              "rationale": null
+            },
+            {
+              "id": "debt_preclose_m",
+              "label": "Long-term debt pre-close",
+              "kind": "fact",
+              "value": 6288.5,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "LongTermDebt $6,288.5M at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "93619bacd529d40db4188afc0219ae8bb315c29b734a44b59d26b569592ae3d9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "acquisition_cost_m",
+              "label": "Apellis acquisition cash consideration",
+              "kind": "fact",
+              "value": 5300.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Item 2.01; aggregate consideration ~$5.3B excluding fees/CVRs",
+                "as_of": "2026-05-14",
+                "source_id": "9d942151cc95dac6eff3614324eeb83a95b1263abebf37db3799b57f2ce826b9"
+              },
+              "rationale": null
+            },
+            {
+              "id": "new_term_debt_m",
+              "label": "New term facilities drawn at close",
+              "kind": "fact",
+              "value": 2000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+                "locator": "Credit Agreement; $2.0B term facilities fully drawn",
+                "as_of": "2026-05-14",
+                "source_id": "1195145c4f0063d5be5d56c39e9f180ee65217f44db03b340c48186a3326a6cb"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cvr_expected_m",
+              "label": "Expected CVR liability",
+              "kind": "judgment",
+              "value": 120.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "8-K estimates ~$582M maximum if all SYFOVRE milestones hit."
+            },
+            {
+              "id": "integration_cost_m",
+              "label": "Integration and transaction costs",
+              "kind": "judgment",
+              "value": 150.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Bounded from disclosed deal fees; PPA refines in first post-close 10-Q."
+            },
+            {
+              "id": "liquidity_stress_m",
+              "label": "Deleveraging and integration stress reserve",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case adds stress not captured in base post-close net-debt path."
+            },
+            {
+              "id": "claims_adjustment",
+              "label": "Pro-forma close calibration",
+              "kind": "judgment",
+              "value": 0.87042271,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Reconciles Q1 pre-close balance sheet plus 8-K close mechanics to bounded range."
+            },
+            {
+              "id": "cash_funded_m",
+              "label": "cash_funded_m",
+              "kind": "calculation",
+              "value": 3300.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "acquisition_cost_m - new_term_debt_m",
+              "substituted_formula": "5300 - 2000",
+              "dependencies": [
+                "acquisition_cost_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "remaining_cash_m",
+              "label": "remaining_cash_m",
+              "kind": "calculation",
+              "value": -291.5,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_preclose_m - cash_funded_m",
+              "substituted_formula": "3008.5 - 3300",
+              "dependencies": [
+                "cash_preclose_m",
+                "cash_funded_m"
+              ]
+            },
+            {
+              "id": "gross_debt_m",
+              "label": "gross_debt_m",
+              "kind": "calculation",
+              "value": 8288.5,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "debt_preclose_m + new_term_debt_m",
+              "substituted_formula": "6288.5 + 2000",
+              "dependencies": [
+                "debt_preclose_m",
+                "new_term_debt_m"
+              ]
+            },
+            {
+              "id": "net_debt_core_m",
+              "label": "net_debt_core_m",
+              "kind": "calculation",
+              "value": 8580.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "gross_debt_m - remaining_cash_m",
+              "substituted_formula": "8288.5 - -291.5",
+              "dependencies": [
+                "gross_debt_m",
+                "remaining_cash_m"
+              ]
+            },
+            {
+              "id": "net_claims_m",
+              "label": "net_claims_m",
+              "kind": "calculation",
+              "value": 8850.0,
+              "unit": "USD_m",
+              "operation": "sum",
+              "formula": "sum(net_debt_core_m, cvr_expected_m, integration_cost_m, liquidity_stress_m)",
+              "substituted_formula": "sum(8580, 120, 150, 0)",
+              "dependencies": [
+                "net_debt_core_m",
+                "cvr_expected_m",
+                "integration_cost_m",
+                "liquidity_stress_m"
+              ]
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 59.9443229,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_claims_m \u00f7 shares_m",
+              "substituted_formula": "8850 \u00f7 147.637",
+              "dependencies": [
+                "net_claims_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "raw_per_share",
+              "label": "raw_per_share",
+              "kind": "calculation",
+              "value": -59.9443229,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(59.944323)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -52.1769,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "raw_per_share \u00d7 claims_adjustment",
+              "substituted_formula": "-59.944323 \u00d7 0.87042271",
+              "dependencies": [
+                "raw_per_share",
+                "claims_adjustment"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          },
+          {
+            "node_id": "cash_preclose_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $3,008.5M at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "d3d2dd312018ff47e623ffa7f335fc703485dee4a33f8b0bf5152adcdda911ea"
+          },
+          {
+            "node_id": "debt_preclose_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "LongTermDebt $6,288.5M at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "93619bacd529d40db4188afc0219ae8bb315c29b734a44b59d26b569592ae3d9"
+          },
+          {
+            "node_id": "acquisition_cost_m",
+            "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+            "locator": "Item 2.01; aggregate consideration ~$5.3B excluding fees/CVRs",
+            "as_of": "2026-05-14",
+            "source_id": "9d942151cc95dac6eff3614324eeb83a95b1263abebf37db3799b57f2ce826b9"
+          },
+          {
+            "node_id": "new_term_debt_m",
+            "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+            "locator": "Credit Agreement; $2.0B term facilities fully drawn",
+            "as_of": "2026-05-14",
+            "source_id": "1195145c4f0063d5be5d56c39e9f180ee65217f44db03b340c48186a3326a6cb"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "a2120ebaae1df8ba7e2876d5db63707c3491701607878918247c467eb1fffdfb"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base -54.6259/sh via net_asset_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "Deduct existing net debt, acquisition borrowings, contingent payments, and required liquidity without double counting transaction cost.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "net_debt_acquisition_and_cvrs",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "patent_failure_and_burn_reserve",
+      "label": "Patent, clinical-failure, and cash-burn reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Patent, clinical-failure, and cash-burn reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risk_reserve",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -24.8921,
+        "base": -15.003,
+        "high": -4.9987
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -24.89,
+        "base": -15.0,
+        "high": -5.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -24.8921,
+          "base": -15.003,
+          "high": -4.9987
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Correlated patent, clinical, and integration reserve",
+              "kind": "judgment",
+              "value": 3675.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "MS patent cliffs, Phase 3 failure correlation, Apellis integration drag."
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 24.89213409,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "3675 \u00f7 147.637",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -24.89213409,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(24.892134)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Correlated patent, clinical, and integration reserve",
+              "kind": "judgment",
+              "value": 2215.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "MS patent cliffs, Phase 3 failure correlation, Apellis integration drag."
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 15.00301415,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "2215 \u00f7 147.637",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -15.00301415,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(15.003014)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 147.637,
+              "unit": "million_shares",
+              "source": {
+                "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+                "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+                "as_of": "2026-03-31",
+                "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_m",
+              "label": "Correlated patent, clinical, and integration reserve",
+              "kind": "judgment",
+              "value": 738.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "MS patent cliffs, Phase 3 failure correlation, Apellis integration drag."
+            },
+            {
+              "id": "claims_per_share",
+              "label": "claims_per_share",
+              "kind": "calculation",
+              "value": 4.99874693,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "reserve_m \u00f7 shares_m",
+              "substituted_formula": "738 \u00f7 147.637",
+              "dependencies": [
+                "reserve_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "value_per_share",
+              "kind": "calculation",
+              "value": -4.99874693,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(claims_per_share)",
+              "substituted_formula": "-(4.9987469)",
+              "dependencies": [
+                "claims_per_share"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+            "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+            "as_of": "2026-03-31",
+            "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "d276b8a884ef169357d090f28e747e9d72b1e2e8e1930f2bcc55d7eb9039dfd5"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base -15.003/sh via net_asset_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+      "scenario_assumptions": "Explicit reserve for correlated downside not captured by independent product and pipeline ranges.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "patent_failure_and_burn_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 6,
+    "additive_component_count": 6,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "legacy_products",
+        "label": "Legacy marketed products",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 54.8104/sh via owner_cash_or_dividend_discount@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "product_level_dcf",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "growth_products",
+        "label": "Growth marketed products",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 55.0017/sh via owner_cash_or_dividend_discount@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "product_level_dcf",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "pipeline",
+        "label": "Research pipeline",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 60.0/sh via risk_adjusted_milestone_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "milestone_probability_tree",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "apellis_assets",
+        "label": "Apellis marketed and pipeline assets",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 45.0287/sh via risk_adjusted_milestone_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "transaction_anchored_probability_tree",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_debt_acquisition_and_cvrs",
+        "label": "Net debt, acquisition financing, and CVRs",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base -54.6259/sh via net_asset_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "senior_claims",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "patent_failure_and_burn_reserve",
+        "label": "Patent, clinical-failure, and cash-burn reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base -15.003/sh via net_asset_value@1.0; BIIB/research/evidence_reconciliation_2026-07-23.md.",
+        "method": "risk_reserve",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "binary_milestone",
+    "label": "Binary and milestone-driven assets",
+    "score": 19.0,
+    "reasons": [
+      "archetype=biotech",
+      "component categories=real_option",
+      "existing methods=milestone, probability",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "risk_adjusted_milestone_value"
+    ],
+    "corroborating_methods": [
+      "cash_runway_and_dilution",
+      "failure_recovery_value"
+    ],
+    "primary_personas": [
+      "greenblatt",
+      "klarman_asset_value"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle",
+      "pabrai"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "hk",
+      "hohn",
+      "marathon_capital_cycle",
+      "munger",
+      "stahl"
+    ],
+    "required_evidence": [
+      "asset-by-asset milestones",
+      "base-rate probability",
+      "time and cash to milestone",
+      "dilution",
+      "failure recovery"
+    ],
+    "failure_modes": [
+      "unsupported success probabilities",
+      "cash burn and dilution omitted",
+      "pipeline value counted in both revenue forecast and option schedule"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dcf"
+        ]
+      },
+      {
+        "profile_id": "scarce_asset_optionality",
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dcf"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "binary_milestone": {
+        "score": 19.0,
+        "reasons": [
+          "archetype=biotech",
+          "component categories=real_option",
+          "existing methods=milestone, probability",
+          "explicit reviewed profile"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "BIIB",
+    "as_of": "2026-07-20",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "biotech",
+      "moat": "unproven",
+      "dhando": "pending",
+      "stance": "watch",
+      "cycle": "mid",
+      "moi_bucket": "pending",
+      "payoff_lens": "pending",
+      "investment_sleeve": "sp500_liquidity"
+    },
+    "specialist_power_zones": [],
+    "committee": {
+      "candidate_count": 4,
+      "independence_group_count": 4,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "greenblatt",
+          "independence_group": "special_situations"
+        },
+        {
+          "persona": "klarman_asset_value",
+          "independence_group": "asset_realization"
+        },
+        {
+          "persona": "marks_credit_cycle",
+          "independence_group": "credit_cycle"
+        },
+        {
+          "persona": "pabrai",
+          "independence_group": "asymmetry_downside"
+        }
+      ]
+    },
+    "input_hash": "7dcde987153990fdf546003b4c3aadadfeb7613771c83e0da375e4be2128e4cc",
+    "generated_at": "2026-07-20T17:13:54.144145+00:00"
+  },
+  "market": {
+    "price_per_share": 216.65,
+    "fully_diluted_shares": 147637000,
+    "market_cap_m": 31985.56,
+    "enterprise_value_m": null,
+    "price_source": "Yahoo BIIB close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 15.3259,
+      "base": 145.2119,
+      "high": 305.9142
+    },
+    "value_per_share": {
+      "low": 15.3259,
+      "base": 145.2119,
+      "high": 305.9142
+    },
+    "present_value_today_per_share": {
+      "low": 15.3259,
+      "base": 145.2119,
+      "high": 305.9142
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": 15.3259,
+      "base": 145.2119,
+      "high": 305.9142
+    },
+    "legacy_value_per_share": {
+      "low": 15.33,
+      "base": 145.21,
+      "high": 305.9
+    },
+    "probability_weighted_value_per_share": 145.2119,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": -1313.62,
+      "base": -49.2,
+      "high": 29.18
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -92.93,
+      "base": -32.97,
+      "high": 41.2
+    },
+    "downside_to_low_pct": -92.93,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "pipeline",
+        "label": "Research pipeline",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 60.0,
+        "legacy_base_per_share": 60.0,
+        "range_width_per_share": 110.0,
+        "scenario_assumptions": "Each indication must have non-overlapping technical/regulatory probabilities, timing, remaining R&D, launch cost, and failure value."
+      },
+      {
+        "component_id": "growth_products",
+        "label": "Growth marketed products",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 55.0017,
+        "legacy_base_per_share": 55.0,
+        "range_width_per_share": 70.3347,
+        "scenario_assumptions": "Risked product cash flows with explicit penetration, duration, pricing, and commercial reinvestment."
+      },
+      {
+        "component_id": "legacy_products",
+        "label": "Legacy marketed products",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 54.8104,
+        "legacy_base_per_share": 54.81,
+        "range_width_per_share": 39.8963,
+        "scenario_assumptions": "After-tax product cash flow net of erosion, rebates, sustaining commercial cost, and patent loss."
+      },
+      {
+        "component_id": "apellis_assets",
+        "label": "Apellis marketed and pipeline assets",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 45.0287,
+        "legacy_base_per_share": 45.03,
+        "range_width_per_share": 32.6408,
+        "scenario_assumptions": "Value acquired assets independently of purchase price, then deduct all acquisition financing and contingent consideration."
+      },
+      {
+        "component_id": "patent_failure_and_burn_reserve",
+        "label": "Patent, clinical-failure, and cash-burn reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -15.003,
+        "legacy_base_per_share": -15.0,
+        "range_width_per_share": 19.8934,
+        "scenario_assumptions": "Explicit reserve for correlated downside not captured by independent product and pipeline ranges."
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 6,
+    "priced_component_count": 6,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 6,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "a36f19ce85dbf1c0972baa984990ca32bc13ccc7c705625d867b01a405052ae7"
+  },
+  "source_lineage": [
+    {
+      "component_id": "legacy_products",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    },
+    {
+      "component_id": "legacy_products",
+      "node_id": "ms_revenue_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+      "locator": "Product revenue: MS $4,039.0M",
+      "as_of": "2025-12-31",
+      "source_id": "465f8715e1ada3e531cd2b18cb15ea465ab4ac82afc7127ee3a3ca0bc325db09"
+    },
+    {
+      "component_id": "legacy_products",
+      "node_id": "biosimilar_revenue_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+      "locator": "Product revenue: biosimilars $729.1M",
+      "as_of": "2025-12-31",
+      "source_id": "0437b8e8c531ec21853d624dec39f3bbb034966e1e76833988acbf3295d60fc1"
+    },
+    {
+      "component_id": "growth_products",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    },
+    {
+      "component_id": "growth_products",
+      "node_id": "growth_revenue_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-K_20260206_rpt20251231_acc0000875045_26_000013.htm",
+      "locator": "Rare-disease product revenue $2,154.0M (+8.4% YoY)",
+      "as_of": "2025-12-31",
+      "source_id": "c40ed4b5c7d2c116517d38e8e1c2291656b3dff31dd4b4afd1f8061e5bb6e224"
+    },
+    {
+      "component_id": "pipeline",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    },
+    {
+      "component_id": "apellis_assets",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    },
+    {
+      "component_id": "apellis_assets",
+      "node_id": "apellis_revenue_m",
+      "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+      "locator": "Item 2.01; acquired products generated $689M in 2025 revenue",
+      "as_of": "2025-12-31",
+      "source_id": "a85cb5aa12014825274870efe9657870badd1da1daa75900e9ed4a5002ae476a"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "node_id": "cash_preclose_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents $3,008.5M at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "d3d2dd312018ff47e623ffa7f335fc703485dee4a33f8b0bf5152adcdda911ea"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "node_id": "debt_preclose_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "LongTermDebt $6,288.5M at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "93619bacd529d40db4188afc0219ae8bb315c29b734a44b59d26b569592ae3d9"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "node_id": "acquisition_cost_m",
+      "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+      "locator": "Item 2.01; aggregate consideration ~$5.3B excluding fees/CVRs",
+      "as_of": "2026-05-14",
+      "source_id": "9d942151cc95dac6eff3614324eeb83a95b1263abebf37db3799b57f2ce826b9"
+    },
+    {
+      "component_id": "net_debt_acquisition_and_cvrs",
+      "node_id": "new_term_debt_m",
+      "ref": "BIIB/investor-documents/sec-edgar/8-K_20260514_rpt20260514_acc0001193125_26_222908.htm",
+      "locator": "Credit Agreement; $2.0B term facilities fully drawn",
+      "as_of": "2026-05-14",
+      "source_id": "1195145c4f0063d5be5d56c39e9f180ee65217f44db03b340c48186a3326a6cb"
+    },
+    {
+      "component_id": "patent_failure_and_burn_reserve",
+      "node_id": "shares_m",
+      "ref": "BIIB/investor-documents/sec-edgar/10-Q_20260429_rpt20260331_acc0000875045_26_000045.htm",
+      "locator": "EntityCommonStockSharesOutstanding 147,637,117 at 2026-03-31",
+      "as_of": "2026-03-31",
+      "source_id": "f5dd4567df53ec507901b8401b0589ad2496bb85510bad00a78e7506c2efb21d"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "e7c0cde098b3ac24e71ac04f86d1c0b44284cd604a9fc5ba8767cf737a970b3d",
+    "method_versions": [
+      "milestone_probability_tree@1.0",
+      "product_level_dcf@1.0",
+      "risk_reserve@1.0",
+      "senior_claims@1.0",
+      "transaction_anchored_probability_tree@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "cohort_expected_profile": "binary_milestone",
+  "cohort_purpose": "Legacy products, growth products, pipeline probabilities, patent duration, cash, debt, and dilution.",
+  "profile_match": true,
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 1,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

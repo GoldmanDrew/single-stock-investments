@@ -1,0 +1,1449 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "MSB",
+  "as_of": "2026-07-21",
+  "dates": {
+    "model_as_of": "2026-07-21",
+    "latest_fact_as_of": "2026-04-30",
+    "oldest_fact_as_of": "2024-10-04",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": 3.45,
+      "base": 5.84,
+      "high": 12.72
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "producing_royalty_stream",
+      "label": "Producing royalty and bonus stream",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Producing royalty and bonus stream",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "royalty_distribution_curve",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 30.0,
+        "base": 35.0001,
+        "high": 42.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 30.0,
+        "base": 35.0,
+        "high": 42.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 30.0,
+          "base": 35.0001,
+          "high": 42.0
+        },
+        "output_unit": "USD_per_unit",
+        "traces": {
+          "low": [
+            {
+              "id": "distribution_per_unit",
+              "label": "FY2026 declared distributions per unit",
+              "kind": "fact",
+              "value": 1.28,
+              "unit": "USD_per_unit",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "FY2026 declared distributions $16.794 million or $1.28 per unit",
+                "as_of": "2026-01-31",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "0c517a4dff79deb9c0e0022705af367fb59d56021a24352b04021a85906c8075"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted distribution capitalization multiple",
+              "kind": "judgment",
+              "value": 23.4375,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear uses trough FY2026 distribution run-rate with finite reserve and Cliffs concentration embedded; base mid-cycle seven-year owner-cash path; bull modest bonus-tier recovery uplift."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Producing royalty stream per unit",
+              "kind": "calculation",
+              "value": 30.0,
+              "unit": "USD_per_unit",
+              "operation": "multiply",
+              "formula": "distribution_per_unit \u00d7 capitalization_multiple",
+              "substituted_formula": "1.28 \u00d7 23.4375",
+              "dependencies": [
+                "distribution_per_unit",
+                "capitalization_multiple"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "distribution_per_unit",
+              "label": "FY2026 declared distributions per unit",
+              "kind": "fact",
+              "value": 1.28,
+              "unit": "USD_per_unit",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "FY2026 declared distributions $16.794 million or $1.28 per unit",
+                "as_of": "2026-01-31",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "0c517a4dff79deb9c0e0022705af367fb59d56021a24352b04021a85906c8075"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted distribution capitalization multiple",
+              "kind": "judgment",
+              "value": 27.3438,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear uses trough FY2026 distribution run-rate with finite reserve and Cliffs concentration embedded; base mid-cycle seven-year owner-cash path; bull modest bonus-tier recovery uplift."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Producing royalty stream per unit",
+              "kind": "calculation",
+              "value": 35.000064,
+              "unit": "USD_per_unit",
+              "operation": "multiply",
+              "formula": "distribution_per_unit \u00d7 capitalization_multiple",
+              "substituted_formula": "1.28 \u00d7 27.3438",
+              "dependencies": [
+                "distribution_per_unit",
+                "capitalization_multiple"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "distribution_per_unit",
+              "label": "FY2026 declared distributions per unit",
+              "kind": "fact",
+              "value": 1.28,
+              "unit": "USD_per_unit",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "FY2026 declared distributions $16.794 million or $1.28 per unit",
+                "as_of": "2026-01-31",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "0c517a4dff79deb9c0e0022705af367fb59d56021a24352b04021a85906c8075"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capitalization_multiple",
+              "label": "Duration-adjusted distribution capitalization multiple",
+              "kind": "judgment",
+              "value": 32.8125,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Bear uses trough FY2026 distribution run-rate with finite reserve and Cliffs concentration embedded; base mid-cycle seven-year owner-cash path; bull modest bonus-tier recovery uplift."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Producing royalty stream per unit",
+              "kind": "calculation",
+              "value": 42.0,
+              "unit": "USD_per_unit",
+              "operation": "multiply",
+              "formula": "distribution_per_unit \u00d7 capitalization_multiple",
+              "substituted_formula": "1.28 \u00d7 32.8125",
+              "dependencies": [
+                "distribution_per_unit",
+                "capitalization_multiple"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "distribution_per_unit",
+            "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+            "locator": "FY2026 declared distributions $16.794 million or $1.28 per unit",
+            "as_of": "2026-01-31",
+            "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+            "source_id": "0c517a4dff79deb9c0e0022705af367fb59d56021a24352b04021a85906c8075"
+          },
+          {
+            "node_id": "units_m",
+            "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+            "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+            "as_of": "2026-04-21",
+            "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+            "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "ee958145362834ac79dda3a78119ebbbacea4fd6262d0023e6fcf56429a92ec5"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 35.0001/unit via owner_cash_or_dividend_discount@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+      "scenario_assumptions": "Present value of after-trust royalty distributions under explicit volume, pellet-price, bonus, and discount-rate cases.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "producing_royalty_stream",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "arbitration_and_bonus_option",
+      "label": "Arbitration and bonus-payment option",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Arbitration and bonus-payment option",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "probability_weighted_legal_option",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.0,
+        "base": 0.0,
+        "high": 13.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.0,
+        "base": 0.0,
+        "high": 13.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.0,
+          "base": 0.0,
+          "high": 13.0
+        },
+        "output_unit": "USD_per_unit",
+        "traces": {
+          "low": [
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "prior_award_m",
+              "label": "Prior AAA award collected (closed dispute)",
+              "kind": "fact",
+              "value": 71.185,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/8-K_20241017_rpt20241017_acc0001558370_24_013375.htm",
+                "locator": "Cliffs paid $71,185,029 on 2024-10-04; prior dispute closed",
+                "as_of": "2024-10-04",
+                "content_sha256": "558faa61f64071fbda84e42f5acf2e3d2f67d58b00fdfbf1dcc4bea86534aba1",
+                "source_id": "380ee4efb8190499b1d2f91823a506fc549408cf3f694cf9d605eac7afbbcb68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "incremental_recovery_m",
+              "label": "Incremental recovery beyond ordinary royalties",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base assigns no value to the undisclosed September 2025 arbitration. High sensitivity only for separately evidenced incremental recovery; prior collected award is context, not a current payoff."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability of incremental recovery",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "No primary filing states claim amount, schedule, or collectibility for the current AAA panel; high case is unapproved upside sensitivity only."
+            },
+            {
+              "id": "risked_recovery_m",
+              "label": "Risk-adjusted incremental recovery",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "incremental_recovery_m \u00d7 success_probability",
+              "substituted_formula": "0 \u00d7 0",
+              "dependencies": [
+                "incremental_recovery_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Arbitration option per unit",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "risked_recovery_m \u00f7 units_m",
+              "substituted_formula": "0 \u00f7 13.12001",
+              "dependencies": [
+                "risked_recovery_m",
+                "units_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "prior_award_m",
+              "label": "Prior AAA award collected (closed dispute)",
+              "kind": "fact",
+              "value": 71.185,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/8-K_20241017_rpt20241017_acc0001558370_24_013375.htm",
+                "locator": "Cliffs paid $71,185,029 on 2024-10-04; prior dispute closed",
+                "as_of": "2024-10-04",
+                "content_sha256": "558faa61f64071fbda84e42f5acf2e3d2f67d58b00fdfbf1dcc4bea86534aba1",
+                "source_id": "380ee4efb8190499b1d2f91823a506fc549408cf3f694cf9d605eac7afbbcb68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "incremental_recovery_m",
+              "label": "Incremental recovery beyond ordinary royalties",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base assigns no value to the undisclosed September 2025 arbitration. High sensitivity only for separately evidenced incremental recovery; prior collected award is context, not a current payoff."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability of incremental recovery",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "No primary filing states claim amount, schedule, or collectibility for the current AAA panel; high case is unapproved upside sensitivity only."
+            },
+            {
+              "id": "risked_recovery_m",
+              "label": "Risk-adjusted incremental recovery",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "incremental_recovery_m \u00d7 success_probability",
+              "substituted_formula": "0 \u00d7 0",
+              "dependencies": [
+                "incremental_recovery_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Arbitration option per unit",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "risked_recovery_m \u00f7 units_m",
+              "substituted_formula": "0 \u00f7 13.12001",
+              "dependencies": [
+                "risked_recovery_m",
+                "units_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+              },
+              "rationale": null
+            },
+            {
+              "id": "prior_award_m",
+              "label": "Prior AAA award collected (closed dispute)",
+              "kind": "fact",
+              "value": 71.185,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/8-K_20241017_rpt20241017_acc0001558370_24_013375.htm",
+                "locator": "Cliffs paid $71,185,029 on 2024-10-04; prior dispute closed",
+                "as_of": "2024-10-04",
+                "content_sha256": "558faa61f64071fbda84e42f5acf2e3d2f67d58b00fdfbf1dcc4bea86534aba1",
+                "source_id": "380ee4efb8190499b1d2f91823a506fc549408cf3f694cf9d605eac7afbbcb68"
+              },
+              "rationale": null
+            },
+            {
+              "id": "incremental_recovery_m",
+              "label": "Incremental recovery beyond ordinary royalties",
+              "kind": "judgment",
+              "value": 170.56,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Base assigns no value to the undisclosed September 2025 arbitration. High sensitivity only for separately evidenced incremental recovery; prior collected award is context, not a current payoff."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability of incremental recovery",
+              "kind": "judgment",
+              "value": 1.0,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "No primary filing states claim amount, schedule, or collectibility for the current AAA panel; high case is unapproved upside sensitivity only."
+            },
+            {
+              "id": "risked_recovery_m",
+              "label": "Risk-adjusted incremental recovery",
+              "kind": "calculation",
+              "value": 170.56,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "incremental_recovery_m \u00d7 success_probability",
+              "substituted_formula": "170.56 \u00d7 1",
+              "dependencies": [
+                "incremental_recovery_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Arbitration option per unit",
+              "kind": "calculation",
+              "value": 12.99999009,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "risked_recovery_m \u00f7 units_m",
+              "substituted_formula": "170.56 \u00f7 13.12001",
+              "dependencies": [
+                "risked_recovery_m",
+                "units_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "units_m",
+            "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+            "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+            "as_of": "2026-04-21",
+            "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+            "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+          },
+          {
+            "node_id": "prior_award_m",
+            "ref": "MSB/investor-documents/sec-edgar/8-K_20241017_rpt20241017_acc0001558370_24_013375.htm",
+            "locator": "Cliffs paid $71,185,029 on 2024-10-04; prior dispute closed",
+            "as_of": "2024-10-04",
+            "content_sha256": "558faa61f64071fbda84e42f5acf2e3d2f67d58b00fdfbf1dcc4bea86534aba1",
+            "source_id": "380ee4efb8190499b1d2f91823a506fc549408cf3f694cf9d605eac7afbbcb68"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "6222262e4f29c92f9e5f88192a1ed10eb8546253274a0ec435b9b02a685b3f94"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 0.0/unit via risk_adjusted_milestone_value@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+      "scenario_assumptions": "Base assigns no value to the undisclosed arbitration. Only a separately evidenced incremental recovery beyond ordinary royalties may enter the high sensitivity; ordinary base and bonus royalties remain in the producing stream.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Scenario range includes delay and failure outcomes.",
+        "probability_basis": "Starter probability is an explicit analyst judgment pending base-rate and milestone reconciliation.",
+        "remaining_capital_basis": "Remaining capital and financing are deducted in the stated option range."
+      },
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Dismissal, an adverse award, a settlement below the separately modeled incremental amount, or a remedy limited to royalties already accrued in the producing stream.",
+      "overlap_key": "arbitration_and_bonus_option",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "trust_cash_and_other_claims",
+      "label": "Trust cash and other net claims",
+      "category": "financial_asset",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Trust cash and other net claims",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 1.0169,
+        "base": 1.398,
+        "high": 1.5551
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 1.02,
+        "base": 1.4,
+        "high": 1.56
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 1.0169,
+          "base": 1.398,
+          "high": 1.5551
+        },
+        "output_unit": "USD_per_unit",
+        "traces": {
+          "low": [
+            {
+              "id": "unallocated_reserve_m",
+              "label": "Unallocated reserve",
+              "kind": "fact",
+              "value": 18.341533,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm",
+                "locator": "Page 12, Comparison of Unallocated Reserve; April 30, 2026 amount $18,341,533",
+                "as_of": "2026-04-30",
+                "content_sha256": "b6f8cdeae98df91158410c368a4a8c4593eb0ab2848733ababa91200753fe7cb",
+                "source_id": "31ad413843b0dc55c76d5540822330ce0dd2c4e6c214e4b2437743b7c93fb794"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "9a3454a4b40c709683929d9e64847a36a121cbc6aa5abf257b77358bc858977e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_adjustment_m",
+              "label": "Reserve adjustment for contingent legal costs and timing",
+              "kind": "judgment",
+              "value": -5.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case haircuts reserve for contingent arbitration costs; base uses April 30, 2026 filing mark; high uses January 31, 2026 reserve of $20.403M."
+            },
+            {
+              "id": "adjusted_reserve_m",
+              "label": "Adjusted unallocated reserve",
+              "kind": "calculation",
+              "value": 13.341533,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "unallocated_reserve_m + reserve_adjustment_m",
+              "substituted_formula": "18.341533 + -5",
+              "dependencies": [
+                "unallocated_reserve_m",
+                "reserve_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net trust reserve per unit",
+              "kind": "calculation",
+              "value": 1.01688436,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "adjusted_reserve_m \u00f7 units_m",
+              "substituted_formula": "13.341533 \u00f7 13.12001",
+              "dependencies": [
+                "adjusted_reserve_m",
+                "units_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "unallocated_reserve_m",
+              "label": "Unallocated reserve",
+              "kind": "fact",
+              "value": 18.341533,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm",
+                "locator": "Page 12, Comparison of Unallocated Reserve; April 30, 2026 amount $18,341,533",
+                "as_of": "2026-04-30",
+                "content_sha256": "b6f8cdeae98df91158410c368a4a8c4593eb0ab2848733ababa91200753fe7cb",
+                "source_id": "31ad413843b0dc55c76d5540822330ce0dd2c4e6c214e4b2437743b7c93fb794"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "9a3454a4b40c709683929d9e64847a36a121cbc6aa5abf257b77358bc858977e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_adjustment_m",
+              "label": "Reserve adjustment for contingent legal costs and timing",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case haircuts reserve for contingent arbitration costs; base uses April 30, 2026 filing mark; high uses January 31, 2026 reserve of $20.403M."
+            },
+            {
+              "id": "adjusted_reserve_m",
+              "label": "Adjusted unallocated reserve",
+              "kind": "calculation",
+              "value": 18.341533,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "unallocated_reserve_m + reserve_adjustment_m",
+              "substituted_formula": "18.341533 + 0",
+              "dependencies": [
+                "unallocated_reserve_m",
+                "reserve_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net trust reserve per unit",
+              "kind": "calculation",
+              "value": 1.39798163,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "adjusted_reserve_m \u00f7 units_m",
+              "substituted_formula": "18.341533 \u00f7 13.12001",
+              "dependencies": [
+                "adjusted_reserve_m",
+                "units_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "unallocated_reserve_m",
+              "label": "Unallocated reserve",
+              "kind": "fact",
+              "value": 18.341533,
+              "unit": "USD_m",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm",
+                "locator": "Page 12, Comparison of Unallocated Reserve; April 30, 2026 amount $18,341,533",
+                "as_of": "2026-04-30",
+                "content_sha256": "b6f8cdeae98df91158410c368a4a8c4593eb0ab2848733ababa91200753fe7cb",
+                "source_id": "31ad413843b0dc55c76d5540822330ce0dd2c4e6c214e4b2437743b7c93fb794"
+              },
+              "rationale": null
+            },
+            {
+              "id": "units_m",
+              "label": "Units outstanding",
+              "kind": "fact",
+              "value": 13.12001,
+              "unit": "million_units",
+              "source": {
+                "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+                "locator": "Cover page, units outstanding at April 21, 2026",
+                "as_of": "2026-04-21",
+                "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+                "source_id": "9a3454a4b40c709683929d9e64847a36a121cbc6aa5abf257b77358bc858977e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "reserve_adjustment_m",
+              "label": "Reserve adjustment for contingent legal costs and timing",
+              "kind": "judgment",
+              "value": 2.061467,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low case haircuts reserve for contingent arbitration costs; base uses April 30, 2026 filing mark; high uses January 31, 2026 reserve of $20.403M."
+            },
+            {
+              "id": "adjusted_reserve_m",
+              "label": "Adjusted unallocated reserve",
+              "kind": "calculation",
+              "value": 20.403,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "unallocated_reserve_m + reserve_adjustment_m",
+              "substituted_formula": "18.341533 + 2.061467",
+              "dependencies": [
+                "unallocated_reserve_m",
+                "reserve_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net trust reserve per unit",
+              "kind": "calculation",
+              "value": 1.55510552,
+              "unit": "USD_per_unit",
+              "operation": "divide",
+              "formula": "adjusted_reserve_m \u00f7 units_m",
+              "substituted_formula": "20.403 \u00f7 13.12001",
+              "dependencies": [
+                "adjusted_reserve_m",
+                "units_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "unallocated_reserve_m",
+            "ref": "MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm",
+            "locator": "Page 12, Comparison of Unallocated Reserve; April 30, 2026 amount $18,341,533",
+            "as_of": "2026-04-30",
+            "content_sha256": "b6f8cdeae98df91158410c368a4a8c4593eb0ab2848733ababa91200753fe7cb",
+            "source_id": "31ad413843b0dc55c76d5540822330ce0dd2c4e6c214e4b2437743b7c93fb794"
+          },
+          {
+            "node_id": "units_m",
+            "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+            "locator": "Cover page, units outstanding at April 21, 2026",
+            "as_of": "2026-04-21",
+            "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+            "source_id": "9a3454a4b40c709683929d9e64847a36a121cbc6aa5abf257b77358bc858977e"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "9e9f2e3f38d33d72398b911c65d23aa28f5bd67baf2c01a5518d639ec87e5e33"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "Proof base 1.398/unit via net_asset_value@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+      "scenario_assumptions": "Source-locked net trust reserve divided by source-locked units; refresh after every filing.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Material contingent legal costs or other senior liabilities consume the unallocated reserve.",
+      "overlap_key": "trust_cash_and_other_claims",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "depletion_and_concentration_reserve",
+      "label": "Finite reserve and counterparty concentration reserve",
+      "category": "liability_or_reserve",
+      "treatment": "embedded",
+      "included_in_component_id": "producing_royalty_stream",
+      "ownership_claim": "Producing royalty and bonus stream",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "depletion_reserve",
+      "method_version": null,
+      "method_provenance": null,
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": null,
+        "base": null,
+        "high": null
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -5.0,
+        "base": -3.0,
+        "high": -1.0
+      },
+      "valuation_status": "legacy_sensitivity",
+      "calculation_proof": null,
+      "evidence_tier": "mixed_primary_and_estimate",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Finite claim and Cliffs/Northshore concentration confirmed in 10-K/8-K; no primary recoverable-tonnage or mine-life schedule. Provisional -$5/-$3/-$1 remains evidence-blocked. See evidence_reconciliation_2026-07-15.md.",
+      "scenario_assumptions": "Deduction for depletion, operator concentration, interruption, and terminal-value uncertainty.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Low/base/high values incorporate ownership, tax, funding, cycle, and realization adjustments described in the component evidence.",
+      "falsifier": "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "overlap_key": "depletion_and_concentration_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 3,
+    "embedded_component_count": 1,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "producing_royalty_stream",
+        "label": "Producing royalty and bonus stream",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 35.0001/unit via owner_cash_or_dividend_discount@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+        "method": "royalty_distribution_curve",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "arbitration_and_bonus_option",
+        "label": "Arbitration and bonus-payment option",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 0.0/unit via risk_adjusted_milestone_value@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+        "method": "probability_weighted_legal_option",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "trust_cash_and_other_claims",
+        "label": "Trust cash and other net claims",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "Proof base 1.398/unit via net_asset_value@1.0; filings MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm and MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "depletion_and_concentration_reserve",
+        "label": "Finite reserve and counterparty concentration reserve",
+        "kind": "judgment",
+        "evidence_tier": "mixed_primary_and_estimate",
+        "evidence": "Finite claim and Cliffs/Northshore concentration confirmed in 10-K/8-K; no primary recoverable-tonnage or mine-life schedule. Provisional -$5/-$3/-$1 remains evidence-blocked. See evidence_reconciliation_2026-07-15.md.",
+        "method": "depletion_reserve",
+        "valuation_status": "legacy_sensitivity"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "scarce_asset_optionality",
+    "label": "Scarce assets, royalties, and optionality",
+    "score": 21.0,
+    "reasons": [
+      "archetype=resource",
+      "component categories=real_option",
+      "existing methods=option, royalty",
+      "investment_sleeve=real_assets_lt",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "component_owner_cash_and_unit_nav"
+    ],
+    "corroborating_methods": [
+      "comparable_transactions",
+      "replacement_cost_or_reverse_nav"
+    ],
+    "primary_personas": [
+      "hk",
+      "stahl"
+    ],
+    "cross_check_personas": [
+      "klarman_asset_value",
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "buffett_weschler",
+      "greenblatt",
+      "hohn",
+      "marathon_capital_cycle",
+      "munger",
+      "pabrai"
+    ],
+    "required_evidence": [
+      "legal economic claim",
+      "non-overlapping physical inventory",
+      "unit economics",
+      "realization timing",
+      "remaining owner capital"
+    ],
+    "failure_modes": [
+      "gross asset value mistaken for shareholder value",
+      "operating cash flow and NAV counted twice",
+      "remote options treated as contracted cash"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "credit_and_normalized_returns",
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      },
+      {
+        "profile_id": "binary_milestone",
+        "score": 2.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=probability"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 21.0,
+        "reasons": [
+          "archetype=resource",
+          "component categories=real_option",
+          "existing methods=option, royalty",
+          "investment_sleeve=real_assets_lt",
+          "explicit reviewed profile"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=financial_asset"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "binary_milestone": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=probability"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "MSB",
+    "as_of": "2026-07-20",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "resource",
+      "moat": "n/a",
+      "dhando": "partial",
+      "stance": "watch",
+      "cycle": "mid",
+      "predictive_attribute": "equity_yield_curve",
+      "investment_sleeve": "real_assets_lt"
+    },
+    "specialist_power_zones": [
+      {
+        "persona": "pabrai",
+        "label": "Mohnish Pabrai",
+        "independence_group": "asymmetry_downside",
+        "in_power_zone": true,
+        "fit": 0.5,
+        "matched": 2,
+        "known_fields": 4,
+        "matched_fields": [
+          "dhando",
+          "investment_sleeve"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 42
+      }
+    ],
+    "committee": {
+      "candidate_count": 4,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "hk",
+          "independence_group": "scarce_assets"
+        },
+        {
+          "persona": "stahl",
+          "independence_group": "scarce_assets"
+        },
+        {
+          "persona": "klarman_asset_value",
+          "independence_group": "asset_realization"
+        },
+        {
+          "persona": "marks_credit_cycle",
+          "independence_group": "credit_cycle"
+        }
+      ]
+    },
+    "input_hash": "cc5a22bf3e50b36815039054eb1cdb2a717165b22cbf6dbf9dfab770a337d820",
+    "generated_at": "2026-07-20T17:13:55.776064+00:00"
+  },
+  "market": {
+    "price_per_share": 24.46,
+    "fully_diluted_shares": 13120010,
+    "market_cap_m": 320.92,
+    "enterprise_value_m": null,
+    "price_source": "Yahoo MSB close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 31.0169,
+      "base": 36.3981,
+      "high": 56.5551
+    },
+    "value_per_share": {
+      "low": 31.0169,
+      "base": 36.3981,
+      "high": 56.5551
+    },
+    "present_value_today_per_share": {
+      "low": 31.0169,
+      "base": 36.3981,
+      "high": 56.5551
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": 31.0169,
+      "base": 36.3981,
+      "high": 56.5551
+    },
+    "legacy_value_per_share": {
+      "low": 26.0,
+      "base": 34.0,
+      "high": 57.0
+    },
+    "probability_weighted_value_per_share": 36.3981,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": 21.14,
+      "base": 32.8,
+      "high": 56.75
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": 26.81,
+      "base": 48.81,
+      "high": 131.21
+    },
+    "downside_to_low_pct": 26.81,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "arbitration_and_bonus_option",
+        "label": "Arbitration and bonus-payment option",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 0.0,
+        "legacy_base_per_share": 0.0,
+        "range_width_per_share": 13.0,
+        "scenario_assumptions": "Base assigns no value to the undisclosed arbitration. Only a separately evidenced incremental recovery beyond ordinary royalties may enter the high sensitivity; ordinary base and bonus royalties remain in the producing stream."
+      },
+      {
+        "component_id": "producing_royalty_stream",
+        "label": "Producing royalty and bonus stream",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 35.0001,
+        "legacy_base_per_share": 35.0,
+        "range_width_per_share": 12.0,
+        "scenario_assumptions": "Present value of after-trust royalty distributions under explicit volume, pellet-price, bonus, and discount-rate cases."
+      },
+      {
+        "component_id": "trust_cash_and_other_claims",
+        "label": "Trust cash and other net claims",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 1.398,
+        "legacy_base_per_share": 1.4,
+        "range_width_per_share": 0.5382,
+        "scenario_assumptions": "Source-locked net trust reserve divided by source-locked units; refresh after every filing."
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 3,
+    "priced_component_count": 3,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 3,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "a75a2af9490cd1f1190e7aaae7c8abc44ff5adbbdbacad55c2d431b79c6cf337"
+  },
+  "source_lineage": [
+    {
+      "component_id": "producing_royalty_stream",
+      "node_id": "distribution_per_unit",
+      "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+      "locator": "FY2026 declared distributions $16.794 million or $1.28 per unit",
+      "as_of": "2026-01-31",
+      "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+      "source_id": "0c517a4dff79deb9c0e0022705af367fb59d56021a24352b04021a85906c8075"
+    },
+    {
+      "component_id": "producing_royalty_stream",
+      "node_id": "units_m",
+      "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+      "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+      "as_of": "2026-04-21",
+      "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+      "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+    },
+    {
+      "component_id": "arbitration_and_bonus_option",
+      "node_id": "units_m",
+      "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+      "locator": "Cover page, 13,120,010 units outstanding at April 21, 2026",
+      "as_of": "2026-04-21",
+      "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+      "source_id": "d811d40272feee9d1f044a8f52a345a8eadb73929e08bd8685487d914c95faed"
+    },
+    {
+      "component_id": "arbitration_and_bonus_option",
+      "node_id": "prior_award_m",
+      "ref": "MSB/investor-documents/sec-edgar/8-K_20241017_rpt20241017_acc0001558370_24_013375.htm",
+      "locator": "Cliffs paid $71,185,029 on 2024-10-04; prior dispute closed",
+      "as_of": "2024-10-04",
+      "content_sha256": "558faa61f64071fbda84e42f5acf2e3d2f67d58b00fdfbf1dcc4bea86534aba1",
+      "source_id": "380ee4efb8190499b1d2f91823a506fc549408cf3f694cf9d605eac7afbbcb68"
+    },
+    {
+      "component_id": "trust_cash_and_other_claims",
+      "node_id": "unallocated_reserve_m",
+      "ref": "MSB/investor-documents/sec-edgar/10-Q_20260612_rpt20260430_acc0001104659_26_073470.htm",
+      "locator": "Page 12, Comparison of Unallocated Reserve; April 30, 2026 amount $18,341,533",
+      "as_of": "2026-04-30",
+      "content_sha256": "b6f8cdeae98df91158410c368a4a8c4593eb0ab2848733ababa91200753fe7cb",
+      "source_id": "31ad413843b0dc55c76d5540822330ce0dd2c4e6c214e4b2437743b7c93fb794"
+    },
+    {
+      "component_id": "trust_cash_and_other_claims",
+      "node_id": "units_m",
+      "ref": "MSB/investor-documents/sec-edgar/10-K_20260422_rpt20260131_acc0001104659_26_046864.htm",
+      "locator": "Cover page, units outstanding at April 21, 2026",
+      "as_of": "2026-04-21",
+      "content_sha256": "f4d16b6720585d27725eb1c8d8f94721c1dead78f4ff115a52a9fda22a273f04",
+      "source_id": "9a3454a4b40c709683929d9e64847a36a121cbc6aa5abf257b77358bc858977e"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim.",
+      "Dismissal, an adverse award, a settlement below the separately modeled incremental amount, or a remedy limited to royalties already accrued in the producing stream.",
+      "Material contingent legal costs or other senior liabilities consume the unallocated reserve.",
+      "Primary evidence or through-cycle results support economics below the low case or reveal an omitted claim."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "f91b6b8842b96c7ed0aad0688c4931b021ac76d1e27f03d090bd2632a72b3cdc",
+    "method_versions": [
+      "net_asset_value@1.0",
+      "probability_weighted_legal_option@1.0",
+      "royalty_distribution_curve@1.0"
+    ],
+    "change_log": [
+      {
+        "changed_at": "2026-07-18",
+        "author": "valuation-contract-v2 migration",
+        "reason": "Retire unsupported analyst ranges and make calculation lineage authoritative.",
+        "changes": [
+          "Producing royalty stream changed from provisional $30/$35/$42 to unpriced pending a reserve and royalty distribution schedule.",
+          "Standalone concentration reserve changed from additive -$5/-$3/-$1 to an embedded risk control so depletion and downtime cannot be counted twice.",
+          "Current arbitration changed from $0/$0/$13 to unpriced; the historical award remains context, not a current payoff estimate.",
+          "Trust reserve changed from $1/$2/$3 to calculated $18.341533m / 13.12001m units."
+        ]
+      }
+    ],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "cohort_purpose": "Finite royalty reserves, depletion, commodity exposure, and distributions.",
+  "cohort_expected_profile": "scarce_asset_optionality",
+  "profile_match": true,
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 0,
+    "untestable": 3,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": "MSB/research/falsifier_specs.json",
+    "enforcement_enabled": false,
+    "prospective_gate": {
+      "since": "2026-08-12",
+      "changed_components": [
+        "arbitration_and_bonus_option",
+        "producing_royalty_stream",
+        "trust_cash_and_other_claims"
+      ],
+      "covered_components": [
+        "arbitration_and_bonus_option",
+        "producing_royalty_stream",
+        "trust_cash_and_other_claims"
+      ],
+      "eligible_components": [],
+      "untestable_dispositions": [
+        "arbitration_and_bonus_option",
+        "producing_royalty_stream",
+        "trust_cash_and_other_claims"
+      ],
+      "missing_components": []
+    }
+  }
+}

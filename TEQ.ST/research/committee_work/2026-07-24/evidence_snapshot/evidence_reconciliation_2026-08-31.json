@@ -1,0 +1,151 @@
+{
+  "schema_version": "2.0",
+  "ticker": "TEQ.ST",
+  "as_of": "2026-08-31",
+  "purpose": "Independent, filing-reconciled ownership map and enterprise-to-equity valuation bridge for the 2026-Q2 information set.",
+  "status": "decision_grade",
+  "primary_sources": [
+    {
+      "ref": "TEQ.ST/official-reports/interim-reports/2026/2026-07-18 - Interim Report April - June 2026 - Teqnion AB.pdf",
+      "as_of": "2026-06-30",
+      "locators": [
+        "page 15: R12 income statement",
+        "page 16: consolidated balance sheet",
+        "page 17: diluted and period-end shares",
+        "page 18: R12 cash-flow statement",
+        "page 21: acquisition-payment liabilities at fair value",
+        "pages 23-24: acquisition accounting and segment EBITA"
+      ]
+    },
+    {
+      "ref": "TEQ.ST/official-reports/annual-reports/2026-03-21 - Årsredovisning 2025.pdf",
+      "as_of": "2025-12-31",
+      "locators": [
+        "page 57: liquidity and contractual-liability maturity table",
+        "page 58: net-debt/EBITDA target and capital-allocation policy",
+        "page 61: 2025 acquisition consideration and acquired earnings",
+        "page 67: 55,500 warrants at 265.11 SEK exercise price"
+      ]
+    }
+  ],
+  "component_ownership_map": [
+    {
+      "component_id": "operating_enterprise",
+      "label": "100% of the owned operating-company portfolio",
+      "treatment": "additive",
+      "overlap_key": "owned_operating_portfolio",
+      "calculation_proof": "TEQ.ST/research/valuation.json#component_valuation_results.additive_components[0]",
+      "range_per_share": {
+        "low": 81.4164,
+        "base": 182.8311,
+        "high": 263.3257
+      },
+      "scope": "R12 enterprise cash flow from subsidiaries already owned at 2026-06-30. Future acquisitions and their purchase prices are both excluded."
+    },
+    {
+      "component_id": "financing_claims",
+      "label": "Cash less bank debt, leases, acquisition-payment liabilities, and non-controlling interest",
+      "treatment": "additive",
+      "overlap_key": "net_financing_claims",
+      "calculation_proof": "TEQ.ST/research/valuation.json#component_valuation_results.additive_components[1]",
+      "range_per_share": {
+        "low": -42.4508,
+        "base": -42.4508,
+        "high": -42.4508
+      },
+      "scope": "All reported financing claims are deducted at carrying value; unused credit capacity is not an equity asset."
+    }
+  ],
+  "primary_cash_bridge_msek": {
+    "cash_flow_from_operations_r12": 213.5,
+    "less_net_capex_r12": -8.6,
+    "free_cash_flow_excluding_acquisitions_r12": 204.9,
+    "plus_after_tax_cash_financing_cost_base": 23.775,
+    "reported_enterprise_cash_flow_base": 228.675,
+    "times_base_normalization": 0.95,
+    "normalized_enterprise_cash_flow_base": 217.24125,
+    "shares_millions": 17.165756,
+    "normalized_enterprise_cash_flow_per_share_base": 12.6555
+  },
+  "enterprise_to_equity_bridge_msek": {
+    "bank_debt": -552.5,
+    "lease_liabilities": -163.5,
+    "other_financial_liabilities": -182.8,
+    "non_controlling_interest": -1.4,
+    "cash_and_cash_equivalents": 171.5,
+    "net_financing_claims": -728.7,
+    "net_financing_claims_per_share": -42.4508
+  },
+  "scenario_bridge_per_share": {
+    "low": {
+      "starting_cash_normalization": 0.85,
+      "growth_years_1_5": -0.02,
+      "growth_years_6_7": 0.0,
+      "discount_rate": 0.13,
+      "year_7_exit_fcff_multiple": 9.0,
+      "enterprise_value": 81.4164,
+      "financing_claims": -42.4508,
+      "equity_value": 38.9656
+    },
+    "base": {
+      "starting_cash_normalization": 0.95,
+      "growth_years_1_5": 0.05,
+      "growth_years_6_7": 0.03,
+      "discount_rate": 0.105,
+      "year_7_exit_fcff_multiple": 14.0,
+      "enterprise_value": 182.8311,
+      "financing_claims": -42.4508,
+      "equity_value": 140.3803
+    },
+    "high": {
+      "starting_cash_normalization": 1.0,
+      "growth_years_1_5": 0.08,
+      "growth_years_6_7": 0.04,
+      "discount_rate": 0.09,
+      "year_7_exit_fcff_multiple": 16.0,
+      "enterprise_value": 263.3257,
+      "financing_claims": -42.4508,
+      "equity_value": 220.8749
+    }
+  },
+  "non_double_counting_rules": [
+    "The current operating portfolio is valued once on enterprise cash flow; cash and every financing claim are then bridged once to parent equity.",
+    "Acquisition cash payments are excluded only because benefits from future, unannounced acquisitions are also excluded. Completed acquisitions are already represented by consolidated R12 cash flow and outstanding acquisition-payment liabilities.",
+    "The 182.8 MSEK of other financial liabilities is deducted at the reported fair value/probable outcome; it is not probability-discounted again.",
+    "The unused revolving facility is financing capacity, not cash or intrinsic value.",
+    "First North liquidity and execution risk affect discount rates and terminal multiples; no reserve tied to market price is subtracted from intrinsic value.",
+    "The 55,500 warrants at 265.11 SEK are out of the money in all three cases and are excluded from current diluted shares under the issuer's Q2 presentation; they remain a monitored dilution item."
+  ],
+  "gap_assessments": [
+    {
+      "gap_id": "component_ownership_map",
+      "status": "met",
+      "reconciliation": "Two additive components cover the operating enterprise and its complete financing/equity bridge with unique overlap keys.",
+      "remaining_uncertainty": "No value is assigned to unannounced acquisitions; this is deliberate rather than missing scope.",
+      "falsifier": "A material off-balance-sheet claim or a separately owned asset not represented in consolidated cash flow is identified.",
+      "monitoring_source": "Quarterly balance sheet, cash-flow statement, acquisition notes, and share-count note."
+    },
+    {
+      "gap_id": "primary_cash_or_nav_bridge",
+      "status": "met",
+      "reconciliation": "The proof reproduces R12 FCF ex acquisitions as 213.5 - 8.6 = 204.9 MSEK, converts it to enterprise cash flow with after-tax cash financing cost, and discounts causal low/base/high schedules.",
+      "remaining_uncertainty": "Working-capital timing and record R12 margins drive the 85%-100% starting normalization range.",
+      "falsifier": "R12 cash flow falls below 85% of the 2026-Q2 run rate without a temporary working-capital explanation, organic decline persists, or EBITA margin falls below 9%.",
+      "monitoring_source": "Quarterly income statement, segment note, and cash-flow statement."
+    },
+    {
+      "gap_id": "downside_and_capital_claims",
+      "status": "met",
+      "reconciliation": "552.5 MSEK bank debt, 163.5 MSEK leases, 182.8 MSEK fair-valued acquisition-payment liabilities, and 1.4 MSEK minority interest are deducted; 171.5 MSEK cash is added.",
+      "remaining_uncertainty": "Earnout fair values can be remeasured and new acquisitions can change the capital structure after the report date.",
+      "falsifier": "Net debt/EBITDA approaches 2.5x, acquisition-payment liabilities rise faster than acquired cash earnings, or material dilution is issued below intrinsic value.",
+      "monitoring_source": "Quarterly liquidity table, financial-instrument note, acquisition note, and share-count note."
+    }
+  ],
+  "acceptance_summary": {
+    "component_ownership_map": "met",
+    "primary_cash_or_nav_bridge": "met",
+    "downside_and_capital_claims": "met"
+  },
+  "committee_conclusion": "The model is stock-specific and evidence-clear enough for independent committee review. It is not a human capital decision."
+}
