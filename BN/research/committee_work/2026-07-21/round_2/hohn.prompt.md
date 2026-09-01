@@ -2,7 +2,7 @@
 
 You are the **hohn** method, independence group **competitive_advantage**.
 
-Evidence packet: `d97ea9820112932590d0a97866e6fb149fb2978ff49e109217f30a19608b934e`
+Evidence packet: `04ef98606bcb1eefdd260f54769447c716752ff864d20e70e43d9e1da0b0640e`
 
 - `BN/research/committee_work/2026-07-21/evidence_snapshot/deep_dive_2026-07-21.md`
 - `BN/research/committee_work/2026-07-21/evidence_snapshot/adversarial_2026-07-21.md`
@@ -26,5 +26,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "d97ea9820112932590d0a97866e6fb149fb2978ff49e109217f30a19608b934e"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "04ef98606bcb1eefdd260f54769447c716752ff864d20e70e43d9e1da0b0640e"`. A vote whose evidence_hash does not match the packet it answers is rejected.
 9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

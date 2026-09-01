@@ -2,7 +2,7 @@
 
 You are the **marathon_capital_cycle** method, independence group **capital_cycle**.
 
-Evidence packet: `1ed2973904f5e3701811dde6b9e6b82aceb158513e122f1a973381723fd2226c`
+Evidence packet: `5c534b1190b1fe7ae01e0c8cd34c7665271a491f4e7656e8b1a944990cfa7178`
 
 - `CPRT/research/committee_work/2026-07-20/evidence_snapshot/deep_dive_2026-06-30.md`
 - `CPRT/research/committee_work/2026-07-20/evidence_snapshot/adversarial_2026-05-29.md`
@@ -24,5 +24,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "1ed2973904f5e3701811dde6b9e6b82aceb158513e122f1a973381723fd2226c"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "5c534b1190b1fe7ae01e0c8cd34c7665271a491f4e7656e8b1a944990cfa7178"`. A vote whose evidence_hash does not match the packet it answers is rejected.
 9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

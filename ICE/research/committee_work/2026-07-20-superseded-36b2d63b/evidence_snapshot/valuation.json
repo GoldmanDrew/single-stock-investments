@@ -1,0 +1,951 @@
+{
+  "ticker": "ICE",
+  "as_of": "2026-07-20",
+  "schema_version": "3.0",
+  "method": "owner_earnings_reinvestment_dcf",
+  "classification_inputs": {
+    "archetype": "compounder"
+  },
+  "inputs": {
+    "shares_outstanding": 561394487.0,
+    "cash_m": 1067.0,
+    "total_debt_m": 18628.0,
+    "price": 160.7,
+    "price_as_of": "2026-08-31",
+    "price_source": "Yahoo ICE close 2026-08-31"
+  },
+  "valuation_methodology": {
+    "horizon_years": 7,
+    "automation": "stock_specific_reviewed_assumptions",
+    "model_level": "stock_specific",
+    "primary_method": "owner_earnings_reinvestment_dcf",
+    "reviewed_as_of": "2026-09-01",
+    "review_basis": "Transaction and clearing revenue is cyclical, but recurring data and mortgage workflows support reinvestment; restricted clearing balances are excluded from distributable cash.",
+    "primary_source_refs": [
+      "ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm",
+      "ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm"
+    ]
+  },
+  "component_valuation_results": {
+    "status": "compiled",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "operating_business_and_net_assets",
+        "label": "ICE exchange, clearing, data, and mortgage-technology owner earnings",
+        "category": "operating_business",
+        "overlap_key": "entire_security",
+        "treatment": "additive",
+        "method": "owner_earnings_reinvestment_dcf",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_earnings_reinvestment_dcf",
+          "method_version": "1.0",
+          "output_unit": "USD per share",
+          "inputs": [
+            {
+              "id": "owner_earnings",
+              "label": "Normalized owner earnings",
+              "kind": "fact",
+              "value": 4289.0,
+              "unit": "USD millions",
+              "source": {
+                "ref": "ICE/research/evidence/sec_companyfacts.json",
+                "locator": "us-gaap:NetCashProvidedByUsedInOperatingActivities; accession 0001571949-26-000004; form 10-K",
+                "as_of": "2025-12-31",
+                "content_sha256": "08da1864170083e2020b61dfe2ac6ab760f923c436105fd8174cbdc99b01ea46"
+              },
+              "locked": true
+            },
+            {
+              "id": "cash",
+              "label": "Cash",
+              "kind": "fact",
+              "value": 1067.0,
+              "unit": "USD millions",
+              "source": {
+                "ref": "ICE/research/evidence/sec_companyfacts.json",
+                "locator": "us-gaap:CashAndCashEquivalentsAtCarryingValue; accession 0001571949-26-000011; form 10-Q",
+                "as_of": "2026-06-30",
+                "content_sha256": "08da1864170083e2020b61dfe2ac6ab760f923c436105fd8174cbdc99b01ea46"
+              },
+              "locked": true
+            },
+            {
+              "id": "debt",
+              "label": "Debt",
+              "kind": "fact",
+              "value": 18628.0,
+              "unit": "USD millions",
+              "source": {
+                "ref": "ICE/research/evidence/sec_companyfacts.json",
+                "locator": "us-gaap:LongTermDebtNoncurrent; accession 0001571949-26-000011; form 10-Q",
+                "as_of": "2026-06-30",
+                "content_sha256": "08da1864170083e2020b61dfe2ac6ab760f923c436105fd8174cbdc99b01ea46"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares",
+              "kind": "fact",
+              "value": 561.394487,
+              "unit": "million shares",
+              "source": {
+                "ref": "ICE/research/evidence/sec_companyfacts.json",
+                "locator": "dei:EntityCommonStockSharesOutstanding; accession 0001571949-26-000011; form 10-Q",
+                "as_of": "2026-07-27",
+                "content_sha256": "08da1864170083e2020b61dfe2ac6ab760f923c436105fd8174cbdc99b01ea46"
+              },
+              "locked": true
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "reinvestment",
+              "label": "Reinvestment rate",
+              "kind": "judgment",
+              "values": {
+                "low": 0.2,
+                "base": 0.35,
+                "high": 0.45
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: Transaction and clearing revenue is cyclical, but recurring data and mortgage workflows support reinvestment; restricted clearing balances are excluded from distributable cash. Primary evidence: ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm; ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm.",
+              "allowed_range": {
+                "min": 0,
+                "max": 0.75
+              }
+            },
+            {
+              "id": "incremental_roic",
+              "label": "Incremental after-tax ROIC",
+              "kind": "judgment",
+              "values": {
+                "low": 0.14,
+                "base": 0.19,
+                "high": 0.24
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: Transaction and clearing revenue is cyclical, but recurring data and mortgage workflows support reinvestment; restricted clearing balances are excluded from distributable cash. Primary evidence: ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm; ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm.",
+              "allowed_range": {
+                "min": 0,
+                "max": 0.5
+              }
+            },
+            {
+              "id": "discount_rate",
+              "label": "Discount rate",
+              "kind": "judgment",
+              "values": {
+                "low": 0.12,
+                "base": 0.1,
+                "high": 0.09
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: Transaction and clearing revenue is cyclical, but recurring data and mortgage workflows support reinvestment; restricted clearing balances are excluded from distributable cash. Primary evidence: ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm; ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm.",
+              "allowed_range": {
+                "min": 0.07,
+                "max": 0.15
+              }
+            },
+            {
+              "id": "terminal_multiple",
+              "label": "Terminal owner-earnings multiple",
+              "kind": "judgment",
+              "values": {
+                "low": 17,
+                "base": 22,
+                "high": 26
+              },
+              "unit": "multiple",
+              "rationale": "Issuer-specific review as of 2026-09-01: Transaction and clearing revenue is cyclical, but recurring data and mortgage workflows support reinvestment; restricted clearing balances are excluded from distributable cash. Primary evidence: ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm; ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm.",
+              "allowed_range": {
+                "min": 8,
+                "max": 30
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "growth",
+              "label": "Growth from reinvestment",
+              "op": "multiply",
+              "args": [
+                "reinvestment",
+                "incremental_roic"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "growth_factor",
+              "op": "add",
+              "args": [
+                1,
+                "growth"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "distribution_rate",
+              "op": "subtract",
+              "args": [
+                1,
+                "reinvestment"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "owner_earnings_y1",
+              "op": "multiply",
+              "args": [
+                "owner_earnings",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y1",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y1",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y2",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y1",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y2",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y2",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y3",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y2",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y3",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y3",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y4",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y3",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y4",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y4",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y5",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y4",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y5",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y5",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y6",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y5",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y6",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y6",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_earnings_y7",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y6",
+                "growth_factor"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "owner_cash_y7",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y7",
+                "distribution_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "cash_pv",
+              "op": "present_value",
+              "args": [
+                "owner_cash_y1",
+                1,
+                "owner_cash_y2",
+                2,
+                "owner_cash_y3",
+                3,
+                "owner_cash_y4",
+                4,
+                "owner_cash_y5",
+                5,
+                "owner_cash_y6",
+                6,
+                "owner_cash_y7",
+                7,
+                "discount_rate"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "terminal_value",
+              "op": "multiply",
+              "args": [
+                "owner_earnings_y7",
+                "terminal_multiple"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "terminal_pv",
+              "op": "discount",
+              "args": [
+                "terminal_value",
+                "discount_rate",
+                7
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "enterprise_value",
+              "op": "add",
+              "args": [
+                "cash_pv",
+                "terminal_pv"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "plus_cash",
+              "op": "add",
+              "args": [
+                "enterprise_value",
+                "cash"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "equity_value",
+              "op": "subtract",
+              "args": [
+                "plus_cash",
+                "debt"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "value_per_share",
+              "op": "divide",
+              "args": [
+                "equity_value",
+                "shares_m"
+              ],
+              "unit": "USD per share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Locked owner-earnings bridge from SEC companyfacts; issuer-specific case judgments reviewed against ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm and ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm.",
+        "falsifier": "Transaction activity normalizes below mid-cycle, recurring data growth stalls, or mortgage-technology economics weaken enough that normalized owner earnings fall below the low-case path for two consecutive reporting periods.",
+        "range_per_share": {
+          "low": 70.8114,
+          "base": 134.8535,
+          "high": 222.9097
+        }
+      }
+    ],
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 70.8114,
+      "base": 134.8535,
+      "high": 222.9097
+    },
+    "material_component_count": 1,
+    "additive_component_count": 1,
+    "embedded_component_count": 0
+  },
+  "economic_value_analysis": {
+    "status": "compiled",
+    "validation_errors": []
+  },
+  "human_review": {
+    "live_price_confirmed": false
+  },
+  "context_overlay": {
+    "as_of": "2026-08-31",
+    "disclaimer": "Context only. Tailwinds inform stance and overlay sizing; they do not auto-inflate Lawrence base IRR. Promotion to base case requires [HUMAN REVIEW].",
+    "themes": [
+      {
+        "theme_id": "macro_regime",
+        "label": "Macro risk regime",
+        "indicators": [
+          {
+            "id": "hy_oas",
+            "label": "High-yield OAS credit spread (%)",
+            "latest": 0.58,
+            "as_of": "2026-08-31",
+            "yoy_pct": 1550.0,
+            "direction": "up",
+            "good_for": "risk_regime",
+            "source": "spread:HYG-LQD:21d (HYG-LQD 1m spread proxy, not OAS)",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_10y",
+            "label": "US Treasury 10Y yield (%)",
+            "latest": 4.758000373840332,
+            "as_of": "2026-08-31",
+            "yoy_pct": 12.6,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^TNX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ust_2y",
+            "label": "US Treasury 2Y yield (%)",
+            "latest": 4.506999969482422,
+            "as_of": "2026-08-31",
+            "yoy_pct": 21.8,
+            "direction": "up",
+            "good_for": "rates_regime",
+            "source": "yahoo:^FVX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "dxy_broad",
+            "label": "Trade-weighted USD index (broad)",
+            "latest": 99.41500091552734,
+            "as_of": "2026-08-31",
+            "yoy_pct": 1.7,
+            "direction": "up",
+            "good_for": "dollar_regime",
+            "source": "yahoo:DX-Y.NYB",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "vix_level",
+            "label": "VIX index level",
+            "latest": 15.0600004196167,
+            "as_of": "2026-08-31",
+            "yoy_pct": -2.0,
+            "direction": "down",
+            "good_for": "vol_regime",
+            "source": "yahoo:^VIX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "credit_impulse_1m",
+            "label": "HYG vs TLT 1-month return spread (%)",
+            "latest": 0.86,
+            "as_of": "2026-08-31",
+            "yoy_pct": -84.9,
+            "direction": "down",
+            "good_for": "credit_impulse",
+            "source": "spread:HYG-TLT:21d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "spy_20d_realized_vol",
+            "label": "SPY 20-day realized vol (annualized %)",
+            "latest": 9.24,
+            "as_of": "2026-08-31",
+            "yoy_pct": -83.9,
+            "direction": "down",
+            "good_for": "equity_vol",
+            "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "agi_years_ahead",
+            "label": "AGI expert-horizon years ahead (public quotes)",
+            "latest": 5.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:agi",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "robotaxi_years_ahead",
+            "label": "Robotaxi expert-horizon years ahead (public quotes)",
+            "latest": 2.0,
+            "as_of": "2026-06-01",
+            "yoy_pct": 0.0,
+            "direction": "flat",
+            "good_for": "horizon_orientation",
+            "source": "expert_horizon:robotaxi",
+            "stale": false,
+            "in_base_irr": false
+          }
+        ]
+      },
+      {
+        "theme_id": "exchange_volatility",
+        "label": "Exchange vol tailwind",
+        "indicators": [
+          {
+            "id": "vix_level",
+            "label": "VIX index level",
+            "latest": 15.0600004196167,
+            "as_of": "2026-08-31",
+            "yoy_pct": -2.0,
+            "direction": "down",
+            "good_for": "vol_regime",
+            "source": "yahoo:^VIX",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "spy_20d_realized_vol",
+            "label": "SPY 20-day realized vol (annualized %)",
+            "latest": 9.24,
+            "as_of": "2026-08-31",
+            "yoy_pct": -83.9,
+            "direction": "down",
+            "good_for": "equity_vol",
+            "source": "realized_vol:SPY:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "n225_20d_realized_vol",
+            "label": "Nikkei 225 20-day realized vol (annualized %)",
+            "latest": 27.0,
+            "as_of": "2026-08-28",
+            "yoy_pct": 55.3,
+            "direction": "up",
+            "good_for": "equity_vol_jp",
+            "source": "realized_vol:^N225:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "hsi_20d_realized_vol",
+            "label": "Hang Seng 20-day realized vol (annualized %)",
+            "latest": 13.92,
+            "as_of": "2026-08-28",
+            "yoy_pct": -12.1,
+            "direction": "down",
+            "good_for": "equity_vol_hk",
+            "source": "realized_vol:^HSI:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "asx200_20d_realized_vol",
+            "label": "ASX 200 20-day realized vol (annualized %)",
+            "latest": 9.29,
+            "as_of": "2026-08-28",
+            "yoy_pct": -2.3,
+            "direction": "down",
+            "good_for": "equity_vol_au",
+            "source": "realized_vol:^AXJO:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "ftse_20d_realized_vol",
+            "label": "FTSE 100 20-day realized vol (annualized %)",
+            "latest": 5.19,
+            "as_of": "2026-08-28",
+            "yoy_pct": -25.2,
+            "direction": "down",
+            "good_for": "equity_vol_uk",
+            "source": "realized_vol:^FTSE:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "stoxx50_20d_realized_vol",
+            "label": "Euro Stoxx 50 20-day realized vol (annualized %)",
+            "latest": 7.71,
+            "as_of": "2026-08-31",
+            "yoy_pct": -21.1,
+            "direction": "down",
+            "good_for": "equity_vol_eu",
+            "source": "realized_vol:^STOXX50E:20d",
+            "stale": false,
+            "in_base_irr": false
+          },
+          {
+            "id": "vrp_health_score",
+            "label": "VRP health score (etf-dashboard derived 0-100)",
+            "latest": 87.77,
+            "as_of": "2026-07-28",
+            "yoy_pct": null,
+            "direction": "flat",
+            "good_for": "options_market_health",
+            "source": "etf_dashboard:vrp_health.json:derived_health_score",
+            "stale": true,
+            "in_base_irr": false
+          },
+          {
+            "id": "vol_term_slope",
+            "label": "Vol term-structure slope (VIX3M - VIX)",
+            "latest": 2.58,
+            "as_of": "2026-08-31",
+            "yoy_pct": -13.7,
+            "direction": "down",
+            "good_for": "vol_term_structure",
+            "source": "vix_term:VIX3M-VIX",
+            "stale": false,
+            "in_base_irr": false
+          }
+        ]
+      }
+    ],
+    "peer_context": {
+      "cluster_id": "exchanges",
+      "path": "_system/reference/market-data/peers/exchanges.csv",
+      "tickers": [
+        "CME",
+        "ICE",
+        "CBOE",
+        "MIAX",
+        "8697.T"
+      ],
+      "note": "Context only; percentile rank not in base IRR."
+    }
+  },
+  "world_model_context": {
+    "as_of": "2026-08-30",
+    "strip_label": "attention",
+    "predictability_class": "P3_oriented",
+    "claim_ceiling": "P3_oriented",
+    "industry_node_ids": [
+      "exchange_markets"
+    ],
+    "industries": [
+      {
+        "node_id": "exchange_markets",
+        "label": "Exchange and clearing markets",
+        "kind": "thesis",
+        "checklist": {
+          "capacity": {
+            "status": "ok",
+            "note": "Clearing and data capacity scale with volumes; not a physical MW constraint."
+          },
+          "pricing": {
+            "status": "watch",
+            "note": "Fee and data pricing power; home-market vol (see exchange_vol_map) drives transaction intensity; US VIX is secondary for non-US venues."
+          },
+          "regulatory": {
+            "status": "permissioning",
+            "note": "Continuous oversight; license and clearing-house rules."
+          }
+        }
+      }
+    ],
+    "theme_ids": [
+      "exchange_volatility",
+      "macro_regime"
+    ],
+    "prediction_cards": [
+      {
+        "theme_id": "exchange_volatility",
+        "phase_transition": "gradual",
+        "regulatory": "permissioning",
+        "recursive": false,
+        "tam_magnetism": "high"
+      },
+      {
+        "theme_id": "macro_regime",
+        "phase_transition": "gradual",
+        "regulatory": "uncertain",
+        "recursive": false,
+        "tam_magnetism": "low"
+      }
+    ],
+    "kpi_fails": [],
+    "kpi_stale": [
+      {
+        "kpi_id": "owner_earnings_m",
+        "binds_to": {
+          "valuation_path": "component_valuation_results.additive_components[0].calculation_proof.inputs[0]",
+          "on_fail": "human_review",
+          "note": "operating_business owner_earnings"
+        }
+      },
+      {
+        "kpi_id": "price_usd",
+        "binds_to": {
+          "valuation_path": "inputs.price",
+          "on_fail": "stance_only",
+          "note": "Price is context for stance sizing only; not a thesis falsifier"
+        }
+      }
+    ],
+    "superorg_gaps": [
+      {
+        "org_id": "ice",
+        "pillar": "efficient_coordination",
+        "status": "partial"
+      }
+    ],
+    "horizon_convergence": {},
+    "in_base_irr": false,
+    "promotion": null,
+    "disclaimer": "Context only. World Model fails and Superorg gaps open diligence; they do not rewrite universal contracts, IC packets, or human_decision.json. Magis claim class: P3_oriented. Promotion template: _system/reviews/pending/world_model_promote_{TICKER}_{date}.md.",
+    "human_review_required": true
+  },
+  "insider_signal": {
+    "as_of": "2026-08-31",
+    "disclaimer": "Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].",
+    "in_base_irr": false,
+    "window_days": 365,
+    "ics": 10.0,
+    "band": "exceptional",
+    "bull_case_support": "moderate",
+    "scenario_confidence": {
+      "priors": {
+        "bear": 0.2,
+        "base": 0.55,
+        "bull": 0.25
+      },
+      "tilted": {
+        "bear": 0.2,
+        "base": 0.4,
+        "bull": 0.4
+      },
+      "bull_delta": 0.15,
+      "bear_delta": 0.0,
+      "note": "Scenario weights are qualitative confidence only; Lawrence base IRR unchanged."
+    },
+    "factors": {
+      "buy_score": 12.191,
+      "sell_score": -1.0,
+      "cluster_bonus": 0.0,
+      "net_buy_usd": 6068608.68,
+      "net_sell_usd": 110511150.59,
+      "price_today": 141.57
+    },
+    "top_buys": [
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-18",
+        "shares": 50766,
+        "price": 67.0,
+        "value_usd": 3401322.0,
+        "shares_owned_after": 1223547,
+        "contrib": 1.358
+      },
+      {
+        "insider": "Kapani Mayur",
+        "date": "2025-12-08",
+        "shares": 5345,
+        "price": 57.31,
+        "value_usd": 306321.95,
+        "shares_owned_after": 70585,
+        "contrib": 1.06
+      },
+      {
+        "insider": "Jackson Benjamin",
+        "date": "2026-02-10",
+        "shares": 12861,
+        "price": 57.31,
+        "value_usd": 737063.91,
+        "shares_owned_after": 178553,
+        "contrib": 1.053
+      },
+      {
+        "insider": "Kapani Mayur",
+        "date": "2025-10-08",
+        "shares": 5345,
+        "price": 57.31,
+        "value_usd": 306321.95,
+        "shares_owned_after": 75322,
+        "contrib": 1.052
+      },
+      {
+        "insider": "Kapani Mayur",
+        "date": "2026-02-18",
+        "shares": 5347,
+        "price": 57.31,
+        "value_usd": 306436.57,
+        "shares_owned_after": 80082,
+        "contrib": 1.044
+      }
+    ],
+    "top_sells": [
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-18",
+        "shares": 129937,
+        "price": 154.9968,
+        "value_usd": 20139819.2,
+        "is_10b5_1": false,
+        "contrib": -0.124
+      },
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-18",
+        "shares": 150000,
+        "price": 154.9968,
+        "value_usd": 23249520.0,
+        "is_10b5_1": false,
+        "contrib": -0.124
+      },
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-17",
+        "shares": 6459,
+        "price": 152.28,
+        "value_usd": 983576.52,
+        "is_10b5_1": false,
+        "contrib": -0.124
+      },
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-12",
+        "shares": 12878,
+        "price": 151.99,
+        "value_usd": 1957327.22,
+        "is_10b5_1": false,
+        "contrib": -0.124
+      },
+      {
+        "insider": "Sprecher Jeffrey C",
+        "date": "2026-02-10",
+        "shares": 4049,
+        "price": 169.48,
+        "value_usd": 686224.52,
+        "is_10b5_1": false,
+        "contrib": -0.124
+      }
+    ],
+    "narrative_hooks": [],
+    "transaction_count": 159
+  },
+  "lens_consensus": {
+    "as_of": "2026-07-20",
+    "shared_inputs_ref": "valuation.json@2026-07-20",
+    "valuation_richness": 0.19,
+    "blended_return_pct": 11.65,
+    "band_pct": [
+      8.89,
+      12.15
+    ],
+    "weighted_median_pct": 12.15,
+    "median_mean_flag": false,
+    "stance": "watch",
+    "agreement_pct": 46,
+    "dissent_count": 5,
+    "lawrence_divergence": false,
+    "top_dissents": [
+      {
+        "persona": "stahl",
+        "label": "Murray Stahl",
+        "verdict": "hold",
+        "return_pct": 12.15,
+        "key_metric": "archetype=compounder",
+        "conviction": 0.108,
+        "falsifier": "No asset intensity / pricing power (moat eroding + non-croupier)"
+      },
+      {
+        "persona": "munger",
+        "label": "Charlie Munger",
+        "verdict": "hold",
+        "return_pct": 12.15,
+        "key_metric": "moat=stable",
+        "conviction": 0.008,
+        "falsifier": "Moat eroding/unproven or irr_method pending"
+      },
+      {
+        "persona": "buffett_weschler",
+        "label": "Buffett / Weschler",
+        "verdict": "hold",
+        "return_pct": 12.15,
+        "key_metric": "owner_earnings_yield=None",
+        "conviction": 0.008,
+        "falsifier": "Eroding moat or dhando none"
+      }
+    ],
+    "contributor_count": 10,
+    "in_base_irr": false,
+    "disclaimer": "Advisory lens blend only. Does not replace Lawrence total-synthesis stance gate without [HUMAN REVIEW]."
+  },
+  "valuation_change_log": [
+    {
+      "change_id": "ICE-tier1-deepening-2026-09-01",
+      "at": "2026-09-01T02:45:00Z",
+      "author": "codex",
+      "reason": "Replace generic quality-screen bounds with issuer-specific operating judgments and primary-source review.",
+      "source_refs": [
+        "ICE/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001571949_26_000004.htm",
+        "ICE/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001571949_26_000007.htm"
+      ]
+    }
+  ]
+}

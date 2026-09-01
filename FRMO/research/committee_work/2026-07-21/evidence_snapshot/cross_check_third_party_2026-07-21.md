@@ -1,9 +1,9 @@
 # FRMO — Third-party cross-check
 
-**Date:** 2026-07-21
-**Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
-**Inventory:** `FRMO/third-party-analyses/source_inventory_2026-07-20.md`
-**Prior cross-checks:** `FRMO/research/cross_check_approved_substacks_2026-05-26.md`
+**Date:** 2026-07-21  
+**Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`  
+**Inventory:** `FRMO/third-party-analyses/source_inventory_2026-07-20.md`  
+**Prior cross-checks:** `FRMO/research/cross_check_approved_substacks_2026-05-26.md`  
 **Marvin dive:** `FRMO/research/deep_dive_2026-07-21.md`
 
 ---

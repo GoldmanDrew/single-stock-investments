@@ -1,9 +1,9 @@
 # AI — Cross-Check: Third-Party Sources
 
-**Date:** 2026-07-25
-**Agent:** Marvin
-**Marvin dive:** `AI/research/deep_dive_2026-07-25.md`
-**Source inventory:** `AI/third-party-analyses/source_inventory_2026-07-25.md`
+**Date:** 2026-07-25  
+**Agent:** Marvin  
+**Marvin dive:** `AI/research/deep_dive_2026-07-25.md`  
+**Source inventory:** `AI/third-party-analyses/source_inventory_2026-07-25.md`  
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary

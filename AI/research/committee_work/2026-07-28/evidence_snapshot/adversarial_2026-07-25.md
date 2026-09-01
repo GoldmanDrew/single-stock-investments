@@ -11,10 +11,10 @@ re_pass: false
 
 # AI — Adversarial review
 
-**Date:** 2026-07-25
-**Agent:** Milly (batch pass)
-**Dive reviewed:** `AI/research/deep_dive_2026-07-25.md`
-**Valuation reviewed:** `AI/research/valuation.json`
+**Date:** 2026-07-25  
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `AI/research/deep_dive_2026-07-25.md`  
+**Valuation reviewed:** `AI/research/valuation.json`  
 **Filings used:** `AI/research/evidence/filing_facts_2026-07-25.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.

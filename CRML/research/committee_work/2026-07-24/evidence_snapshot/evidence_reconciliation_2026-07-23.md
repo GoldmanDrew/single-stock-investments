@@ -1,8 +1,8 @@
 # CRML — Evidence reconciliation (contract backfill)
 
-**Date:** 2026-07-23
-**Agent:** Marvin (Cloud valuation contract backfill)
-**Ticker:** CRML
+**Date:** 2026-07-23  
+**Agent:** Marvin (Cloud valuation contract backfill)  
+**Ticker:** CRML  
 **Primary filing:** `CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm` (FY2025, report date 2025-06-30)
 
 ## Status

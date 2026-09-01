@@ -1,9 +1,9 @@
 # CRML — Cross-Check: Third-Party Sources
 
-**Date:** 2026-07-23
-**Agent:** Marvin (valuation contract backfill refresh)
-**Marvin dive:** `CRML/research/deep_dive_2026-07-23.md`
-**Source inventory:** `CRML/third-party-analyses/source_inventory_2026-07-23.md` (if present) or `source_inventory_2026-07-18.md`
+**Date:** 2026-07-23  
+**Agent:** Marvin (valuation contract backfill refresh)  
+**Marvin dive:** `CRML/research/deep_dive_2026-07-23.md`  
+**Source inventory:** `CRML/third-party-analyses/source_inventory_2026-07-23.md` (if present) or `source_inventory_2026-07-18.md`  
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary

@@ -11,10 +11,10 @@ re_pass: false
 
 # CPRT — Adversarial review
 
-**Date:** 2026-05-29
-**Agent:** Milly (batch pass)
-**Dive reviewed:** `CPRT/research/deep_dive_2026-05-29.md`
-**Valuation reviewed:** `CPRT/research/valuation.json`
+**Date:** 2026-05-29  
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `CPRT/research/deep_dive_2026-05-29.md`  
+**Valuation reviewed:** `CPRT/research/valuation.json`  
 **Filings used:** `CPRT/research/evidence/filing_facts_2026-05-29.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.

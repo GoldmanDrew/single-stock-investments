@@ -11,10 +11,10 @@ re_pass: false
 
 # AAOI — Adversarial review
 
-**Date:** 2026-07-17
-**Agent:** Milly (batch pass)
-**Dive reviewed:** `AAOI/research/deep_dive_2026-07-17.md`
-**Valuation reviewed:** `AAOI/research/valuation.json`
+**Date:** 2026-07-17  
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `AAOI/research/deep_dive_2026-07-17.md`  
+**Valuation reviewed:** `AAOI/research/valuation.json`  
 **Filings used:** `AAOI/research/evidence/filing_facts_2026-07-17.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.

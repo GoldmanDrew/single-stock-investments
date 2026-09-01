@@ -1,0 +1,2210 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "GOOGL",
+  "as_of": "2026-07-24",
+  "dates": {
+    "model_as_of": "2026-07-24",
+    "latest_fact_as_of": "2025-12-31",
+    "oldest_fact_as_of": "2025-12-31",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": -12.06,
+      "base": 0.36,
+      "high": 7.04
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "primary_operating_segment",
+      "label": "Google Services owner cash",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Google Services owner cash",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_cash_or_dividend_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 138.9072,
+        "base": 200.6634,
+        "high": 270.2055
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 138.91,
+        "base": 200.66,
+        "high": 270.21
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 138.9072,
+          "base": 200.6634,
+          "high": 270.2055
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "services_oi_m",
+              "label": "Google Services operating income",
+              "kind": "fact",
+              "value": 139400.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Services operating income $139.4B",
+                "as_of": "2025-12-31",
+                "source_id": "8a5ee4b3782e5a0e1877c17ed9ffae44c5156408224979e63ef680a6b27c262b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple on Services after-tax OI",
+              "kind": "judgment",
+              "value": 15.7,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Search/YouTube cash engine; multiple reflects durable ad pricing power with AI-interface uncertainty."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Services owner cash proxy",
+              "kind": "calculation",
+              "value": 110126.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "services_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "139400 \u00d7 0.79",
+              "dependencies": [
+                "services_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Services equity value",
+              "kind": "calculation",
+              "value": 1728978.2,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "110126 \u00d7 15.7",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Services per share",
+              "kind": "calculation",
+              "value": 138.90722262,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "1728978.2 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "services_oi_m",
+              "label": "Google Services operating income",
+              "kind": "fact",
+              "value": 139400.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Services operating income $139.4B",
+                "as_of": "2025-12-31",
+                "source_id": "8a5ee4b3782e5a0e1877c17ed9ffae44c5156408224979e63ef680a6b27c262b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple on Services after-tax OI",
+              "kind": "judgment",
+              "value": 22.68,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Search/YouTube cash engine; multiple reflects durable ad pricing power with AI-interface uncertainty."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Services owner cash proxy",
+              "kind": "calculation",
+              "value": 110126.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "services_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "139400 \u00d7 0.79",
+              "dependencies": [
+                "services_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Services equity value",
+              "kind": "calculation",
+              "value": 2497657.68,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "110126 \u00d7 22.68",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Services per share",
+              "kind": "calculation",
+              "value": 200.66342733,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "2497657.7 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "services_oi_m",
+              "label": "Google Services operating income",
+              "kind": "fact",
+              "value": 139400.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Services operating income $139.4B",
+                "as_of": "2025-12-31",
+                "source_id": "8a5ee4b3782e5a0e1877c17ed9ffae44c5156408224979e63ef680a6b27c262b"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Duration-adjusted owner-cash multiple on Services after-tax OI",
+              "kind": "judgment",
+              "value": 30.54,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Search/YouTube cash engine; multiple reflects durable ad pricing power with AI-interface uncertainty."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Services owner cash proxy",
+              "kind": "calculation",
+              "value": 110126.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "services_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "139400 \u00d7 0.79",
+              "dependencies": [
+                "services_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Services equity value",
+              "kind": "calculation",
+              "value": 3363248.04,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "110126 \u00d7 30.54",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Services per share",
+              "kind": "calculation",
+              "value": 270.20551458,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "3363248 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+            "as_of": "2025-12-31",
+            "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+          },
+          {
+            "node_id": "services_oi_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "Segment note FY2025 Google Services operating income $139.4B",
+            "as_of": "2025-12-31",
+            "source_id": "8a5ee4b3782e5a0e1877c17ed9ffae44c5156408224979e63ef680a6b27c262b"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "40626ef2e468bb7a7c86e8a103ed4d4c38c9eb9e386aa95e1e4d884f34ec4d38"
+      },
+      "evidence_tier": "mixed_primary_and_estimate",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=primary_operating_segment. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+      "scenario_assumptions": "Proof outputs {'low': 138.9072, 'base': 200.6634, 'high': 270.2055}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "The low/base/high range incorporates ownership, tax, capital, cycle, timing, and realization uncertainty pending the primary bridge.",
+      "falsifier": "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "overlap_key": "primary_operating_segment",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "secondary_operating_segments",
+      "label": "Google Cloud owner cash",
+      "category": "operating_business",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Google Cloud owner cash",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "owner_cash_or_dividend_discount",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "owner_cash_or_dividend_discount",
+        "version": "1.0",
+        "label": "Predictable owner-cash discount model",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "predictable_cash_flow"
+        ],
+        "equation": "value = distribution*(1+growth)/(required_return-growth) - funding_or_dilution_per_share",
+        "sources": [
+          {
+            "ref": "_system/frameworks/segment_cashflow_valuation.md",
+            "locator": "Cash-flow duration and funding"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 61.7996,
+        "base": 100.3526,
+        "high": 146.8192
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 61.8,
+        "base": 100.35,
+        "high": 146.82
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "owner_cash_or_dividend_discount",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 61.7996,
+          "base": 100.3526,
+          "high": 146.8192
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cloud_oi_m",
+              "label": "Google Cloud operating income",
+              "kind": "fact",
+              "value": 13900.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Cloud operating income $13.9B",
+                "as_of": "2025-12-31",
+                "source_id": "a6385213bb07abfe5c9e2ce2ce7dfae7151d9ae11f9cb1a61e8e481d51f5e17e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Growth-adjusted owner-cash multiple on Cloud after-tax OI",
+              "kind": "judgment",
+              "value": 70.05,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Cloud +63% Q1 2026 revenue embeds AI backlog conversion; multiple is a growth-duration proxy not GAAP book."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Cloud owner cash proxy",
+              "kind": "calculation",
+              "value": 10981.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "cloud_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "13900 \u00d7 0.79",
+              "dependencies": [
+                "cloud_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Cloud equity value",
+              "kind": "calculation",
+              "value": 769219.05,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "10981 \u00d7 70.05",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Cloud per share",
+              "kind": "calculation",
+              "value": 61.79955411,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "769219.05 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cloud_oi_m",
+              "label": "Google Cloud operating income",
+              "kind": "fact",
+              "value": 13900.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Cloud operating income $13.9B",
+                "as_of": "2025-12-31",
+                "source_id": "a6385213bb07abfe5c9e2ce2ce7dfae7151d9ae11f9cb1a61e8e481d51f5e17e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Growth-adjusted owner-cash multiple on Cloud after-tax OI",
+              "kind": "judgment",
+              "value": 113.75,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Cloud +63% Q1 2026 revenue embeds AI backlog conversion; multiple is a growth-duration proxy not GAAP book."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Cloud owner cash proxy",
+              "kind": "calculation",
+              "value": 10981.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "cloud_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "13900 \u00d7 0.79",
+              "dependencies": [
+                "cloud_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Cloud equity value",
+              "kind": "calculation",
+              "value": 1249088.75,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "10981 \u00d7 113.75",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Cloud per share",
+              "kind": "calculation",
+              "value": 100.352595,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "1249088.8 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cloud_oi_m",
+              "label": "Google Cloud operating income",
+              "kind": "fact",
+              "value": 13900.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Google Cloud operating income $13.9B",
+                "as_of": "2025-12-31",
+                "source_id": "a6385213bb07abfe5c9e2ce2ce7dfae7151d9ae11f9cb1a61e8e481d51f5e17e"
+              },
+              "rationale": null
+            },
+            {
+              "id": "after_tax_retention",
+              "label": "After-tax retention on segment operating income",
+              "kind": "estimate",
+              "value": 0.79,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "21% federal statutory rate applied to filing segment OI."
+            },
+            {
+              "id": "owner_cash_multiple",
+              "label": "Growth-adjusted owner-cash multiple on Cloud after-tax OI",
+              "kind": "judgment",
+              "value": 166.42,
+              "unit": "multiple",
+              "source": null,
+              "rationale": "Cloud +63% Q1 2026 revenue embeds AI backlog conversion; multiple is a growth-duration proxy not GAAP book."
+            },
+            {
+              "id": "after_tax_oi_m",
+              "label": "After-tax Cloud owner cash proxy",
+              "kind": "calculation",
+              "value": 10981.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "cloud_oi_m \u00d7 after_tax_retention",
+              "substituted_formula": "13900 \u00d7 0.79",
+              "dependencies": [
+                "cloud_oi_m",
+                "after_tax_retention"
+              ]
+            },
+            {
+              "id": "equity_value_m",
+              "label": "Cloud equity value",
+              "kind": "calculation",
+              "value": 1827458.02,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "after_tax_oi_m \u00d7 owner_cash_multiple",
+              "substituted_formula": "10981 \u00d7 166.42",
+              "dependencies": [
+                "after_tax_oi_m",
+                "owner_cash_multiple"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Google Cloud per share",
+              "kind": "calculation",
+              "value": 146.81915482,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "equity_value_m \u00f7 shares_m",
+              "substituted_formula": "1827458 \u00f7 12447",
+              "dependencies": [
+                "equity_value_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+            "as_of": "2025-12-31",
+            "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+          },
+          {
+            "node_id": "cloud_oi_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "Segment note FY2025 Google Cloud operating income $13.9B",
+            "as_of": "2025-12-31",
+            "source_id": "a6385213bb07abfe5c9e2ce2ce7dfae7151d9ae11f9cb1a61e8e481d51f5e17e"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "2a9515e04d92f40259127d4674d11925e7451afe8b222f2927988deba3ef45f5"
+      },
+      "evidence_tier": "mixed_primary_and_estimate",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=secondary_operating_segments. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+      "scenario_assumptions": "Proof outputs {'low': 61.7996, 'base': 100.3526, 'high': 146.8192}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "The low/base/high range incorporates ownership, tax, capital, cycle, timing, and realization uncertainty pending the primary bridge.",
+      "falsifier": "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "overlap_key": "secondary_operating_segments",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "strategic_option",
+      "label": "Other Bets and strategic-option value",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Other Bets and strategic-option value",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risk_adjusted_milestone_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -4.8204,
+        "base": 16.1485,
+        "high": 67.4861
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -4.82,
+        "base": 16.15,
+        "high": 67.49
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -4.8204,
+          "base": 16.1485,
+          "high": 67.4861
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "other_bets_loss_m",
+              "label": "FY2025 Other Bets operating loss",
+              "kind": "fact",
+              "value": 7500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Other Bets operating loss $7.5B",
+                "as_of": "2025-12-31",
+                "source_id": "75a2d4bbab590edeae87c857f7741d03af55a74b262ad60fe76dc9f154cf12d6"
+              },
+              "rationale": null
+            },
+            {
+              "id": "success_value_m",
+              "label": "Risked gross success value (Waymo and Other Bets)",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Waymo and Other Bets terminal value if commercialized; base uses conservative fraction of private-market comps."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability-weighted realization",
+              "kind": "judgment",
+              "value": 0.02,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case keeps TCI-style zero terminal in segment build; proof sizes explicit milestone probability."
+            },
+            {
+              "id": "burden_years",
+              "label": "Years of Other Bets burn reserved against option",
+              "kind": "judgment",
+              "value": 8.0,
+              "unit": "years",
+              "source": null,
+              "rationale": "Remaining owner-funded capital before option payoff."
+            },
+            {
+              "id": "remaining_burden_m",
+              "label": "Reserved Other Bets burn",
+              "kind": "calculation",
+              "value": 60000.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "other_bets_loss_m \u00d7 burden_years",
+              "substituted_formula": "7500 \u00d7 8",
+              "dependencies": [
+                "other_bets_loss_m",
+                "burden_years"
+              ]
+            },
+            {
+              "id": "risked_value_m",
+              "label": "Probability-weighted gross option value",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "success_value_m \u00d7 success_probability",
+              "substituted_formula": "0 \u00d7 0.02",
+              "dependencies": [
+                "success_value_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "Net strategic option value",
+              "kind": "calculation",
+              "value": -60000.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_value_m - remaining_burden_m",
+              "substituted_formula": "0 - 60000",
+              "dependencies": [
+                "risked_value_m",
+                "remaining_burden_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Other Bets option per share",
+              "kind": "calculation",
+              "value": -4.82043866,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "-60000 \u00f7 12447",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "other_bets_loss_m",
+              "label": "FY2025 Other Bets operating loss",
+              "kind": "fact",
+              "value": 7500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Other Bets operating loss $7.5B",
+                "as_of": "2025-12-31",
+                "source_id": "75a2d4bbab590edeae87c857f7741d03af55a74b262ad60fe76dc9f154cf12d6"
+              },
+              "rationale": null
+            },
+            {
+              "id": "success_value_m",
+              "label": "Risked gross success value (Waymo and Other Bets)",
+              "kind": "judgment",
+              "value": 3000000.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Waymo and Other Bets terminal value if commercialized; base uses conservative fraction of private-market comps."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability-weighted realization",
+              "kind": "judgment",
+              "value": 0.082,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case keeps TCI-style zero terminal in segment build; proof sizes explicit milestone probability."
+            },
+            {
+              "id": "burden_years",
+              "label": "Years of Other Bets burn reserved against option",
+              "kind": "judgment",
+              "value": 6.0,
+              "unit": "years",
+              "source": null,
+              "rationale": "Remaining owner-funded capital before option payoff."
+            },
+            {
+              "id": "remaining_burden_m",
+              "label": "Reserved Other Bets burn",
+              "kind": "calculation",
+              "value": 45000.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "other_bets_loss_m \u00d7 burden_years",
+              "substituted_formula": "7500 \u00d7 6",
+              "dependencies": [
+                "other_bets_loss_m",
+                "burden_years"
+              ]
+            },
+            {
+              "id": "risked_value_m",
+              "label": "Probability-weighted gross option value",
+              "kind": "calculation",
+              "value": 246000.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "success_value_m \u00d7 success_probability",
+              "substituted_formula": "3000000 \u00d7 0.082",
+              "dependencies": [
+                "success_value_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "Net strategic option value",
+              "kind": "calculation",
+              "value": 201000.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_value_m - remaining_burden_m",
+              "substituted_formula": "246000 - 45000",
+              "dependencies": [
+                "risked_value_m",
+                "remaining_burden_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Other Bets option per share",
+              "kind": "calculation",
+              "value": 16.14846951,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "201000 \u00f7 12447",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "other_bets_loss_m",
+              "label": "FY2025 Other Bets operating loss",
+              "kind": "fact",
+              "value": 7500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Segment note FY2025 Other Bets operating loss $7.5B",
+                "as_of": "2025-12-31",
+                "source_id": "75a2d4bbab590edeae87c857f7741d03af55a74b262ad60fe76dc9f154cf12d6"
+              },
+              "rationale": null
+            },
+            {
+              "id": "success_value_m",
+              "label": "Risked gross success value (Waymo and Other Bets)",
+              "kind": "judgment",
+              "value": 5800000.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Waymo and Other Bets terminal value if commercialized; base uses conservative fraction of private-market comps."
+            },
+            {
+              "id": "success_probability",
+              "label": "Probability-weighted realization",
+              "kind": "judgment",
+              "value": 0.15,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Base case keeps TCI-style zero terminal in segment build; proof sizes explicit milestone probability."
+            },
+            {
+              "id": "burden_years",
+              "label": "Years of Other Bets burn reserved against option",
+              "kind": "judgment",
+              "value": 4.0,
+              "unit": "years",
+              "source": null,
+              "rationale": "Remaining owner-funded capital before option payoff."
+            },
+            {
+              "id": "remaining_burden_m",
+              "label": "Reserved Other Bets burn",
+              "kind": "calculation",
+              "value": 30000.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "other_bets_loss_m \u00d7 burden_years",
+              "substituted_formula": "7500 \u00d7 4",
+              "dependencies": [
+                "other_bets_loss_m",
+                "burden_years"
+              ]
+            },
+            {
+              "id": "risked_value_m",
+              "label": "Probability-weighted gross option value",
+              "kind": "calculation",
+              "value": 870000.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "success_value_m \u00d7 success_probability",
+              "substituted_formula": "5800000 \u00d7 0.15",
+              "dependencies": [
+                "success_value_m",
+                "success_probability"
+              ]
+            },
+            {
+              "id": "net_option_m",
+              "label": "Net strategic option value",
+              "kind": "calculation",
+              "value": 840000.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "risked_value_m - remaining_burden_m",
+              "substituted_formula": "870000 - 30000",
+              "dependencies": [
+                "risked_value_m",
+                "remaining_burden_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Other Bets option per share",
+              "kind": "calculation",
+              "value": 67.48614124,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "net_option_m \u00f7 shares_m",
+              "substituted_formula": "840000 \u00f7 12447",
+              "dependencies": [
+                "net_option_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+            "as_of": "2025-12-31",
+            "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+          },
+          {
+            "node_id": "other_bets_loss_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "Segment note FY2025 Other Bets operating loss $7.5B",
+            "as_of": "2025-12-31",
+            "source_id": "75a2d4bbab590edeae87c857f7741d03af55a74b262ad60fe76dc9f154cf12d6"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "ac79ad54215736b23848c9efca7867915c3693c113d7e9670756d33c7c8cbb03"
+      },
+      "evidence_tier": "mixed_primary_and_estimate",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=strategic_option. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+      "scenario_assumptions": "Proof outputs {'low': -4.8204, 'base': 16.1485, 'high': 67.4861}; see calculation_proof graph.",
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "The range includes delay and failure outcomes; dated cash realization remains [HUMAN REVIEW].",
+        "probability_basis": "Starter probability is explicit analyst judgment pending a primary-source milestone and ownership reconciliation.",
+        "remaining_capital_basis": "Remaining owner-funded capital, financing, and dilution are reserved until the primary sources-and-uses bridge is complete."
+      },
+      "tax_and_realization_adjustments": "The low/base/high range incorporates ownership, tax, capital, cycle, timing, and realization uncertainty pending the primary bridge.",
+      "falsifier": "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "overlap_key": "strategic_option",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "label": "Net cash, regulatory, and AI-capital reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Net cash, regulatory, and AI-capital reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -57.8997,
+        "base": 30.8799,
+        "high": 61.7468
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -57.9,
+        "base": 30.88,
+        "high": 61.75
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -57.8997,
+          "base": 30.8799,
+          "high": 61.7468
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_sti_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 95657.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "CashCashEquivalentsAndShortTermInvestments $95,657M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "0346f37c97e39a5fc58fc0c45194b7ab6e4f7be72410d20818a8878153fa576c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "lt_debt_m",
+              "label": "Long-term debt noncurrent",
+              "kind": "fact",
+              "value": 10883.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "LongTermDebtNoncurrent $10,883M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "98d2508abbd05012054a385c9bf22dc4265ce3ad23f7dcc1d2d189371d126471"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ocf_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 125299.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $125,299M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "6b29c646b0d644c61ebb3417a8f0280e53d62089163663dec17a5d3d46491f60"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 capital expenditures",
+              "kind": "fact",
+              "value": 52500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Payments to acquire property and equipment ~$52.5B FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "3a5dc528304c6a219c8089f1d43580b5a2a743416d8f112f72f454e724234616"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_normalization_adjustment_m",
+              "label": "AI capex overhang release (negative = reserve)",
+              "kind": "judgment",
+              "value": -805452.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low stresses 2026 guide $180-190B capex without Cloud ROI; base assumes post-peak normalization; high adds surplus cash optionality."
+            },
+            {
+              "id": "net_cash_m",
+              "label": "Reported net cash",
+              "kind": "calculation",
+              "value": 84774.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_sti_m - lt_debt_m",
+              "substituted_formula": "95657 - 10883",
+              "dependencies": [
+                "cash_sti_m",
+                "lt_debt_m"
+              ]
+            },
+            {
+              "id": "adjusted_claim_m",
+              "label": "Net cash plus capex normalization",
+              "kind": "calculation",
+              "value": -720678.0,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_cash_m + capex_normalization_adjustment_m",
+              "substituted_formula": "84774 + -805452",
+              "dependencies": [
+                "net_cash_m",
+                "capex_normalization_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net claims and reserve per share",
+              "kind": "calculation",
+              "value": -57.89973488,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_claim_m \u00f7 shares_m",
+              "substituted_formula": "-720678 \u00f7 12447",
+              "dependencies": [
+                "adjusted_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_sti_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 95657.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "CashCashEquivalentsAndShortTermInvestments $95,657M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "0346f37c97e39a5fc58fc0c45194b7ab6e4f7be72410d20818a8878153fa576c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "lt_debt_m",
+              "label": "Long-term debt noncurrent",
+              "kind": "fact",
+              "value": 10883.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "LongTermDebtNoncurrent $10,883M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "98d2508abbd05012054a385c9bf22dc4265ce3ad23f7dcc1d2d189371d126471"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ocf_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 125299.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $125,299M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "6b29c646b0d644c61ebb3417a8f0280e53d62089163663dec17a5d3d46491f60"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 capital expenditures",
+              "kind": "fact",
+              "value": 52500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Payments to acquire property and equipment ~$52.5B FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "3a5dc528304c6a219c8089f1d43580b5a2a743416d8f112f72f454e724234616"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_normalization_adjustment_m",
+              "label": "AI capex overhang release (negative = reserve)",
+              "kind": "judgment",
+              "value": 299588.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low stresses 2026 guide $180-190B capex without Cloud ROI; base assumes post-peak normalization; high adds surplus cash optionality."
+            },
+            {
+              "id": "net_cash_m",
+              "label": "Reported net cash",
+              "kind": "calculation",
+              "value": 84774.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_sti_m - lt_debt_m",
+              "substituted_formula": "95657 - 10883",
+              "dependencies": [
+                "cash_sti_m",
+                "lt_debt_m"
+              ]
+            },
+            {
+              "id": "adjusted_claim_m",
+              "label": "Net cash plus capex normalization",
+              "kind": "calculation",
+              "value": 384362.0,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_cash_m + capex_normalization_adjustment_m",
+              "substituted_formula": "84774 + 299588",
+              "dependencies": [
+                "net_cash_m",
+                "capex_normalization_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net claims and reserve per share",
+              "kind": "calculation",
+              "value": 30.87989074,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_claim_m \u00f7 shares_m",
+              "substituted_formula": "384362 \u00f7 12447",
+              "dependencies": [
+                "adjusted_claim_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "shares_m",
+              "label": "Diluted shares outstanding",
+              "kind": "fact",
+              "value": 12447.0,
+              "unit": "million_shares",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+                "as_of": "2025-12-31",
+                "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+              },
+              "rationale": null
+            },
+            {
+              "id": "cash_sti_m",
+              "label": "Cash and short-term investments",
+              "kind": "fact",
+              "value": 95657.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "CashCashEquivalentsAndShortTermInvestments $95,657M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "0346f37c97e39a5fc58fc0c45194b7ab6e4f7be72410d20818a8878153fa576c"
+              },
+              "rationale": null
+            },
+            {
+              "id": "lt_debt_m",
+              "label": "Long-term debt noncurrent",
+              "kind": "fact",
+              "value": 10883.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "LongTermDebtNoncurrent $10,883M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "98d2508abbd05012054a385c9bf22dc4265ce3ad23f7dcc1d2d189371d126471"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ocf_m",
+              "label": "FY2025 operating cash flow",
+              "kind": "fact",
+              "value": 125299.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "NetCashProvidedByUsedInOperatingActivities $125,299M FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "6b29c646b0d644c61ebb3417a8f0280e53d62089163663dec17a5d3d46491f60"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_m",
+              "label": "FY2025 capital expenditures",
+              "kind": "fact",
+              "value": 52500.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+                "locator": "Payments to acquire property and equipment ~$52.5B FY2025",
+                "as_of": "2025-12-31",
+                "source_id": "3a5dc528304c6a219c8089f1d43580b5a2a743416d8f112f72f454e724234616"
+              },
+              "rationale": null
+            },
+            {
+              "id": "capex_normalization_adjustment_m",
+              "label": "AI capex overhang release (negative = reserve)",
+              "kind": "judgment",
+              "value": 683788.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low stresses 2026 guide $180-190B capex without Cloud ROI; base assumes post-peak normalization; high adds surplus cash optionality."
+            },
+            {
+              "id": "net_cash_m",
+              "label": "Reported net cash",
+              "kind": "calculation",
+              "value": 84774.0,
+              "unit": "USD_m",
+              "operation": "subtract",
+              "formula": "cash_sti_m - lt_debt_m",
+              "substituted_formula": "95657 - 10883",
+              "dependencies": [
+                "cash_sti_m",
+                "lt_debt_m"
+              ]
+            },
+            {
+              "id": "adjusted_claim_m",
+              "label": "Net cash plus capex normalization",
+              "kind": "calculation",
+              "value": 768562.0,
+              "unit": "USD_m",
+              "operation": "add",
+              "formula": "net_cash_m + capex_normalization_adjustment_m",
+              "substituted_formula": "84774 + 683788",
+              "dependencies": [
+                "net_cash_m",
+                "capex_normalization_adjustment_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Net claims and reserve per share",
+              "kind": "calculation",
+              "value": 61.74676629,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "adjusted_claim_m \u00f7 shares_m",
+              "substituted_formula": "768562 \u00f7 12447",
+              "dependencies": [
+                "adjusted_claim_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "shares_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+            "as_of": "2025-12-31",
+            "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+          },
+          {
+            "node_id": "cash_sti_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "CashCashEquivalentsAndShortTermInvestments $95,657M FY2025",
+            "as_of": "2025-12-31",
+            "source_id": "0346f37c97e39a5fc58fc0c45194b7ab6e4f7be72410d20818a8878153fa576c"
+          },
+          {
+            "node_id": "lt_debt_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "LongTermDebtNoncurrent $10,883M FY2025",
+            "as_of": "2025-12-31",
+            "source_id": "98d2508abbd05012054a385c9bf22dc4265ce3ad23f7dcc1d2d189371d126471"
+          },
+          {
+            "node_id": "ocf_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "NetCashProvidedByUsedInOperatingActivities $125,299M FY2025",
+            "as_of": "2025-12-31",
+            "source_id": "6b29c646b0d644c61ebb3417a8f0280e53d62089163663dec17a5d3d46491f60"
+          },
+          {
+            "node_id": "capex_m",
+            "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+            "locator": "Payments to acquire property and equipment ~$52.5B FY2025",
+            "as_of": "2025-12-31",
+            "source_id": "3a5dc528304c6a219c8089f1d43580b5a2a743416d8f112f72f454e724234616"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "e805d61d4b9ca6ea838eb8485a1448c7eb2290cc30cea1cadafe35f27e091480"
+      },
+      "evidence_tier": "mixed_primary_and_estimate",
+      "evidence_level": "analyst_estimated",
+      "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=net_claims_and_reserve. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+      "scenario_assumptions": "Proof outputs {'low': -57.8997, 'base': 30.8799, 'high': 61.7468}; see calculation_proof graph.",
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "The low/base/high range incorporates ownership, tax, capital, cycle, timing, and realization uncertainty pending the primary bridge.",
+      "falsifier": "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "overlap_key": "net_claims_and_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 4,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "primary_operating_segment",
+        "label": "Google Services owner cash",
+        "kind": "judgment",
+        "evidence_tier": "mixed_primary_and_estimate",
+        "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=primary_operating_segment. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "secondary_operating_segments",
+        "label": "Google Cloud owner cash",
+        "kind": "judgment",
+        "evidence_tier": "mixed_primary_and_estimate",
+        "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=secondary_operating_segments. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "strategic_option",
+        "label": "Other Bets and strategic-option value",
+        "kind": "judgment",
+        "evidence_tier": "mixed_primary_and_estimate",
+        "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=strategic_option. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+        "method": "risk_adjusted_milestone_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "net_claims_and_reserve",
+        "label": "Net cash, regulatory, and AI-capital reserve",
+        "kind": "judgment",
+        "evidence_tier": "mixed_primary_and_estimate",
+        "evidence": "Filing-backed proof from GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm; overlap_key=net_claims_and_reserve. 2026 capex guide $180-190B noted in GOOGL/investor-documents/sec-edgar/10-Q_20260430_rpt20260331_acc0001652044_26_000048.htm.",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "quality_reinvestment",
+    "label": "High-return compounder",
+    "score": 18.0,
+    "reasons": [
+      "archetype=compounder",
+      "component categories=operating_business",
+      "existing methods=owner_cash",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "owner_earnings_reinvestment_dcf"
+    ],
+    "corroborating_methods": [
+      "reverse_dcf",
+      "incremental_roic_runway"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "munger",
+      "marathon_capital_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "lawrence",
+      "marks_credit_cycle",
+      "moi",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "normalized owner earnings",
+      "incremental return on capital",
+      "reinvestment runway",
+      "diluted share count",
+      "competitive-advantage mechanism"
+    ],
+    "failure_modes": [
+      "growth projected without its capital cost",
+      "stock compensation or acquisitions omitted",
+      "terminal value unsupported by a durable mechanism"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "predictable_cash_flow",
+        "score": 3.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
+      },
+      {
+        "profile_id": "binary_milestone",
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, risk_adjusted"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 18.0,
+        "reasons": [
+          "archetype=compounder",
+          "component categories=operating_business",
+          "existing methods=owner_cash",
+          "explicit reviewed profile"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 3.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash"
+        ]
+      },
+      "binary_milestone": {
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, risk_adjusted"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "GOOGL",
+    "as_of": "2026-08-25",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "compounder",
+      "moat": "widening",
+      "dhando": "partial",
+      "stance": "hold",
+      "cycle": "-",
+      "investment_sleeve": "ls_algo_underlying"
+    },
+    "specialist_power_zones": [
+      {
+        "persona": "lawrence",
+        "label": "Bryan Lawrence",
+        "independence_group": "quality_reinvestment",
+        "in_power_zone": true,
+        "fit": 1.0,
+        "matched": 3,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "moat",
+          "dhando"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 85
+      },
+      {
+        "persona": "buffett_weschler",
+        "label": "Buffett / Weschler",
+        "independence_group": "quality_reinvestment",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "moat"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      },
+      {
+        "persona": "hohn",
+        "label": "Chris Hohn",
+        "independence_group": "competitive_advantage",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "moat"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      },
+      {
+        "persona": "munger",
+        "label": "Charlie Munger",
+        "independence_group": "quality_reinvestment",
+        "in_power_zone": true,
+        "fit": 0.667,
+        "matched": 2,
+        "known_fields": 3,
+        "matched_fields": [
+          "archetype",
+          "moat"
+        ],
+        "excluded_by": null,
+        "match_rate": null,
+        "score": 57
+      }
+    ],
+    "committee": {
+      "candidate_count": 4,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "buffett_weschler",
+          "independence_group": "quality_reinvestment"
+        },
+        {
+          "persona": "hohn",
+          "independence_group": "competitive_advantage"
+        },
+        {
+          "persona": "munger",
+          "independence_group": "quality_reinvestment"
+        },
+        {
+          "persona": "marathon_capital_cycle",
+          "independence_group": "capital_cycle"
+        }
+      ]
+    },
+    "input_hash": "dd7d50e17f62282e2b624e9217a8cc4655413c1b9d4566f40e96464c25b4a9ef",
+    "generated_at": "2026-08-25T01:59:57.606900+00:00"
+  },
+  "market": {
+    "price_per_share": 339.35,
+    "fully_diluted_shares": 12447000000.0,
+    "market_cap_m": 4223889.45,
+    "enterprise_value_m": null,
+    "price_source": "Yahoo GOOGL close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 137.9867,
+      "base": 348.0444,
+      "high": 546.2576
+    },
+    "value_per_share": {
+      "low": 137.9867,
+      "base": 348.0444,
+      "high": 546.2576
+    },
+    "present_value_today_per_share": {
+      "low": 137.9867,
+      "base": 348.0444,
+      "high": 546.2576
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": 137.9867,
+      "base": 348.0444,
+      "high": 546.2576
+    },
+    "legacy_value_per_share": {
+      "low": 137.99,
+      "base": 348.04,
+      "high": 546.27
+    },
+    "probability_weighted_value_per_share": 348.0444,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": -145.93,
+      "base": 2.5,
+      "high": 37.88
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -59.34,
+      "base": 2.56,
+      "high": 60.97
+    },
+    "downside_to_low_pct": -59.34,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "primary_operating_segment",
+        "label": "Google Services owner cash",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 200.6634,
+        "legacy_base_per_share": 200.66,
+        "range_width_per_share": 131.2983,
+        "scenario_assumptions": "Proof outputs {'low': 138.9072, 'base': 200.6634, 'high': 270.2055}; see calculation_proof graph."
+      },
+      {
+        "component_id": "net_claims_and_reserve",
+        "label": "Net cash, regulatory, and AI-capital reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 30.8799,
+        "legacy_base_per_share": 30.88,
+        "range_width_per_share": 119.6465,
+        "scenario_assumptions": "Proof outputs {'low': -57.8997, 'base': 30.8799, 'high': 61.7468}; see calculation_proof graph."
+      },
+      {
+        "component_id": "secondary_operating_segments",
+        "label": "Google Cloud owner cash",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 100.3526,
+        "legacy_base_per_share": 100.35,
+        "range_width_per_share": 85.0196,
+        "scenario_assumptions": "Proof outputs {'low': 61.7996, 'base': 100.3526, 'high': 146.8192}; see calculation_proof graph."
+      },
+      {
+        "component_id": "strategic_option",
+        "label": "Other Bets and strategic-option value",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 16.1485,
+        "legacy_base_per_share": 16.15,
+        "range_width_per_share": 72.3065,
+        "scenario_assumptions": "Proof outputs {'low': -4.8204, 'base': 16.1485, 'high': 67.4861}; see calculation_proof graph."
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 4,
+    "priced_component_count": 4,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 4,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "15be21b12194dae9f2a4989dcea7680a2f5a6519795239845e86a0e5ea583829"
+  },
+  "source_lineage": [
+    {
+      "component_id": "primary_operating_segment",
+      "node_id": "shares_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+      "as_of": "2025-12-31",
+      "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+    },
+    {
+      "component_id": "primary_operating_segment",
+      "node_id": "services_oi_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "Segment note FY2025 Google Services operating income $139.4B",
+      "as_of": "2025-12-31",
+      "source_id": "8a5ee4b3782e5a0e1877c17ed9ffae44c5156408224979e63ef680a6b27c262b"
+    },
+    {
+      "component_id": "secondary_operating_segments",
+      "node_id": "shares_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+      "as_of": "2025-12-31",
+      "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+    },
+    {
+      "component_id": "secondary_operating_segments",
+      "node_id": "cloud_oi_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "Segment note FY2025 Google Cloud operating income $13.9B",
+      "as_of": "2025-12-31",
+      "source_id": "a6385213bb07abfe5c9e2ce2ce7dfae7151d9ae11f9cb1a61e8e481d51f5e17e"
+    },
+    {
+      "component_id": "strategic_option",
+      "node_id": "shares_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+      "as_of": "2025-12-31",
+      "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+    },
+    {
+      "component_id": "strategic_option",
+      "node_id": "other_bets_loss_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "Segment note FY2025 Other Bets operating loss $7.5B",
+      "as_of": "2025-12-31",
+      "source_id": "75a2d4bbab590edeae87c857f7741d03af55a74b262ad60fe76dc9f154cf12d6"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "node_id": "shares_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "FY2025 weighted-average diluted shares ~12.45B; 12,447M used in owner FCF bridge",
+      "as_of": "2025-12-31",
+      "source_id": "9501bc7583afe264e774c4421df4970a07c232e2c05a9bf1ae9d15d8af708c02"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "node_id": "cash_sti_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "CashCashEquivalentsAndShortTermInvestments $95,657M FY2025",
+      "as_of": "2025-12-31",
+      "source_id": "0346f37c97e39a5fc58fc0c45194b7ab6e4f7be72410d20818a8878153fa576c"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "node_id": "lt_debt_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "LongTermDebtNoncurrent $10,883M FY2025",
+      "as_of": "2025-12-31",
+      "source_id": "98d2508abbd05012054a385c9bf22dc4265ce3ad23f7dcc1d2d189371d126471"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "node_id": "ocf_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "NetCashProvidedByUsedInOperatingActivities $125,299M FY2025",
+      "as_of": "2025-12-31",
+      "source_id": "6b29c646b0d644c61ebb3417a8f0280e53d62089163663dec17a5d3d46491f60"
+    },
+    {
+      "component_id": "net_claims_and_reserve",
+      "node_id": "capex_m",
+      "ref": "GOOGL/investor-documents/sec-edgar/10-K_20260205_rpt20251231_acc0001652044_26_000018.htm",
+      "locator": "Payments to acquire property and equipment ~$52.5B FY2025",
+      "as_of": "2025-12-31",
+      "source_id": "3a5dc528304c6a219c8089f1d43580b5a2a743416d8f112f72f454e724234616"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "Primary evidence shows segment economics, net cash, or option burden materially worse than low case.",
+      "Primary evidence shows segment economics, net cash, or option burden materially worse than low case."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "172e47e304c8335ece33e3ab93c3d9bbe72ca637338fcdef529751232888d073",
+    "method_versions": [
+      "net_asset_value@1.0",
+      "owner_cash_or_dividend_discount@1.0",
+      "risk_adjusted_milestone_value@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 1,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

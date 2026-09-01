@@ -11,10 +11,10 @@ re_pass: false
 
 # GOOGL — Adversarial review
 
-**Date:** 2026-07-23
-**Agent:** Milly (batch pass)
-**Dive reviewed:** `GOOGL/research/deep_dive_2026-07-23.md`
-**Valuation reviewed:** `GOOGL/research/valuation.json`
+**Date:** 2026-07-23  
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `GOOGL/research/deep_dive_2026-07-23.md`  
+**Valuation reviewed:** `GOOGL/research/valuation.json`  
 **Filings used:** `GOOGL/research/evidence/filing_facts_2026-07-23.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.

@@ -1,9 +1,9 @@
 # GOOGL — Cross-Check: Third-Party Sources
 
-**Date:** 2026-07-23
-**Agent:** Marvin (contract backfill refresh)
-**Marvin dive:** `GOOGL/research/deep_dive_2026-07-23.md`
-**Source inventory:** `GOOGL/third-party-analyses/source_inventory_2026-06-01.md` (no new indexed sources)
+**Date:** 2026-07-23  
+**Agent:** Marvin (contract backfill refresh)  
+**Marvin dive:** `GOOGL/research/deep_dive_2026-07-23.md`  
+**Source inventory:** `GOOGL/third-party-analyses/source_inventory_2026-06-01.md` (no new indexed sources)  
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary

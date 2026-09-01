@@ -11,10 +11,10 @@ re_pass: false
 
 # FRMO — Adversarial review
 
-**Date:** 2026-07-21
-**Agent:** Milly (batch pass)
-**Dive reviewed:** `FRMO/research/deep_dive_2026-07-21.md`
-**Valuation reviewed:** `FRMO/research/valuation.json`
+**Date:** 2026-07-21  
+**Agent:** Milly (batch pass)  
+**Dive reviewed:** `FRMO/research/deep_dive_2026-07-21.md`  
+**Valuation reviewed:** `FRMO/research/valuation.json`  
 **Filings used:** `FRMO/research/evidence/filing_facts_2026-07-21.json`
 
 **Goal:** Truth-seeking QA. Not bearish for its own sake.

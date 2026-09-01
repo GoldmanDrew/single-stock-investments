@@ -1,9 +1,9 @@
 # AMD — Cross-Check: Third-Party Sources
 
-**Date:** 2026-07-23
-**Agent:** Marvin (contract backfill refresh)
-**Marvin dive:** `AMD/research/deep_dive_2026-07-23.md`
-**Source inventory:** `AMD/third-party-analyses/source_inventory_2026-06-07.md`
+**Date:** 2026-07-23  
+**Agent:** Marvin (contract backfill refresh)  
+**Marvin dive:** `AMD/research/deep_dive_2026-07-23.md`  
+**Source inventory:** `AMD/third-party-analyses/source_inventory_2026-06-07.md`  
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
