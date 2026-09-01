@@ -22,6 +22,7 @@ LEGACY_LETTERS = ROOT / "_system" / "reference" / "superinvestor-letters"
 LEGACY_WISDOM = ROOT / "_system" / "reference" / "investment-wisdom"
 LEGACY_SUMZERO = ROOT / "_system" / "reference" / "sumzero-research"
 LEGACY_PODCASTS = ROOT / "_system" / "reference" / "podcasts" / "_corpus"
+LEGACY_VIDEOS = ROOT / "_system" / "reference" / "video" / "_corpus"
 
 # Default clone target relative to ops repo root.
 DEFAULT_VAULT_REL = Path("_external") / "research-vault"
@@ -94,6 +95,15 @@ def sumzero_root(*, create: bool = False) -> Path:
 def podcasts_root(*, create: bool = False) -> Path:
     """Transcript corpus root (research-vault/podcasts or legacy _corpus)."""
     return _vault_subdir("podcasts", LEGACY_PODCASTS, create=create)
+
+
+def videos_root(*, create: bool = False) -> Path:
+    """Video transcript corpus root (research-vault/videos).
+
+    No legacy location: this corpus was never in-repo, so it points at the vault
+    or at the same path under the ops repo if no vault is configured.
+    """
+    return _vault_subdir("videos", LEGACY_VIDEOS, create=create)
 
 
 def dropbox_ingestion_root(*, create: bool = False) -> Path:
