@@ -134,7 +134,7 @@ def fetch_companyfacts(ticker: str, cik: str | None) -> dict:
 def _latest_companyfact(payload: dict, namespace: str, tags: list[str], annual: bool) -> tuple[str, dict] | None:
     namespace_facts = (payload.get("facts") or {}).get(namespace) or {}
     candidates = []
-    for tag in tags:
+    for priority, tag in enumerate(tags):
         record = namespace_facts.get(tag) or {}
         for unit, rows in (record.get("units") or {}).items():
             for row in rows:
@@ -143,11 +143,24 @@ def _latest_companyfact(payload: dict, namespace: str, tags: list[str], annual: 
                     continue
                 if row.get("val") is None or not row.get("end"):
                     continue
-                candidates.append((str(row.get("end")), str(row.get("filed") or ""), tag, unit, row))
+                candidates.append((
+                    str(row.get("end")),
+                    str(row.get("filed") or ""),
+                    -priority,
+                    tag,
+                    unit,
+                    row,
+                ))
     if not candidates:
         return None
     # Sort only on comparable keys; the raw row dict is not orderable.
-    _end, _filed, tag, unit, row = max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))
+    # The tag list is ordered by semantic preference.  When two concepts have
+    # the same observation date (common for cash), prefer the first tag rather
+    # than a lexicographically later aggregate such as cash plus restricted
+    # clearing balances.
+    _end, _filed, _priority, tag, unit, row = max(
+        candidates, key=lambda item: (item[0], item[1], item[2], item[3], item[4])
+    )
     return tag, {**row, "unit": unit}
 
 
@@ -1358,11 +1371,30 @@ def compile_existing_approved_proofs(ticker: str, as_of: str, identity: dict) ->
         row["valuation_status"] = row.get("valuation_status") or "bounded_estimate"
         compiled.append(row)
     routed_method = str(identity.get("primary_method") or "")
+    owner_earnings_family = {
+        "owner_earnings_reinvestment_dcf", "reinvestment_return_dcf",
+        "reinvestment_return_driver_dcf", "normalized_owner_earnings", "normalized_earnings",
+    }
+    owner_cash_family = {
+        "owner_cash_or_dividend_discount", "owner_cash_dcf",
+        "normalized_owner_cash_capitalization", "royalty_distribution_curve",
+        "infrastructure_owner_cash_dcf", "capital_free_revenue_driver_dcf",
+        "capital_free_produced_water_driver_dcf",
+    }
+    nav_family = {
+        "net_asset_value", "unit_nav", "liquidation_nav", "portfolio_discounted_unit_nav",
+        "segmented_comparable_land_nav_with_realization_discount", "risked_comparable_option_nav",
+        "milestone_nav",
+    }
     route_supported = routed_method in proof_methods
-    if routed_method == "component_owner_cash_and_unit_nav":
+    if routed_method == "owner_earnings_reinvestment_dcf":
+        route_supported = bool(proof_methods.intersection(owner_earnings_family))
+    elif routed_method == "owner_cash_or_dividend_discount":
+        route_supported = bool(proof_methods.intersection(owner_cash_family))
+    elif routed_method == "component_owner_cash_and_unit_nav":
         route_supported = bool(
-            proof_methods.intersection({"owner_cash_or_dividend_discount", "owner_earnings_reinvestment_dcf"})
-            and "net_asset_value" in proof_methods
+            proof_methods.intersection(owner_cash_family | owner_earnings_family)
+            and proof_methods.intersection(nav_family)
         )
     if not route_supported:
         return None

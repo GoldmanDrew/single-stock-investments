@@ -1,3 +1,3 @@
 # AAL mandatory pre-mortem
 
-Packet `6a896dda8c92787476008e596487663a0255c48f6f1dbb36d684bcf9e30cc0e7`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Return the committee schema pre_mortem object only.
+Packet `61eb67e221112d9154f5a98cb4d4395eda06ddc5fb615ae54c3352f6a264b74b`. Assume the investment failed severely. Explain the causal failure, earliest warnings, forensic checks, short-source coverage, and unresolved items. Do not read rater outputs. Return the committee schema pre_mortem object only.

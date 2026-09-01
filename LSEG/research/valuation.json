@@ -1,22 +1,24 @@
 {
   "ticker": "LSEG",
-  "as_of": "2026-06-01",
-  "method": "full",
+  "as_of": "2026-09-01",
+  "method": "owner_cash_or_dividend_discount",
   "lawrence_bucket": "multi_sided",
   "currency": "GBP",
   "classification_inputs": {
     "archetype": "croupier",
-    "moat": "stable",
-    "dhando": "partial",
-    "cycle": "mid"
+    "valuation_profile": "predictable_cash_flow",
+    "method_source": "reviewed_tier1_proof_completion"
   },
   "inputs": {
-    "price": 91.26,
-    "price_source": "LSE ~9,126p close 2026-05-29 (shareprices.com)",
+    "price": 90.0,
+    "price_source": "Yahoo LSEG.L close 2026-08-28 (GBX converted to GBP)",
     "fcf_per_share": 4.67,
     "fcf_source": "FY2025 equity free cash flow \u00a32,445M \u00f7 524M weighted average shares",
     "shares_millions": 524.0,
-    "normalization_note": "FY2025 mid-cycle base; Q1 2026 organic income +9.8% run-rate above trend (not inflated into starting cash flow)"
+    "normalization_note": "FY2025 mid-cycle base; Q1 2026 organic income +9.8% run-rate above trend (not inflated into starting cash flow)",
+    "price_as_of": "2026-08-28",
+    "shares_outstanding": 524000000.0,
+    "total_debt_m": 8175.0
   },
   "scenarios": {
     "bear": {
@@ -379,5 +381,343 @@
     "price_for_market_cap": 91.26,
     "chart": "LSEG/research/charts/total_return_2026-07-15.svg",
     "panel_json": "LSEG/research/total_return_panel.json"
+  },
+  "human_review": {
+    "live_price_confirmed": false
+  },
+  "schema_version": "3.0",
+  "valuation_methodology": {
+    "primary_method": "owner_cash_or_dividend_discount",
+    "method_version": "1.0",
+    "automation": "stock_specific_reviewed_assumptions",
+    "model_level": "stock_specific",
+    "reviewed_as_of": "2026-09-01",
+    "review_basis": "Issuer-defined equity free cash flow is already after capex, leases, interest, and tax. The proof values that non-overlapping equity claim directly and keeps operating net debt as context, avoiding the prior false requirement for a physical-unit NAV.",
+    "primary_source_refs": [
+      "LSEG/investor-documents/ir-lseg/annual_report_2025.pdf",
+      "LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf"
+    ]
+  },
+  "component_valuation_results": {
+    "status": "compiled",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "predictable_owner_cash",
+        "label": "LSEG data, index, clearing, and workflow equity free cash flow",
+        "category": "operating_business",
+        "overlap_key": "predictable_owner_cash",
+        "treatment": "additive",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_cash_or_dividend_discount",
+          "method_version": "1.0",
+          "output_unit": "GBP per share",
+          "inputs": [
+            {
+              "id": "distribution",
+              "label": "Sustainable owner cash",
+              "kind": "fact",
+              "value": 2445.0,
+              "unit": "GBP millions",
+              "source": {
+                "ref": "LSEG/investor-documents/ir-lseg/annual_report_2025.pdf",
+                "locator": "Annual Report 2025 p.35, Group cash flow: equity free cash flow 2,445",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares",
+              "kind": "fact",
+              "value": 524.0,
+              "unit": "million shares",
+              "source": {
+                "ref": "LSEG/investor-documents/ir-lseg/annual_report_2025.pdf",
+                "locator": "Annual Report 2025 note 4 to adjusted earnings per share: weighted average 524 million shares",
+                "as_of": "2025-12-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "maintenance_funding",
+              "label": "Maintenance funding",
+              "kind": "estimate",
+              "value": 0.0,
+              "unit": "GBP millions"
+            },
+            {
+              "id": "dilution_per_share",
+              "label": "Dilution per share",
+              "kind": "estimate",
+              "value": 0.0,
+              "unit": "GBP per share"
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "growth",
+              "label": "Sustainable owner-cash growth",
+              "kind": "judgment",
+              "values": {
+                "low": 0.02,
+                "base": 0.05,
+                "high": 0.05
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: Issuer-defined equity free cash flow is already after capex, leases, interest, and tax. The proof values that non-overlapping equity claim directly and keeps operating net debt as context, avoiding the prior false requirement for a physical-unit NAV. Primary evidence: LSEG/investor-documents/ir-lseg/annual_report_2025.pdf; LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf.",
+              "allowed_range": {
+                "min": -0.05,
+                "max": 0.05
+              }
+            },
+            {
+              "id": "required_return",
+              "label": "Required owner-cash return",
+              "kind": "judgment",
+              "values": {
+                "low": 0.13,
+                "base": 0.1,
+                "high": 0.085
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: Issuer-defined equity free cash flow is already after capex, leases, interest, and tax. The proof values that non-overlapping equity claim directly and keeps operating net debt as context, avoiding the prior false requirement for a physical-unit NAV. Primary evidence: LSEG/investor-documents/ir-lseg/annual_report_2025.pdf; LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.16
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "one_plus_growth",
+              "op": "add",
+              "args": [
+                1,
+                "growth"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "next_distribution",
+              "op": "multiply",
+              "args": [
+                "distribution",
+                "one_plus_growth"
+              ],
+              "unit": "GBP millions"
+            },
+            {
+              "id": "spread",
+              "op": "subtract",
+              "args": [
+                "required_return",
+                "growth"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "gross_value",
+              "op": "divide",
+              "args": [
+                "next_distribution",
+                "spread"
+              ],
+              "unit": "GBP millions"
+            },
+            {
+              "id": "after_funding",
+              "op": "subtract",
+              "args": [
+                "gross_value",
+                "maintenance_funding"
+              ],
+              "unit": "GBP millions"
+            },
+            {
+              "id": "before_dilution_per_share",
+              "op": "divide",
+              "args": [
+                "after_funding",
+                "shares_m"
+              ],
+              "unit": "GBP per share"
+            },
+            {
+              "id": "value_per_share",
+              "op": "subtract",
+              "args": [
+                "before_dilution_per_share",
+                "dilution_per_share"
+              ],
+              "unit": "GBP per share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Source-locked normalized owner cash reviewed against LSEG/investor-documents/ir-lseg/annual_report_2025.pdf and LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf.",
+        "falsifier": "Organic subscription growth, margin conversion, or equity free cash flow remains below the low-case path for two consecutive reporting periods.",
+        "range_per_share": {
+          "low": 43.2668,
+          "base": 97.9866,
+          "high": 139.9809
+        }
+      }
+    ],
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 43.2668,
+      "base": 97.9866,
+      "high": 139.9809
+    },
+    "material_component_count": 1,
+    "additive_component_count": 1,
+    "embedded_component_count": 0
+  },
+  "economic_value_analysis": {
+    "status": "compiled",
+    "validation_errors": []
+  },
+  "valuation_change_log": [
+    {
+      "change_id": "LSEG-tier1-proof-completion-2026-09-01",
+      "at": "2026-09-01T03:15:00Z",
+      "author": "codex",
+      "reason": "Replace blocked or legacy proof inputs with an issuer-specific, primary-source calculation graph.",
+      "source_refs": [
+        "LSEG/investor-documents/ir-lseg/annual_report_2025.pdf",
+        "LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf"
+      ]
+    }
+  ],
+  "valuation_method_route": {
+    "schema_version": "1.0",
+    "status": "routed",
+    "profile_id": "predictable_cash_flow",
+    "label": "Predictable cash-flow security",
+    "score": 13.0,
+    "reasons": [
+      "component categories=operating_business",
+      "existing methods=dividend, owner_cash",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "owner_cash_or_dividend_discount"
+    ],
+    "corroborating_methods": [
+      "regulated_asset_base",
+      "yield_and_reverse_dcf"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "lawrence",
+      "marathon_capital_cycle",
+      "moi",
+      "munger",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "cash-flow durability",
+      "maintenance capital",
+      "funding plan",
+      "distribution policy",
+      "contract or regulatory reset terms"
+    ],
+    "failure_modes": [
+      "dividend treated as earning power",
+      "growth capital and dilution omitted",
+      "contract renewal or regulatory reset ignored"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "quality_reinvestment",
+        "score": 8.0,
+        "reasons": [
+          "archetype=croupier",
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      {
+        "profile_id": "scarce_asset_optionality",
+        "score": 6.0,
+        "reasons": [
+          "archetype=croupier"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 6.0,
+        "reasons": [
+          "archetype=croupier"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 8.0,
+        "reasons": [
+          "archetype=croupier",
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      "capital_cycle": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "catalyst_asset_value": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "predictable_cash_flow": {
+        "score": 13.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash",
+          "explicit reviewed profile"
+        ]
+      },
+      "binary_milestone": {
+        "score": 0.0,
+        "reasons": []
+      }
+    },
+    "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent.",
+    "ticker": "LSEG",
+    "as_of": "2026-09-01",
+    "route_source": "reviewed_tier1_proof_completion",
+    "review_override": {
+      "profile_id": "predictable_cash_flow",
+      "reason": "Issuer-defined equity free cash flow is already after capex, leases, interest, and tax. The proof values that non-overlapping equity claim directly and keeps operating net debt as context, avoiding the prior false requirement for a physical-unit NAV.",
+      "reviewed_at": "2026-09-01T03:15:00Z",
+      "source_refs": [
+        "LSEG/investor-documents/ir-lseg/annual_report_2025.pdf",
+        "LSEG/investor-documents/ir-lseg/trading_update_q1_2026_rns_23apr2026.pdf"
+      ]
+    }
   }
 }

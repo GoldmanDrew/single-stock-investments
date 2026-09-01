@@ -1,24 +1,26 @@
 {
   "ticker": "VTRS",
-  "as_of": "2026-06-02",
-  "method": "full",
+  "as_of": "2026-09-01",
+  "method": "owner_cash_or_dividend_discount",
   "lawrence_bucket": "low_cost",
   "classification_inputs": {
     "archetype": "turnaround",
-    "moat": "unproven",
-    "dhando": "partial",
-    "cycle": "transition",
-    "payoff_lens": "event"
+    "valuation_profile": "predictable_cash_flow",
+    "method_source": "reviewed_tier1_proof_completion"
   },
   "inputs": {
-    "price": 15.69,
-    "price_source": "Stooq VTRS.US 2026-06-02",
+    "price": 16.51,
+    "price_source": "Yahoo VTRS close 2026-08-31",
     "fcf_per_share": 1.5,
     "fcf_source": "50% Marvin floor $1.45 (FY2025 OCF less capex) / 50% Rosen cash-yield normalization $1.55 (`sohn_rosen_vtrs`)",
     "marvin_floor_per_share": 1.45,
     "rosen_normalized_per_share": 1.55,
     "shares_millions": 1151.4,
-    "normalization_note": "Primary Lawrence path uses blended owner cash; Idorsia Phase III in synthesis + option overlay"
+    "normalization_note": "Primary Lawrence path uses blended owner cash; Idorsia Phase III in synthesis + option overlay",
+    "price_as_of": "2026-08-31",
+    "shares_outstanding": 1164429849.0,
+    "cash_m": 1804.2,
+    "total_debt_m": 14344.6
   },
   "growth_explanation": {
     "years_1_5": "Rosen low\u2013mid single-digit growth (Sohn 2026) plus EWSR $600\u2013700M savings to cash and Q1 2026 revenue +8% YoY (10-Q); offsets legacy revenue decline.",
@@ -186,7 +188,8 @@
     "notes": [
       "Idorsia P_base 30% and $6/sh incremental are [Assumption] until readout data",
       "Rosen 12-month double not in base IRR; capped 2-year $24 payoff path in synthesis only"
-    ]
+    ],
+    "live_price_confirmed": false
   },
   "results": {
     "bear": {
@@ -729,5 +732,339 @@
     "promotion": null,
     "disclaimer": "Context only. World Model fails and Superorg gaps open diligence; they do not rewrite universal contracts, IC packets, or human_decision.json. Magis claim class: P3_oriented. Promotion template: _system/reviews/pending/world_model_promote_{TICKER}_{date}.md.",
     "human_review_required": false
+  },
+  "schema_version": "3.0",
+  "valuation_methodology": {
+    "primary_method": "owner_cash_or_dividend_discount",
+    "method_version": "1.0",
+    "automation": "stock_specific_reviewed_assumptions",
+    "model_level": "stock_specific",
+    "reviewed_as_of": "2026-09-01",
+    "review_basis": "The core pharmaceutical portfolio is valued on normalized cash after maintenance capital. Pipeline readouts remain upside evidence rather than a second additive option, preventing double counting.",
+    "primary_source_refs": [
+      "VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm",
+      "VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm"
+    ]
+  },
+  "component_valuation_results": {
+    "status": "compiled",
+    "all_material_components_identified": true,
+    "additive_components": [
+      {
+        "id": "predictable_owner_cash",
+        "label": "Viatris normalized post-maintenance owner cash",
+        "category": "operating_business",
+        "overlap_key": "predictable_owner_cash",
+        "treatment": "additive",
+        "method": "owner_cash_or_dividend_discount",
+        "valuation_status": "bounded_estimate",
+        "calculation_proof": {
+          "schema_version": "1.0",
+          "method_id": "owner_cash_or_dividend_discount",
+          "method_version": "1.0",
+          "output_unit": "USD per share",
+          "inputs": [
+            {
+              "id": "distribution",
+              "label": "Sustainable owner cash",
+              "kind": "fact",
+              "value": 1915.9,
+              "unit": "USD millions",
+              "source": {
+                "ref": "VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm",
+                "locator": "Liquidity and capital resources: FY2025 operating cash flow 2,315.9; 2026 expected capex 350-450; normalized bridge uses the 400 midpoint",
+                "as_of": "2026-03-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "shares_m",
+              "label": "Diluted shares",
+              "kind": "fact",
+              "value": 1164.4298489999999,
+              "unit": "million shares",
+              "source": {
+                "ref": "VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm",
+                "locator": "March 31 2026 balance sheet: 1,258,606,697 issued less 94,176,848 treasury shares",
+                "as_of": "2026-03-31"
+              },
+              "locked": true
+            },
+            {
+              "id": "maintenance_funding",
+              "label": "Maintenance funding",
+              "kind": "estimate",
+              "value": 0.0,
+              "unit": "USD millions"
+            },
+            {
+              "id": "dilution_per_share",
+              "label": "Dilution per share",
+              "kind": "estimate",
+              "value": 0.0,
+              "unit": "USD per share"
+            }
+          ],
+          "assumptions": [
+            {
+              "id": "growth",
+              "label": "Sustainable owner-cash growth",
+              "kind": "judgment",
+              "values": {
+                "low": -0.03,
+                "base": 0.01,
+                "high": 0.03
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: The core pharmaceutical portfolio is valued on normalized cash after maintenance capital. Pipeline readouts remain upside evidence rather than a second additive option, preventing double counting. Primary evidence: VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm; VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm.",
+              "allowed_range": {
+                "min": -0.05,
+                "max": 0.05
+              }
+            },
+            {
+              "id": "required_return",
+              "label": "Required owner-cash return",
+              "kind": "judgment",
+              "values": {
+                "low": 0.16,
+                "base": 0.13,
+                "high": 0.11
+              },
+              "unit": "ratio",
+              "rationale": "Issuer-specific review as of 2026-09-01: The core pharmaceutical portfolio is valued on normalized cash after maintenance capital. Pipeline readouts remain upside evidence rather than a second additive option, preventing double counting. Primary evidence: VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm; VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm.",
+              "allowed_range": {
+                "min": 0.08,
+                "max": 0.16
+              }
+            }
+          ],
+          "calculations": [
+            {
+              "id": "one_plus_growth",
+              "op": "add",
+              "args": [
+                1,
+                "growth"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "next_distribution",
+              "op": "multiply",
+              "args": [
+                "distribution",
+                "one_plus_growth"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "spread",
+              "op": "subtract",
+              "args": [
+                "required_return",
+                "growth"
+              ],
+              "unit": "ratio"
+            },
+            {
+              "id": "gross_value",
+              "op": "divide",
+              "args": [
+                "next_distribution",
+                "spread"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "after_funding",
+              "op": "subtract",
+              "args": [
+                "gross_value",
+                "maintenance_funding"
+              ],
+              "unit": "USD millions"
+            },
+            {
+              "id": "before_dilution_per_share",
+              "op": "divide",
+              "args": [
+                "after_funding",
+                "shares_m"
+              ],
+              "unit": "USD per share"
+            },
+            {
+              "id": "value_per_share",
+              "op": "subtract",
+              "args": [
+                "before_dilution_per_share",
+                "dilution_per_share"
+              ],
+              "unit": "USD per share"
+            }
+          ],
+          "outputs": {
+            "low": "value_per_share",
+            "base": "value_per_share",
+            "high": "value_per_share"
+          }
+        },
+        "evidence_tier": "primary_derived",
+        "evidence": "Source-locked normalized owner cash reviewed against VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm and VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm.",
+        "falsifier": "Base-business erosion, debt service, or maintenance capital reduces normalized owner cash below the low-case path for two consecutive reporting periods.",
+        "range_per_share": {
+          "low": 8.4,
+          "base": 13.8484,
+          "high": 21.1839
+        }
+      }
+    ],
+    "embedded_components": [],
+    "total_equity_value_per_share": {
+      "low": 8.4,
+      "base": 13.8484,
+      "high": 21.1839
+    },
+    "material_component_count": 1,
+    "additive_component_count": 1,
+    "embedded_component_count": 0
+  },
+  "economic_value_analysis": {
+    "status": "compiled",
+    "validation_errors": []
+  },
+  "valuation_change_log": [
+    {
+      "change_id": "VTRS-tier1-proof-completion-2026-09-01",
+      "at": "2026-09-01T03:15:00Z",
+      "author": "codex",
+      "reason": "Replace blocked or legacy proof inputs with an issuer-specific, primary-source calculation graph.",
+      "source_refs": [
+        "VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm",
+        "VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm"
+      ]
+    }
+  ],
+  "valuation_method_route": {
+    "schema_version": "1.0",
+    "status": "routed",
+    "profile_id": "predictable_cash_flow",
+    "label": "Predictable cash-flow security",
+    "score": 13.0,
+    "reasons": [
+      "component categories=operating_business",
+      "existing methods=dividend, owner_cash",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "owner_cash_or_dividend_discount"
+    ],
+    "corroborating_methods": [
+      "regulated_asset_base",
+      "yield_and_reverse_dcf"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "marks_credit_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "lawrence",
+      "marathon_capital_cycle",
+      "moi",
+      "munger",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "cash-flow durability",
+      "maintenance capital",
+      "funding plan",
+      "distribution policy",
+      "contract or regulatory reset terms"
+    ],
+    "failure_modes": [
+      "dividend treated as earning power",
+      "growth capital and dilution omitted",
+      "contract renewal or regulatory reset ignored"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "capital_cycle",
+        "score": 7.0,
+        "reasons": [
+          "archetype=turnaround",
+          "component categories=operating_business"
+        ]
+      },
+      {
+        "profile_id": "catalyst_asset_value",
+        "score": 6.0,
+        "reasons": [
+          "archetype=turnaround"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "quality_reinvestment": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=owner_cash"
+        ]
+      },
+      "capital_cycle": {
+        "score": 7.0,
+        "reasons": [
+          "archetype=turnaround",
+          "component categories=operating_business"
+        ]
+      },
+      "credit_and_normalized_returns": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "catalyst_asset_value": {
+        "score": 6.0,
+        "reasons": [
+          "archetype=turnaround"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 13.0,
+        "reasons": [
+          "component categories=operating_business",
+          "existing methods=dividend, owner_cash",
+          "explicit reviewed profile"
+        ]
+      },
+      "binary_milestone": {
+        "score": 0.0,
+        "reasons": []
+      }
+    },
+    "decision_rule": "Use one primary method and no more than two corroborating methods; irrelevant methods and personas remain silent.",
+    "ticker": "VTRS",
+    "as_of": "2026-09-01",
+    "route_source": "reviewed_tier1_proof_completion",
+    "review_override": {
+      "profile_id": "predictable_cash_flow",
+      "reason": "The core pharmaceutical portfolio is valued on normalized cash after maintenance capital. Pipeline readouts remain upside evidence rather than a second additive option, preventing double counting.",
+      "reviewed_at": "2026-09-01T03:15:00Z",
+      "source_refs": [
+        "VTRS/investor-documents/sec-edgar/10-Q_20260507_rpt20260331_acc0001792044_26_000029.htm",
+        "VTRS/investor-documents/sec-edgar/10-K_20260226_rpt20251231_acc0001792044_26_000013.htm"
+      ]
+    }
   }
 }

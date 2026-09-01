@@ -1,3 +1,3 @@
 # BMNR evidence tribunal
 
-Packet `e0647786d0fb336f1ea6ff87c3ea771b0b112c921f23ec5b678dc6ba23e58467`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.
+Packet `b06c4360542de52de8ebe2d23f1396df71f55b29e4071e547c9c243a56296226`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.

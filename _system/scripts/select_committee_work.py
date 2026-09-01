@@ -26,6 +26,7 @@ from investment_committee_pipeline import (
     MAX_REFRESHES_WITHOUT_VOTES,
     SNAPSHOT_DIR,
     TERMINAL_STAGES,
+    archive_stale_assembled,
     assembled_packet_hash,
     clear_triage,
     discover_evidence,
@@ -232,6 +233,65 @@ def invalidate_votes(work: Path, old_packet: str) -> list[str]:
     return moved
 
 
+def carry_forward_prior_gaps(ticker: str, committee_date: str, work: Path, manifest: dict) -> Path | None:
+    """Preserve unresolved committee questions in the next frozen packet.
+
+    Re-opening review is legitimate only when the prior evidence block remains
+    visible to the new raters.  The old assembled record and work directory stay
+    immutable audit artifacts; this small live file is the explicit bridge from
+    the superseded packet to its successor.
+    """
+    research = ROOT / ticker / "research"
+    record_path = research / f"committee_{committee_date}.json"
+    record = read_json(record_path) if record_path.exists() else {}
+    questions: list[tuple[str, str]] = []
+
+    def add(value, source: str) -> None:
+        text = str(value or "").strip()
+        if not text or text.lower() in {"none", "none material", "n/a", "not applicable"}:
+            return
+        questions.append((text, source))
+
+    for value in (record.get("synthesis") or {}).get("unresolved_items") or []:
+        add(value, "assembled_synthesis")
+    for value in (record.get("evidence_tribunal") or {}).get("unresolved_material_facts") or []:
+        add(value, "assembled_evidence_tribunal")
+    for vote in ((record.get("round_two") or {}).get("votes") or []):
+        if vote.get("evidence_status") != "sufficient":
+            add(vote.get("most_important_missing_fact"), f"round_two:{vote.get('persona') or 'unknown'}")
+    tribunal = read_json(work / "evidence_tribunal.json") if (work / "evidence_tribunal.json").exists() else {}
+    for value in tribunal.get("unresolved_material_facts") or []:
+        add(value, "work_evidence_tribunal")
+    if not questions:
+        return None
+    by_question: dict[str, dict] = {}
+    for question, source in questions:
+        key = " ".join(question.lower().split())
+        row = by_question.setdefault(key, {
+            "question": question,
+            "prior_sources": [],
+            "prior_evidence_status": "insufficient_evidence",
+            "required_disposition": (
+                "Resolve with primary evidence, reflect the uncertainty in the valuation range, "
+                "or document why it is immaterial; the successor committee must adjudicate the treatment."
+            ),
+        })
+        if source not in row["prior_sources"]:
+            row["prior_sources"].append(source)
+    path = research / "committee_gap_carryforward.json"
+    write_json(path, {
+        "schema_version": "1.0",
+        "ticker": ticker,
+        "as_of": committee_date,
+        "status": "requires_fresh_committee_adjudication",
+        "prior_packet_hash": manifest.get("packet_hash"),
+        "prior_manifest_ref": (work / "manifest.json").relative_to(ROOT).as_posix(),
+        "items": list(by_question.values()),
+        "rule": "A packet refresh never converts an unanswered question into a resolved fact.",
+    })
+    return path
+
+
 def resume_parked(work: Path, manifest: dict) -> Path:
     """Put a parked committee back to work, re-freezing only if it must.
 
@@ -279,18 +339,17 @@ def resume_parked(work: Path, manifest: dict) -> Path:
     return work
 
 
-def discard_parked(work: Path, manifest: dict, committee_date: str) -> Path:
-    """Archive a parked packet whole and freeze a new one from live evidence."""
+def finalize_discarded_archive(archive: Path, manifest: dict, committee_date: str) -> Path:
+    """Freeze the successor packet after the old parked directory is archived.
+
+    This second half is deliberately restartable.  A process can be interrupted
+    after the atomic directory rename but before ``initialize``; a later
+    operator discard then finishes the transition without losing held votes.
+    """
     ticker = manifest["ticker"]
-    suffix = str(manifest.get("packet_hash") or "unknown")[:8]
-    archive = archive_name(work, committee_date, suffix, kind="parked-discarded")
-    manifest["stage"] = "superseded"
-    manifest["superseded_reason"] = "parked_packet_discarded_by_operator"
-    manifest["discarded_at"] = datetime.now(timezone.utc).isoformat()
-    write_json(work / "manifest.json", manifest)
-    work.rename(archive)
     fresh = initialize(ticker, committee_date)
     updated = read_json(fresh / "manifest.json")
+    stale_record = archive_stale_assembled(ticker, committee_date, updated["packet_hash"])
     updated["refresh_count"] = 0
     updated["superseded_from"] = archive.relative_to(ROOT).as_posix()
     updated["unparked"] = {
@@ -300,9 +359,25 @@ def discard_parked(work: Path, manifest: dict, committee_date: str) -> Path:
         "discarded_packet_hash": manifest.get("packet_hash"),
         "discarded_votes": int((manifest.get("parked") or {}).get("votes_landed") or 0),
     }
+    if stale_record:
+        updated["superseded_assembled_record"] = stale_record.relative_to(ROOT).as_posix()
     write_json(fresh / "manifest.json", updated)
     clear_triage(ticker, committee_date)
     return fresh
+
+
+def discard_parked(work: Path, manifest: dict, committee_date: str) -> Path:
+    """Archive a parked packet whole and freeze a new one from live evidence."""
+    ticker = manifest["ticker"]
+    carry_forward_prior_gaps(ticker, committee_date, work, manifest)
+    suffix = str(manifest.get("packet_hash") or "unknown")[:8]
+    archive = archive_name(work, committee_date, suffix, kind="parked-discarded")
+    manifest["stage"] = "superseded"
+    manifest["superseded_reason"] = "parked_packet_discarded_by_operator"
+    manifest["discarded_at"] = datetime.now(timezone.utc).isoformat()
+    write_json(work / "manifest.json", manifest)
+    work.rename(archive)
+    return finalize_discarded_archive(archive, manifest, committee_date)
 
 
 def unpark(ticker: str, committee_date: str, mode: str = "resume") -> Path:
@@ -313,6 +388,26 @@ def unpark(ticker: str, committee_date: str, mode: str = "resume") -> Path:
     work = ROOT / ticker / "research" / "committee_work" / committee_date
     manifest_path = work / "manifest.json"
     if not manifest_path.exists():
+        if mode == "discard":
+            candidates = []
+            for archived_manifest in sorted(work.parent.glob(
+                    f"{committee_date}-parked-discarded-*/manifest.json")):
+                archived = read_json(archived_manifest)
+                if (
+                    archived.get("ticker") == ticker
+                    and archived.get("stage") == "superseded"
+                    and archived.get("superseded_reason") == "parked_packet_discarded_by_operator"
+                    and archived.get("parked")
+                ):
+                    candidates.append((archived_manifest.parent, archived))
+            if len(candidates) == 1:
+                archive, archived = candidates[0]
+                return finalize_discarded_archive(archive, archived, committee_date)
+            if len(candidates) > 1:
+                raise RuntimeError(
+                    f"{ticker} {committee_date}: multiple interrupted discard archives; "
+                    "manual archive selection is required"
+                )
         raise FileNotFoundError(f"{ticker} {committee_date}: no committee work to un-park")
     manifest = read_json(manifest_path)
     if str(manifest.get("stage") or "") != "parked":
@@ -398,6 +493,7 @@ def refresh(ticker: str, committee_date: str) -> Path:
         )
         return work
     suffix = str(manifest.get("packet_hash") or "unknown")[:8]
+    carry_forward_prior_gaps(ticker, committee_date, work, manifest)
     archive = archive_name(work, committee_date, suffix)
     manifest["stage"] = "superseded"
     manifest["superseded_reason"] = manifest.get("refresh_reason") or "frozen_evidence_changed"
@@ -405,8 +501,11 @@ def refresh(ticker: str, committee_date: str) -> Path:
     work.rename(archive)
     fresh = initialize(ticker, committee_date)
     updated = read_json(fresh / "manifest.json")
+    stale_record = archive_stale_assembled(ticker, committee_date, updated["packet_hash"])
     updated["refresh_count"] = count + 1
     updated["superseded_from"] = archive.relative_to(ROOT).as_posix()
+    if stale_record:
+        updated["superseded_assembled_record"] = stale_record.relative_to(ROOT).as_posix()
     write_json(fresh / "manifest.json", updated)
     return fresh
 

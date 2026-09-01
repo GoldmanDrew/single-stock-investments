@@ -23,6 +23,37 @@ def fact(field_id, value, unit):
 
 
 class ValuationAutomationTests(unittest.TestCase):
+    def test_companyfact_tie_respects_semantic_tag_priority(self):
+        payload = {
+            "facts": {
+                "us-gaap": {
+                    "CashAndCashEquivalentsAtCarryingValue": {
+                        "units": {"USD": [{
+                            "end": "2026-06-30", "filed": "2026-07-30",
+                            "form": "10-Q", "val": 1_067_000_000,
+                        }]}
+                    },
+                    "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents": {
+                        "units": {"USD": [{
+                            "end": "2026-06-30", "filed": "2026-07-30",
+                            "form": "10-Q", "val": 116_553_000_000,
+                        }]}
+                    },
+                }
+            }
+        }
+        tag, row = automation._latest_companyfact(
+            payload,
+            "us-gaap",
+            [
+                "CashAndCashEquivalentsAtCarryingValue",
+                "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+            ],
+            annual=False,
+        )
+        self.assertEqual(tag, "CashAndCashEquivalentsAtCarryingValue")
+        self.assertEqual(row["val"], 1_067_000_000)
+
     def test_etf_identity_never_routes_to_operating_company_default(self):
         identity = automation.resolve_identity("FUND", {"company": "Example Index ETF", "market": "US"}, {}, "2026-07-19")
         self.assertEqual(identity["security_type"], "exchange_traded_fund")

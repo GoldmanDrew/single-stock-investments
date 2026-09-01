@@ -1,0 +1,42 @@
+# FRMO — Investment Thesis
+
+**Last updated:** auto-sync
+
+## Classification
+
+| Field | Value |
+|-------|-------|
+| **Archetype** (Stahl) | holding_co |
+| **Moat** (Munger) | stable |
+| **Dhando** (Pabrai) | partial |
+| **Stance** | hold |
+| **Cycle** | - |
+| **Implied 7yr IRR** (base) | -2.08% (contract base, provisional) |
+| **IRR method** | quality_reinvestment |
+| **Lawrence bucket** | other |
+| **Payoff lens** | pending |
+| **MOI bucket** | pending |
+
+**Deep dive:** `FRMO/research/deep_dive_2026-07-21.md` (auto-sync)
+
+## One-line thesis
+
+Horizon Kinetics–affiliated **holding company** with concentrated stakes in exchange infrastructure (MIH) and HKHC — a look-through bet on Murray Stahl's ecosystem, not an operating croupier; value = sum-of-parts vs fair-value accounting noise.
+
+## Key beliefs
+
+- [x] Not an operating croupier — croupier exposure via MIH, HKHC, Horizon funds
+- [x] Investment A = ~82% of FRMO equity ($309M / $377M, Feb 2026)
+- [x] FRMO-attributable book ~$8.55/share (Feb 28, 2026); total assets $919M
+- [x] MIH fair value **$13.9M** (Feb 2026); HKHC investment **$27.2M**; MIH IPO Aug 2025 lockup (full-tier quarterly)
+
+## Key risks
+
+- Fair-value mark volatility (Q3 FY2026 EPS $1.89 vs prior-year loss)
+- MIH lockup expiry; related-party transactions (Horizon lease, HKHA)
+- OTC disclosure; Nov 2025 late filing flag in INDEX
+
+## [HUMAN REVIEW]
+
+- Build sum-of-parts (MIH, HKHC 4.42%, fund stakes)
+- Compare market price to book and internal repurchase history

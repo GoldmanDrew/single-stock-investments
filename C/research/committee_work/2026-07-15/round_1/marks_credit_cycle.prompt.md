@@ -2,19 +2,29 @@
 
 You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `446a79f7d97798ff927ea1df13fecbad4c723d27372d7eb0deb894c310926b31`
+Evidence packet: `9ae998e6bd06822dad003fee3a54eb1ce8977308b24bc13ebb28d480f5aec596`
 
-- `C/research/valuation.json`
-- `C/research/thesis.md`
-- `C/research/cross_check_third_party_2026-07-10.md`
-- `C/research/evidence_reconciliation_2026-07-15.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/deep_dive_2026-08-13.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/adversarial_2026-08-13.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/valuation_route.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/valuation_contract.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/valuation.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/thesis.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/cross_check_third_party_2026-08-13.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/evidence_reconciliation_2026-08-13.md`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/committee_gap_carryforward.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/evidence__filing_facts_2026-08-13.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/evidence__management_facts_2026-08-13.json`
+- `C/research/committee_work/2026-07-15/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
-1. Do not inspect another rater's output or any synthesis.
+1. Do not inspect another rater's output or any synthesis. In round two, you may read only your own round-one vote and the targeted research response.
 2. Ignore time already spent on the idea and prior portfolio ownership.
 3. Score explanatory strength, evidence sufficiency, downside control, and return versus alternatives from 1-5 with a rationale.
 4. Use `insufficient_evidence` or `outside_power_zone` when appropriate; abstention is valid.
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
-7. Return only one JSON object matching the committee schema vote definition.
+7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "9ae998e6bd06822dad003fee3a54eb1ce8977308b24bc13ebb28d480f5aec596"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.
