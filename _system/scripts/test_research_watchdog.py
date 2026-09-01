@@ -236,6 +236,14 @@ class SystemicDetectors(unittest.TestCase):
         # The real snapshot is months old in CI; if someone refreshes it this
         # test still holds, because a fresh snapshot must produce no finding.
         source = w.scope_source()
+        if not source.exists():
+            # CI has no broker data at all. The detector must say so loudly
+            # rather than report a clean book. The first version of this test
+            # called source.stat() unconditionally and raised FileNotFoundError.
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].severity, "systemic")
+            self.assertIn("No positions snapshot", findings[0].headline)
+            return
         snapshot = w.datetime.fromtimestamp(source.stat().st_mtime).date()
         if source == w.SCOPE_FILE:
             meta = w.load_json(source.parent / "research_scope_meta.json", {}) or {}
