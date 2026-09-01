@@ -32,6 +32,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 
+# Episode titles come from RSS feeds and carry whatever the publisher typed --
+# en dashes, smart quotes, and on 2026-08-29 a U+2060 WORD JOINER that killed a
+# run outright. Python picks cp1252 for a redirected stdout on Windows, so the
+# progress line that *reports* a finished episode was the thing that crashed:
+# 730 episodes still to do, the process gone, and the last log line a normal
+# success. Same idiom as build_memory_digest.py.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from analyze_podcast_episode import (  # noqa: E402
     _clean_ticker, build_aliases, resolve_tickers, validate_tickers,
 )
