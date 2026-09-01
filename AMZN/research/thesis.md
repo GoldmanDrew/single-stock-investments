@@ -11,7 +11,7 @@
 | **Dhando** (Pabrai) | partial |
 | **Stance** | hold |
 | **Cycle** | - |
-| **Implied 7yr IRR** (base) | -4.71% (contract base) |
+| **Implied 7yr IRR** (base) | — |
 | **IRR method** | quality_reinvestment |
 | **Lawrence bucket** | pricing_power |
 | **Payoff lens** | pending |
