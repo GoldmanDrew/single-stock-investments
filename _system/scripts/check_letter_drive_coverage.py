@@ -57,6 +57,13 @@ def drive_counts_by_quarter() -> dict[str, int]:
     for _key, row in by_filename.items():
         if not isinstance(row, dict):
             continue
+        # The filename index also contains folder sentinels and README files.
+        # The denominator is explicitly Drive PDFs; counting those bookkeeping
+        # files made a healthy 6/7 2026Q3 corpus appear to be 6/12 and kept the
+        # entire letter lane permanently red.
+        name = str(row.get("name") or _key)
+        if Path(name).suffix.lower() != ".pdf":
+            continue
         file_id = row.get("id")
         if not file_id or file_id in seen:
             continue
