@@ -96,14 +96,13 @@ jobs:
           test -f dashboard/data/spx_surface_latest.json
           test -f dashboard/data/vol_metrics_latest.json
 
-      - name: Build and publish signed component snapshot
+      - name: Build component snapshot
         run: |
           python _system/scripts/build_market_risk_components.py \
             --etf-root "$GITHUB_WORKSPACE/_external/etf-dashboard" \
             --ls-root "$GITHUB_WORKSPACE/_external/ls-algo" \
             --ssi-root "$GITHUB_WORKSPACE" \
-            --output "$RUNNER_TEMP/market-risk-components.json" \
-            --publish
+            --output "$RUNNER_TEMP/market-risk-components.json"
 
       - name: Verify published snapshot artifact
         run: |
@@ -179,3 +178,20 @@ jobs:
           else
             echo "Once-daily gate: committed fallback already has today's UTC generated_at; skipping commit."
           fi
+
+      - id: publish
+        name: Publish signed component snapshot
+        # D1 is the preferred live path, but the committed snapshot above is
+        # the dashboard's durable fallback and P6 freshness source. A transient
+        # ingest 5xx must not prevent that independently valid artifact from
+        # landing or make the lane look stale for days.
+        continue-on-error: true
+        run: |
+          python _system/scripts/build_market_risk_components.py \
+            --output "$RUNNER_TEMP/market-risk-components.json" \
+            --publish-only
+
+      - name: Report degraded live publish
+        if: steps.publish.outcome == 'failure'
+        run: |
+          echo "::warning::Live market-risk ingest failed; the validated committed fallback was refreshed."

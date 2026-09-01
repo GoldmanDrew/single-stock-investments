@@ -13,6 +13,18 @@ import graph_invariants
 ROOT = Path(__file__).resolve().parents[2]
 STATE_REL = Path("_system/data/repository_health_supervisor.json")
 
+# Only lanes with an explicit bounded on-demand trigger belong here. Scheduled
+# workflows are not automatically dispatchable: workflow_dispatch and
+# repository_dispatch are different GitHub APIs, so make the recovery contract
+# executable instead of merely recording that a lane is stale.
+P3_LANE_HEALERS = {
+    "letters": {"workflow": "letter-backfill.yml", "fields": {}},
+    "market-risk": {"event_type": "heal-market-risk"},
+    "memory-digest": {"event_type": "memory-triage-run"},
+    "falsifier": {"event_type": "falsifier-resolution-run"},
+    "research-watchdog": {"event_type": "research-watchdog-run"},
+}
+
 
 def operational_failures(root: Path, now: datetime | None = None) -> list[str]:
     """Evaluate the receipt and feed invariants this supervisor can heal."""
@@ -53,6 +65,13 @@ def plan(root: Path = ROOT) -> dict:
                 for key in hard}
     p6 = "\n".join(key for key in hard if key.startswith("P6|"))
     dispatches = []
+    for key in hard:
+        if not key.startswith("P3|"):
+            continue
+        lane = key.split("|", 1)[1].split(":", 1)[0]
+        healer = P3_LANE_HEALERS.get(lane)
+        if healer:
+            dispatches.append(dict(healer))
     if any(name in p6 for name in ("criticality_summary", "technical_summary", "vol_metrics", "spx_surface")):
         dispatches.append({"event_type": "heal-technicals"})
     if "warrant_monitor" in p6:
@@ -61,10 +80,19 @@ def plan(root: Path = ROOT) -> dict:
         dispatches.append({"event_type": "heal-market-risk"})
     if "podcast_catalog" in p6:
         dispatches.append({"workflow": "podcast-refresh.yml", "fields": {"backfill": "false", "whisper_batch": "0"}})
+    # A stale market-risk lane and stale market-risk feed resolve through the
+    # same event. Preserve order while avoiding duplicate dispatch storms.
+    unique_dispatches = []
+    seen_dispatches = set()
+    for row in dispatches:
+        identity = json.dumps(row, sort_keys=True)
+        if identity not in seen_dispatches:
+            seen_dispatches.add(identity)
+            unique_dispatches.append(row)
     payload = {
         "schema_version": "1.0", "checked_at": datetime.now(timezone.utc).isoformat(),
         "git_head": _head(root), "hard_violation_count": len(hard),
-        "failures": failures, "dispatches": dispatches,
+        "failures": failures, "dispatches": unique_dispatches,
         "escalate": [key for key, row in failures.items() if row["consecutive_runs"] >= 3],
     }
     prior_path.parent.mkdir(parents=True, exist_ok=True)

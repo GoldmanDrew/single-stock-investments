@@ -5,6 +5,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -69,6 +70,32 @@ def write_spx_tab(ssi_root: Path) -> None:
 
 
 class MarketRiskComponentsTests(unittest.TestCase):
+    def test_publish_only_reuses_validated_output_without_rebuilding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "snapshot.json"
+            payload = {
+                "generated_at": "2026-08-31T23:00:00Z",
+                "source": "test",
+                "components": [{"component_id": "x"}],
+                "coverage": {"total": 1},
+            }
+            write_json(output, payload)
+            with mock.patch.object(builder, "build", side_effect=AssertionError("rebuilt")), \
+                 mock.patch.object(builder, "publish", return_value={"accepted": True}) as publish, \
+                 mock.patch.dict("os.environ", {
+                     "MARKET_RISK_INGEST_URL": "https://example.test/ingest",
+                     "MARKET_RISK_INGEST_TOKEN": "secret",
+                 }), \
+                 mock.patch.object(sys, "argv", [
+                     "build_market_risk_components.py",
+                     "--output", str(output),
+                     "--publish-only",
+                 ]):
+                self.assertEqual(builder.main(), 0)
+            publish.assert_called_once_with(
+                "https://example.test/ingest", "secret", payload
+            )
+
     def test_build_keeps_sources_separate_and_marks_known_gaps(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

@@ -600,17 +600,29 @@ def main() -> int:
     parser.add_argument("--ls-root", type=Path, default=DEFAULT_LS_ROOT)
     parser.add_argument("--ssi-root", type=Path, default=ROOT)
     parser.add_argument("--output", type=Path, default=OUTPUT)
-    parser.add_argument("--publish", action="store_true")
+    publish_group = parser.add_mutually_exclusive_group()
+    publish_group.add_argument("--publish", action="store_true")
+    publish_group.add_argument(
+        "--publish-only",
+        action="store_true",
+        help="Publish the already-built --output payload without rebuilding it",
+    )
     args = parser.parse_args()
-    payload = build(args.etf_root, args.ls_root, args.ssi_root)
-    write_atomic(args.output, payload)
+    if args.publish_only:
+        payload = json.loads(args.output.read_text(encoding="utf-8"))
+    else:
+        payload = build(args.etf_root, args.ls_root, args.ssi_root)
+        write_atomic(args.output, payload)
     result = None
-    if args.publish:
+    if args.publish or args.publish_only:
         import os
         url = os.getenv("MARKET_RISK_INGEST_URL", "")
         token = os.getenv("MARKET_RISK_INGEST_TOKEN", "")
         if not url or not token:
-            parser.error("MARKET_RISK_INGEST_URL and MARKET_RISK_INGEST_TOKEN are required with --publish")
+            parser.error(
+                "MARKET_RISK_INGEST_URL and MARKET_RISK_INGEST_TOKEN are required "
+                "with --publish/--publish-only"
+            )
         result = publish(url, token, payload)
     print(json.dumps({"coverage": payload["coverage"], "published": result and result.get("accepted")}, sort_keys=True))
     return 0

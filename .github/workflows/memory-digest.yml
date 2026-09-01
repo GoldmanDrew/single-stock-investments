@@ -3,6 +3,8 @@ name: Canonical Memory Triage
 on:
   schedule:
     - cron: "20 10 * * *"
+  repository_dispatch:
+    types: [memory-triage-run]
 permissions:
   contents: write
 
@@ -21,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check --quiet pytest
       - name: Dispose non-durable proposals and rebuild the human queue
         run: |
           set -euo pipefail
