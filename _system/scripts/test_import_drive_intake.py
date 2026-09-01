@@ -13,6 +13,17 @@ ROOT = SCRIPTS.parents[1]
 sys.path.insert(0, str(SCRIPTS))
 
 
+def _ticker_dirs() -> list[str]:
+    """Return actual ticker roots, excluding sparse-checkout support folders."""
+    return [
+        path.name
+        for path in ROOT.iterdir()
+        if path.is_dir()
+        and path.name == path.name.upper()
+        and not path.name.startswith(("_", "."))
+    ]
+
+
 def _load_importer():
     spec = importlib.util.spec_from_file_location("import_drive_intake", SCRIPTS / "import_drive_intake.py")
     mod = importlib.util.module_from_spec(spec)
@@ -33,7 +44,7 @@ class ParseIntakePathTests(unittest.TestCase):
 
     def test_vic_ticker_filename(self):
         # FRMI may or may not exist locally; pick an existing ticker dir
-        tickers = [p.name for p in ROOT.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))]
+        tickers = _ticker_dirs()
         self.assertTrue(tickers)
         t = tickers[0]
         parsed = self.mod.parse_intake_path(f"VIC/{t}.pdf")
@@ -48,7 +59,7 @@ class ParseIntakePathTests(unittest.TestCase):
         self.assertEqual(parsed["intake_kind"], "vic")
 
     def test_admin_intake_vic_path(self):
-        tickers = [p.name for p in ROOT.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))]
+        tickers = _ticker_dirs()
         t = tickers[0]
         parsed = self.mod.parse_intake_path(f"Admin/Intake/VIC/{t}/writeup.pdf")
         self.assertEqual(parsed["ticker"], t)
