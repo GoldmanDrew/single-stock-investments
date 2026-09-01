@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "ticker": "MSB",
+  "as_of": "2026-09-01",
+  "status": "reviewed_typed_untestable_dispositions",
+  "analysis_run_id": "tier1-research-blocker-closure-2026-09-01",
+  "registered_at": "2026-09-01T04:10:00Z",
+  "information_cutoff_at": "2026-09-01T04:09:00Z",
+  "registration_commit": "ba55cc520456ef1f8b6f6d8121e56e51a6a1f64f",
+  "historical_replay": {
+    "status": "passed",
+    "method": "Each disposition was checked against the current component proof and exact contract falsifier; no numeric forecast was inferred."
+  },
+  "component_dispositions": [
+    {
+      "component_id": "producing_royalty_stream",
+      "metric": "royalty volume, realized price, and distribution composite",
+      "comparator": "lt",
+      "severity": 5,
+      "unit": "issuer-defined royalty distribution composite",
+      "rationale": "The repository has no period-aware adapter that reconciles production statements, realized prices, and trust distributions to the royalty proof.",
+      "untestable_reason_code": "royalty_distribution_adapter_missing",
+      "required_adapter": "msb_royalty_distribution_adapter",
+      "review_by": "2026-12-31",
+      "correlation_group": "msb-royalty-economics",
+      "observation_plan": {
+        "metric_definition_id": "msb_royalty_distribution_composite",
+        "fiscal_period": "quarterly",
+        "observation_type": "duration",
+        "duration_basis": "quarter",
+        "expected_publication_date": "2026-11-30",
+        "accepted_forms": ["10-K", "10-Q", "8-K", "royalty_statement"],
+        "maximum_source_lag_days": 45
+      }
+    },
+    {
+      "component_id": "arbitration_and_bonus_option",
+      "metric": "arbitration disposition and incremental recovery composite",
+      "comparator": "lt",
+      "severity": 5,
+      "unit": "issuer-defined legal recovery composite",
+      "rationale": "The repository has no event-aware adapter that reconciles docket events, settlement terms, and remedies to the separately modeled legal option.",
+      "untestable_reason_code": "legal_outcome_adapter_missing",
+      "required_adapter": "msb_legal_outcome_adapter",
+      "review_by": "2026-12-31",
+      "correlation_group": "msb-legal-option",
+      "observation_plan": {
+        "metric_definition_id": "msb_legal_recovery_composite",
+        "fiscal_period": "event-driven",
+        "observation_type": "event",
+        "duration_basis": "event-driven",
+        "expected_publication_date": "2026-12-31",
+        "accepted_forms": ["8-K", "court_record", "arbitration_record", "settlement_agreement"],
+        "maximum_source_lag_days": 15
+      }
+    },
+    {
+      "component_id": "trust_cash_and_other_claims",
+      "metric": "trust cash, legal cost, and senior-claim composite",
+      "comparator": "lt",
+      "severity": 4,
+      "unit": "issuer-defined trust balance-sheet composite",
+      "rationale": "The repository has no period-aware adapter that reconciles trust cash, contingent legal costs, and senior claims to the net-asset proof.",
+      "untestable_reason_code": "trust_claim_adapter_missing",
+      "required_adapter": "msb_trust_claim_adapter",
+      "review_by": "2026-12-31",
+      "correlation_group": "msb-trust-claims",
+      "observation_plan": {
+        "metric_definition_id": "msb_trust_claim_composite",
+        "fiscal_period": "quarterly",
+        "observation_type": "duration",
+        "duration_basis": "quarter",
+        "expected_publication_date": "2026-11-30",
+        "accepted_forms": ["10-K", "10-Q", "8-K"],
+        "maximum_source_lag_days": 45
+      }
+    }
+  ],
+  "decision_authority": "This review closes only the prospective typed-coverage gate. It does not decide the carried committee questions or authorize capital."
+}
