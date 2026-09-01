@@ -180,8 +180,13 @@ def park_exhausted(doc: dict) -> int:
 
 
 def _git(repo: Path, *args, check: bool = True, timeout: int = 300):
-    return subprocess.run(["git", *args], cwd=repo, check=check,
-                          capture_output=True, text=True, timeout=timeout)
+    # run_git rather than subprocess.run: a timeout must kill git's children
+    # too. `git fetch` spawns git-remote-https, which is what holds the socket
+    # and .git/index.lock, and killing only the parent is how a 900-second
+    # timeout produced a 27-minute hang and a wedged vault on 2026-08-31.
+    from vault_git import run_git  # noqa: WPS433
+
+    return run_git(repo, *args, check=check, timeout=timeout)
 
 
 def _merge_backlog(base_text: str, other_text: str) -> str:
@@ -253,6 +258,20 @@ def vault_push(message: str) -> bool:
     repo = vault.parent
     if not (repo / ".git").is_dir():
         return False
+    # The local-model analyser commits to this same tree every 20 minutes.
+    # One writer at a time; see vault_git for what their collisions cost.
+    from vault_git import clear_stale_git_state, vault_lock  # noqa: WPS433
+
+    try:
+        with vault_lock(repo, owner="whisper_backfill_daemon", log=print):
+            clear_stale_git_state(repo, log=print)
+            return _push_vault_locked(repo, message)
+    except TimeoutError as exc:
+        print(f"  vault lock: {exc}; skipping this push", flush=True)
+        return False
+
+
+def _push_vault_locked(repo: Path, message: str) -> bool:
     try:
         subprocess.run(["git", "add", "-A", "podcasts"], cwd=repo, check=True,
                        capture_output=True, timeout=300)
@@ -289,7 +308,10 @@ def vault_push(message: str) -> bool:
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         # Transcription must survive a push failure -- the work is on disk and the
         # next interval retries -- but only from a clean tree.
+        from vault_git import clear_stale_git_state  # noqa: WPS433
+
         _git(repo, "rebase", "--abort", check=False)
+        clear_stale_git_state(repo, log=print)
         print(f"  vault push failed ({exc.__class__.__name__}); continuing", flush=True)
         return False
 
