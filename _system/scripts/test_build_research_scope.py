@@ -14,7 +14,9 @@ The two that caught real bugs during development:
 """
 from __future__ import annotations
 
+import contextlib
 import json
+import pathlib
 import tempfile
 import unittest
 from datetime import date, datetime, timedelta
@@ -31,6 +33,28 @@ def _flex(rows: str, to_date: str = "20260816") -> bytes:
     ).encode()
 
 
+@contextlib.contextmanager
+def _prior(mapping):
+    """Supply the prior bucket map from a fixture, never from local disk.
+
+    build_research_scope reads PRIOR_SOURCES to decide which symbols already
+    have a book. On a developer machine that resolves to a real positions.json;
+    in CI it resolves to nothing. Tests that do not pin it assert different
+    things in the two environments.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        prior = pathlib.Path(td) / "positions.json"
+        prior.write_text(json.dumps(
+            [{"symbol": k, "classification": {"bucket": v}} for k, v in mapping.items()]
+        ), encoding="utf-8")
+        original = b.PRIOR_SOURCES
+        b.PRIOR_SOURCES = (prior,)
+        try:
+            yield pathlib.Path(td)
+        finally:
+            b.PRIOR_SOURCES = original
+
+
 def _pos(symbol, *, conid, currency="USD", position="100", value="1000",
          fx="1", desc="", category="STK"):
     return (f'<OpenPosition conid="{conid}" symbol="{symbol}" assetCategory="{category}" '
@@ -43,7 +67,7 @@ class FxIsStatedNotInferred(unittest.TestCase):
         """CAD 801,879.40 at 0.71217 is USD 571,074.45, and nothing is derived
         from marketValue / (position x price) - the calculation that returned
         ~1.0 for every foreign holding and published yen at dollar magnitudes."""
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(_pos("CSU", conid=1, currency="CAD",
                                        position="300.1304", value="801879.4",
@@ -55,7 +79,7 @@ class FxIsStatedNotInferred(unittest.TestCase):
         self.assertAlmostEqual(row["marketValue"], 571074.45, places=2)
 
     def test_a_row_with_no_usable_rate_is_left_unvalued_rather_than_guessed(self):
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(_pos("XXX", conid=9, currency="JPY", value="1000000", fx="")))
             rows, meta = b.build_rows(xml, "U805366")
@@ -67,12 +91,19 @@ class FxIsStatedNotInferred(unittest.TestCase):
 class BucketCarryForward(unittest.TestCase):
     def test_a_known_symbol_keeps_its_book_even_when_ls_algo_trades_it(self):
         """APLD is in etf_ls_universe.json. Recomputing would move it out of the
-        research book; carrying forward keeps it where the desk put it."""
+        research book; carrying forward keeps it where the desk put it.
+
+        The prior map is supplied by the fixture, not read off the developer's
+        disk. The first version of this test relied on the real positions.json
+        and so passed locally for the wrong reason - in CI, where no broker data
+        exists, APLD fell to residual_unreviewed and the test failed. A carry-
+        forward test that cannot see what it is carrying forward proves nothing.
+        """
         universe = set(json.loads(
             (b.ROOT / "_system/trading/sleeves/data/etf_ls_universe.json").read_text(encoding="utf-8")
         )["symbols"])
         self.assertIn("APLD", universe, "guard is vacuous if APLD left the universe")
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({"APLD": "michael"}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(_pos("APLD", conid=2, value="654150",
                                        desc="APPLIED DIGITAL CORP")))
@@ -82,7 +113,7 @@ class BucketCarryForward(unittest.TestCase):
         self.assertNotIn("APLD", meta["needs_review"])
 
     def test_an_unknown_wrapper_is_identified_from_the_instrument_and_needs_no_human(self):
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(_pos("ZZZU", conid=3, desc="DIREXION DAILY ZZZ BULL 2X")))
             rows, meta = b.build_rows(xml, "U805366")
@@ -93,7 +124,7 @@ class BucketCarryForward(unittest.TestCase):
     def test_an_unknown_plain_stock_is_flagged_rather_than_silently_booked(self):
         """It still lands in Michael's book - matching the residual rule - but the
         watchdog will start ranking it, and nothing has confirmed it belongs."""
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(_pos("NEWCO", conid=4, value="50000", desc="NEWCO INDUSTRIES")))
             rows, meta = b.build_rows(xml, "U805366")
@@ -106,7 +137,7 @@ class LotFolding(unittest.TestCase):
     def test_tax_lots_of_one_contract_fold_into_a_single_position(self):
         """Flex reports at lot level. Unfolded, one contract appears as many
         positions and its value is counted once per lot."""
-        with tempfile.TemporaryDirectory() as td:
+        with _prior({}) as td:
             xml = Path(td) / "flex.xml"
             xml.write_bytes(_flex(
                 _pos("GTX", conid=5, position="100", value="1000", desc="GARRETT MOTION INC")
@@ -148,17 +179,31 @@ class RewindGuard(unittest.TestCase):
 
     def test_the_first_run_is_still_floored_by_the_fallback_snapshot(self):
         """The bug this caught: with no prior meta the guard had nothing to
-        compare against, so a stale runs directory rewound scope on run one."""
+        compare against, so a stale runs directory rewound scope on run one.
+
+        The fallback is supplied here rather than taken from disk. Guarding on
+        `if POSITIONS.exists()` made this assert nothing at all in CI, where it
+        never exists - a test that skips itself on the machine that matters.
+        """
+        import os
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "research_scope.json"  # no prior meta at all
+            fallback = Path(td) / "positions.json"
+            fallback.write_text("[]", encoding="utf-8")
+            recent = datetime.now().timestamp() - 86400  # yesterday
+            os.utime(fallback, (recent, recent))
             xml = Path(td) / "flex.xml"
             stale = (date.today() - timedelta(days=90)).strftime("%Y%m%d")
             xml.write_bytes(_flex(_pos("GTX", conid=7), to_date=stale))
-            code, output = self._run(["--flex", str(xml), "--out", str(out)])
-        if b.watchdog.POSITIONS.exists():
-            self.assertEqual(code, 1, "a 90-day-old statement must not become scope")
-            self.assertIn("refusing to rewind", output)
-            self.assertFalse(out.exists())
+            original = b.watchdog.POSITIONS
+            b.watchdog.POSITIONS = fallback
+            try:
+                code, output = self._run(["--flex", str(xml), "--out", str(out)])
+            finally:
+                b.watchdog.POSITIONS = original
+        self.assertEqual(code, 1, "a 90-day-old statement must not become scope")
+        self.assertIn("refusing to rewind", output)
+        self.assertFalse(out.exists())
 
     def test_force_overrides_the_guard(self):
         with tempfile.TemporaryDirectory() as td:
