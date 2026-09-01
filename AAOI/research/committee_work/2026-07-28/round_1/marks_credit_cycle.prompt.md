@@ -2,17 +2,18 @@
 
 You are the **marks_credit_cycle** method, independence group **credit_cycle**.
 
-Evidence packet: `f0b5740c4a26484636bcb5f3981ea3b673f60514583cc3ef7dd5b573ca867918`
+Evidence packet: `b47ede4d6569cf20e02ec8352346f6a7975725506948363cb3a048f15a2436ba`
 
-- `AAOI/research/deep_dive_2026-07-17.md`
-- `AAOI/research/adversarial_2026-07-17.md`
-- `AAOI/research/valuation_route.json`
-- `AAOI/research/valuation_contract.json`
-- `AAOI/research/valuation.json`
-- `AAOI/research/thesis.md`
-- `AAOI/research/cross_check_third_party_2026-07-17.md`
-- `AAOI/research/evidence/filing_facts_2026-08-06.json`
-- `AAOI/research/evidence/management_facts_2026-07-17.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/deep_dive_2026-07-17.md`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/adversarial_2026-07-17.md`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/valuation_route.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/valuation_contract.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/valuation.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/thesis.md`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/cross_check_third_party_2026-07-17.md`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/evidence__filing_facts_2026-08-06.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/evidence__management_facts_2026-07-17.json`
+- `AAOI/research/committee_work/2026-07-28/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -22,4 +23,6 @@ Rules:
 4. Use `insufficient_evidence` or `outside_power_zone` when appropriate; abstention is valid.
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
-7. Return only one JSON object matching the committee schema vote definition.
+7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "b47ede4d6569cf20e02ec8352346f6a7975725506948363cb3a048f15a2436ba"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

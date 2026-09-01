@@ -2,17 +2,18 @@
 
 You are the **hohn** method, independence group **competitive_advantage**.
 
-Evidence packet: `4e51e58e5112fadaba2a452e24e68ccf9109e1946d079620d07c01b05d82b962`
+Evidence packet: `36b2d63b69b354661759bd41cf774b03db3f7f7841f28c25b682ce16ac38a023`
 
-- `ICE/research/deep_dive_2026-06-04.md`
-- `ICE/research/adversarial_2026-05-29.md`
-- `ICE/research/valuation_route.json`
-- `ICE/research/valuation_contract.json`
-- `ICE/research/valuation.json`
-- `ICE/research/thesis.md`
-- `ICE/research/evidence_reconciliation_2026-07-15_phase2_first_pass.json`
-- `ICE/research/evidence/filing_facts_2026-07-20.json`
-- `ICE/research/evidence/management_facts_2026-07-09.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/deep_dive_2026-07-23.md`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/adversarial_2026-05-29.md`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/valuation_route.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/valuation_contract.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/valuation.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/thesis.md`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/evidence_reconciliation_2026-07-15_phase2_first_pass.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/evidence__filing_facts_2026-08-06.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/evidence__management_facts_2026-07-09.json`
+- `ICE/research/committee_work/2026-07-20/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -23,4 +24,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "4e51e58e5112fadaba2a452e24e68ccf9109e1946d079620d07c01b05d82b962"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "36b2d63b69b354661759bd41cf774b03db3f7f7841f28c25b682ce16ac38a023"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

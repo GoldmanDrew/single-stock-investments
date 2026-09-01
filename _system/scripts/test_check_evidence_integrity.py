@@ -58,6 +58,14 @@ class RouteSatisfiedTests(unittest.TestCase):
         both = {"owner_cash_or_dividend_discount", "net_asset_value"}
         self.assertTrue(cei.route_satisfied("component_owner_cash_and_unit_nav", both))
 
+    def test_pairing_accepts_reviewed_method_family_aliases(self):
+        aliases = {"royalty_distribution_curve", "unit_nav"}
+        self.assertTrue(cei.route_satisfied("component_owner_cash_and_unit_nav", aliases))
+
+    def test_owner_earnings_route_accepts_reviewed_reinvestment_alias(self):
+        self.assertTrue(cei.route_satisfied(
+            "owner_earnings_reinvestment_dcf", {"reinvestment_return_dcf"}))
+
     def test_pairing_rejects_owner_cash_alone(self):
         # The WHK regression: owner-cash leg only, NAV leg missing.
         self.assertFalse(cei.route_satisfied(

@@ -1,7 +1,7 @@
 import copy
 
 from calculation_proof import evaluate_calculation_proof
-from complete_tier1_proof_models import CONFIG, _build_owner_cash_model
+from complete_tier1_proof_models import CONFIG, _build_owner_cash_model, _complete_owner_cash_ledger
 
 
 def _fact(field_id, value, unit):
@@ -48,3 +48,18 @@ def test_all_completion_configs_name_primary_sources_and_adapters():
         assert config["adapter"].endswith("_adapter")
         assert config["profile"]
         assert config["falsifier"]
+
+
+def test_owner_cash_ledger_carries_rebuild_inputs():
+    ledger = {
+        "facts": [
+            _fact("normalized_owner_cash", 2445.0, "GBP millions"),
+            _fact("shares_outstanding", 524000000.0, "shares"),
+        ]
+    }
+    _complete_owner_cash_ledger("LSEG", ledger, copy.deepcopy(CONFIG["LSEG"]))
+    fields = {row["field_id"] for row in ledger["facts"] if row.get("locked")}
+    assert {
+        "sustainable_distribution", "sustainable_growth", "required_return",
+        "maintenance_funding", "dilution_per_share", "shares_outstanding",
+    } <= fields

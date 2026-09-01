@@ -2,18 +2,19 @@
 
 You are the **buffett_weschler** method, independence group **quality_reinvestment**.
 
-Evidence packet: `ccf7bc48c6981193ea27b5338a9771f4e4e53595aa5488166211570b5fbaaefd`
+Evidence packet: `42721a7370867263e9f866c014c24ca550807a3bf39810458597f936146a8bf1`
 
-- `CRML/research/deep_dive_2026-07-23.md`
-- `CRML/research/adversarial_2026-07-23.md`
-- `CRML/research/valuation_route.json`
-- `CRML/research/valuation_contract.json`
-- `CRML/research/valuation.json`
-- `CRML/research/thesis.md`
-- `CRML/research/cross_check_third_party_2026-07-23.md`
-- `CRML/research/evidence_reconciliation_2026-07-23.md`
-- `CRML/research/evidence/filing_facts_2026-07-23.json`
-- `CRML/research/evidence/management_facts_2026-07-23.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/deep_dive_2026-07-23.md`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/adversarial_2026-07-23.md`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/valuation_route.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/valuation_contract.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/valuation.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/thesis.md`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/cross_check_third_party_2026-07-23.md`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/evidence_reconciliation_2026-07-23.md`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/evidence__filing_facts_2026-08-06.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/evidence__management_facts_2026-07-23.json`
+- `CRML/research/committee_work/2026-07-24/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -24,4 +25,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "ccf7bc48c6981193ea27b5338a9771f4e4e53595aa5488166211570b5fbaaefd"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "42721a7370867263e9f866c014c24ca550807a3bf39810458597f936146a8bf1"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

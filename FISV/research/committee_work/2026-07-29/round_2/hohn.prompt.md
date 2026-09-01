@@ -2,14 +2,15 @@
 
 You are the **hohn** method, independence group **competitive_advantage**.
 
-Evidence packet: `3b5452ad9bac86858ddd741621184761235971628234e6ff49c8dde23cbe60e8`
+Evidence packet: `895dc5a1a6d946466b46810147cd31829d1d6d6b8964ed47b3a4a37175618dfc`
 
-- `FISV/research/valuation_route.json`
-- `FISV/research/valuation_contract.json`
-- `FISV/research/valuation.json`
-- `FISV/research/thesis.md`
-- `FISV/research/cross_check_third_party_2026-07-10.md`
-- `FISV/research/evidence/filing_facts_2026-07-29.json`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/valuation_route.json`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/valuation_contract.json`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/valuation.json`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/thesis.md`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/cross_check_third_party_2026-07-10.md`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/evidence__filing_facts_2026-08-06.json`
+- `FISV/research/committee_work/2026-07-29/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -20,4 +21,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "3b5452ad9bac86858ddd741621184761235971628234e6ff49c8dde23cbe60e8"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "895dc5a1a6d946466b46810147cd31829d1d6d6b8964ed47b3a4a37175618dfc"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

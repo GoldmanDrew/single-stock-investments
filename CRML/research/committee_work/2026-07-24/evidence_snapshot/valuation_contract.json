@@ -1,0 +1,1668 @@
+{
+  "schema_version": "3.0",
+  "status": "decision_grade",
+  "proof_status": "decision_grade",
+  "model_level": "stock_specific",
+  "model_level_reason": "The proof-complete model uses stock-specific components and assumptions.",
+  "decision_eligibility": {
+    "committee_eligible": true,
+    "capital_actionable": false,
+    "capital_authority_required": "human_decision",
+    "reason": "Stock-specific proof is eligible for independent committee review."
+  },
+  "ticker": "CRML",
+  "as_of": "2026-07-23",
+  "dates": {
+    "model_as_of": "2026-07-23",
+    "latest_fact_as_of": "2025-06-30",
+    "oldest_fact_as_of": "2025-06-30",
+    "price_as_of": "2026-08-31"
+  },
+  "legacy_audit": {
+    "actionable": false,
+    "status": "audit_only",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": -11.48,
+      "high": 4.63
+    },
+    "formula": "((present_value_or_output + undated_distributions) / price) ** (1 / horizon_years) - 1",
+    "reason_non_actionable": "This legacy calculation treated a present value as a future payoff and cannot be used as a forward return, hurdle entry price, ranking signal, or capital decision."
+  },
+  "economic_ownership_map": [
+    {
+      "component_id": "corporate_cash",
+      "label": "Corporate cash (soft floor)",
+      "category": "financial_asset",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Corporate cash (soft floor)",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.05,
+        "base": 0.07,
+        "high": 0.1
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.05,
+        "base": 0.07,
+        "high": 0.1
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.05,
+          "base": 0.07,
+          "high": 0.1
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "cash_m",
+              "label": "Cash on hand at June 30, 2025",
+              "kind": "fact",
+              "value": 7.3,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Going-concern disclosure: cash on hand $7.3 million at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "8729dc3a459ed6fd686657b9b2040f6b24ac4a517a1358eb906f4be20d89a54d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "going_concern_factor",
+              "label": "Going-concern burn and liquidity haircut on filing cash",
+              "kind": "judgment",
+              "value": 0.7186,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Low case assumes near-term burn erodes most of the soft cash floor; base uses filing cash per share; high allows modest liquidity buffer before additional equity issuance."
+            },
+            {
+              "id": "cash_per_share",
+              "label": "Filing cash per share",
+              "kind": "calculation",
+              "value": 0.06958156,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "cash_m \u00f7 shares_m",
+              "substituted_formula": "7.3 \u00f7 104.91285",
+              "dependencies": [
+                "cash_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Corporate cash per share",
+              "kind": "calculation",
+              "value": 0.05000131,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "cash_per_share \u00d7 going_concern_factor",
+              "substituted_formula": "0.06958156 \u00d7 0.7186",
+              "dependencies": [
+                "cash_per_share",
+                "going_concern_factor"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "cash_m",
+              "label": "Cash on hand at June 30, 2025",
+              "kind": "fact",
+              "value": 7.3,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Going-concern disclosure: cash on hand $7.3 million at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "8729dc3a459ed6fd686657b9b2040f6b24ac4a517a1358eb906f4be20d89a54d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "going_concern_factor",
+              "label": "Going-concern burn and liquidity haircut on filing cash",
+              "kind": "judgment",
+              "value": 1.006,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Low case assumes near-term burn erodes most of the soft cash floor; base uses filing cash per share; high allows modest liquidity buffer before additional equity issuance."
+            },
+            {
+              "id": "cash_per_share",
+              "label": "Filing cash per share",
+              "kind": "calculation",
+              "value": 0.06958156,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "cash_m \u00f7 shares_m",
+              "substituted_formula": "7.3 \u00f7 104.91285",
+              "dependencies": [
+                "cash_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Corporate cash per share",
+              "kind": "calculation",
+              "value": 0.06999905,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "cash_per_share \u00d7 going_concern_factor",
+              "substituted_formula": "0.06958156 \u00d7 1.006",
+              "dependencies": [
+                "cash_per_share",
+                "going_concern_factor"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "cash_m",
+              "label": "Cash on hand at June 30, 2025",
+              "kind": "fact",
+              "value": 7.3,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Going-concern disclosure: cash on hand $7.3 million at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "8729dc3a459ed6fd686657b9b2040f6b24ac4a517a1358eb906f4be20d89a54d"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "going_concern_factor",
+              "label": "Going-concern burn and liquidity haircut on filing cash",
+              "kind": "judgment",
+              "value": 1.4372,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Low case assumes near-term burn erodes most of the soft cash floor; base uses filing cash per share; high allows modest liquidity buffer before additional equity issuance."
+            },
+            {
+              "id": "cash_per_share",
+              "label": "Filing cash per share",
+              "kind": "calculation",
+              "value": 0.06958156,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "cash_m \u00f7 shares_m",
+              "substituted_formula": "7.3 \u00f7 104.91285",
+              "dependencies": [
+                "cash_m",
+                "shares_m"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Corporate cash per share",
+              "kind": "calculation",
+              "value": 0.10000262,
+              "unit": "USD_per_share",
+              "operation": "multiply",
+              "formula": "cash_per_share \u00d7 going_concern_factor",
+              "substituted_formula": "0.06958156 \u00d7 1.4372",
+              "dependencies": [
+                "cash_per_share",
+                "going_concern_factor"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "cash_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Going-concern disclosure: cash on hand $7.3 million at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "8729dc3a459ed6fd686657b9b2040f6b24ac4a517a1358eb906f4be20d89a54d"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "d8d936326a6ffe42113cf60ba00b637e323f37e3d0f55b2e9584af69067f69b5"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 0.07/sh via net_asset_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Going-concern burn.",
+      "falsifier": "A directly comparable transaction or asset-specific impairment supports a value below the low-case unit mark after like-for-like adjustments.",
+      "overlap_key": "corporate_cash",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "tanbreez_risked_nav",
+      "label": "Tanbreez 42% REE stake (risked)",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Tanbreez 42% REE stake (risked)",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "probability_weighted_catalyst_nav",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "probability_weighted_catalyst_nav",
+        "version": "1.0",
+        "label": "Mutually exclusive catalyst event tree",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "catalyst_asset_value"
+        ],
+        "equation": "value = sum(probability_i*(payoff_i-cost_i)/(1+r_i)^years_i)",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Probability, beneficiary, timing and failure cases"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.4996,
+        "base": 3.0001,
+        "high": 7.9998
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.5,
+        "base": 3.0,
+        "high": 8.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "probability_weighted_catalyst_nav",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.4996,
+          "base": 3.0001,
+          "high": 7.9998
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "pea_npv_m",
+              "label": "Tanbreez PEA pre-tax project net present value",
+              "kind": "fact",
+              "value": 3000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "PEA press release cited in 20-F: approximately US$3 billion pre-tax project NPV",
+                "as_of": "2025-06-30",
+                "source_id": "d110bb259b56eb568d449478e4363ca7b76a0a5eebaf4280835a784e85e3e087"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ownership_pct",
+              "label": "CRML equity interest in Tanbreez",
+              "kind": "fact",
+              "value": 0.42,
+              "unit": "ratio",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Company owns 42% of Tanbreez Mining Greenland A/S at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "e01152cc9f0626f1d6cf1f9d01809b53c553a7f92e434d965089478b33e5ec65"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "composite_risk_factor",
+              "label": "Composite risk on pre-tax project NPV to equity per share",
+              "kind": "judgment",
+              "value": 0.0416,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Embeds pre-tax to equity conversion, inferred-resource uncertainty, Greenland jurisdiction, financing gap, and timing to definitive feasibility study and Stage 2 ownership increase."
+            },
+            {
+              "id": "gross_equity_claim_m",
+              "label": "42% claim on PEA project NPV",
+              "kind": "calculation",
+              "value": 1260.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "pea_npv_m \u00d7 ownership_pct",
+              "substituted_formula": "3000 \u00d7 0.42",
+              "dependencies": [
+                "pea_npv_m",
+                "ownership_pct"
+              ]
+            },
+            {
+              "id": "risked_equity_m",
+              "label": "Risk-adjusted Tanbreez equity claim",
+              "kind": "calculation",
+              "value": 52.416,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "gross_equity_claim_m \u00d7 composite_risk_factor",
+              "substituted_formula": "1260 \u00d7 0.0416",
+              "dependencies": [
+                "gross_equity_claim_m",
+                "composite_risk_factor"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Tanbreez risked NAV per share",
+              "kind": "calculation",
+              "value": 0.49961467,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_equity_m \u00f7 shares_m",
+              "substituted_formula": "52.416 \u00f7 104.91285",
+              "dependencies": [
+                "risked_equity_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "pea_npv_m",
+              "label": "Tanbreez PEA pre-tax project net present value",
+              "kind": "fact",
+              "value": 3000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "PEA press release cited in 20-F: approximately US$3 billion pre-tax project NPV",
+                "as_of": "2025-06-30",
+                "source_id": "d110bb259b56eb568d449478e4363ca7b76a0a5eebaf4280835a784e85e3e087"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ownership_pct",
+              "label": "CRML equity interest in Tanbreez",
+              "kind": "fact",
+              "value": 0.42,
+              "unit": "ratio",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Company owns 42% of Tanbreez Mining Greenland A/S at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "e01152cc9f0626f1d6cf1f9d01809b53c553a7f92e434d965089478b33e5ec65"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "composite_risk_factor",
+              "label": "Composite risk on pre-tax project NPV to equity per share",
+              "kind": "judgment",
+              "value": 0.2498,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Embeds pre-tax to equity conversion, inferred-resource uncertainty, Greenland jurisdiction, financing gap, and timing to definitive feasibility study and Stage 2 ownership increase."
+            },
+            {
+              "id": "gross_equity_claim_m",
+              "label": "42% claim on PEA project NPV",
+              "kind": "calculation",
+              "value": 1260.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "pea_npv_m \u00d7 ownership_pct",
+              "substituted_formula": "3000 \u00d7 0.42",
+              "dependencies": [
+                "pea_npv_m",
+                "ownership_pct"
+              ]
+            },
+            {
+              "id": "risked_equity_m",
+              "label": "Risk-adjusted Tanbreez equity claim",
+              "kind": "calculation",
+              "value": 314.748,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "gross_equity_claim_m \u00d7 composite_risk_factor",
+              "substituted_formula": "1260 \u00d7 0.2498",
+              "dependencies": [
+                "gross_equity_claim_m",
+                "composite_risk_factor"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Tanbreez risked NAV per share",
+              "kind": "calculation",
+              "value": 3.00008999,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_equity_m \u00f7 shares_m",
+              "substituted_formula": "314.748 \u00f7 104.91285",
+              "dependencies": [
+                "risked_equity_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "pea_npv_m",
+              "label": "Tanbreez PEA pre-tax project net present value",
+              "kind": "fact",
+              "value": 3000.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "PEA press release cited in 20-F: approximately US$3 billion pre-tax project NPV",
+                "as_of": "2025-06-30",
+                "source_id": "d110bb259b56eb568d449478e4363ca7b76a0a5eebaf4280835a784e85e3e087"
+              },
+              "rationale": null
+            },
+            {
+              "id": "ownership_pct",
+              "label": "CRML equity interest in Tanbreez",
+              "kind": "fact",
+              "value": 0.42,
+              "unit": "ratio",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Company owns 42% of Tanbreez Mining Greenland A/S at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "e01152cc9f0626f1d6cf1f9d01809b53c553a7f92e434d965089478b33e5ec65"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "composite_risk_factor",
+              "label": "Composite risk on pre-tax project NPV to equity per share",
+              "kind": "judgment",
+              "value": 0.6661,
+              "unit": "ratio",
+              "source": null,
+              "rationale": "Embeds pre-tax to equity conversion, inferred-resource uncertainty, Greenland jurisdiction, financing gap, and timing to definitive feasibility study and Stage 2 ownership increase."
+            },
+            {
+              "id": "gross_equity_claim_m",
+              "label": "42% claim on PEA project NPV",
+              "kind": "calculation",
+              "value": 1260.0,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "pea_npv_m \u00d7 ownership_pct",
+              "substituted_formula": "3000 \u00d7 0.42",
+              "dependencies": [
+                "pea_npv_m",
+                "ownership_pct"
+              ]
+            },
+            {
+              "id": "risked_equity_m",
+              "label": "Risk-adjusted Tanbreez equity claim",
+              "kind": "calculation",
+              "value": 839.286,
+              "unit": "USD_m",
+              "operation": "multiply",
+              "formula": "gross_equity_claim_m \u00d7 composite_risk_factor",
+              "substituted_formula": "1260 \u00d7 0.6661",
+              "dependencies": [
+                "gross_equity_claim_m",
+                "composite_risk_factor"
+              ]
+            },
+            {
+              "id": "value_per_share",
+              "label": "Tanbreez risked NAV per share",
+              "kind": "calculation",
+              "value": 7.99983964,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_equity_m \u00f7 shares_m",
+              "substituted_formula": "839.286 \u00f7 104.91285",
+              "dependencies": [
+                "risked_equity_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "pea_npv_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "PEA press release cited in 20-F: approximately US$3 billion pre-tax project NPV",
+            "as_of": "2025-06-30",
+            "source_id": "d110bb259b56eb568d449478e4363ca7b76a0a5eebaf4280835a784e85e3e087"
+          },
+          {
+            "node_id": "ownership_pct",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Company owns 42% of Tanbreez Mining Greenland A/S at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "e01152cc9f0626f1d6cf1f9d01809b53c553a7f92e434d965089478b33e5ec65"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "347bdb83d55d322b272dce4e81d1bb65a85716450ce6fcd0f618239b9cbce2ff"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 3.0001/sh via probability_weighted_catalyst_nav@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Base ~7 years aligned with Lawrence scenario horizon.",
+        "probability_basis": "Base ~15% Tanbreez development success after DFS and Greenland Stage 2.",
+        "remaining_capital_basis": "Project capex not yet funded; embedded in component ranges."
+      },
+      "tax_and_realization_adjustments": "PEA NPV heavily risked.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "tanbreez_risked_nav",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "wolfsberg_option",
+      "label": "Wolfsberg lithium option",
+      "category": "real_option",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Wolfsberg lithium option",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "risk_adjusted_milestone_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "risk_adjusted_milestone_value",
+        "version": "1.0",
+        "label": "Milestone risk-adjusted present value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "binary_milestone"
+        ],
+        "equation": "value_per_share = (net_cash + sum(p_success*PV(success_value)-remaining_cost) - dilution)/shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/optionality_valuation.md",
+            "locator": "Milestone-based option framework"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": 0.0,
+        "base": 0.5,
+        "high": 2.0
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": 0.0,
+        "base": 0.5,
+        "high": 2.0
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "risk_adjusted_milestone_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": 0.0,
+          "base": 0.5,
+          "high": 2.0
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "bmw_advance_m",
+              "label": "BMW restricted advance payment",
+              "kind": "fact",
+              "value": 15.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "BMW offtake advance payment US$15.0 million on June 5, 2024; restricted until production",
+                "as_of": "2025-06-30",
+                "source_id": "9a8f12ea6087384007fd194e6efeefb6193bd5d54b36a912682a35e5a5324ba8"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_milestone_value_m",
+              "label": "Probability-weighted Wolfsberg milestone value beyond restricted advance",
+              "kind": "judgment",
+              "value": 0.0,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low assumes Wolfsberg/BMW path fails before production; base credits partial milestone value on measured+indicated resource and offtake path; high assumes earlier production and fuller option realization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Wolfsberg option per share",
+              "kind": "calculation",
+              "value": 0.0,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_milestone_value_m \u00f7 shares_m",
+              "substituted_formula": "0 \u00f7 104.91285",
+              "dependencies": [
+                "risked_milestone_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "bmw_advance_m",
+              "label": "BMW restricted advance payment",
+              "kind": "fact",
+              "value": 15.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "BMW offtake advance payment US$15.0 million on June 5, 2024; restricted until production",
+                "as_of": "2025-06-30",
+                "source_id": "9a8f12ea6087384007fd194e6efeefb6193bd5d54b36a912682a35e5a5324ba8"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_milestone_value_m",
+              "label": "Probability-weighted Wolfsberg milestone value beyond restricted advance",
+              "kind": "judgment",
+              "value": 52.456,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low assumes Wolfsberg/BMW path fails before production; base credits partial milestone value on measured+indicated resource and offtake path; high assumes earlier production and fuller option realization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Wolfsberg option per share",
+              "kind": "calculation",
+              "value": 0.49999593,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_milestone_value_m \u00f7 shares_m",
+              "substituted_formula": "52.456 \u00f7 104.91285",
+              "dependencies": [
+                "risked_milestone_value_m",
+                "shares_m"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "bmw_advance_m",
+              "label": "BMW restricted advance payment",
+              "kind": "fact",
+              "value": 15.0,
+              "unit": "USD_m",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "BMW offtake advance payment US$15.0 million on June 5, 2024; restricted until production",
+                "as_of": "2025-06-30",
+                "source_id": "9a8f12ea6087384007fd194e6efeefb6193bd5d54b36a912682a35e5a5324ba8"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "risked_milestone_value_m",
+              "label": "Probability-weighted Wolfsberg milestone value beyond restricted advance",
+              "kind": "judgment",
+              "value": 209.826,
+              "unit": "USD_m",
+              "source": null,
+              "rationale": "Low assumes Wolfsberg/BMW path fails before production; base credits partial milestone value on measured+indicated resource and offtake path; high assumes earlier production and fuller option realization."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Wolfsberg option per share",
+              "kind": "calculation",
+              "value": 2.0000028,
+              "unit": "USD_per_share",
+              "operation": "divide",
+              "formula": "risked_milestone_value_m \u00f7 shares_m",
+              "substituted_formula": "209.826 \u00f7 104.91285",
+              "dependencies": [
+                "risked_milestone_value_m",
+                "shares_m"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "bmw_advance_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "BMW offtake advance payment US$15.0 million on June 5, 2024; restricted until production",
+            "as_of": "2025-06-30",
+            "source_id": "9a8f12ea6087384007fd194e6efeefb6193bd5d54b36a912682a35e5a5324ba8"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "138ff666f30f8ff2f969b237732c5caafb4447376295110f3f79f4764827fffa"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 0.5/sh via risk_adjusted_milestone_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+      "scenario_assumptions": null,
+      "probability_and_timing": {
+        "success_probability": null,
+        "remaining_capital_m": null,
+        "timing_basis": "Later than Tanbreez base.",
+        "probability_basis": "Secondary option; BMW milestone required.",
+        "remaining_capital_basis": "Wolfsberg capex in option range."
+      },
+      "tax_and_realization_adjustments": "Advance restricted until production.",
+      "falsifier": "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "overlap_key": "wolfsberg_option",
+      "assumption_type": "judgment"
+    },
+    {
+      "component_id": "dilution_reserve",
+      "label": "Dilution and GEM overhang reserve",
+      "category": "liability_or_reserve",
+      "treatment": "additive",
+      "included_in_component_id": null,
+      "ownership_claim": "Dilution and GEM overhang reserve",
+      "ownership_percentage": 1.0,
+      "quantity": {
+        "value": 1,
+        "unit": "per-share economic claim"
+      },
+      "method": "net_asset_value",
+      "method_version": "1.0",
+      "method_provenance": {
+        "method_id": "net_asset_value",
+        "version": "1.0",
+        "label": "Reconciled net asset value",
+        "output_basis": "present_value_today",
+        "power_zones": [
+          "scarce_asset_optionality",
+          "catalyst_asset_value",
+          "credit_and_normalized_returns"
+        ],
+        "equation": "value_per_share = (gross_assets - senior_claims - tax - realization_costs) / diluted_shares",
+        "sources": [
+          {
+            "ref": "_system/frameworks/scarce_strategic_asset_valuation.md",
+            "locator": "Economic ownership and unit NAV"
+          }
+        ]
+      },
+      "comparable_ids": [],
+      "range_per_share": {
+        "low": -1.5,
+        "base": -0.5,
+        "high": -0.2
+      },
+      "output_basis": "present_value_today",
+      "legacy_range_per_share": {
+        "low": -1.5,
+        "base": -0.5,
+        "high": -0.2
+      },
+      "valuation_status": "bounded_estimate",
+      "calculation_proof": {
+        "status": "valid",
+        "method_id": "net_asset_value",
+        "method_version": "1.0",
+        "outputs": {
+          "low": -1.5,
+          "base": -0.5,
+          "high": -0.2
+        },
+        "output_unit": "USD_per_share",
+        "traces": {
+          "low": [
+            {
+              "id": "stage2_shares_m",
+              "label": "Stage 2 Tanbreez shares reserved for Rimbal",
+              "kind": "fact",
+              "value": 14.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Tanbreez Stage 2: issuance of 14,500,000 ordinary shares to increase stake to 92.5%",
+                "as_of": "2025-06-30",
+                "source_id": "30bdf012e74860797a8267fc41794f16fdaadd0a03be4f867c6e7e2fbc3bc92a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "dilution_reserve_per_share",
+              "label": "Per-share reserve for Stage 2 issuance and GEM overhang",
+              "kind": "judgment",
+              "value": 1.5,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve bracket for contracted Stage 2 share issuance and GEM arbitration/warrant overhang; does not double-count share count in numerator."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Dilution reserve per share",
+              "kind": "calculation",
+              "value": -1.5,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(dilution_reserve_per_share)",
+              "substituted_formula": "-(1.5)",
+              "dependencies": [
+                "dilution_reserve_per_share"
+              ]
+            }
+          ],
+          "base": [
+            {
+              "id": "stage2_shares_m",
+              "label": "Stage 2 Tanbreez shares reserved for Rimbal",
+              "kind": "fact",
+              "value": 14.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Tanbreez Stage 2: issuance of 14,500,000 ordinary shares to increase stake to 92.5%",
+                "as_of": "2025-06-30",
+                "source_id": "30bdf012e74860797a8267fc41794f16fdaadd0a03be4f867c6e7e2fbc3bc92a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "dilution_reserve_per_share",
+              "label": "Per-share reserve for Stage 2 issuance and GEM overhang",
+              "kind": "judgment",
+              "value": 0.5,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve bracket for contracted Stage 2 share issuance and GEM arbitration/warrant overhang; does not double-count share count in numerator."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Dilution reserve per share",
+              "kind": "calculation",
+              "value": -0.5,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(dilution_reserve_per_share)",
+              "substituted_formula": "-(0.5)",
+              "dependencies": [
+                "dilution_reserve_per_share"
+              ]
+            }
+          ],
+          "high": [
+            {
+              "id": "stage2_shares_m",
+              "label": "Stage 2 Tanbreez shares reserved for Rimbal",
+              "kind": "fact",
+              "value": 14.5,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Tanbreez Stage 2: issuance of 14,500,000 ordinary shares to increase stake to 92.5%",
+                "as_of": "2025-06-30",
+                "source_id": "30bdf012e74860797a8267fc41794f16fdaadd0a03be4f867c6e7e2fbc3bc92a"
+              },
+              "rationale": null
+            },
+            {
+              "id": "shares_m",
+              "label": "Ordinary shares outstanding",
+              "kind": "fact",
+              "value": 104.912853,
+              "unit": "million_shares",
+              "source": {
+                "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+                "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+                "as_of": "2025-06-30",
+                "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+              },
+              "rationale": null
+            },
+            {
+              "id": "dilution_reserve_per_share",
+              "label": "Per-share reserve for Stage 2 issuance and GEM overhang",
+              "kind": "judgment",
+              "value": 0.2,
+              "unit": "USD_per_share",
+              "source": null,
+              "rationale": "Negative reserve bracket for contracted Stage 2 share issuance and GEM arbitration/warrant overhang; does not double-count share count in numerator."
+            },
+            {
+              "id": "value_per_share",
+              "label": "Dilution reserve per share",
+              "kind": "calculation",
+              "value": -0.2,
+              "unit": "USD_per_share",
+              "operation": "negative",
+              "formula": "-(dilution_reserve_per_share)",
+              "substituted_formula": "-(0.2)",
+              "dependencies": [
+                "dilution_reserve_per_share"
+              ]
+            }
+          ]
+        },
+        "source_lineage": [
+          {
+            "node_id": "stage2_shares_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Tanbreez Stage 2: issuance of 14,500,000 ordinary shares to increase stake to 92.5%",
+            "as_of": "2025-06-30",
+            "source_id": "30bdf012e74860797a8267fc41794f16fdaadd0a03be4f867c6e7e2fbc3bc92a"
+          },
+          {
+            "node_id": "shares_m",
+            "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+            "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+            "as_of": "2025-06-30",
+            "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+          }
+        ],
+        "checks": {
+          "passed": true,
+          "errors": []
+        },
+        "proof_hash": "4d607e1737f3843c9a5b8b71e37595e793d7a1b44f0be4c352072bba30b09cc6"
+      },
+      "evidence_tier": "primary_derived",
+      "evidence_level": "primary_derived",
+      "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base -0.5/sh via net_asset_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+      "scenario_assumptions": null,
+      "probability_and_timing": null,
+      "tax_and_realization_adjustments": "Does not double-count unit count.",
+      "falsifier": "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve.",
+      "overlap_key": "dilution_reserve",
+      "assumption_type": "judgment"
+    }
+  ],
+  "component_coverage": {
+    "all_material_components_identified": true,
+    "material_component_count": 4,
+    "additive_component_count": 4,
+    "embedded_component_count": 0,
+    "unvalued_component_count": 0,
+    "double_counting_flags": []
+  },
+  "input_classification": {
+    "facts": [],
+    "estimates": [],
+    "judgments": [
+      {
+        "component_id": "corporate_cash",
+        "label": "Corporate cash (soft floor)",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 0.07/sh via net_asset_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "tanbreez_risked_nav",
+        "label": "Tanbreez 42% REE stake (risked)",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 3.0001/sh via probability_weighted_catalyst_nav@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+        "method": "probability_weighted_catalyst_nav",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "wolfsberg_option",
+        "label": "Wolfsberg lithium option",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base 0.5/sh via risk_adjusted_milestone_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+        "method": "risk_adjusted_milestone_value",
+        "valuation_status": "bounded_estimate"
+      },
+      {
+        "component_id": "dilution_reserve",
+        "label": "Dilution and GEM overhang reserve",
+        "kind": "judgment",
+        "evidence_tier": "primary_derived",
+        "evidence": "FY2025 20-F cash $7.3M, Tanbreez 42%, PEA ~$3B pre-tax NPV, BMW $15M advance, Stage 2 14.5M shares; proof base -0.5/sh via net_asset_value@1.0 (CRML/research/evidence_reconciliation_2026-07-23.md).",
+        "method": "net_asset_value",
+        "valuation_status": "bounded_estimate"
+      }
+    ]
+  },
+  "method_route": {
+    "schema_version": "2.0",
+    "status": "routed",
+    "profile_id": "quality_reinvestment",
+    "label": "High-return compounder",
+    "score": 16.0,
+    "reasons": [
+      "archetype=compounder",
+      "explicit reviewed profile"
+    ],
+    "primary_methods": [
+      "owner_earnings_reinvestment_dcf"
+    ],
+    "corroborating_methods": [
+      "reverse_dcf",
+      "incremental_roic_runway"
+    ],
+    "primary_personas": [
+      "buffett_weschler",
+      "hohn"
+    ],
+    "cross_check_personas": [
+      "munger",
+      "marathon_capital_cycle"
+    ],
+    "silent_personas": [
+      "greenblatt",
+      "hk",
+      "klarman_asset_value",
+      "marks_credit_cycle",
+      "pabrai",
+      "stahl"
+    ],
+    "required_evidence": [
+      "normalized owner earnings",
+      "incremental return on capital",
+      "reinvestment runway",
+      "diluted share count",
+      "competitive-advantage mechanism"
+    ],
+    "failure_modes": [
+      "growth projected without its capital cost",
+      "stock compensation or acquisitions omitted",
+      "terminal value unsupported by a durable mechanism"
+    ],
+    "secondary_profiles": [
+      {
+        "profile_id": "binary_milestone",
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, probability"
+        ]
+      },
+      {
+        "profile_id": "credit_and_normalized_returns",
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      }
+    ],
+    "scorecard": {
+      "scarce_asset_optionality": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=real_option"
+        ]
+      },
+      "quality_reinvestment": {
+        "score": 16.0,
+        "reasons": [
+          "archetype=compounder",
+          "explicit reviewed profile"
+        ]
+      },
+      "capital_cycle": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "credit_and_normalized_returns": {
+        "score": 2.0,
+        "reasons": [
+          "component categories=financial_asset, liability_or_reserve"
+        ]
+      },
+      "catalyst_asset_value": {
+        "score": 1.0,
+        "reasons": [
+          "component categories=financial_asset"
+        ]
+      },
+      "predictable_cash_flow": {
+        "score": 0.0,
+        "reasons": []
+      },
+      "binary_milestone": {
+        "score": 3.0,
+        "reasons": [
+          "component categories=real_option",
+          "existing methods=milestone, probability"
+        ]
+      }
+    },
+    "decision_rule": "Power Zones select the fitting economic method and eligible independent reviewers; they never choose the valuation answer or capital decision.",
+    "ticker": "CRML",
+    "as_of": "2026-07-20",
+    "route_source": "canonical_power_zone_router",
+    "config_path": "_system/frameworks/power_zones.json",
+    "config_updated": "2026-07-14",
+    "classification": {
+      "archetype": "compounder",
+      "moat": "unproven",
+      "dhando": "none",
+      "stance": "watch",
+      "cycle": "up",
+      "moi_bucket": "pending",
+      "payoff_lens": "asset",
+      "investment_sleeve": "ls_algo_underlying",
+      "predictive_attribute": "complexity_discount"
+    },
+    "specialist_power_zones": [],
+    "committee": {
+      "candidate_count": 4,
+      "independence_group_count": 3,
+      "committee_seatable": true,
+      "candidates": [
+        {
+          "persona": "buffett_weschler",
+          "independence_group": "quality_reinvestment"
+        },
+        {
+          "persona": "hohn",
+          "independence_group": "competitive_advantage"
+        },
+        {
+          "persona": "munger",
+          "independence_group": "quality_reinvestment"
+        },
+        {
+          "persona": "marathon_capital_cycle",
+          "independence_group": "capital_cycle"
+        }
+      ]
+    },
+    "input_hash": "f2411297db72b24487558ac3b6fa284afc4fe0cc71cbc7f7a2c34d6531a0ec86",
+    "generated_at": "2026-07-20T17:13:54.533999+00:00"
+  },
+  "market": {
+    "price_per_share": 7.21,
+    "fully_diluted_shares": 104900000.0,
+    "market_cap_m": 756.33,
+    "enterprise_value_m": 749.03,
+    "price_source": "Yahoo CRML close 2026-08-31",
+    "price_as_of": "2026-08-31"
+  },
+  "valuation": {
+    "output_basis": "present_value_today",
+    "output_basis_status": "method_declared",
+    "output_range_per_share": {
+      "low": 0.0,
+      "base": 3.0701,
+      "high": 9.8998
+    },
+    "value_per_share": {
+      "low": 0.0,
+      "base": 3.0701,
+      "high": 9.8998
+    },
+    "present_value_today_per_share": {
+      "low": 0.0,
+      "base": 3.0701,
+      "high": 9.8998
+    },
+    "future_payoff_per_share": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "future_payoff_date": null,
+    "future_payoff_horizon_years": null,
+    "forward_cashflow_schedule": null,
+    "priced_components_per_share": {
+      "low": -0.9504,
+      "base": 3.0701,
+      "high": 9.8998
+    },
+    "legacy_value_per_share": {
+      "low": -0.95,
+      "base": 3.07,
+      "high": 9.9
+    },
+    "probability_weighted_value_per_share": 3.0701,
+    "expected_distributions_per_share": 0.0,
+    "forward_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "forward_return_status": "withheld",
+    "forward_return_reason": "present_value_today cannot be annualized as a future payoff",
+    "annualized_return_at_price_pct": {
+      "low": null,
+      "base": null,
+      "high": null
+    },
+    "annualized_return_field_status": "compatibility_alias_of_forward_return",
+    "required_return_pct": null,
+    "margin_of_safety_pct": {
+      "low": null,
+      "base": -134.85,
+      "high": 27.17
+    },
+    "margin_of_safety_definition": "(intrinsic_value_today - market_price) / intrinsic_value_today; positive means the quote is below intrinsic value",
+    "upside_to_value_pct": {
+      "low": -100.0,
+      "base": -57.42,
+      "high": 37.31
+    },
+    "downside_to_low_pct": -100.0,
+    "horizon_years": 7,
+    "equity_liability_floor": 0.0,
+    "interpretation": "output_basis states what the proof produced. value_per_share and present_value_today_per_share are intrinsic values today and are withheld while any material additive component is unpriced or dated future economics cannot be discounted at an explicit required return. priced_components_per_share is the raw proof-output sum. A present value is never annualized or discounted again."
+  },
+  "scenario_contract": {
+    "rule": "Cases must change cited causal operating, capital, probability, timing, or financing drivers\u2014not only a terminal multiple.",
+    "top_value_drivers": [
+      {
+        "component_id": "tanbreez_risked_nav",
+        "label": "Tanbreez 42% REE stake (risked)",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 3.0001,
+        "legacy_base_per_share": 3.0,
+        "range_width_per_share": 7.5002,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "wolfsberg_option",
+        "label": "Wolfsberg lithium option",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 0.5,
+        "legacy_base_per_share": 0.5,
+        "range_width_per_share": 2.0,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "dilution_reserve",
+        "label": "Dilution and GEM overhang reserve",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": -0.5,
+        "legacy_base_per_share": -0.5,
+        "range_width_per_share": 1.3,
+        "scenario_assumptions": null
+      },
+      {
+        "component_id": "corporate_cash",
+        "label": "Corporate cash (soft floor)",
+        "valuation_status": "bounded_estimate",
+        "base_per_share": 0.07,
+        "legacy_base_per_share": 0.07,
+        "range_width_per_share": 0.05,
+        "scenario_assumptions": null
+      }
+    ],
+    "reverse_expectations": null
+  },
+  "calculation_proof_summary": {
+    "component_count": 4,
+    "priced_component_count": 4,
+    "proof_complete_pct": 100.0,
+    "status_counts": {
+      "bounded_estimate": 4,
+      "calculated": 0,
+      "legacy_sensitivity": 0,
+      "unpriced": 0
+    },
+    "all_material_components_priced": true,
+    "calculation_errors": [],
+    "aggregate_proof_hash": "cec8415933a63f16b4272a137861ce383525ad1c5df921684524b9571d4e843f"
+  },
+  "source_lineage": [
+    {
+      "component_id": "corporate_cash",
+      "node_id": "cash_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Going-concern disclosure: cash on hand $7.3 million at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "8729dc3a459ed6fd686657b9b2040f6b24ac4a517a1358eb906f4be20d89a54d"
+    },
+    {
+      "component_id": "corporate_cash",
+      "node_id": "shares_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+    },
+    {
+      "component_id": "tanbreez_risked_nav",
+      "node_id": "pea_npv_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "PEA press release cited in 20-F: approximately US$3 billion pre-tax project NPV",
+      "as_of": "2025-06-30",
+      "source_id": "d110bb259b56eb568d449478e4363ca7b76a0a5eebaf4280835a784e85e3e087"
+    },
+    {
+      "component_id": "tanbreez_risked_nav",
+      "node_id": "ownership_pct",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Company owns 42% of Tanbreez Mining Greenland A/S at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "e01152cc9f0626f1d6cf1f9d01809b53c553a7f92e434d965089478b33e5ec65"
+    },
+    {
+      "component_id": "tanbreez_risked_nav",
+      "node_id": "shares_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+    },
+    {
+      "component_id": "wolfsberg_option",
+      "node_id": "bmw_advance_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "BMW offtake advance payment US$15.0 million on June 5, 2024; restricted until production",
+      "as_of": "2025-06-30",
+      "source_id": "9a8f12ea6087384007fd194e6efeefb6193bd5d54b36a912682a35e5a5324ba8"
+    },
+    {
+      "component_id": "wolfsberg_option",
+      "node_id": "shares_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+    },
+    {
+      "component_id": "dilution_reserve",
+      "node_id": "stage2_shares_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Tanbreez Stage 2: issuance of 14,500,000 ordinary shares to increase stake to 92.5%",
+      "as_of": "2025-06-30",
+      "source_id": "30bdf012e74860797a8267fc41794f16fdaadd0a03be4f867c6e7e2fbc3bc92a"
+    },
+    {
+      "component_id": "dilution_reserve",
+      "node_id": "shares_m",
+      "ref": "CRML/investor-documents/sec-edgar/20-F_20251006_rpt20250630_acc0001213900_25_096254.htm",
+      "locator": "Cover page: 104,912,853 ordinary shares outstanding at June 30, 2025",
+      "as_of": "2025-06-30",
+      "source_id": "d1c84476a06478fa9fd28c77b080ce535e99afd588c0395feb97f67dacc49524"
+    }
+  ],
+  "model_checks": {
+    "calculation_graphs_valid": true,
+    "component_sum_reconciles": true,
+    "no_double_counting": true,
+    "all_material_components_priced": true,
+    "positive_base_or_explicit_zero_value": true,
+    "low_base_high_ordered": true,
+    "source_identity_and_freshness_valid": true,
+    "extreme_return_validated": true,
+    "output_basis_valid": true,
+    "dated_forward_economics_valid": true,
+    "present_value_is_not_treated_as_future_payoff": true
+  },
+  "evidence": {
+    "unresolved_count": 0,
+    "blockers": [],
+    "validation_errors": []
+  },
+  "monitoring": {
+    "falsifiers": [
+      "A directly comparable transaction or asset-specific impairment supports a value below the low-case unit mark after like-for-like adjustments.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "The next decision milestone fails, remaining capital rises materially, or the stated success probability no longer fits observable progress.",
+      "The obligation, financing claim, tax, or realization friction is materially larger than the low-case reserve."
+    ],
+    "required_refresh_triggers": [
+      "new filing or material operating update",
+      "capital-structure change",
+      "material price move",
+      "component milestone or falsifier"
+    ]
+  },
+  "change_control": {
+    "model_hash": "b827de30fa633af7953469973dcc8942b767ba5b65b114bfa22857e178136103",
+    "method_versions": [
+      "net_asset_value@1.0",
+      "probability_weighted_catalyst_nav@1.0",
+      "risk_adjusted_milestone_value@1.0"
+    ],
+    "change_log": [],
+    "rule": "A source fact is locked. Every assumption change requires a reason, author, timestamp, and before/after value."
+  },
+  "decision_rule": "Proof status and investment readiness are separate. Every material claim must be valued exactly once by a valid calculation proof, every evidence blocker must be resolved, and the model must be stock-specific before committee review. Only a human decision can authorize capital.",
+  "authority": "universal_valuation_contract",
+  "legacy_reference_present": true,
+  "falsifier_coverage": {
+    "typed": 0,
+    "prose_only": 3,
+    "untestable": 0,
+    "invalid": 0,
+    "unanchored": 0,
+    "resolvable": 0,
+    "unresolvable": 0,
+    "calibration_eligible": 0,
+    "diagnostic_only": 0,
+    "spec_ref": null,
+    "enforcement_enabled": false
+  }
+}

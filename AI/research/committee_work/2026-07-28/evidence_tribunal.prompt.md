@@ -1,3 +1,3 @@
 # AI evidence tribunal
 
-Packet `9f9e98c42801059ee14e1888fe9a59f2c00e9a957ba85473d6b069f47ef29e40`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.
+Packet `b2fabd70de27b6435ca3081db489cef0f1669371687e705b103673597ae8ec04`. Resolve disputed quantities, ownership, distributions, comparable validity, option beneficiary, and overlap before valuation debate. Separate resolved facts from material unresolved facts and cite packet paths. Return evidence_tribunal.json only.

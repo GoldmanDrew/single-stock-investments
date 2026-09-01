@@ -49,3 +49,23 @@ def test_deepening_replaces_generic_maturity_and_assumptions() -> None:
     assumptions = {row["id"]: row for row in proof["assumptions"]}
     assert assumptions["terminal_multiple"]["values"] == {"low": 18, "base": 24, "high": 30}
     assert proof["inputs"][3]["value"] == 10
+
+
+def test_sync_evaluated_totals_publishes_dashboard_total() -> None:
+    model = {
+        "component_valuation_results": {
+            "additive_components": [{"id": "operating_business_and_net_assets"}],
+            "embedded_components": [],
+        }
+    }
+    contract = {
+        "economic_ownership_map": [{
+            "component_id": "operating_business_and_net_assets",
+            "treatment": "additive",
+            "range_per_share": {"low": 10, "base": 12, "high": 15},
+        }]
+    }
+    deepening.sync_evaluated_totals(model, contract)
+    result = model["component_valuation_results"]
+    assert result["total_equity_value_per_share"] == {"low": 10.0, "base": 12.0, "high": 15.0}
+    assert result["additive_component_count"] == 1

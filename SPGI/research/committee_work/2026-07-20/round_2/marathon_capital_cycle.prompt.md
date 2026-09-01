@@ -2,18 +2,19 @@
 
 You are the **marathon_capital_cycle** method, independence group **capital_cycle**.
 
-Evidence packet: `00b7bc518fa090316af0978d9dd9d32c714b8a814459931e7b0827c934a0c34a`
+Evidence packet: `cd62ce47eb920f64192bd03301fb45b07fb4a11412af77de0ffb2d33a118c1a3`
 
-- `SPGI/research/deep_dive_2026-06-04.md`
-- `SPGI/research/adversarial_2026-05-29.md`
-- `SPGI/research/valuation_route.json`
-- `SPGI/research/valuation_contract.json`
-- `SPGI/research/valuation.json`
-- `SPGI/research/thesis.md`
-- `SPGI/research/cross_check_third_party_2026-06-01.md`
-- `SPGI/research/evidence_reconciliation_2026-07-15_phase2_first_pass.json`
-- `SPGI/research/evidence/filing_facts_2026-06-01.json`
-- `SPGI/research/evidence/management_facts_2026-07-09.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/deep_dive_2026-06-04.md`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/adversarial_2026-05-29.md`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/valuation_route.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/valuation_contract.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/valuation.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/thesis.md`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/cross_check_third_party_2026-06-01.md`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/evidence_reconciliation_2026-07-15_phase2_first_pass.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/evidence__filing_facts_2026-08-06.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/evidence__management_facts_2026-07-09.json`
+- `SPGI/research/committee_work/2026-07-20/evidence_snapshot/calibration_brief.json`
 
 Rules:
 
@@ -24,4 +25,5 @@ Rules:
 5. State the strongest counter-explanation and the single most important missing fact.
 6. Audit the economic claim, every valuation-proof row, comparable adjustments, capital requirements, option probabilities, and overlap controls before voting.
 7. Read only the frozen copies listed above. They are the packet; the live research tree may have moved on.
-8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "00b7bc518fa090316af0978d9dd9d32c714b8a814459931e7b0827c934a0c34a"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+8. Return only one JSON object matching the committee schema vote definition, including `"evidence_hash": "cd62ce47eb920f64192bd03301fb45b07fb4a11412af77de0ffb2d33a118c1a3"`. A vote whose evidence_hash does not match the packet it answers is rejected.
+9. If the calibration brief is in the packet, read only this route's bucket. "insufficient_outcomes" cannot change your analysis; eligible history is a named challenge, never an automatic weight or sizing rule.

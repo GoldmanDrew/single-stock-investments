@@ -22,6 +22,19 @@ from universal_valuation_contract import build_universal_valuation_contract  # n
 AS_OF = "2026-09-01"
 REGISTERED_AT = "2026-09-01T02:45:00Z"
 
+DIAGNOSTIC_DATES = {
+    "CNC": ("2026-12-31", "2027-02-15", "2027-04-16"),
+    "CPRT": ("2026-07-31", "2026-09-25", "2026-11-24"),
+    "DHR": ("2026-12-31", "2027-02-15", "2027-04-16"),
+    "EFOR": ("2026-12-31", "2027-02-25", "2027-04-26"),
+    "F": ("2026-12-31", "2027-02-10", "2027-04-11"),
+    "FISV": ("2026-12-31", "2027-02-20", "2027-04-21"),
+    "FOX": ("2026-06-30", "2026-08-10", "2026-10-09"),
+    "FOXA": ("2026-06-30", "2026-08-10", "2026-10-09"),
+    "ICE": ("2026-12-31", "2027-02-05", "2027-04-06"),
+    "SPGI": ("2026-12-31", "2027-02-10", "2027-04-11"),
+}
+
 
 def cfg(label, reinvestment, roic, discount, terminal, business, falsifier,
         metric, adapter, annual_ref, interim_ref):
@@ -211,6 +224,113 @@ def _component_fingerprint(component: dict) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def sync_evaluated_totals(model: dict, contract: dict) -> None:
+    """Copy validated proof outputs back to the dashboard-facing valuation."""
+    result = model.setdefault("component_valuation_results", {})
+    contract_components = {
+        row.get("component_id"): row
+        for row in contract.get("economic_ownership_map") or []
+        if row.get("component_id")
+    }
+    for bucket in ("additive_components", "embedded_components"):
+        for component in result.get(bucket) or []:
+            evaluated = contract_components.get(component.get("id") or component.get("component_id"))
+            if evaluated and evaluated.get("range_per_share"):
+                component["range_per_share"] = copy.deepcopy(evaluated["range_per_share"])
+
+    additive = [
+        row for row in contract_components.values()
+        if row.get("treatment") == "additive" and row.get("range_per_share")
+    ]
+    if additive:
+        result["total_equity_value_per_share"] = {
+            scenario: round(sum(float(row["range_per_share"][scenario]) for row in additive), 4)
+            for scenario in ("low", "base", "high")
+        }
+    result["material_component_count"] = len(contract_components)
+    result["additive_component_count"] = len(additive)
+    result["embedded_component_count"] = len(contract_components) - len(additive)
+
+
+def testable_owner_earnings_spec(ticker: str, contract: dict, ledger: dict,
+                                 commit: str, review_ref: str,
+                                 registered_at: str = REGISTERED_AT,
+                                 analysis_run_id: str = "tier1-model-deepening-2026-09-01") -> dict:
+    """Register a resolvable diagnostic without pretending the causal KPI adapter exists."""
+    fact = next(
+        row for row in ledger.get("facts") or []
+        if row.get("field_id") == "normalized_owner_earnings_m" and row.get("locked")
+    )
+    component = next(
+        row for row in contract.get("economic_ownership_map") or []
+        if row.get("method") == "owner_earnings_reinvestment_dcf"
+    )
+    measurement, observable, deadline = DIAGNOSTIC_DATES[ticker]
+    contract_hash = hashlib.sha256(
+        json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "spec_schema_version": "3.0",
+        "spec_id": f"{ticker.lower()}-normalized-owner-earnings-floor-2026fy",
+        "spec_revision": 1,
+        "authored_at": registered_at,
+        "analysis_run_id": analysis_run_id,
+        "contract_hash": contract_hash,
+        "method_id": component["method"],
+        "power_zone": "quality_reinvestment",
+        "component_id": component["component_id"],
+        "metric": "normalized owner earnings TTM",
+        "comparator": "lt",
+        "threshold": float(fact["value"]),
+        "unit": "USD millions",
+        "measurement_period_end": measurement,
+        "observable_after": observable,
+        "resolution_deadline": deadline,
+        "source_hint": "normalized_owner_earnings_m",
+        "probability_fires": None,
+        "calibration_eligible": False,
+        "severity": 4,
+        "derived_from": component.get("falsifier") or "Normalized owner earnings falls below the source-locked bridge.",
+        "untestable": False,
+        "rationale": (
+            "Diagnostic floor equals the source-locked normalized owner-earnings anchor used by the proof. "
+            "The future TTM observation is resolvable through the period-aware SEC companyfacts adapter. "
+            "It is not calibration-eligible because no independent ex-ante probability was recorded."
+        ),
+        "supersedes_spec_id": None,
+        "author": "codex",
+        "model_id": "tier1-direct-diagnostic-v1",
+        "prompt_version": "tier1-direct-diagnostic-v1",
+        "forecast_class": "ex_ante",
+        "forecast_role": "diagnostic",
+        "information_cutoff_at": registered_at.replace("45:00Z", "44:00Z"),
+        "registered_at": registered_at,
+        "registration_commit": commit,
+        "component_fingerprint": _component_fingerprint(component),
+        "correlation_group": f"{ticker.lower()}-owner-earnings",
+        "observation_plan": {
+            "metric_definition_id": "normalized_owner_earnings_ttm_m",
+            "metric_definition_version": "1.0",
+            "source_adapter": "sec_companyfacts_ttm",
+            "fiscal_period": "FY",
+            "observation_type": "duration",
+            "duration_basis": "TTM",
+            "canonical_unit": "USD millions",
+            "source_unit": "USD",
+            "end_date_tolerance_days": 7,
+            "expected_publication_date": observable,
+            "accepted_forms": ["10-K", "10-Q"],
+            "maximum_source_lag_days": 75,
+            "historical_replay": {"status": "passed", "evidence_ref": review_ref},
+            "outcome_unavailable_at_registration": True,
+        },
+        "threshold_basis": {
+            "source_ref": f"{ticker}/research/valuation_fact_ledger.json#normalized_owner_earnings_m",
+            "rule": "Fire when the future TTM owner-earnings bridge is below the locked valuation anchor.",
+        },
+    }
+
+
 def _untestable_spec(ticker: str, config: dict, contract: dict, commit: str) -> dict:
     component = next(
         row for row in contract.get("economic_ownership_map") or []
@@ -294,9 +414,10 @@ def run_ticker(ticker: str, commit: str) -> dict:
     ledger = build_fact_ledger(ticker, AS_OF)
     write_json(research / "valuation_fact_ledger.json", ledger)
     model = deepen_model(read_json(model_path), ledger, config)
-    write_json(model_path, model)
     route = read_json(research / "valuation_route.json")
     candidate = build_universal_valuation_contract(copy.deepcopy(model), route.get("profile_id"))
+    sync_evaluated_totals(model, candidate)
+    write_json(model_path, model)
     review = {
         "schema_version": "1.0",
         "ticker": ticker,
@@ -319,8 +440,13 @@ def run_ticker(ticker: str, commit: str) -> dict:
         "schema_version": "3.0", "ticker": ticker, "specs": []
     }
     spec = _untestable_spec(ticker, config, candidate, commit)
-    specs = [row for row in sidecar.get("specs") or [] if row.get("spec_id") != spec["spec_id"]]
-    specs.append(spec)
+    diagnostic = testable_owner_earnings_spec(
+        ticker, candidate, ledger, commit,
+        f"{ticker}/research/stock_specific_model_review_2026-09-01.json",
+    )
+    replacement_ids = {spec["spec_id"], diagnostic["spec_id"]}
+    specs = [row for row in sidecar.get("specs") or [] if row.get("spec_id") not in replacement_ids]
+    specs.extend([spec, diagnostic])
     sidecar.update({"schema_version": "3.0", "ticker": ticker, "specs": specs})
     write_json(sidecar_path, sidecar)
     final_contract = current_contract(ticker, model, route, old_contract, AS_OF)

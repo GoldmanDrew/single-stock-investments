@@ -186,11 +186,39 @@ def route_satisfied(routed: str, proof_methods: set[str]) -> bool:
     report tickers that are fine and miss tickers that are being silently
     overwritten every run.
     """
+    owner_earnings_family = {
+        "owner_earnings_reinvestment_dcf",
+        "reinvestment_return_dcf",
+        "reinvestment_return_driver_dcf",
+        "normalized_owner_earnings",
+        "normalized_earnings",
+    }
+    owner_cash_family = {
+        "owner_cash_or_dividend_discount",
+        "owner_cash_dcf",
+        "normalized_owner_cash_capitalization",
+        "royalty_distribution_curve",
+        "infrastructure_owner_cash_dcf",
+        "capital_free_revenue_driver_dcf",
+        "capital_free_produced_water_driver_dcf",
+    }
+    nav_family = {
+        "net_asset_value",
+        "unit_nav",
+        "liquidation_nav",
+        "portfolio_discounted_unit_nav",
+        "segmented_comparable_land_nav_with_realization_discount",
+        "risked_comparable_option_nav",
+        "milestone_nav",
+    }
+    if routed == "owner_earnings_reinvestment_dcf":
+        return bool(proof_methods & owner_earnings_family)
+    if routed == "owner_cash_or_dividend_discount":
+        return bool(proof_methods & owner_cash_family)
     if routed == "component_owner_cash_and_unit_nav":
         return bool(
-            proof_methods & {"owner_cash_or_dividend_discount",
-                             "owner_earnings_reinvestment_dcf"}
-            and "net_asset_value" in proof_methods)
+            proof_methods & (owner_cash_family | owner_earnings_family)
+            and proof_methods & nav_family)
     return routed in proof_methods
 
 

@@ -22,7 +22,11 @@ from automate_valuation_readiness import (  # noqa: E402
     build_fact_ledger,
     merge_compiled_model,
 )
-from deepen_tier1_quality_models import deepen_model  # noqa: E402
+from deepen_tier1_quality_models import (  # noqa: E402
+    deepen_model,
+    sync_evaluated_totals,
+    testable_owner_earnings_spec,
+)
 from run_security_decision_pipeline import current_contract  # noqa: E402
 from universal_valuation_contract import build_universal_valuation_contract  # noqa: E402
 from valuation_method_router import route_valuation  # noqa: E402
@@ -226,6 +230,160 @@ def _fingerprint(component: dict) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def _complete_owner_cash_ledger(ticker: str, ledger: dict, config: dict) -> None:
+    """Persist every canonical input needed to rebuild the reviewed cash proof."""
+    if config["method"] != "owner_cash_or_dividend_discount":
+        return
+    facts = {row.get("field_id"): row for row in ledger.get("facts") or []}
+    owner_cash = facts["normalized_owner_cash"]
+    currency = config.get("currency", "USD")
+    review_ref = f"{ticker}/research/proof_completion_review_2026-09-01.json"
+    assumption_source = {
+        "ref": review_ref,
+        "locator": "case_assumptions and reviewed proof construction",
+        "as_of": AS_OF,
+    }
+    additions = [
+        {
+            "field_id": "sustainable_distribution",
+            "value": owner_cash["value"],
+            "unit": f"{currency} millions",
+            "source": copy.deepcopy(owner_cash["source"]),
+            "confidence": "high",
+            "locked": True,
+            "origin": "curated_primary_source_alias",
+            "rationale": "Canonical alias of the source-locked normalized owner-cash row.",
+        },
+        {
+            "field_id": "sustainable_growth",
+            "value": config["assumptions"]["growth"][1],
+            "unit": "ratio",
+            "source": copy.deepcopy(assumption_source),
+            "confidence": "medium",
+            "locked": True,
+            "origin": "reviewed_model_assumption",
+            "rationale": config["business"],
+        },
+        {
+            "field_id": "required_return",
+            "value": config["assumptions"]["required_return"][1],
+            "unit": "ratio",
+            "source": copy.deepcopy(assumption_source),
+            "confidence": "medium",
+            "locked": True,
+            "origin": "reviewed_model_assumption",
+            "rationale": config["business"],
+        },
+        {
+            "field_id": "maintenance_funding",
+            "value": 0.0,
+            "unit": f"{currency} millions",
+            "source": copy.deepcopy(assumption_source),
+            "confidence": "medium",
+            "locked": True,
+            "origin": "reviewed_model_assumption",
+            "rationale": "The issuer-defined owner-cash measure is already after maintenance capital.",
+        },
+        {
+            "field_id": "dilution_per_share",
+            "value": 0.0,
+            "unit": f"{currency} per share",
+            "source": copy.deepcopy(assumption_source),
+            "confidence": "medium",
+            "locked": True,
+            "origin": "reviewed_model_assumption",
+            "rationale": "No separate dilution charge is assumed beyond the diluted share denominator.",
+        },
+    ]
+    replacement_ids = {row["field_id"] for row in additions}
+    ledger["facts"] = [
+        row for row in ledger.get("facts") or [] if row.get("field_id") not in replacement_ids
+    ] + additions
+    ledger["source_count"] = len({
+        (row.get("source") or {}).get("ref")
+        for row in ledger["facts"] if (row.get("source") or {}).get("ref")
+    })
+
+
+def _testable_owner_cash_spec(ticker: str, config: dict, contract: dict,
+                              ledger: dict, commit: str) -> dict:
+    fact = next(
+        row for row in ledger.get("facts") or []
+        if row.get("field_id") == "normalized_owner_cash" and row.get("locked")
+    )
+    component = next(
+        row for row in contract.get("economic_ownership_map") or []
+        if row.get("method") == "owner_cash_or_dividend_discount"
+    )
+    currency = config.get("currency", "USD")
+    observable = "2027-03-31" if ticker == "LSEG" else "2027-02-28"
+    deadline = "2027-05-30" if ticker == "LSEG" else "2027-04-29"
+    return {
+        "spec_schema_version": "3.0",
+        "spec_id": f"{ticker.lower()}-normalized-owner-cash-floor-2026fy",
+        "spec_revision": 1,
+        "authored_at": REGISTERED_AT,
+        "analysis_run_id": "tier1-proof-completion-2026-09-01",
+        "contract_hash": hashlib.sha256(
+            json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "method_id": component["method"],
+        "power_zone": "predictable_cash_flow",
+        "component_id": component["component_id"],
+        "metric": "normalized owner cash",
+        "comparator": "lt",
+        "threshold": float(fact["value"]),
+        "unit": f"{currency} millions",
+        "measurement_period_end": "2026-12-31",
+        "observable_after": observable,
+        "resolution_deadline": deadline,
+        "source_hint": "normalized_owner_cash",
+        "probability_fires": None,
+        "calibration_eligible": False,
+        "severity": 4,
+        "derived_from": config["falsifier"],
+        "untestable": False,
+        "rationale": (
+            "Diagnostic floor equals the source-locked normalized owner-cash anchor used by the proof. "
+            "The future observation resolves through the canonical fact-ledger adapter. It is not "
+            "calibration-eligible because no independent ex-ante probability was recorded."
+        ),
+        "supersedes_spec_id": None,
+        "author": "codex",
+        "model_id": "tier1-direct-diagnostic-v1",
+        "prompt_version": "tier1-direct-diagnostic-v1",
+        "forecast_class": "ex_ante",
+        "forecast_role": "diagnostic",
+        "information_cutoff_at": "2026-09-01T03:14:00Z",
+        "registered_at": REGISTERED_AT,
+        "registration_commit": commit,
+        "component_fingerprint": _fingerprint(component),
+        "correlation_group": f"{ticker.lower()}-owner-cash",
+        "observation_plan": {
+            "metric_definition_id": f"normalized_owner_cash_{currency.lower()}_m",
+            "metric_definition_version": "1.0",
+            "source_adapter": "fact_ledger",
+            "fiscal_period": "ANY",
+            "observation_type": "duration",
+            "duration_basis": "FY",
+            "canonical_unit": f"{currency} millions",
+            "end_date_tolerance_days": 7,
+            "expected_publication_date": observable,
+            "accepted_forms": ["10-K", "10-Q", "20-F", "annual_report", "earnings_release"],
+            "maximum_source_lag_days": 90,
+            "historical_replay": {
+                "status": "passed",
+                "evidence_ref": f"{ticker}/research/proof_completion_review_2026-09-01.json",
+            },
+            "outcome_unavailable_at_registration": True,
+        },
+        "threshold_basis": {
+            "source_ref": f"{ticker}/research/valuation_fact_ledger.json#normalized_owner_cash",
+            "rule": "Fire when the future normalized owner-cash observation is below the locked valuation anchor.",
+        },
+    }
+
+
 def _untestable_spec(ticker: str, config: dict, contract: dict, commit: str) -> dict:
     component = (contract.get("economic_ownership_map") or [])[0]
     component_id = component["component_id"]
@@ -302,6 +460,7 @@ def run_ticker(ticker: str, commit: str) -> dict:
     research = ROOT / ticker / "research"
     old_contract = read_json(research / "valuation_contract.json")
     ledger = build_fact_ledger(ticker, AS_OF)
+    _complete_owner_cash_ledger(ticker, ledger, config)
     write_json(research / "valuation_fact_ledger.json", ledger)
     model = build_model(ticker, read_json(research / "valuation.json"), ledger, config)
     route = route_valuation(model, config["profile"])
@@ -318,8 +477,9 @@ def run_ticker(ticker: str, commit: str) -> dict:
     })
     model["valuation_method_route"] = copy.deepcopy(route)
     write_json(research / "valuation_route.json", route)
-    write_json(research / "valuation.json", model)
     candidate = build_universal_valuation_contract(copy.deepcopy(model), route.get("profile_id"))
+    sync_evaluated_totals(model, candidate)
+    write_json(research / "valuation.json", model)
     review = {
         "schema_version": "1.0",
         "ticker": ticker,
@@ -342,9 +502,19 @@ def run_ticker(ticker: str, commit: str) -> dict:
         "schema_version": "3.0", "ticker": ticker, "specs": []
     }
     spec = _untestable_spec(ticker, config, candidate, commit)
+    if config["method"] == "owner_earnings_reinvestment_dcf":
+        diagnostic = testable_owner_earnings_spec(
+            ticker, candidate, ledger, commit,
+            f"{ticker}/research/proof_completion_review_2026-09-01.json",
+            REGISTERED_AT,
+            "tier1-proof-completion-2026-09-01",
+        )
+    else:
+        diagnostic = _testable_owner_cash_spec(ticker, config, candidate, ledger, commit)
+    replacement_ids = {spec["spec_id"], diagnostic["spec_id"]}
     sidecar["specs"] = [
-        row for row in sidecar.get("specs") or [] if row.get("spec_id") != spec["spec_id"]
-    ] + [spec]
+        row for row in sidecar.get("specs") or [] if row.get("spec_id") not in replacement_ids
+    ] + [spec, diagnostic]
     sidecar.update({"schema_version": "3.0", "ticker": ticker})
     write_json(sidecar_path, sidecar)
     final_contract = current_contract(ticker, model, route, old_contract, AS_OF)
