@@ -559,6 +559,16 @@ def build_valuation_blend(lenses: list[dict]) -> dict:
 
 
 def build_consensus(lenses: list[dict], blend: dict, portfolio_bar: float, ctx: dict) -> dict:
+    contributors = blend.get("contributors") or []
+    if len(contributors) == 1:
+        return {
+            "stance": "pending",
+            "agreement_pct": 0,
+            "dissents": [],
+            "lawrence_divergence": False,
+            "portfolio_bar_pct": portfolio_bar,
+        }
+
     active = [l for l in lenses if l.get("relevance", 0) > 0 and l.get("verdict") not in ("silent", "pending")]
     if not active:
         return {
