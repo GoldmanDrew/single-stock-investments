@@ -47,9 +47,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "_system" / "scripts"))
 
+# Episode titles come from RSS feeds and carry whatever the publisher typed --
+# en dashes, smart quotes, and on 2026-08-29 a U+2060 WORD JOINER that killed a
+# run outright. Python picks cp1252 for a redirected stdout on Windows, so the
+# progress line that *reports* a finished episode was the thing that crashed:
+# 730 episodes still to do, the process gone, and the last log line a normal
+# success. Same idiom as build_memory_digest.py.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from analyze_podcast_episode import analyze, build_aliases, scan_aliases  # noqa: E402
 from llm_local import LocalLLMUnavailable  # noqa: E402
 from vault_paths import podcasts_root  # noqa: E402
+from vault_git import clear_stale_git_state, run_git, vault_lock  # noqa: E402
 
 # Only episodes with genuine speech. Below this it is show notes or a scraped
 # page, and there is nothing to extract a claim from.
@@ -73,6 +85,10 @@ WHISPER_PROCESS_HINT = "whisper_backfill_daemon.py"
 WHISPER_BUSY_CORES = float(os.environ.get("ANALYZE_WHISPER_BUSY_CORES", "0.5"))
 WHISPER_SAMPLE_SECONDS = 3.0
 WHISPER_POLL_SECONDS = 60
+# Headroom Whisper needs to load distil-large-v3 and hold its audio buffers.
+# Below this the box is paging and Whisper is the job that suffers for it, so
+# the analyser stands down even though nothing is using the CPU.
+WHISPER_MEMORY_FLOOR_MB = int(os.environ.get("ANALYZE_WHISPER_FLOOR_MB", "2500"))
 DEFAULT_MAX_WAIT_MINUTES = 30
 # Outside podcasts/ so `git add -A podcasts` never stages it; the first run
 # committed the lock and then recorded its own deletion. It went on doing that:
@@ -188,6 +204,21 @@ def whisper_cores(sample_seconds: float = WHISPER_SAMPLE_SECONDS) -> float | Non
         return None
 
 
+def whisper_present() -> bool:
+    """Whether a Whisper backfill process exists at all."""
+    try:
+        import psutil  # noqa: WPS433
+    except ImportError:
+        return False
+    for proc in psutil.process_iter(["cmdline"]):
+        try:
+            if WHISPER_PROCESS_HINT in " ".join(proc.info.get("cmdline") or []):
+                return True
+        except psutil.Error:
+            continue
+    return False
+
+
 def wait_for_whisper(max_wait_minutes: int) -> None:
     """Yield the box to the transcription backfill, but never indefinitely.
 
@@ -200,16 +231,27 @@ def wait_for_whisper(max_wait_minutes: int) -> None:
     announced = False
     while not _stop:
         cores = whisper_cores()
-        if cores is None or cores < WHISPER_BUSY_CORES:
+        free = available_mb()
+        # CPU alone reads a starving Whisper as an idle one. On 2026-09-01 the
+        # box was at 1.3 GB free of 32 GB with 21 GB paged out; Whisper spent
+        # its time blocked on page-ins rather than on the CPU, this gate saw
+        # "idle", and the analyser took the machine -- transcription halved to
+        # 1.5 episodes/hour while the analyser sped up. Yield on either signal:
+        # a Whisper that cannot get memory needs the memory, not the courtesy.
+        starved = (free is not None and free < WHISPER_MEMORY_FLOOR_MB
+                   and whisper_present())
+        if not starved and (cores is None or cores < WHISPER_BUSY_CORES):
             if announced:
                 print(f"[{_stamp()}] whisper idle; resuming", flush=True)
             return
+        why = (f"{free} MB free, below the {WHISPER_MEMORY_FLOOR_MB} MB floor"
+               if starved else f"{cores:.1f} cores busy")
         if time.time() >= deadline:
             print(f"[{_stamp()}] waited {max_wait_minutes}m for whisper "
-                  f"({cores:.1f} cores busy); taking one episode anyway", flush=True)
+                  f"({why}); taking one episode anyway", flush=True)
             return
         if not announced:
-            print(f"[{_stamp()}] whisper busy ({cores:.1f} cores); "
+            print(f"[{_stamp()}] whisper busy ({why}); "
                   f"yielding, up to {max_wait_minutes}m", flush=True)
             announced = True
         time.sleep(WHISPER_POLL_SECONDS)
@@ -322,35 +364,49 @@ def needs_analysis(meta: dict, digest: str) -> bool:
 def vault_push(message: str) -> bool:
     repo = podcasts_root().parent
     try:
-        subprocess.run(["git", "add", "-A", "podcasts"], cwd=repo, check=True,
-                       capture_output=True, timeout=300)
-        staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repo,
-                                capture_output=True, timeout=120)
+        # The Whisper daemon commits to this same tree every 15 minutes. Two
+        # git processes in one repository collide on .git/index.lock, and that
+        # collision is what a DNS outage needed to wedge the vault for fourteen
+        # hours on 2026-08-31. One writer at a time.
+        with vault_lock(repo, owner="analyze_podcast_batch",
+                        log=lambda m: print(f"[{_stamp()}]{m}", flush=True)):
+            clear_stale_git_state(repo, log=lambda m: print(f"[{_stamp()}]{m}", flush=True))
+            return _push_locked(repo, message)
+    except TimeoutError as exc:
+        print(f"[{_stamp()}] vault lock: {exc}; skipping this push", flush=True)
+        return False
+
+
+def _push_locked(repo: Path, message: str) -> bool:
+    try:
+        run_git(repo, "add", "-A", "podcasts", timeout=300)
+        staged = run_git(repo, "diff", "--cached", "--quiet", check=False, timeout=120)
         if staged.returncode == 0:
             return False
-        subprocess.run(["git", "commit", "-m", message], cwd=repo, check=True,
-                       capture_output=True, timeout=300)
+        run_git(repo, "commit", "-m", message, timeout=300)
         # autoStash: this vault always carries unrelated work in progress from
         # other lanes -- .gitignore edits, a letter mid-move, an untracked
         # AGENTS.md. A plain `pull --rebase` refuses outright ("cannot pull with
         # rebase: You have unstaged changes"), which is how the first batch run
         # analysed two episodes and pushed neither. Stash them, rebase, put them
         # back; never commit another lane's files.
-        subprocess.run(["git", "-c", "rebase.autoStash=true", "pull", "--rebase",
-                        "origin", "main"], cwd=repo, check=True,
-                       capture_output=True, timeout=900)
-        subprocess.run(["git", "push", "origin", "main"], cwd=repo, check=True,
-                       capture_output=True, timeout=600)
+        run_git(repo, "-c", "rebase.autoStash=true", "pull", "--rebase",
+                "origin", "main", timeout=900)
+        run_git(repo, "push", "origin", "main", timeout=600)
         return True
     except subprocess.CalledProcessError as exc:
-        err = (exc.stderr or b"").decode("utf-8", "replace")[:200]
+        err = str(exc.stderr or "")[:300]
         print(f"[{_stamp()}] vault push failed: {err}", flush=True)
         # Never leave a half-finished rebase: the queue file then fails to parse
         # and the next run dies on it.
-        subprocess.run(["git", "rebase", "--abort"], cwd=repo, capture_output=True)
+        run_git(repo, "rebase", "--abort", check=False, timeout=120)
+        clear_stale_git_state(repo, log=lambda m: print(f"[{_stamp()}]{m}", flush=True))
         return False
     except (subprocess.TimeoutExpired, OSError) as exc:
         print(f"[{_stamp()}] vault push error: {exc}", flush=True)
+        # A timeout now means run_git killed the whole git process tree, so the
+        # repository is ours to clean rather than something's to finish.
+        clear_stale_git_state(repo, log=lambda m: print(f"[{_stamp()}]{m}", flush=True))
         return False
 
 
