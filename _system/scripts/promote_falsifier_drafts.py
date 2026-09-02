@@ -22,7 +22,14 @@ def _component_fingerprint(component: dict) -> str:
 def promote(root: Path = ROOT, write: bool = True) -> dict:
     promoted, blocked = [], []
     for path in sorted(root.glob("*/research/falsifier_drafts/*.json")):
-        draft = read_json(path)
+        try:
+            draft = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            blocked.append({
+                "draft": str(path.relative_to(root)).replace("\\", "/"),
+                "reasons": [f"invalid draft JSON: {exc}"],
+            })
+            continue
         if draft.get("status") != "approved":
             continue
         ticker = path.parents[2].name.upper()

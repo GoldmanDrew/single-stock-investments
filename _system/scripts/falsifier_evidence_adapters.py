@@ -216,6 +216,28 @@ def _select_ttm_triplet(rows: list[dict], target: date, fiscal_period: str,
             current.append(row)
     if not current:
         return None
+
+    # Companyfacts can expose both a true YTD fact and an issuer-tagged TTM
+    # duplicate with the same end date, form and fiscal-period label. The TTM
+    # bridge requires the YTD row; selecting only the latest filing can choose
+    # the 12-month duplicate and double-count the prior year. Pick the duration
+    # closest to the expected YTD span, then use filing recency as the tie-break.
+    expected_days = {"Q1": 91, "Q2": 182, "Q3": 274}.get(fiscal_period)
+
+    def duration_days(row: dict) -> int | None:
+        try:
+            return (date.fromisoformat(str(row["end"])[:10])
+                    - date.fromisoformat(str(row["start"])[:10])).days + 1
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    if expected_days is not None:
+        distances = {
+            id(row): abs((duration_days(row) or 10_000) - expected_days)
+            for row in current
+        }
+        closest = min(distances.values())
+        current = [row for row in current if distances[id(row)] == closest]
     current_ytd = max(current, key=lambda row: str(row.get("filed") or ""))
     current_end = date.fromisoformat(str(current_ytd["end"])[:10])
     previous_comparable = [row for row in rows
@@ -223,7 +245,20 @@ def _select_ttm_triplet(rows: list[dict], target: date, fiscal_period: str,
                            and 300 <= (current_end - date.fromisoformat(str(row["end"])[:10])).days <= 430]
     if not previous_comparable:
         return None
-    prior_ytd = max(previous_comparable, key=lambda row: str(row.get("end") or ""))
+    current_duration = duration_days(current_ytd)
+    if current_duration is not None:
+        distances = {
+            id(row): abs((duration_days(row) or 10_000) - current_duration)
+            for row in previous_comparable
+        }
+        closest = min(distances.values())
+        previous_comparable = [
+            row for row in previous_comparable if distances[id(row)] == closest
+        ]
+    prior_ytd = max(
+        previous_comparable,
+        key=lambda row: (str(row.get("end") or ""), str(row.get("filed") or "")),
+    )
     prior_end = date.fromisoformat(str(prior_ytd["end"])[:10])
     prior_fy = [row for row in rows
                 if str(row.get("fp") or "").upper() == "FY"

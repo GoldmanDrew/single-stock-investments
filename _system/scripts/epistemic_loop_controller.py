@@ -69,8 +69,47 @@ def _source_ready_owner_earnings(root: Path, ticker: str) -> bool:
     gaap = (doc.get("facts") or {}).get("us-gaap") or {}
     return ("NetCashProvidedByUsedInOperatingActivities" in gaap
             and any(tag in gaap for tag in (
+                "PaymentsToAcquireProductiveAssets",
                 "PaymentsToAcquirePropertyPlantAndEquipment",
                 "PaymentsForProceedsFromOtherPropertyPlantAndEquipment")))
+
+
+def _source_ready_cash(root: Path, ticker: str) -> bool:
+    doc = read_json(root / ticker / "research/evidence/sec_companyfacts.json")
+    gaap = (doc.get("facts") or {}).get("us-gaap") or {}
+    return any(tag in gaap for tag in (
+        "CashAndCashEquivalentsAtCarryingValue",
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+    ))
+
+
+def _prospective_missing_components(contract: dict) -> set[str] | None:
+    """Return the fail-closed recovery set, or None for a normal contract.
+
+    A contract blocked only by the prospective falsifier gate must remain
+    authorable. Otherwise the gate suppresses the exact work required to clear
+    itself. Other evidence blockers retain their fail-closed behavior.
+    """
+    if contract.get("status") == "decision_grade":
+        return None
+    gate = ((contract.get("falsifier_coverage") or {}).get("prospective_gate") or {})
+    missing = {str(value) for value in gate.get("missing_components") or [] if value}
+    blockers = [str(value) for value in (contract.get("evidence") or {}).get("blockers") or []]
+    if (contract.get("status") == "evidence_blocked" and missing and blockers
+            and all(value.startswith("prospective_falsifier_gate:") for value in blockers)):
+        return missing
+    return set()
+
+
+def _authoring_metric(root: Path, ticker: str, component: dict,
+                      prospective_recovery: bool) -> tuple[str, bool] | None:
+    """Select a resolvable metric without broadening the normal pilot cohort."""
+    method = str(component.get("method") or "")
+    if not prospective_recovery and method != "owner_earnings_reinvestment_dcf":
+        return None
+    if method == "net_asset_value":
+        return "cash_and_equivalents_usd", _source_ready_cash(root, ticker)
+    return "normalized_owner_earnings_ttm_m_v2", _source_ready_owner_earnings(root, ticker)
 
 
 def _forecast_tasks(root: Path, today: date, state: dict[str, dict]) -> list[dict]:
@@ -146,8 +185,10 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
     for contract_path in sorted(root.glob("*/research/valuation_contract.json")):
         ticker = contract_path.parents[1].name.upper()
         contract = read_json(contract_path)
-        if contract.get("status") != "decision_grade":
+        missing_filter = _prospective_missing_components(contract)
+        if missing_filter == set():
             continue
+        prospective_recovery = missing_filter is not None
         route = read_json(root / ticker / "research/valuation_route.json")
         if route.get("profile_id") != "quality_reinvestment":
             continue
@@ -158,11 +199,14 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
             if not isinstance(component, dict):
                 continue
             component_id = str(component.get("component_id") or "")
-            method = str(component.get("method") or "")
             if (not component_id or component_id in eligible_components
-                    or method != "owner_earnings_reinvestment_dcf"):
+                    or (missing_filter is not None and component_id not in missing_filter)):
                 continue
-            source_ready = _source_ready_owner_earnings(root, ticker)
+            metric = _authoring_metric(root, ticker, component, prospective_recovery)
+            if metric is None:
+                continue
+            metric_definition_id, source_ready = metric
+            method = str(component.get("method") or "")
             fingerprint = _component_fingerprint(component)
             drafts = []
             for draft_path in (root / ticker / "research/falsifier_drafts").glob("*.json"):
@@ -173,6 +217,33 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
                 draft_path, draft = sorted(drafts, key=lambda pair: pair[0].name)[-1]
                 draft_status = str(draft.get("status") or "awaiting_review")
                 if draft_status == "published":
+                    continue
+                if draft_status == "rejected":
+                    draft_id = str(draft.get("draft_id") or draft_path.stem)
+                    work_id = _work_id(
+                        "author_forecast", ticker,
+                        f"{fingerprint}|revision|{draft_id}",
+                    )
+                    tasks.append({
+                        "work_id": work_id, "task_type": "author_forecast",
+                        "ticker": ticker, "component_id": component_id,
+                        "component_fingerprint": fingerprint,
+                        "contract_hash": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
+                        "method_id": method, "power_zone": "quality_reinvestment",
+                        "metric_definition_id": metric_definition_id,
+                        "source_preflight_candidate": source_ready,
+                        "draft_ref": str(draft_path.relative_to(root)).replace("\\", "/"),
+                        "rejection_reasons": list(draft.get("rejection_reasons") or []),
+                        "frozen_component": component,
+                        "priority": 92, "reason": "forecast_draft_rejected",
+                        "acceptance_tests": [
+                            "author addresses every independent-review reason",
+                            "target period remains unobservable at registration",
+                            "current metric-definition replay passes",
+                            "threshold and probability reconcile to cutoff evidence",
+                            "a separate reviewer approves the revision",
+                        ],
+                    })
                     continue
                 task_type = "publish_forecast" if draft_status == "approved" else "review_forecast"
                 work_id = _work_id(task_type, ticker, str(draft.get("draft_id") or draft_path.stem))
@@ -196,7 +267,7 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
                 "component_fingerprint": fingerprint,
                 "contract_hash": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
                 "method_id": method, "power_zone": "quality_reinvestment",
-                "metric_definition_id": "normalized_owner_earnings_ttm_m",
+                "metric_definition_id": metric_definition_id,
                 "priority": 75 if source_ready else 45,
                 "source_preflight_candidate": source_ready,
                 "reason": "first_route_cohort_deficit",
