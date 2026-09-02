@@ -4,16 +4,16 @@
 
 | Indicator | Latest | As of | YoY | Direction | In base IRR? |
 |-----------|--------|-------|-----|-----------|--------------|
-| High-yield OAS credit spread (%) | 0.49 | 2026-09-01 | -52.9% | down | no (context) |
-| US Treasury 10Y yield (%) | 4.796000003814697 | 2026-09-01 | +12.1% | up | no (context) |
-| US Treasury 2Y yield (%) | 4.557000160217285 | 2026-09-01 | +21.7% | up | no (context) |
-| Trade-weighted USD index (broad) | 99.79100036621094 | 2026-09-02 | +1.4% | up | no (context) |
-| VIX index level | 16.34000015258789 | 2026-09-01 | -4.8% | down | no (context) |
-| HYG vs TLT 1-month return spread (%) | -0.02 | 2026-09-01 | -100.4% | down | no (context) |
-| SPY 20-day realized vol (annualized %) | 7.07 | 2026-09-01 | -87.7% | down | no (context) |
+| High-yield OAS credit spread (%) | 0.84 | 2026-09-02 | -19.2% | down | no (context) |
+| US Treasury 10Y yield (%) | 4.788000106811523 | 2026-09-02 | +11.9% | up | no (context) |
+| US Treasury 2Y yield (%) | 4.546000003814697 | 2026-09-02 | +21.5% | up | no (context) |
+| Trade-weighted USD index (broad) | 99.51100158691406 | 2026-09-02 | +1.1% | up | no (context) |
+| VIX index level | 15.859999656677246 | 2026-09-02 | -7.6% | down | no (context) |
+| HYG vs TLT 1-month return spread (%) | 0.59 | 2026-09-02 | -80.4% | down | no (context) |
+| SPY 20-day realized vol (annualized %) | 7.09 | 2026-09-02 | -25.0% | down | no (context) |
 | AGI expert-horizon years ahead (public quotes) | 5.0 | 2026-06-01 | +0.0% | flat | no (context) |
 | Robotaxi expert-horizon years ahead (public quotes) | 2.0 | 2026-06-01 | +0.0% | flat | no (context) |
-| URA uranium miners ETF (USD) | 43.939998626708984 | 2026-09-01 | +8.2% | up | no (context) |
+| URA uranium miners ETF (USD) | 44.720001220703125 | 2026-09-02 | +10.1% | up | no (context) |
 | Hyperscaler capex guide (USD bn, latest) | 467.3 | 2026-09-02 | n/a | flat | no (context) |
 | US avg electricity price (cents/kWh) | 0.197 (stale) | 2026-07-01 | +4.2% | up | no (context) |
 | AGI expert-horizon years ahead (public quotes) | 5.0 | 2026-06-01 | +0.0% | flat | no (context) |

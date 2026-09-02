@@ -12,11 +12,11 @@
 
 | Insider | Date | Shares | Price | Value | Contrib |
 |---------|------|--------|-------|-------|---------|
-| CRANDALL ROGER W | 2026-08-11 | 1500 | $278.6206 | $417930.9 | 2.997 |
 | Paterson Eileen P. | 2026-04-28 | 556 | $305.71 | $169974.76 | 1.804 |
 | Harrington Charles L. | 2026-04-28 | 556 | $305.71 | $169974.76 | 1.804 |
 | Jamil Dhiaa M. | 2026-04-28 | 556 | $305.71 | $169974.76 | 1.777 |
 | Rimmer Nneka Louise | 2026-04-28 | 556 | $305.71 | $169974.76 | 1.547 |
+| Holzrichter Julie | 2026-04-28 | 556 | $305.71 | $169974.76 | 1.479 |
 
 **Routine / planned sales (context):**
 
