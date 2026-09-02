@@ -39,7 +39,7 @@ re_pass: false
 
 | # | Claim in dive | Dive cites | Filing value | Match? | Severity |
 |---|---------------|------------|--------------|--------|----------|
-| 1 | Latest revenue (filing) | — | **$25.53B** vs prior $23.57B (+8.3% YoY) | spot-check dive | — |
+| 1 | Latest revenue (filing) | — | **$25.53B** vs prior $5.52B (+362.4% YoY) | spot-check dive | — |
 | — | Stockholders' equity (filing) | — | **14517.0** | spot-check dive | — |
 | — | Net income (filing) | — | **2319.0** | spot-check dive | — |
 | — | EPS basic (filing) | — | **7.4** | spot-check dive | — |
@@ -50,9 +50,9 @@ re_pass: false
 
 | Check | Expected (valuation.json) | Found in dive | OK? |
 |-------|---------------------------|---------------|-----|
-| Returns statement | n/a | -27.36% | — |
+| Returns statement | n/a | None% | — |
 | Classification IRR | n/a | -27.36% | — |
-| Valuation bridge base | n/a | -27.36% | — |
+| Valuation bridge base | n/a | None% | — |
 
 ---
 
