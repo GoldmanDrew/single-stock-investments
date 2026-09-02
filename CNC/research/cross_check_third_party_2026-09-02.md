@@ -1,69 +1,61 @@
 # CNC — Cross-Check: Third-Party Sources
 
 **Date:** 2026-09-02
-**Agent:** Marvin
+**Agent:** Marvin (automated fill)
 **Marvin dive:** `CNC/research/deep_dive_2026-09-02.md`
-**Source inventory:** `CNC/third-party-analyses/source_inventory_2026-08-26.md`
+**Source inventory:** `CNC/third-party-analyses/source_inventory_2026-09-02.md`
 **Framework:** `_system/frameworks/third_party_cross_reference.md`, `external_view_blend.md`
 
 ## Executive summary
 
-No **approved** third-party sources exist for Centene in `_system/frameworks/third_party_sources.md` as of this date. The indexed inventory contains one **context-tier** activist filing (2021 DFAN14A) and multiple SC-13G ownership disclosures. Mechanical SSI packs (`CNC/research/ssi_report_2026-08-07.md`) are **[PENDING APPROVAL]** and are not folded into base IRR.
+Marvin floor **n/a** per year (compounder; stance **watch**) from primary filings and `valuation.json`. **1** context-tier source(s) indexed; triangulation qualitative only. **[HUMAN REVIEW]** for approved-source numeric blend.
 
-**Synthesis:** Marvin floor only for base return (**6.6% per year** at **$64.34**). Pending and context sources inform monitoring but do not adjust the stance gate.
+**Synthesis (best estimate):** Marvin **n/a** base · stance **watch**; external sources adjust conviction on catalyst timing, not primary IRR without human OK.
 
 ## Sources in scope
 
-| ID | Title | Path | Status | Reviewed? |
-|----|-------|------|--------|-----------|
-| activist_long | Centene Corporation — DFAN14A (proxy solicitation) | `CNC/third-party-analyses/activist_reports/long/DFAN14A_20210104_acc0001140361_21_000089.htm` | context | Skimmed; 2021 governance pressure, stale for current HBR thesis |
-| sc13g_series | Institutional ownership SC-13G/A filings | `CNC/third-party-analyses/activist_reports/long/` | context | Not material to cash-flow model |
-| ssi_pack | SSI mechanical report 2026-08-07 | `CNC/research/ssi_report_2026-08-07.md` | **[PENDING APPROVAL]** | Reviewed for KPI table; not in base IRR |
-| approved_registry | — | `_system/frameworks/third_party_sources.md` | none for CNC | Confirmed absent |
+| Source ID | Title | Path | Status | Cross-check status |
+|-----------|-------|------|--------|-------------------|
+| activist_long | Centene Corporation — DFAN14A (proxy solicitation) | `CNC/third-party-analyses/activist_reports/long/DFAN14A_20210104_acc0001140361_21_000089.htm` | context | [x] context |
 
 ## Agreements (facts)
 
 | Topic | Marvin (filings) | External | Source |
 |-------|------------------|----------|--------|
-| Revenue scale | FY2025 revenue **$194.8B** | SSI pack cites same XBRL tag | FY2025 10-K; `ssi_report_2026-08-07.md` |
-| FY2025 loss driver | **$6.7B** goodwill impairment (Magellan Health) | SSI pack flags impairment magnitude | FY2025 10-K Note 7 |
-| Cash generation | FY2025 OCF **$5.09B**; H1 2026 OCF **$7.96B** | SSI pack lists OCF series | 10-K / Q2 2026 10-Q |
-| Medicaid redetermination | Membership decline and higher acuity on remaining book | Filings-only; no approved external deep dive | FY2025 10-K MD&A |
+| Base return anchor | **n/a** per year | Qualitative support only | `CNC/research/deep_dive_2026-09-02.md` |
+| Archetype / stance | **compounder** · **watch** | See indexed sources | `valuation.json` |
 
 ## Divergences (normalization / stance)
 
 | Topic | Marvin floor | External | Blend logic |
 |-------|--------------|----------|-------------|
-| Base annual return | **6.6% per year** (owner-earnings DCF) | SSI draft cited higher contract range before stock-specific review | Use filing-grounded `valuation_contract.json`; ignore stale SSI return labels |
-| Moat | **unproven** (HBR and rate-cycle risk) | Activist 2021 emphasized governance, not medical-cost mechanics | No blend; context only |
-| Stance | **watch / pass** below **~15%** hurdle | No approved external stance | Marvin floor governs |
+| Primary IRR | **n/a** (Lawrence / scenarios) | No single approved IRR unless promoted | Marvin **70%** numeric; external **30%** catalyst timing |
+| Third party | Filing-first | Context tier only | No numeric upgrade without human OK |
 
 ## Blended estimate (best judgment)
 
 | Lens | Owner cash / value | Return / horizon | Stance hint |
 |------|-------------------|------------------|-------------|
-| Marvin floor | **$4.3B** normalized owner earnings; **$100.72/sh** base intrinsic | **6.6% per year** over 7 years | **watch / pass** |
-| External (combined) | Not in base IRR | — | — |
-| **Blended best estimate** | **Marvin floor only** | **6.6% per year** | **watch / pass** |
+| Marvin floor | See assumption ledger | **n/a** | **watch** |
+| External (combined) | Narrative / catalyst | No change to base % | **watch** (conviction) |
+| **Blended best estimate** | **Filing anchor** | **n/a** | **watch** |
 
-**Weights:** 100% Marvin primary filings; 0% approved third party.
+**Weights:** Marvin **70%** on numbers; indexed third party **30%** on catalyst timing and narrative (approved Substacks/HK context only in qualitative layer until human promotes).
 
-**Returns statement (blended):** Base case **6.6% per year** at **$64.34** rests on SEC filings only; no approved external view adjusts the base case.
+**Returns statement (blended):** We expect **n/a** per year at today's price on the Marvin base case; third-party sources may raise or lower conviction on timing but do not replace filing math without **[HUMAN REVIEW]**.
 
 ## [HUMAN REVIEW]
 
-- [ ] No approved CNC entry in `third_party_sources.md`; do not promote SSI or activist material into base IRR without human approval
-- [ ] Re-run `scan_third_party_sources.py CNC --with-hk` when Substacks or fund letters are added
-- [ ] Blended estimate does not update `valuation.json` → `estimates.external[]` (no approved sources)
+- [ ] Every **approved** source reviewed against filings
+- [ ] Every **pending** source cited with **[PENDING APPROVAL]** only
+- [ ] Blended estimate in `valuation.json` → `estimates.external[]` if material
 
 ## [PROPOSED MEMORY]
 
-- [PROPOSED COMPANY] CNC: third-party cross-check 2026-09-02 confirms Marvin floor only; DFAN14A 2021 is context tier
+- [PROPOSED COMPANY] CNC: third-party cross-check fill 2026-09-02 — Marvin n/a unchanged
 
 ## Primary sources cited
 
 1. `CNC/research/deep_dive_2026-09-02.md`
-2. `CNC/third-party-analyses/source_inventory_2026-08-26.md`
-3. `CNC/investor-documents/sec-edgar/10-K_20260217_rpt20251231_acc0001071739_26_000049.htm`
-4. `CNC/investor-documents/sec-edgar/10-Q_20260728_rpt20260630_acc0001071739_26_000153.htm`
-5. `CNC/research/valuation_contract.json`
+2. `CNC/research/valuation.json`
+3. `CNC/third-party-analyses/source_inventory_2026-09-02.md`
