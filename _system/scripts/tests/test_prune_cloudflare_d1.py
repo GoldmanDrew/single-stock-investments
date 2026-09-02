@@ -115,6 +115,42 @@ def test_time_retention_prunes_only_rows_older_than_policy():
     ).fetchall() == [("2999-01-01T00:00:00Z",)]
 
 
+def test_time_retention_preserves_stale_current_risk_snapshot():
+    connection = sqlite3.connect(":memory:")
+    migrations = ROOT / "dashboard/cloudflare/migrations"
+    for name in (
+        "0005_criticality_monitor.sql",
+        "0006_market_risk_components.sql",
+        "0008_portfolio_hub.sql",
+        "0014_d1_read_efficiency.sql",
+    ):
+        connection.executescript((migrations / name).read_text(encoding="utf-8"))
+    values = (
+        "market", "SPY", "multi", "model", "none", 10, 0, 0, 0,
+        0, 0, "source", "eod", "ready", "{}",
+    )
+    for date in ("2020-01-01", "2020-01-02"):
+        connection.execute(
+            """INSERT INTO criticality_snapshots
+            (scope,symbol,as_of,horizon,model_version,direction,criticality_score,
+             positive_confidence,negative_confidence,qualified_confidence,
+             fit_count,qualified_count,source,entitlement_mode,quality_state,payload_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            values[:2] + (date,) + values[2:],
+        )
+
+    changes = pruner.prune_time_series(
+        execute_on(connection),
+        pruner.table_names(connection),
+        policies=(("criticality_snapshots", "as_of", 14),),
+    )
+
+    assert changes == {"criticality_snapshots": 1}
+    assert connection.execute(
+        "SELECT as_of FROM criticality_snapshots"
+    ).fetchall() == [("2020-01-02",)]
+
+
 def test_deploy_prunes_before_migrations_so_a_full_database_can_recover():
     action = (
         ROOT / ".github/actions/deploy-cloudflare-dashboard/action.yml"

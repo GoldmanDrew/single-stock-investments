@@ -1,6 +1,11 @@
 name: Deploy Dashboard (Cloudflare Pages)
 
 on:
+  # Free-tier D1 quotas reset at 00:00 UTC. A shortly-after-reset deployment
+  # guarantees retention and pending efficiency migrations still run even if a
+  # daytime deployment was blocked by that day's quota.
+  schedule:
+    - cron: "15 0 * * *"
   push:
     branches: [main]
     paths:
