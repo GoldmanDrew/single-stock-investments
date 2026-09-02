@@ -87,44 +87,41 @@ export function parseComponent(row) {
 }
 
 export const LATEST_CRITICALITY_SQL = `
-  SELECT *
-  FROM (
-    SELECT c.*,
-      ROW_NUMBER() OVER (
-        PARTITION BY c.scope, c.symbol, c.horizon
-        ORDER BY c.as_of DESC, c.created_at DESC
-      ) AS row_number
-    FROM criticality_snapshots c
-  )
-  WHERE row_number = 1
+  SELECT c.*
+  FROM market_risk_latest_refs latest
+  JOIN criticality_snapshots c
+    ON c.scope = latest.scope
+   AND c.symbol = latest.symbol
+   AND c.horizon = latest.qualifier
+   AND c.as_of = latest.as_of
+   AND c.model_version = latest.model_version
+  WHERE latest.series = 'criticality'
   ORDER BY
-    CASE scope WHEN 'market' THEN 0 WHEN 'sector' THEN 1 ELSE 2 END,
-    symbol
+    CASE c.scope WHEN 'market' THEN 0 WHEN 'sector' THEN 1 ELSE 2 END,
+    c.symbol
 `;
 
 export const LATEST_FLOW_SQL = `
-  SELECT *
-  FROM (
-    SELECT f.*,
-      ROW_NUMBER() OVER (
-        PARTITION BY f.scope, f.symbol
-        ORDER BY f.as_of DESC, f.created_at DESC
-      ) AS row_number
-    FROM flow_stress_snapshots f
-  )
-  WHERE row_number = 1
+  SELECT f.*
+  FROM market_risk_latest_refs latest
+  JOIN flow_stress_snapshots f
+    ON f.scope = latest.scope
+   AND f.symbol = latest.symbol
+   AND f.as_of = latest.as_of
+   AND f.model_version = latest.model_version
+  WHERE latest.series = 'flow'
 `;
 
 export const LATEST_COMPONENTS_SQL = `
-  SELECT *
-  FROM (
-    SELECT c.*,
-      ROW_NUMBER() OVER (
-        PARTITION BY c.component, c.scope, c.symbol
-        ORDER BY c.as_of DESC, c.created_at DESC
-      ) AS row_number
-    FROM market_risk_component_snapshots c
-  )
-  WHERE row_number = 1
-  ORDER BY component, scope, symbol
+  SELECT c.*
+  FROM market_risk_latest_refs latest
+  JOIN market_risk_component_snapshots c
+    ON c.component = latest.qualifier
+   AND c.scope = latest.scope
+   AND c.symbol = latest.symbol
+   AND c.as_of = latest.as_of
+   AND c.source = latest.source
+   AND c.model_version = latest.model_version
+  WHERE latest.series = 'component'
+  ORDER BY c.component, c.scope, c.symbol
 `;

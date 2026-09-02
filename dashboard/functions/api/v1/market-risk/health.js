@@ -14,12 +14,13 @@ export async function onRequestGet(context) {
       `),
       db.prepare(`
         SELECT
-          (SELECT COUNT(*) FROM criticality_snapshots) AS criticality_count,
-          (SELECT COUNT(*) FROM flow_stress_snapshots) AS flow_count,
-          (SELECT COUNT(*) FROM market_risk_component_snapshots) AS component_count,
-          (SELECT MAX(as_of) FROM criticality_snapshots) AS latest_criticality_at,
-          (SELECT MAX(as_of) FROM flow_stress_snapshots) AS latest_flow_at,
-          (SELECT MAX(as_of) FROM market_risk_component_snapshots) AS latest_component_at
+          COUNT(CASE WHEN series='criticality' THEN 1 END) AS criticality_count,
+          COUNT(CASE WHEN series='flow' THEN 1 END) AS flow_count,
+          COUNT(CASE WHEN series='component' THEN 1 END) AS component_count,
+          MAX(CASE WHEN series='criticality' THEN as_of END) AS latest_criticality_at,
+          MAX(CASE WHEN series='flow' THEN as_of END) AS latest_flow_at,
+          MAX(CASE WHEN series='component' THEN as_of END) AS latest_component_at
+        FROM market_risk_latest_refs
       `),
       db.prepare(`
         SELECT

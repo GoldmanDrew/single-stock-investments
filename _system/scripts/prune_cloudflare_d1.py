@@ -51,6 +51,36 @@ DEFAULT_TIME_POLICIES = (
     ("market_structure_snapshots", "as_of_date", 3650),
 )
 
+LATEST_REF_GUARDS = {
+    "criticality_snapshots": """NOT EXISTS (
+      SELECT 1 FROM market_risk_latest_refs latest
+      WHERE latest.series='criticality'
+        AND latest.scope=criticality_snapshots.scope
+        AND latest.symbol=criticality_snapshots.symbol
+        AND latest.qualifier=criticality_snapshots.horizon
+        AND latest.as_of=criticality_snapshots.as_of
+        AND latest.model_version=criticality_snapshots.model_version
+    )""",
+    "flow_stress_snapshots": """NOT EXISTS (
+      SELECT 1 FROM market_risk_latest_refs latest
+      WHERE latest.series='flow'
+        AND latest.scope=flow_stress_snapshots.scope
+        AND latest.symbol=flow_stress_snapshots.symbol
+        AND latest.as_of=flow_stress_snapshots.as_of
+        AND latest.model_version=flow_stress_snapshots.model_version
+    )""",
+    "market_risk_component_snapshots": """NOT EXISTS (
+      SELECT 1 FROM market_risk_latest_refs latest
+      WHERE latest.series='component'
+        AND latest.scope=market_risk_component_snapshots.scope
+        AND latest.symbol=market_risk_component_snapshots.symbol
+        AND latest.qualifier=market_risk_component_snapshots.component
+        AND latest.as_of=market_risk_component_snapshots.as_of
+        AND latest.model_version=market_risk_component_snapshots.model_version
+        AND latest.source=market_risk_component_snapshots.source
+    )""",
+}
+
 
 def table_names(connection: sqlite3.Connection) -> set[str]:
     """Return SQLite table names; kept small so policy tests use real SQL."""
@@ -138,12 +168,15 @@ def prune_time_series(
     for table, column, days in policies:
         if table not in existing_tables:
             continue
+        guard = ""
+        if "market_risk_latest_refs" in existing_tables and table in LATEST_REF_GUARDS:
+            guard = f" AND {LATEST_REF_GUARDS[table]}"
         total = 0
         for _ in range(max_batches):
             changed = execute(
                 f"DELETE FROM {table} WHERE rowid IN ("
                 f"SELECT rowid FROM {table} "
-                f"WHERE {column} < datetime('now', '-{int(days)} days') "
+                f"WHERE {column} < datetime('now', '-{int(days)} days'){guard} "
                 f"LIMIT {int(batch_size)})"
             )
             total += changed
