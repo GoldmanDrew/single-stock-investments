@@ -16,6 +16,7 @@ LETTERS_REF_PREFIX = "_system/reference/superinvestor-letters"
 WISDOM_REF_PREFIX = "_system/reference/investment-wisdom"
 SUMZERO_REF_PREFIX = "_system/reference/sumzero-research"
 PODCASTS_REF_PREFIX = "_system/reference/podcasts"
+VIDEOS_REF_PREFIX = "_system/reference/video"
 
 # Legacy in-repo locations (pre-split); used only when vault is unavailable.
 LEGACY_LETTERS = ROOT / "_system" / "reference" / "superinvestor-letters"
@@ -134,6 +135,11 @@ def podcasts_ref(relative: str | Path = "") -> str:
     return f"{PODCASTS_REF_PREFIX}/{rel}" if rel else PODCASTS_REF_PREFIX
 
 
+def videos_ref(relative: str | Path = "") -> str:
+    rel = str(relative).replace("\\", "/").lstrip("/")
+    return f"{VIDEOS_REF_PREFIX}/{rel}" if rel else VIDEOS_REF_PREFIX
+
+
 def resolve_ref_to_path(ref: str | None) -> Path | None:
     """Map a logical repo ref to a filesystem path under vault or legacy tree."""
     if not ref:
@@ -158,6 +164,12 @@ def resolve_ref_to_path(ref: str | None) -> Path | None:
         if config_candidate.exists():
             return config_candidate
         return podcasts_root() / suffix if suffix else podcasts_root()
+    if base.startswith(VIDEOS_REF_PREFIX + "/") or base == VIDEOS_REF_PREFIX:
+        suffix = base[len(VIDEOS_REF_PREFIX) :].lstrip("/")
+        config_candidate = ROOT / base
+        if config_candidate.exists():
+            return config_candidate
+        return videos_root() / suffix if suffix else videos_root()
     candidate = ROOT / base
     return candidate if candidate.exists() else None
 
@@ -197,6 +209,21 @@ def path_to_podcasts_ref(path: Path) -> str | None:
         try:
             rel = resolved.relative_to(root.resolve())
             return podcasts_ref(rel.as_posix())
+        except ValueError:
+            continue
+    return None
+
+
+def path_to_videos_ref(path: Path) -> str | None:
+    """Map a video-vault path to the stable logical video reference."""
+    try:
+        resolved = path.resolve()
+    except OSError:
+        resolved = path
+    for root in (videos_root(), LEGACY_VIDEOS):
+        try:
+            rel = resolved.relative_to(root.resolve())
+            return videos_ref(rel.as_posix())
         except ValueError:
             continue
     return None

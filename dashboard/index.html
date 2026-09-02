@@ -1935,6 +1935,7 @@ const INSIGHT_SOURCE_LABEL = {
   earnings: 'earnings',
   insider: 'insider',
   superinvestor_letter: 'letter',
+  video_research: 'video',
   sumzero_research: 'SumZero',
   company_document: 'company',
   news: 'news',
@@ -2099,7 +2100,7 @@ let insightsEventLastSeenAt = (() => {
   try { return localStorage.getItem(INSIGHTS_EVENT_LAST_SEEN_KEY); } catch (_) { return null; }
 })();
 const INSIGHTS_LIVE_SECTIONS = new Set([
-  'letters', 'podcasts', 'inflections', 'events', 'index_watch', 'consensus',
+  'letters', 'podcasts', 'videos', 'inflections', 'events', 'index_watch', 'consensus',
   'funds', 'documents', 'tickers', 'memory', 'sources',
 ]);
 let insightsSection = (() => {
@@ -2254,7 +2255,7 @@ function parseRouteFromHashString(hash) {
     const sub = ideasMatch[1].toLowerCase();
     return { view: sub === 'short-alpha' || sub === 'warrants' ? sub : 'watchlist', ticker: null, watchlistSub: sub };
   }
-  const insightsMatch = /^#\/insights\/(overview|activism|data-health|letters|podcasts|inflections|events|index-watch|consensus|funds|documents|tickers|memory|sources)$/i.exec(hash || '');
+  const insightsMatch = /^#\/insights\/(overview|activism|data-health|letters|podcasts|videos|inflections|events|index-watch|consensus|funds|documents|tickers|memory|sources)$/i.exec(hash || '');
   if (insightsMatch) {
     const section = insightsMatch[1].toLowerCase();
     return { view: section === 'activism' ? 'activist' : 'insights', insightsSection: section === 'data-health' ? 'sources' : section === 'overview' ? 'events' : section.replace('-', '_'), ticker: null, watchlistSub: null };
@@ -3163,6 +3164,7 @@ function loadLazyFile(key) {
 const INSIGHTS_SECTION_SHARDS = {
   letters: ['letters', 'registry'],
   podcasts: ['podcasts'],
+  videos: ['videos'],
   events: ['events'],
   consensus: ['consensus', 'profiles', 'letters'],
   funds: ['registry', 'profiles'],

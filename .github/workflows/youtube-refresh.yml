@@ -1,0 +1,77 @@
+name: YouTube Research Refresh
+
+on:
+  # Daily, off the main data-writer window. Caption retrieval intentionally
+  # runs on a dedicated host with stable egress; hosted datacenter IPs are the
+  # source of the current IpBlocked failures.
+  schedule:
+    - cron: "17 5 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-research-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    # Register the dedicated Linux runner with the `youtube-egress` label.
+    # This keeps caption traffic on a stable office/residential IP and keeps
+    # Whisper audio local to the machine; temporary audio is never committed.
+    runs-on: [self-hosted, linux, youtube-egress]
+    timeout-minutes: 300
+    env:
+      RESEARCH_VAULT_REPO_URL: ${{ secrets.RESEARCH_VAULT_REPO_URL }}
+      RESEARCH_VAULT_CLONE_TOKEN: ${{ secrets.RESEARCH_VAULT_CLONE_TOKEN }}
+      RESEARCH_VAULT_ROOT: _external/research-vault
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      CAPTION_MIN_INTERVAL: "150"
+      CAPTION_JITTER: "45"
+      CAPTION_MAX_PER_HOUR: "20"
+      CAPTION_MAX_PER_DAY: "120"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 200
+
+      - name: Checkout research vault
+        uses: ./.github/actions/checkout-vault
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install video transcript dependencies
+        run: python -m pip install -r _system/scripts/requirements-video-whisper.txt
+
+      - name: Discover and collect paced captions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python _system/scripts/discover_videos.py
+          python _system/scripts/fetch_video_transcript.py --daemon --hours 1
+
+      - name: Route no-caption videos through local Whisper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python _system/scripts/video_whisper_backfill.py --batch 4
+          python _system/scripts/score_video_relevance.py
+          python _system/scripts/build_video_insights.py
+
+      - name: Commit YouTube corpus to research vault
+        uses: ./.github/actions/commit-vault
+        with:
+          message: "chore(videos): transcript refresh"
+          git_add: "videos"
+
+      - name: Publish admitted video shard
+        run: python _system/scripts/publish_video_dashboard.py
+
+      - name: Commit video catalog to main
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore(videos): publish admitted research"
+          git_add: "dashboard/data/insights/manifest.json dashboard/data/insights/videos.json _system/reference/video/insights_index_mirror.json"

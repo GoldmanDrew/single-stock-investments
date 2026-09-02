@@ -837,6 +837,75 @@
       ${list.length > 100 ? `<p class="tier-sub">${list.length - 100} more episodes — refine search</p>` : ''}`;
   }
 
+  function renderVideoIndex(rows, byChannel, escapeHtml, linkHtml, opts = {}) {
+    const { bookOnly = false, search = '', period = null, statusCounts = {} } = opts;
+    let list = Array.isArray(rows) ? rows.slice() : [];
+    if (period) list = list.filter(r => periodMatchesRecord(r, period, ['published']));
+    if (bookOnly) list = list.filter(r => (r.tickers || []).length);
+    if (search) {
+      const query = String(search).toLowerCase();
+      list = list.filter(r => [
+        r.channel_title, r.title, (r.tickers || []).join(' '),
+        (r.people || []).join(' '), (r.routes || []).join(' '), r.transcript_preview,
+      ].join(' ').toLowerCase().includes(query));
+    }
+
+    const channels = Object.keys(byChannel || {}).length;
+    const newest = (rows || []).reduce(
+      (latest, row) => String(row.published || '') > latest ? String(row.published) : latest,
+      '',
+    );
+    const openCaptions = Number(statusCounts.pending || 0);
+    const openWhisper = Number(statusCounts.whisper_pending || 0);
+    const formatDuration = (seconds) => {
+      const total = Number(seconds || 0);
+      if (!total) return '—';
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.round((total % 3600) / 60);
+      return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+    };
+
+    return `
+      <section class="video-research" aria-labelledby="video-research-title">
+        <div class="video-research-head">
+          <div><strong id="video-research-title">Transcript-gated video research</strong><span>Only videos that pass the spoken-content relevance gate appear here.</span></div>
+          <span class="video-freshness">Latest ${escapeHtml(newest ? newest.slice(0, 10) : '—')}</span>
+        </div>
+        <div class="video-screening-tape" aria-label="Video research screening status">
+          <div><strong>${(rows || []).length}</strong><span>admitted</span></div>
+          <div><strong>${channels}</strong><span>channels</span></div>
+          <div><strong>${openCaptions}</strong><span>caption queue</span></div>
+          <div><strong>${openWhisper}</strong><span>Whisper queue</span></div>
+        </div>
+        ${list.length ? `<div class="video-research-list">
+          ${list.slice(0, 80).map(r => {
+            const tickers = (r.tickers || []).slice(0, 8);
+            const people = (r.people || []).slice(0, 4);
+            const source = r.transcript_source === 'local_whisper' ? 'Local Whisper' : 'Published captions';
+            return `<article class="video-research-row">
+              <div class="video-research-topline">
+                <span>${escapeHtml(r.channel_title || r.channel_id || 'YouTube')}</span>
+                <span class="video-source-mark">${escapeHtml(source)}</span>
+                <time>${escapeHtml((r.published || '—').slice(0, 10))}</time>
+              </div>
+              <h3>${escapeHtml(r.title || 'Untitled video')}</h3>
+              <div class="video-research-tags">
+                ${tickers.map(t => `<button type="button" class="linkish mono" data-select-ticker="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
+                ${people.map(person => `<span>${escapeHtml(person)}</span>`).join('')}
+                ${!tickers.length && !people.length ? '<span>research method</span>' : ''}
+              </div>
+              <p>${escapeHtml(r.transcript_preview || 'Transcript admitted; open the source video for the full discussion.')}</p>
+              <footer>
+                <span>${escapeHtml(formatDuration(r.duration_seconds))}${r.views ? ` · ${escapeHtml(String(r.views))} views` : ''}${(r.routes || []).length ? ` · ${escapeHtml((r.routes || []).join(', ').replace(/_/g, ' '))}` : ''}</span>
+                ${r.link ? linkHtml(r.link, 'Watch source ↗', 'source-open-link') : ''}
+              </footer>
+            </article>`;
+          }).join('')}
+        </div>${list.length > 80 ? `<p class="tier-sub video-more-count">${list.length - 80} more videos — refine search</p>` : ''}`
+        : `<div class="event-empty"><strong>No admitted videos match this view.</strong><span>${(rows || []).length ? 'Widen the date or ticker filters.' : 'The scheduled collection lane has not published an admitted transcript yet.'}</span></div>`}
+      </section>`;
+  }
+
   function renderLetterIndex(rows, escapeHtml, linkHtml, ghRepo, onFundClick, positionStats, period, timeModel, bookOnly) {
     if (!rows?.length) {
       return renderPeriodEmptyState('letters', period, timeModel, escapeHtml);
@@ -5025,6 +5094,7 @@
     const sections = [
       { id: 'letters', label: 'Letters' },
       { id: 'podcasts', label: 'Podcasts' },
+      { id: 'videos', label: 'Videos' },
       { id: 'inflections', label: 'Inflections' },
       { id: 'events', label: 'What changed' },
       { id: 'index_watch', label: 'Index Watch' },
@@ -5037,7 +5107,7 @@
     ];
     const sectionGroups = [
       { label: 'Signals', ids: ['events', 'inflections', 'index_watch'] },
-      { label: 'Sources', ids: ['letters', 'podcasts', 'funds', 'documents'] },
+      { label: 'Sources', ids: ['letters', 'podcasts', 'videos', 'funds', 'documents'] },
       { label: 'Synthesis', ids: ['consensus', 'tickers'] },
       { label: 'Memory & health', ids: ['memory', 'sources'] },
     ];
@@ -5112,6 +5182,19 @@
           episodeDetailLoading: podcastEpisodeDetailLoading,
         },
       );
+    } else if (activeSection === 'videos') {
+      body = renderVideoIndex(
+        insights?.video_index || [],
+        insights?.video_by_channel || {},
+        escapeHtml,
+        linkHtml,
+        {
+          bookOnly,
+          search: fundSearch,
+          period,
+          statusCounts: insights?.video_status_counts || {},
+        },
+      );
 } else if (activeSection === 'funds') {
       body = renderFundRegistry(funds, escapeHtml, linkHtml, ghRepo, bookOnly);
     } else if (activeSection === 'documents') {
@@ -5182,7 +5265,7 @@
     return `
       <h2 style="font-size:18px;margin-bottom:6px">Insights</h2>
       <p class="subhead" style="margin-bottom:14px">
-        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
+        Portfolio context only · ${insights?.event_count || 0} events · ${insights?.letter_count || 0} letters · ${insights?.podcast_count || 0} podcasts · ${insights?.video_count || 0} videos · ${insights?.front_record_count || 0} front records · ${insights?.archived_record_count || 0} archived
       </p>
       <nav class="insights-section-groups" id="insights-section-tabs" aria-label="Insights workbench" style="margin-bottom:10px">
         ${sectionGroups.map(group => `<div class="insights-section-group"><span>${group.label}</span><div>${group.ids.map(id => sections.find(section => section.id === id)).filter(Boolean).map(s => `<button type="button" class="view-tab${activeSection === s.id ? ' active' : ''}" data-insights-section="${s.id}">${s.label}</button>`).join('')}</div></div>`).join('')}
@@ -5210,11 +5293,13 @@
             <input type="checkbox" id="insights-book-only" ${bookOnly ? 'checked' : ''} />
             ${escapeHtml(bookLabel)}
           </label>` : ''}
-          <input class="search" id="fund-registry-search" placeholder="${activeSection === 'podcasts' ? 'Search show, guest, ticker, theme...' : 'Search ticker, event, fund, theme, source...'}" value="${escapeHtml(fundSearch)}" style="max-width:320px" />
+          <input class="search" id="fund-registry-search" placeholder="${activeSection === 'podcasts' ? 'Search show, guest, ticker, theme...' : activeSection === 'videos' ? 'Search video, channel, investor, ticker...' : 'Search ticker, event, fund, theme, source...'}" value="${escapeHtml(fundSearch)}" style="max-width:320px" />
         </div>` : ''}
         ${showPeriodControls && activeSection !== 'consensus' ? `<div class="tier-sub">
           Viewing ${escapeHtml(period.label)} &middot; ${activeSection === 'podcasts'
             ? `${(insights?.podcast_index || []).length} indexed episode(s) · ${Object.keys(insights?.podcast_by_show || {}).length} show(s)`
+            : activeSection === 'videos'
+            ? `${(insights?.video_index || []).length} admitted video(s) · ${Object.keys(insights?.video_by_channel || {}).length} channel(s)`
             : `${coverage.quarters} quarter(s) &middot; ${coverage.letters} indexed letter(s)${coverage.drivePdfCount ? ` &middot; ${coverage.drivePdfCount} catalog PDF(s)` : ''} &middot; ${coverage.funds} fund row(s)${coverage.folderCount ? ` &middot; ${coverage.folderCount} Drive source folder(s)` : ''}${coverage.letters === 0 && coverage.drivePdfCount > 0 ? ' &middot; <span style="color:var(--accent-amber)">PDFs cataloged — run make letter-extract-text</span>' : ''}${period.id === 'latest' && timeModel.latestCatalogQuarter && timeModel.latestIndexedQuarter && timeModel.latestCatalogQuarter !== timeModel.latestIndexedQuarter ? ` &middot; <span style="color:var(--text-muted)">Latest indexed: ${escapeHtml(quarterLabel(timeModel.latestIndexedQuarter))}</span>` : ''}`}
         </div>` : ''}
       </div>

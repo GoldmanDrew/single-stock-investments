@@ -162,6 +162,11 @@ class CorpusShapeTests(unittest.TestCase):
             self.assertEqual(doc.get("transcript_source"), "youtube_captions")
             self.assertNotIn("audio_url", doc)
 
+    def test_transcript_paths_are_portable(self):
+        for m in self.metas:
+            doc = json.loads(m.read_text(encoding="utf-8"))
+            self.assertFalse(Path(doc.get("transcript_path") or "").is_absolute(), m.name)
+
     def test_every_stored_transcript_passes_its_own_gate(self):
         for m in self.metas:
             doc = json.loads(m.read_text(encoding="utf-8"))

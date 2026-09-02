@@ -32,7 +32,9 @@ from vault_paths import (  # noqa: E402
     letters_root,
     path_to_letters_ref,
     path_to_podcasts_ref,
+    path_to_videos_ref,
     podcasts_root,
+    videos_root,
 )
 from fund_families import (  # noqa: E402
     collapse_display_label,
@@ -58,6 +60,8 @@ LETTERS_INSIGHTS = letters_root() / "insights.json"
 PODCASTS_INSIGHTS = podcasts_root() / "insights.json"
 PODCASTS_INSIGHTS_INDEX_MIRROR = ROOT / "_system" / "reference" / "podcasts" / "insights_index_mirror.json"
 PODCASTS_INSIGHTS_MIRROR = ROOT / "_system" / "reference" / "podcasts" / "insights_mirror.json"  # legacy full clone
+VIDEOS_INSIGHTS = videos_root() / "insights.json"
+VIDEOS_INSIGHTS_INDEX_MIRROR = ROOT / "_system" / "reference" / "video" / "insights_index_mirror.json"
 # Full letter corpus is built offline (letter-backfill) and committed in dashboard/data/.
 # CI vault clones often lag; never regress below this floor on deploy rebuilds.
 MIN_LETTER_CORPUS = 15000
@@ -94,6 +98,7 @@ SOURCE_META = {
     "tracked_fund_13f": {"label": "Tracked Fund 13F", "materiality": 0.84, "quality": 0.9, "axis": "ownership"},
     "superinvestor_letter": {"label": "Letter", "materiality": 0.8, "quality": 0.82, "axis": "ownership"},
     "podcast_episode": {"label": "Podcast", "materiality": 0.72, "quality": 0.75, "axis": "variant_view"},
+    "video_research": {"label": "Video", "materiality": 0.72, "quality": 0.75, "axis": "variant_view"},
     "sumzero_research": {"label": "SumZero", "materiality": 0.64, "quality": 0.68, "axis": "variant_view"},
     "reddit_mention": {"label": "Reddit", "materiality": 0.42, "quality": 0.4, "axis": "context"},
     "news": {"label": "News", "materiality": 0.72, "quality": 0.7, "axis": "catalyst"},
@@ -350,7 +355,7 @@ def relative_path(path: Path) -> str:
     try:
         return str(path.relative_to(ROOT)).replace("\\", "/")
     except ValueError:
-        ref = path_to_letters_ref(path) or path_to_podcasts_ref(path)
+        ref = path_to_letters_ref(path) or path_to_podcasts_ref(path) or path_to_videos_ref(path)
         if ref:
             return ref
         return str(path).replace("\\", "/")
@@ -367,8 +372,8 @@ def source_document_ref(ref: str | None) -> str | None:
         return clean
     base = clean.split("#", 1)[0].replace("\\", "/")
     suffix = f"#{clean.split('#', 1)[1]}" if "#" in clean else ""
-    # Podcast transcripts live in the vault; keep logical .txt/.meta refs (no PDF twin).
-    if base.startswith("_system/reference/podcasts/"):
+    # Podcast/video transcripts live in the vault; keep logical text refs (no PDF twin).
+    if base.startswith(("_system/reference/podcasts/", "_system/reference/video/")):
         return base + suffix
     path = ROOT / base
     if "superinvestor-letters" in base and path.suffix.lower() in {".txt", ".md"}:
@@ -483,6 +488,7 @@ DISCUSSANT_REGRESSION_RATIO = 0.75
 # rebuilding from a vault it never cloned -- the 3,711 -> 3,601 regression on
 # 2026-08-20 was 97%, which is why the threshold sits close to 1.
 PODCAST_REGRESSION_RATIO = 0.98
+VIDEO_REGRESSION_RATIO = 0.98
 
 
 def prior_discussant_count(prior: dict | None) -> int:
@@ -1069,6 +1075,69 @@ def podcast_by_show(doc: dict) -> dict:
             profile["episode_ids"].append(eid)
         profile["episode_count"] = len(profile["episode_ids"])
     return by
+
+
+def load_video_insights_doc() -> dict:
+    """Prefer the live vault catalog and fall back to its committed slim mirror."""
+    for path in (VIDEOS_INSIGHTS, VIDEOS_INSIGHTS_INDEX_MIRROR):
+        doc = load_json(path)
+        if isinstance(doc, dict) and (doc.get("video_index") or doc.get("video_count")):
+            return doc
+    return {"video_index": [], "video_by_channel": {}, "video_count": 0}
+
+
+def video_index_rows(doc: dict) -> list[dict]:
+    return list(doc.get("video_index") or [])
+
+
+def video_by_channel(doc: dict) -> dict:
+    if isinstance(doc.get("video_by_channel"), dict):
+        return dict(doc["video_by_channel"])
+    grouped: dict[str, dict] = {}
+    for row in video_index_rows(doc):
+        channel_id = row.get("channel_id") or "unknown"
+        profile = grouped.setdefault(channel_id, {
+            "channel_id": channel_id,
+            "channel_title": row.get("channel_title") or channel_id,
+            "video_count": 0,
+            "video_ids": [],
+        })
+        if row.get("video_id"):
+            profile["video_ids"].append(row["video_id"])
+        profile["video_count"] = len(profile["video_ids"])
+    return grouped
+
+
+def from_video_research(doc: dict) -> list[dict]:
+    """Fan admitted video discussions into ticker insights."""
+    out: list[dict] = []
+    for row in video_index_rows(doc):
+        channel = row.get("channel_title") or row.get("channel_id") or "YouTube"
+        for ticker in row.get("tickers") or []:
+            out.append(
+                insight_record(
+                    source="video_research",
+                    as_of=row.get("published"),
+                    scope="ticker",
+                    ref=ticker,
+                    claim=f"{channel}: {row.get('title') or ticker}",
+                    direction="neutral",
+                    evidence_ref=row.get("source_document"),
+                    evidence_url=row.get("link"),
+                    evidence_label="Watch video",
+                    event_type="video_company",
+                    impact_axis="variant_view",
+                    channel=channel,
+                    channel_id=row.get("channel_id"),
+                    video_id=row.get("video_id"),
+                    title=row.get("title"),
+                    people=row.get("people") or [],
+                    transcript_source=row.get("transcript_source"),
+                    commentary=row.get("transcript_preview") or "",
+                    in_base_irr=False,
+                )
+            )
+    return out
 
 
 def from_valuation_context(ticker: str, val: dict) -> list[dict]:
@@ -3245,6 +3314,25 @@ def build_source_health(
                 ),
             }
         )(load_podcast_insights_doc()),
+        "videos": (
+            lambda _video: {
+                "status": "ok" if (_video.get("video_index") or []) else (
+                    "missing"
+                    if not VIDEOS_INSIGHTS.exists() and not VIDEOS_INSIGHTS_INDEX_MIRROR.exists()
+                    else "empty"
+                ),
+                "records": counts.get("video_research", 0),
+                "items": len(_video.get("video_index") or []),
+                "video_count": _video.get("video_count") or len(_video.get("video_index") or []),
+                "as_of": newest_as_of([
+                    row.get("published") for row in (_video.get("video_index") or [])
+                ]),
+                "notes": "admitted transcript-gated YouTube research",
+                "path": relative_path(
+                    VIDEOS_INSIGHTS if VIDEOS_INSIGHTS.exists() else VIDEOS_INSIGHTS_INDEX_MIRROR
+                ),
+            }
+        )(load_video_insights_doc()),
         "portfolio_news": {
             "status": "ok" if news_doc else "missing",
             "records": counts.get("news", 0),
@@ -3527,6 +3615,8 @@ def main() -> int:
 
     podcasts_doc = load_podcast_insights_doc()
     records.extend(from_podcast_episodes(podcasts_doc))
+    videos_doc = load_video_insights_doc()
+    records.extend(from_video_research(videos_doc))
 
     front_tickers = portfolio_tickers(include_watchlist=True)
     holdings_tickers = our_holdings_tickers()
@@ -3629,6 +3719,7 @@ def main() -> int:
         "event_count": len(events),
         "letter_count": letter_count_value,
         "podcast_count": len(podcasts_doc.get("episodes") or []),
+        "video_count": len(videos_doc.get("video_index") or []),
         "source_health": source_health,
         "data_source_candidates": terminalvalue_doc or {},
         "provenance": build_provenance(
@@ -3645,6 +3736,10 @@ def main() -> int:
         "letter_index": letter_index(letters, front_tickers),
         "podcast_index": podcast_index_rows(podcasts_doc),
         "podcast_by_show": podcast_by_show(podcasts_doc),
+        "video_index": video_index_rows(videos_doc),
+        "video_by_channel": video_by_channel(videos_doc),
+        "video_status_counts": videos_doc.get("status_counts") or {},
+        "video_newest_published": videos_doc.get("newest_published"),
         "consensus": build_consensus(letters, front_tickers, security_names()),
         "fund_registry": fund_registry(letters, front_tickers),
         "fund_profiles": fund_profiles(letters, front_tickers),
@@ -3721,6 +3816,25 @@ def main() -> int:
             f"PRESERVE podcast_index: rebuild yielded {len(new_podcasts)} episodes vs prior "
             f"{len(prior_podcasts)}; keeping the committed catalog. The corpus this lane saw is "
             "behind the published one -- check that research-vault/podcasts was cloned and is current.",
+            file=sys.stderr,
+        )
+
+    # Any dashboard writer may run without the private vault. Preserve the
+    # committed admitted-video catalog rather than publishing an empty lane.
+    prior_videos = list((prior or {}).get("video_index") or [])
+    new_videos = list(payload.get("video_index") or [])
+    if prior_videos and len(new_videos) < int(len(prior_videos) * VIDEO_REGRESSION_RATIO):
+        payload["video_index"] = prior_videos
+        payload["video_by_channel"] = (prior or {}).get("video_by_channel") or {}
+        payload["video_count"] = len(prior_videos)
+        payload["video_index_preserved"] = {
+            "reason": "rebuild produced a smaller catalog than the committed one",
+            "rebuilt_count": len(new_videos),
+            "preserved_count": len(prior_videos),
+        }
+        print(
+            f"PRESERVE video_index: rebuild yielded {len(new_videos)} videos vs prior "
+            f"{len(prior_videos)}; keeping the committed catalog.",
             file=sys.stderr,
         )
 
