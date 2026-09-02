@@ -5,14 +5,14 @@
   "input_sha": "a97b4c17706f78bacf35b0d689336a0ca6ffaacd",
   "component_fingerprint": "f4706fca647bbfe1f7ea064d093f18d6c71ab60b9680b46d473d8f472d40ac03",
   "contract_hash": "a0a3dc297aec7a70a256095c664f9e50dbdc23d1434d14f3b3c91094a4126f52",
-  "status": "awaiting_review",
+  "status": "rejected",
   "author_receipt": {
     "authored_at": "2026-08-31T23:30:00Z",
     "author": "marvin-cloud-agent",
     "model_id": "composer-2.5",
     "prompt_version": "cloud_marvin_runbook_2026-08-31",
     "analysis_run_id": "epistemic_author_forecast:236474e4fe2387c1bb958eab",
-    "evidence_hash": "367dddb77dd7c2c01c60f38f32cbfa19dbfc5f331f0ae4574488aa66eb0969a0", // pragma: allowlist secret
+    "evidence_hash": "367dddb77dd7c2c01c60f38f32cbfa19dbfc5f331f0ae4574488aa66eb0969a0",
     "epistemic_input_sha": "a97b4c17706f78bacf35b0d689336a0ca6ffaacd",
     "contract_hash": "a0a3dc297aec7a70a256095c664f9e50dbdc23d1434d14f3b3c91094a4126f52",
     "component_fingerprint": "f4706fca647bbfe1f7ea064d093f18d6c71ab60b9680b46d473d8f472d40ac03",
@@ -45,8 +45,35 @@
       "published_input_sha": "a97b4c17706f78bacf35b0d689336a0ca6ffaacd"
     }
   },
-  "review_receipt": null,
-  "rejection_reasons": [],
+  "review_receipt": {
+    "reviewed_at": "2026-09-02T03:06:14Z",
+    "reviewer": "codex-gpt-5.6-sol",
+    "author_independent": true,
+    "decision": "rejected",
+    "checks": {
+      "component_fingerprint_matches": true,
+      "target_unobservable_at_registration": true,
+      "threshold_economically_material": true,
+      "historical_replay_present": true,
+      "forward_source_recipe_current": false,
+      "probability_consistent_with_known_trailing_data": false
+    },
+    "evidence": {
+      "known_ttm_operating_cash_flow_m": 148531.0,
+      "known_ttm_capital_expenditures_m": 151003.0,
+      "known_ttm_owner_earnings_m": -2472.0,
+      "forecast_threshold_m": 45000.0,
+      "source_ref": "AMZN/research/evidence/sec_companyfacts.json",
+      "source_concepts": [
+        "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+        "us-gaap:PaymentsToAcquireProductiveAssets"
+      ]
+    }
+  },
+  "rejection_reasons": [
+    "source_recipe_stale: the registered metric definition omits us-gaap:PaymentsToAcquireProductiveAssets, Amazon's current capex concept, so Q1 2026 replay returns ttm_period_inputs_missing",
+    "probability_inconsistent_with_cutoff_evidence: known Q1 2026 TTM owner earnings were approximately -2472 USD millions versus the 45000 USD millions threshold, making a 0.22 fire probability unsupported without a documented recovery bridge"
+  ],
   "spec": {
     "spec_id": "amzn-reinvestment-runway-oe-2026q3-v2",
     "spec_revision": 1,
@@ -109,9 +136,13 @@
       }
     },
     "review": {
-      "status": "pending",
-      "reviewer": null,
-      "reviewed_at": null
+      "status": "rejected",
+      "reviewer": "codex-gpt-5.6-sol",
+      "reviewed_at": "2026-09-02T03:06:14Z",
+      "reason_codes": [
+        "source_recipe_stale",
+        "probability_inconsistent_with_cutoff_evidence"
+      ]
     },
     "probability_fires": 0.22,
     "severity": 4,

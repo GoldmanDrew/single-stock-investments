@@ -235,6 +235,17 @@ class HistoryTests(unittest.TestCase):
             sidecar = json.loads((research / "falsifier_specs.json").read_text())
             self.assertEqual(len(sidecar["specs"]), 1)
 
+    def test_malformed_draft_is_reported_instead_of_silently_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            draft_path = root / "TST/research/falsifier_drafts/bad.json"
+            draft_path.parent.mkdir(parents=True)
+            draft_path.write_text('{"status":"awaiting_review", // invalid\n}',
+                                  encoding="utf-8")
+            result = promote(root, write=False)
+            self.assertEqual(len(result["blocked"]), 1)
+            self.assertIn("invalid draft JSON", result["blocked"][0]["reasons"][0])
+
 
 if __name__ == "__main__":
     unittest.main()

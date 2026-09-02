@@ -113,6 +113,28 @@ class IssuerAdapterTests(unittest.TestCase):
             self.assertEqual(result["formula_inputs"]["registered_floor"], 80.0)
 
 
+class TtmSelectionTests(unittest.TestCase):
+    def test_ytd_row_wins_over_same_period_ttm_duplicate(self):
+        rows = [
+            {"start": "2025-04-01", "end": "2026-03-31", "val": 148531,
+             "fp": "Q1", "filed": "2026-04-30"},
+            {"start": "2026-01-01", "end": "2026-03-31", "val": 26032,
+             "fp": "Q1", "filed": "2026-04-30"},
+            {"start": "2024-04-01", "end": "2025-03-31", "val": 113903,
+             "fp": "Q1", "filed": "2025-05-02"},
+            {"start": "2025-01-01", "end": "2025-03-31", "val": 17015,
+             "fp": "Q1", "filed": "2025-05-02"},
+            {"start": "2025-01-01", "end": "2025-12-31", "val": 139514,
+             "fp": "FY", "filed": "2026-02-06"},
+        ]
+        selected = adapters._select_ttm_triplet(rows, date(2026, 3, 31), "Q1", 7)
+        self.assertIsNotNone(selected)
+        current_ytd, prior_fy, prior_ytd = selected
+        self.assertEqual(current_ytd["val"], 26032)
+        self.assertEqual(prior_fy["val"], 139514)
+        self.assertEqual(prior_ytd["val"], 17015)
+
+
 class ResolverTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
