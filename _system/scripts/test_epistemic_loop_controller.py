@@ -101,6 +101,17 @@ class ControllerTests(unittest.TestCase):
             )
             self.assertTrue(all(task["source_preflight_candidate"] for task in tasks))
 
+    def test_authoring_task_uses_frozen_component_power_zone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_prospective_blocked_contract(root, [{
+                "component_id": "core",
+                "method": "owner_cash_or_dividend_discount",
+                "method_provenance": {"power_zones": ["predictable_cash_flow"]},
+            }])
+            tasks = controller._authoring_tasks(root, {})
+            self.assertEqual(tasks[0]["power_zone"], "predictable_cash_flow")
+
     def test_rejected_current_draft_returns_to_authoring(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
