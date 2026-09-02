@@ -112,6 +112,16 @@ def _authoring_metric(root: Path, ticker: str, component: dict,
     return "normalized_owner_earnings_ttm_m_v2", _source_ready_owner_earnings(root, ticker)
 
 
+def _component_power_zone(component: dict, fallback: str) -> str:
+    """Preserve the frozen component's valuation lens in authoring work."""
+    provenance = component.get("method_provenance") or {}
+    zones = provenance.get("power_zones") or []
+    for zone in zones:
+        if str(zone).strip():
+            return str(zone)
+    return fallback
+
+
 def _forecast_tasks(root: Path, today: date, state: dict[str, dict]) -> list[dict]:
     outcomes = load_outcomes(root / "_system/research/falsifier_outcomes.jsonl")
     resolved = {str(row.get("spec_hash")) for row in outcomes if row.get("spec_hash")}
@@ -207,6 +217,7 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
                 continue
             metric_definition_id, source_ready = metric
             method = str(component.get("method") or "")
+            power_zone = _component_power_zone(component, str(route.get("profile_id") or ""))
             fingerprint = _component_fingerprint(component)
             drafts = []
             for draft_path in (root / ticker / "research/falsifier_drafts").glob("*.json"):
@@ -229,7 +240,7 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
                         "ticker": ticker, "component_id": component_id,
                         "component_fingerprint": fingerprint,
                         "contract_hash": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
-                        "method_id": method, "power_zone": "quality_reinvestment",
+                        "method_id": method, "power_zone": power_zone,
                         "metric_definition_id": metric_definition_id,
                         "source_preflight_candidate": source_ready,
                         "draft_ref": str(draft_path.relative_to(root)).replace("\\", "/"),
@@ -266,7 +277,7 @@ def _authoring_tasks(root: Path, state: dict[str, dict]) -> list[dict]:
                 "ticker": ticker, "component_id": component_id,
                 "component_fingerprint": fingerprint,
                 "contract_hash": hashlib.sha256(contract_path.read_bytes()).hexdigest(),
-                "method_id": method, "power_zone": "quality_reinvestment",
+                "method_id": method, "power_zone": power_zone,
                 "metric_definition_id": metric_definition_id,
                 "priority": 75 if source_ready else 45,
                 "source_preflight_candidate": source_ready,
