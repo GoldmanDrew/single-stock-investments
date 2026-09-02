@@ -396,7 +396,7 @@ def run(*, limit: int | None = None, only_video: str | None = None,
             "transcript_chars": len(text),
             "chars_per_minute": round(len(text) / (duration / 60.0), 1) if duration else None,
             "transcript_source": "youtube_captions",
-            "transcript_path": str(txt_path),
+            "transcript_path": txt_path.relative_to(videos_root()).as_posix(),
             "resolve_preview": row.get("resolve_preview"),
             # Set by the Phase 3 transcript gate, which has not run yet.
             "relevance": None,
