@@ -71,7 +71,10 @@ class DashboardD1ExportTests(unittest.TestCase):
             connection = sqlite3.connect(":memory:")
             connection.executescript(migration)
             connection.executescript(seed)
+            changes_before_repeat = connection.total_changes
             connection.executescript(seed)
+
+            self.assertEqual(connection.total_changes, changes_before_repeat)
 
             self.assertEqual(
                 connection.execute("SELECT COUNT(*) FROM securities").fetchone()[0],
@@ -102,6 +105,22 @@ class DashboardD1ExportTests(unittest.TestCase):
             self.assertGreaterEqual(criticality[1], 0)
             self.assertLessEqual(criticality[1], 100)
             self.assertIn(criticality[2], {"ready", "limited"})
+
+            for static_only_table in (
+                "price_observations",
+                "ohlcv_observations",
+                "technical_snapshots",
+                "capitulation_snapshots",
+                "market_context_snapshots",
+                "market_structure_snapshots",
+            ):
+                self.assertNotIn(f"INSERT INTO {static_only_table}", seed)
+                self.assertIsNone(
+                    connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                        (static_only_table,),
+                    ).fetchone()
+                )
 
     def test_export_writes_contract_v3_fields_and_only_canonical_forward_return(self):
         core = {
