@@ -159,3 +159,12 @@ def test_deploy_prunes_before_migrations_so_a_full_database_can_recover():
     migrate_at = action.find("d1 migrations apply")
     assert prune_at >= 0
     assert prune_at < migrate_at
+
+
+def test_deploy_defers_only_the_known_free_tier_quota_failure():
+    action = (
+        ROOT / ".github/actions/deploy-cloudflare-dashboard/action.yml"
+    ).read_text(encoding="utf-8")
+    assert "exceeded D1's free tier daily row (read|write) limit" in action
+    assert "D1 synchronization deferred" in action
+    assert 'exit "$D1_STATUS"' in action
