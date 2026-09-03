@@ -61,14 +61,30 @@ def number(value: Any) -> float | None:
         return None
 
 
-def upsert(table: str, columns: list[str], values: list[Any], conflict: list[str]) -> str:
+def upsert(
+    table: str,
+    columns: list[str],
+    values: list[Any],
+    conflict: list[str],
+    *,
+    ignore_changes: set[str] | frozenset[str] = frozenset(),
+) -> str:
     assignments = ", ".join(
         f"{column}=excluded.{column}" for column in columns if column not in conflict
+    )
+    compared = [
+        column
+        for column in columns
+        if column not in conflict and column not in ignore_changes
+    ]
+    changed = " OR ".join(
+        f"{table}.{column} IS NOT excluded.{column}" for column in compared
     )
     return (
         f"INSERT INTO {table} ({', '.join(columns)}) VALUES "
         f"({', '.join(quote(value) for value in values)}) "
-        f"ON CONFLICT ({', '.join(conflict)}) DO UPDATE SET {assignments};"
+        f"ON CONFLICT ({', '.join(conflict)}) DO UPDATE SET {assignments} "
+        f"WHERE {changed};"
     )
 
 
@@ -138,7 +154,6 @@ def export(
         if item.get("task_packet")
     }
     technical_summary = read_json(DEFAULT_TECHNICAL_SUMMARY)
-    technical_by_ticker = technical_summary.get("by_ticker") or {}
     criticality_summary = read_json(DEFAULT_CRITICALITY_SUMMARY)
 
     sql = [
@@ -149,6 +164,7 @@ def export(
             ["run_id", "generated_at", "source_sha256", "status", "ticker_count", "summary_json", "imported_at"],
             [run_id, generated_at, source_hash, "complete", len(rows), compact_json(summary), imported_at],
             ["run_id"],
+            ignore_changes={"imported_at"},
         ),
     ]
     task_count = 0
@@ -302,136 +318,6 @@ def export(
             ],
             ["ticker"],
         ))
-        # The standalone technical artifact refreshes more frequently than core.json.
-        # Prefer it so D1 receives the newest model and OHLCV fields immediately.
-        technicals = technical_by_ticker.get(ticker) or row.get("technicals") or {}
-        technical_as_of = technicals.get("as_of")
-        latest_price = (technicals.get("latest") or {}).get("close")
-        if technical_as_of and number(latest_price) is not None:
-            latest_technical = technicals.get("latest") or {}
-            sql.append(upsert(
-                "price_observations",
-                ["ticker", "observed_on", "adjusted_close", "volume", "source", "imported_at"],
-                [
-                    ticker,
-                    technical_as_of,
-                    number(latest_price),
-                    number((technicals.get("latest") or {}).get("volume")),
-                    technicals.get("source") or "unknown",
-                    imported_at,
-                ],
-                ["ticker", "observed_on"],
-            ))
-            price_observation_count += 1
-            sql.append(upsert(
-                "ohlcv_observations",
-                [
-                    "ticker", "observed_on", "adjusted_open", "adjusted_high", "adjusted_low",
-                    "adjusted_close", "volume", "source", "imported_at",
-                ],
-                [
-                    ticker,
-                    technical_as_of,
-                    number(latest_technical.get("open")),
-                    number(latest_technical.get("high")),
-                    number(latest_technical.get("low")),
-                    number(latest_price),
-                    number(latest_technical.get("volume")),
-                    technicals.get("source") or "unknown",
-                    imported_at,
-                ],
-                ["ticker", "observed_on"],
-            ))
-        if technical_as_of and technicals.get("model_version"):
-            scores = technicals.get("scores") or {}
-            regime = technicals.get("regime") or {}
-            sql.append(upsert(
-                "technical_snapshots",
-                [
-                    "ticker", "as_of_date", "model_version", "benchmark", "data_quality",
-                    "trend_z", "stretch_z", "relative_strength_z", "volume_surprise_z",
-                    "volatility_regime_z", "drawdown_z", "trend_regime", "stretch_regime",
-                    "setup_regime", "payload_json",
-                ],
-                [
-                    ticker,
-                    technical_as_of,
-                    technicals.get("model_version"),
-                    technicals.get("benchmark"),
-                    technicals.get("data_quality") or "unavailable",
-                    number(scores.get("trend_z")),
-                    number(scores.get("stretch_z")),
-                    number(scores.get("relative_strength_60d_z")),
-                    number(scores.get("volume_surprise_z")),
-                    number(scores.get("volatility_regime_z")),
-                    number(scores.get("drawdown_z")),
-                    regime.get("trend"),
-                    regime.get("stretch"),
-                    regime.get("setup"),
-                    compact_json(technicals),
-                ],
-                ["ticker", "as_of_date", "model_version"],
-            ))
-            technical_snapshot_count += 1
-            capitulation = technicals.get("capitulation") or {}
-            capitulation_scores = capitulation.get("scores") or {}
-            capitulation_families = capitulation.get("families") or {}
-            if capitulation.get("model_version") and capitulation.get("state"):
-                sql.append(upsert(
-                    "capitulation_snapshots",
-                    [
-                        "ticker", "as_of_date", "model_version", "state",
-                        "pressure_score", "panic_score", "exhaustion_score", "confidence_score",
-                        "price_dislocation_score", "selling_climax_score",
-                        "volatility_stress_score", "relative_path_stress_score",
-                        "data_grade", "payload_json",
-                    ],
-                    [
-                        ticker,
-                        technical_as_of,
-                        capitulation.get("model_version"),
-                        capitulation.get("state"),
-                        number(capitulation_scores.get("pressure")),
-                        number(capitulation_scores.get("panic")),
-                        number(capitulation_scores.get("exhaustion")),
-                        number(capitulation_scores.get("confidence")),
-                        number(capitulation_families.get("price_dislocation")),
-                        number(capitulation_families.get("selling_climax")),
-                        number(capitulation_families.get("volatility_stress")),
-                        number(capitulation_families.get("relative_path_stress")),
-                        technicals.get("data_grade"),
-                        compact_json(capitulation),
-                    ],
-                    ["ticker", "as_of_date", "model_version"],
-                ))
-            market_structure = technicals.get("market_structure") or {}
-            market_structure_as_of = market_structure.get("as_of")
-            if market_structure_as_of:
-                sql.append(upsert(
-                    "market_structure_snapshots",
-                    [
-                        "ticker", "as_of_date", "float_shares", "shares_outstanding",
-                        "float_percent_outstanding", "short_interest_shares",
-                        "short_percent_float", "short_change_pct", "days_to_cover",
-                        "source", "payload_json",
-                    ],
-                    [
-                        ticker,
-                        market_structure_as_of,
-                        number(market_structure.get("float_shares")),
-                        number(market_structure.get("shares_outstanding")),
-                        number(market_structure.get("float_percent_outstanding")),
-                        number(market_structure.get("short_interest_shares")),
-                        number(market_structure.get("short_percent_float")),
-                        number(market_structure.get("short_change_pct")),
-                        number(market_structure.get("days_to_cover")),
-                        market_structure.get("source"),
-                        compact_json(market_structure),
-                    ],
-                    ["ticker", "as_of_date"],
-                ))
-                market_structure_snapshot_count += 1
-
         task_doc = (
             read_json(ROOT / ticker / "research" / "evidence_task_queue.json")
             or aggregate_task_packets.get(ticker)
@@ -630,28 +516,13 @@ def export(
                     ))
                     fact_count += 1
 
+    # Detailed technical, OHLCV, capitulation, market-context, and market-
+    # structure snapshots are already published as immutable static shards.
+    # No live D1 route reads them, so only retain the flow aggregate used by
+    # the market-risk API.
     market_context = technical_summary.get("market_context") or {}
     internal_market = market_context.get("internal") or {}
-    cnn_reference = market_context.get("cnn_reference") or {}
     if internal_market.get("as_of"):
-        sql.append(upsert(
-            "market_context_snapshots",
-            [
-                "context_key", "as_of_date", "model_version", "state", "panic_score",
-                "source", "source_url", "payload_json",
-            ],
-            [
-                "US_MARKET_FEAR",
-                internal_market.get("as_of"),
-                technical_summary.get("model_version") or "technical-fear-v2",
-                internal_market.get("state"),
-                number((internal_market.get("scores") or {}).get("panic")),
-                internal_market.get("source"),
-                cnn_reference.get("url"),
-                compact_json(market_context),
-            ],
-            ["context_key", "as_of_date", "model_version"],
-        ))
         internal_scores = internal_market.get("scores") or {}
         sql.append(upsert(
             "flow_stress_snapshots",
