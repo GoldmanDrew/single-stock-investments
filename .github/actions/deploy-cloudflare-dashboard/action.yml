@@ -163,20 +163,34 @@ runs:
       run: |
         set -euo pipefail
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
-        # Retention has to run before migrations. A D1 database at its storage
-        # ceiling can reject ALTER TABLE before the normal seed cleanup gets a
-        # chance to run. Raw portfolio payloads remain immutable in R2; D1 keeps
-        # today's detail and one close per prior day for rolling performance.
-        python _system/scripts/prune_cloudflare_d1.py \
-          --wrangler "$WRANGLER" \
-          --database DB \
-          --config _cf_project/wrangler.jsonc
-        "$WRANGLER" d1 migrations apply DB --remote \
-          --config _cf_project/wrangler.jsonc
-        python _system/scripts/export_dashboard_d1_seed.py
-        "$WRANGLER" d1 execute DB --remote --yes \
-          --file dashboard/cloudflare/generated/dashboard_seed.sql \
-          --config _cf_project/wrangler.jsonc
+        D1_LOG="$RUNNER_TEMP/single-stock-d1-sync.log"
+        set +e
+        (
+          set -e
+          # Retention has to run before migrations. A D1 database at its
+          # storage ceiling can reject ALTER TABLE before cleanup gets a chance
+          # to run. Raw portfolio payloads remain immutable in R2.
+          python _system/scripts/prune_cloudflare_d1.py \
+            --wrangler "$WRANGLER" \
+            --database DB \
+            --config _cf_project/wrangler.jsonc
+          "$WRANGLER" d1 migrations apply DB --remote \
+            --config _cf_project/wrangler.jsonc
+          python _system/scripts/export_dashboard_d1_seed.py
+          "$WRANGLER" d1 execute DB --remote --yes \
+            --file dashboard/cloudflare/generated/dashboard_seed.sql \
+            --config _cf_project/wrangler.jsonc
+        ) 2>&1 | tee "$D1_LOG"
+        D1_STATUS=${PIPESTATUS[0]}
+        set -e
+
+        if [ "$D1_STATUS" -ne 0 ]; then
+          if grep -Eqi "exceeded D1's free tier daily row (read|write) limit" "$D1_LOG"; then
+            echo "::warning::D1 synchronization deferred because the free daily row quota is exhausted. Static Pages and optimized API code will still deploy; the scheduled post-reset deployment will retry D1."
+            exit 0
+          fi
+          exit "$D1_STATUS"
+        fi
 
     - name: Configure private Pages secrets and deploy signed market-risk ingest Worker
       shell: bash
