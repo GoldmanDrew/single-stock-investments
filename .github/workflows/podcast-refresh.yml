@@ -289,6 +289,23 @@ jobs:
           echo "Corpus changes:"
           git diff --cached --stat | tail -5
           git commit -q -m "chore(podcasts): corpus refresh $(date -u +%Y-%m-%d)"
+          # The allowlist above deliberately leaves whisper_backlog.json and
+          # whisper_batch_latest.json modified in the working tree, and `git
+          # rebase` refuses to run with ANY unstaged change:
+          #
+          #     error: cannot rebase: You have unstaged changes.
+          #
+          # That is how the first version of this fix made things worse rather
+          # than better -- run 33835764079 staged all 865 corpus files correctly,
+          # committed them, and then failed all five attempts before it ever
+          # reached the network. A conflict had been traded for a hard block.
+          #
+          # Discarding is right rather than merely expedient: not staging those
+          # files is a statement that this lane's copies are worthless, so
+          # keeping them around to block the rebase serves nothing. Everything
+          # worth keeping is already in the commit above, so this restores to
+          # HEAD, not to the pre-run state.
+          git checkout -- .
           # The vault takes writes from several lanes, so rebase rather than
           # assume a fast-forward. Five attempts rather than three: the local
           # loop commits roughly every 40 minutes, so a short retry window can
