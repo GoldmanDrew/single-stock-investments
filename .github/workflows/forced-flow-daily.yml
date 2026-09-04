@@ -1,0 +1,52 @@
+name: Forced Flow Daily
+
+# Replaces the Windows Databento live monitor (Magis Market Risk Databento
+# Monitor), which POSTed ~40-80 D1 rows every minute and is now disabled.
+# Same forced-flow model as the live feed, on daily bars, committed as static
+# JSON. The dashboard already falls back to this file and labels it DAILY.
+# Does not call POST /api/v1/market-risk/ingest.
+
+on:
+  # 22:00 UTC weekdays = 18:00 ET (EDT) / 17:00 ET (EST), both after the 16:00
+  # US close so Yahoo's daily bar is the session that just ended.
+  schedule:
+    - cron: "0 22 * * 1-5"
+  # No manual-run trigger. test_llm_workflow_governance.py keeps the Actions
+  # surface free of manual run buttons outside a four-workflow allowlist, and
+  # a failed scheduled run can be re-run from its own run page regardless.
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-commit-main-forced-flow
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            _system/scripts/ci_checkout_workspace.sh
+            _system/scripts/ci_resolve_checkout_ref.sh
+            _system/scripts/ci_sparse_checkout_paths.py
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - name: Checkout dashboard data workspace
+        run: bash _system/scripts/ci_checkout_workspace.sh dashboard
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Refresh daily forced-flow / capitulation snapshot
+        run: python _system/scripts/build_capitulation_daily.py --workers 6
+      - name: Commit daily capitulation snapshot
+        uses: ./.github/actions/commit-main
+        with:
+          message: "chore: refresh daily capitulation $(date -u +%Y-%m-%d)"
+          git_add: >-
+            dashboard/data/capitulation_daily.json
+            dashboard/data/capitulation_daily_history.jsonl
+            dashboard/data/capitulation_daily_state.json
