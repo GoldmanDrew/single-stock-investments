@@ -3,19 +3,20 @@ name: Market Risk Components
 on:
   repository_dispatch:
     types: [heal-market-risk]
+  # Once daily after the US close, down from twice-hourly across a ten-hour
+  # window (20 runs a weekday). Every run writes a fresh row per component
+  # into D1, and nothing reads market-risk components intraday -- this is a
+  # research and allocation surface, not an execution screen -- so the extra
+  # 19 runs bought no freshness anyone consumed while growing the table that
+  # every read has to scan.
+  #
   # GitHub Actions evaluates schedule.cron in UTC and silently ignores any
-  # `timezone:` key, so these times are written directly in UTC.
-  # Intended window: 08:00-17:00 ET twice-hourly, with the after-close
-  # end-of-day snapshots landing after the 16:00 ET close. During EDT
-  # (UTC-4) hours 12-21 UTC give 08:07-17:37 ET, and the 21:07/21:37 UTC
-  # runs are the EOD snapshots (17:07/17:37 ET).
-  # DST caveat (deliberately not compensated): during EST (UTC-5) the same
-  # UTC times land one hour earlier on the local clock, 07:07-16:37 ET, so
-  # the EOD snapshots become 16:07/16:37 ET - still after the 16:00 close.
-  # Minutes offset from the top of the hour to reduce scheduled-run
-  # contention.
+  # `timezone:` key, so this is written directly in UTC. 22:15 UTC is 18:15 ET
+  # under EDT and 17:15 ET under EST, so it lands after the 16:00 ET close in
+  # both and needs no DST compensation. Intraday cadence can be restored
+  # per-component if something is ever shown to need it.
   schedule:
-    - cron: "7,37 12-21 * * 1-5"
+    - cron: "15 22 * * 1-5"
 permissions:
   contents: write
 
