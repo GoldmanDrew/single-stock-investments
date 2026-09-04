@@ -11,8 +11,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "_system" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+from unittest import mock  # noqa: E402
+
+import discover_videos  # noqa: E402
 from discover_videos import (  # noqa: E402
-    SLOP_PATTERNS, normalize_title, parse_channel_feed, screen,
+    SLOP_PATTERNS, fetch_playlist, normalize_title, parse_channel_feed,
+    playlist_sources, registry_sources, screen,
 )
 from resolve_youtube_channel import titles_agree  # noqa: E402
 
@@ -195,6 +199,167 @@ class SlopPatternTests(unittest.TestCase):
                       "The Nvidia of Physical AI: Inside Applied Intuition"]:
             self.assertFalse(any(p.search(title) for p in SLOP_PATTERNS), title)
 
+
+
+class PlaylistRegistryTests(unittest.TestCase):
+    """A channel can be off while a playlist inside it is on.
+
+    Talks at Google and Columbia Business School were demoted to ingest=false on
+    2026-09-01 on recorded evidence -- their last 15 uploads were Diary of a
+    Wimpy Kid and MBA admissions webinars respectively. The fix is not to undo
+    that demotion; it is to read the one playlist on each that carries the
+    investing material.
+    """
+
+    def setUp(self) -> None:
+        self.doc = json.loads(REG.read_text(encoding="utf-8"))
+        self.channels = self.doc["channels"]
+        self.by_title = {c["title"]: c for c in self.channels}
+
+    def test_playlist_rows_are_well_formed(self):
+        for ch in self.channels:
+            for pl in ch.get("playlists") or []:
+                for field in ("playlist_id", "title", "ingest", "trust",
+                              "item_count", "verified_at", "notes"):
+                    self.assertIn(field, pl, f"{ch['title']} playlist missing {field}")
+                self.assertRegex(pl["playlist_id"], r"^PL[\w-]{16,}$")
+                self.assertIn(pl["trust"], {"high", "broad"})
+                self.assertGreater(pl["item_count"], 0)
+
+    def test_playlist_ids_are_unique_across_the_registry(self):
+        ids = [pl["playlist_id"] for c in self.channels for pl in c.get("playlists") or []]
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_a_playlist_is_never_the_uploads_playlist(self):
+        # UU<id> is the whole channel wearing a playlist costume. Ingesting it
+        # would silently undo the demotion this mechanism exists to respect.
+        for ch in self.channels:
+            for pl in ch.get("playlists") or []:
+                self.assertNotEqual(pl["playlist_id"], ch["uploads_playlist_id"])
+
+    def test_the_demoted_channels_stay_demoted(self):
+        for title in ("Talks at Google", "Columbia Business School"):
+            self.assertFalse(
+                self.by_title[title]["ingest"],
+                f"{title} channel feed was re-enabled; the 2026-09-01 evidence "
+                "says its uploads are not investing content",
+            )
+
+    def test_the_scoped_playlists_are_the_ones_enabled(self):
+        on = {pl["title"] for c in self.channels
+              for pl in c.get("playlists") or [] if pl["ingest"]}
+        self.assertEqual(on, {"Investors at Google",
+                              "Heilbrunn Center for Graham & Dodd Investing"})
+
+    def test_heilbrunn_channel_has_nothing_to_ingest(self):
+        # Checked live 2026-09-03: zero public playlists, one video from 2013.
+        ch = self.by_title["HeilbrunnCenter"]
+        self.assertFalse(ch["ingest"])
+        self.assertEqual(ch.get("playlists"), [])
+
+
+class PlaylistSourceTests(unittest.TestCase):
+    CHANNEL = {
+        "channel_id": "UCbmNph6atAoGfqLoCL_duAg",
+        "title": "Talks at Google",
+        "tier": "native",
+        "trust": "broad",
+        "ingest": False,
+        "rate_limit_seconds": 1.0,
+        "playlists": [
+            {"playlist_id": "PLaaaaaaaaaaaaaaaaaaa", "title": "On", "ingest": True,
+             "trust": "high", "item_count": 3},
+            {"playlist_id": "PLbbbbbbbbbbbbbbbbbbb", "title": "Off", "ingest": False,
+             "trust": "broad", "item_count": 9},
+        ],
+    }
+
+    def test_only_enabled_playlists_become_sources(self):
+        got = playlist_sources(self.CHANNEL)
+        self.assertEqual([s["playlist_title"] for s in got], ["On"])
+        self.assertEqual(got[0]["source_kind"], "playlist")
+
+    def test_playlist_trust_overrides_the_channel(self):
+        # The reason to scope to a playlist is that it beats its own channel.
+        self.assertEqual(playlist_sources(self.CHANNEL)[0]["trust"], "high")
+
+    def test_a_playlist_without_an_id_is_skipped(self):
+        ch = {**self.CHANNEL, "playlists": [{"title": "x", "ingest": True}]}
+        self.assertEqual(playlist_sources(ch), [])
+
+    def test_channel_with_no_playlists_yields_none(self):
+        self.assertEqual(playlist_sources({"title": "x"}), [])
+
+    def test_registry_sources_reads_a_playlist_off_a_disabled_channel(self):
+        doc = {"channels": [self.CHANNEL]}
+        got = registry_sources(doc)
+        # The channel feed is off, so the playlist is the only source.
+        self.assertEqual([s["source_kind"] for s in got], ["playlist"])
+
+    def test_registry_sources_emits_both_kinds_when_both_are_on(self):
+        doc = {"channels": [{**self.CHANNEL, "ingest": True, "rss_url": "u"}]}
+        self.assertEqual([s["source_kind"] for s in registry_sources(doc)],
+                         ["channel_rss", "playlist"])
+
+    def test_only_channel_filter_applies_to_playlists_too(self):
+        doc = {"channels": [self.CHANNEL]}
+        self.assertEqual(registry_sources(doc, only_channel="UCother"), [])
+        self.assertEqual(
+            len(registry_sources(doc, only_channel=self.CHANNEL["channel_id"])), 1)
+
+
+class PlaylistFetchTests(unittest.TestCase):
+    SOURCE = {
+        "channel_id": "UCbmNph6atAoGfqLoCL_duAg",
+        "title": "Talks at Google",
+        "tier": "native",
+        "trust": "broad",
+        "source_kind": "playlist",
+        "playlist_id": "PLaaaaaaaaaaaaaaaaaaa",
+        "playlist_title": "Investors at Google",
+    }
+    ITEMS = [{
+        "video_id": "abc123XYZ_-",
+        "title": "  Howard Marks on cycles  ",
+        "description": " A talk. ",
+        "published": "2026-05-27T12:00:00Z",
+        "channel_id": "UCbmNph6atAoGfqLoCL_duAg",
+    }]
+
+    def test_record_shape_matches_the_rss_path(self):
+        with mock.patch.object(discover_videos.youtube_api, "playlist_items",
+                               return_value=self.ITEMS):
+            got = fetch_playlist(self.SOURCE)
+        rss = parse_channel_feed(MINIMAL_FEED, {
+            "channel_id": "c", "title": "t", "tier": "native", "trust": "high"})
+        # Every key the downstream gate and backlog read must exist in both.
+        missing = set(rss[0]) - set(got[0])
+        self.assertFalse(missing, f"playlist record is missing {missing}")
+
+    def test_fields_are_carried_and_trimmed(self):
+        with mock.patch.object(discover_videos.youtube_api, "playlist_items",
+                               return_value=self.ITEMS):
+            v = fetch_playlist(self.SOURCE)[0]
+        self.assertEqual(v["video_id"], "abc123XYZ_-")
+        self.assertEqual(v["title"], "Howard Marks on cycles")
+        self.assertEqual(v["url"], "https://www.youtube.com/watch?v=abc123XYZ_-")
+        self.assertEqual(v["discovery"], "playlist")
+        self.assertEqual(v["playlist_title"], "Investors at Google")
+        self.assertEqual(v["channel_title"], "Talks at Google")
+
+    def test_items_without_an_id_are_dropped(self):
+        with mock.patch.object(discover_videos.youtube_api, "playlist_items",
+                               return_value=[{"video_id": "", "title": "x"}]):
+            self.assertEqual(fetch_playlist(self.SOURCE), [])
+
+    def test_a_playlist_video_is_still_never_admitted_on_metadata(self):
+        # The whole design: the source decides precision, the transcript decides
+        # admission. Scoping to a playlist must not become a back door.
+        with mock.patch.object(discover_videos.youtube_api, "playlist_items",
+                               return_value=self.ITEMS):
+            v = fetch_playlist(self.SOURCE)[0]
+        screen(v, self.SOURCE, {"by_show": {}, "all": {}})
+        self.assertEqual(v["gate"], "pending_transcript")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
