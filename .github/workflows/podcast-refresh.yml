@@ -241,7 +241,47 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Corpus only. Other vault trees belong to other lanes.
-          git add podcasts
+          #
+          # Deliberately NOT whisper_backlog.json / whisper_batch_latest.json.
+          # Those are rewritten wholesale -- the backlog is a single 1,800-entry
+          # array -- by whichever process ran last, and the local Whisper loop
+          # commits them to this vault dozens of times a day (255 commits
+          # touching whisper_backlog.json in the week to 2026-09-03). Any
+          # concurrent write therefore conflicts on the whole file, and a
+          # conflict here used to abort the entire push.
+          #
+          # That is not hypothetical. On 2026-09-01 all three rebase attempts
+          # died on exactly that file, so 17 newly discovered episodes never
+          # reached the vault; the nightly intake-full then rebuilt
+          # podcasts.json from the stale vault and walked the published catalog
+          # back from 3,767/2026-08-29 to 3,750/2026-08-21. The 2026-08-24 run
+          # pushed on attempt 1, which was luck, not correctness.
+          #
+          # This lane also has no claim on those two files: its Whisper step
+          # reports whisper_unavailable for every item it attempts (20 of 20 on
+          # 2026-09-01), so what it would push is churn, not work. The local
+          # backfill owns them, and podcast_cloud_refresh.py regenerates them
+          # from the corpus on every run anyway.
+          #
+          # Everything that is actually durable still goes: episodes/ holds the
+          # .meta.json and transcript text, and insights.json is the catalog the
+          # nightly rebuild reads back out of the vault -- omitting that one
+          # would reintroduce the very staleness this is fixing.
+          #
+          # An explicit allowlist also keeps podcasts/audio-cache out. It is 561MB
+          # of downloaded MP3s on the machine that runs Whisper, it is not in the
+          # vault's .gitignore, and `git add podcasts` would have staged whatever a
+          # run had cached. Nothing under it has ever been committed; keep it that
+          # way.
+          for path in podcasts/episodes \
+                      podcasts/insights.json \
+                      podcasts/discovery_latest.json \
+                      podcasts/discovery_synopsis_evo.json \
+                      podcasts/discovery_whisper_priority.json \
+                      podcasts/discovery_whisper_queue.json \
+                      podcasts/fetch_latest.json; do
+            if [ -e "$path" ]; then git add "$path"; fi
+          done
           if git diff --cached --quiet; then
             echo "No new corpus files this run."
             exit 0
@@ -250,13 +290,20 @@ jobs:
           git diff --cached --stat | tail -5
           git commit -q -m "chore(podcasts): corpus refresh $(date -u +%Y-%m-%d)"
           # The vault takes writes from several lanes, so rebase rather than
-          # assume a fast-forward.
-          for attempt in 1 2 3; do
+          # assume a fast-forward. Five attempts rather than three: the local
+          # loop commits roughly every 40 minutes, so a short retry window can
+          # sit entirely inside one of its pushes.
+          for attempt in 1 2 3 4 5; do
             git fetch origin main -q
             if git rebase origin/main -q && git push origin HEAD:main -q; then
               echo "Pushed corpus to research-vault (attempt $attempt)."
               exit 0
             fi
+            # A conflict should now be impossible -- episodes/ are new paths and
+            # the churning state files are no longer staged -- so report what it
+            # was before backing out, rather than retrying blind.
+            conflicts="$(git diff --name-only --diff-filter=U 2>/dev/null || true)"
+            [ -n "$conflicts" ] && echo "::warning::attempt $attempt conflicted on: $conflicts"
             git rebase --abort 2>/dev/null || true
             sleep $((attempt * 5))
           done

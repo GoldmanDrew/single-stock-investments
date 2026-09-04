@@ -495,6 +495,49 @@ def prior_discussant_count(prior: dict | None) -> int:
     return len((prior or {}).get("ticker_discussants") or {})
 
 
+def should_preserve_podcast_catalog(
+    prior_rows: list | None,
+    new_rows: list | None,
+) -> tuple[bool, str]:
+    """Is this rebuilt podcast catalog behind the committed one?
+
+    Two independent regressions, because either alone misses real cases. The
+    count ratio catches a lane that never cloned the vault. The newest
+    published date catches a vault that is merely a few days stale -- which is
+    the case the ratio provably cannot see, see the note at the call site.
+    """
+    prior_rows = list(prior_rows or [])
+    new_rows = list(new_rows or [])
+    if not prior_rows:
+        return False, "no committed catalog to protect"
+
+    if len(new_rows) < int(len(prior_rows) * PODCAST_REGRESSION_RATIO):
+        return True, (
+            f"rebuild produced a smaller catalog than the committed one "
+            f"({len(new_rows)} vs {len(prior_rows)} episodes)"
+        )
+
+    prior_newest = newest_as_of(r.get("published") for r in prior_rows)
+    new_newest = newest_as_of(r.get("published") for r in new_rows)
+    # A catalog that GREW cannot be behind its source, so a date regression
+    # there is an upstream retraction rather than a stale clone, and is allowed
+    # through. Only a flat-or-smaller catalog that also lost days is stale.
+    # This also stops a genuine retraction of the newest episode from wedging
+    # the guard forever: any later episode from any show clears it.
+    if (
+        prior_newest
+        and new_newest
+        and new_newest < prior_newest
+        and len(new_rows) <= len(prior_rows)
+    ):
+        return True, (
+            f"rebuild walked the newest published episode backwards "
+            f"({new_newest} vs {prior_newest})"
+        )
+
+    return False, "rebuild is current"
+
+
 def should_preserve_letter_corpus(
     prior: dict | None,
     vault_count: int,
@@ -3802,20 +3845,34 @@ def main() -> int:
     # Putting the check here means every writer hits it rather than only the one
     # lane that remembered. A vault that is legitimately smaller still wins after
     # the ratio, so a real pruning is not blocked forever.
+    #
+    # The ratio alone is not enough, and 2026-09-01 proved it. The weekly refresh
+    # published 3,767 episodes with newest=2026-08-29, then its corpus push to
+    # the vault lost a rebase race and the vault stayed at 3,750. Nine hours
+    # later the nightly intake-full rebuilt from that vault and republished
+    # 3,750 / newest=2026-08-21, deleting every episode the week had found. The
+    # ratio never fired, and could not: 3750/3767 = 0.9955, comfortably above
+    # 0.98. A week of new material is a rounding error measured by count and
+    # eight days measured by date, so the date has to carry this check.
     prior_podcasts = list((prior or {}).get("podcast_index") or [])
     new_podcasts = list(payload.get("podcast_index") or [])
-    if prior_podcasts and len(new_podcasts) < int(len(prior_podcasts) * PODCAST_REGRESSION_RATIO):
+    preserve_podcasts, podcast_reason = should_preserve_podcast_catalog(
+        prior_podcasts, new_podcasts
+    )
+    if preserve_podcasts:
         payload["podcast_index"] = prior_podcasts
         payload["podcast_by_show"] = (prior or {}).get("podcast_by_show") or {}
         payload["podcast_index_preserved"] = {
-            "reason": "rebuild produced a smaller catalog than the committed one",
+            "reason": podcast_reason,
             "rebuilt_count": len(new_podcasts),
             "preserved_count": len(prior_podcasts),
+            "rebuilt_newest": newest_as_of(r.get("published") for r in new_podcasts),
+            "preserved_newest": newest_as_of(r.get("published") for r in prior_podcasts),
         }
         print(
-            f"PRESERVE podcast_index: rebuild yielded {len(new_podcasts)} episodes vs prior "
-            f"{len(prior_podcasts)}; keeping the committed catalog. The corpus this lane saw is "
-            "behind the published one -- check that research-vault/podcasts was cloned and is current.",
+            f"PRESERVE podcast_index: {podcast_reason}; keeping the committed catalog. "
+            "The corpus this lane saw is behind the published one -- check that "
+            "research-vault/podcasts was cloned and is current.",
             file=sys.stderr,
         )
 
