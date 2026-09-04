@@ -1,3 +1,4 @@
+import importlib.util
 import re
 import sqlite3
 from pathlib import Path
@@ -189,3 +190,106 @@ def test_hot_routes_do_not_scan_full_history():
     ).read_text(encoding="utf-8")
     assert "OnUnitActiveSec=5min" in timer
     assert "OnUnitActiveSec=30s" not in timer
+
+
+def _build_schema() -> sqlite3.Connection:
+    """Every migration the row-scan indexes depend on, applied in order."""
+    connection = sqlite3.connect(":memory:")
+    for migration in (
+        "0005_criticality_monitor.sql",
+        "0006_market_risk_components.sql",
+        "0007_sleeves.sql",
+        "0008_portfolio_hub.sql",
+        "0014_d1_read_efficiency.sql",
+        "0016_bound_remaining_row_scans.sql",
+    ):
+        connection.executescript(
+            (MIGRATIONS / migration).read_text(encoding="utf-8")
+        )
+    return connection
+
+
+def _plan(connection: sqlite3.Connection, sql: str, params=()) -> str:
+    return " | ".join(
+        row[3] for row in connection.execute(f"EXPLAIN QUERY PLAN {sql}", params)
+    )
+
+
+def _load_pruner():
+    spec = importlib.util.spec_from_file_location(
+        "prune_cloudflare_d1", ROOT / "_system/scripts/prune_cloudflare_d1.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _capture(statements: list[str]):
+    """Record the SQL a retention pass would run, and report nothing deleted so
+    the batch loop stops after one round."""
+
+    def execute(sql: str) -> int:
+        statements.append(sql)
+        return 0
+
+    return execute
+
+
+def test_history_route_seeks_by_symbol():
+    """/market-risk/history filters on symbol alone. Every other index on these
+    tables leads with scope, so before 0016 the planner could not seek and each
+    request read the whole table to return LIMIT rows."""
+    connection = _build_schema()
+    source = (ROOT / "dashboard/functions/api/v1/market-risk/history.js").read_text(
+        encoding="utf-8"
+    )
+    statements = re.findall(r"db\.prepare\(`(.*?)`\)", source, re.DOTALL)
+    assert len(statements) == 2, statements
+    for sql in statements:
+        plan = _plan(connection, sql, ("SPY", 250))
+        assert "SCAN" not in plan, plan
+        assert "_symbol_history" in plan, plan
+
+
+def test_retention_deletes_seek_by_time():
+    """prune_time_series deletes by time alone. A table whose time column does
+    not lead an index is rescanned once per batch, on every deployment."""
+    connection = _build_schema()
+    pruner = _load_pruner()
+    statements: list[str] = []
+    pruner.prune_time_series(_capture(statements), pruner.table_names(connection))
+    assert statements
+
+    covered = set()
+    for sql in statements:
+        table = re.search(r"DELETE FROM (\w+)", sql).group(1)
+        covered.add(table)
+        assert f"SCAN {table}" not in _plan(connection, sql), f"{table}: {sql}"
+    # The live series, so a policy silently dropped from the loop fails here.
+    assert {
+        "criticality_snapshots",
+        "flow_stress_snapshots",
+        "market_risk_component_snapshots",
+        "sleeve_marks",
+        "sleeve_classifier_audit",
+    } <= covered
+
+
+def test_portfolio_retention_reaches_references_by_index():
+    """prune_portfolio_history clears each referencing table before its source
+    run. Ranking portfolio_source_runs is an intentional scan; reaching the
+    reference rows by source_run_id is not."""
+    connection = _build_schema()
+    pruner = _load_pruner()
+    statements: list[str] = []
+    pruner.prune_portfolio_history(
+        _capture(statements), pruner.table_names(connection)
+    )
+    assert statements
+
+    for sql in statements:
+        table = re.search(r"DELETE FROM (\w+)", sql).group(1)
+        if table == "portfolio_source_runs":
+            continue
+        assert f"SCAN {table}" not in _plan(connection, sql), f"{table}: {sql}"
