@@ -1,48 +1,45 @@
 # Event triage — human review queue
 
 **Date:** 2026-09-04
-**Rows:** 1769
+**Rows:** 2832
 
 | Date | Ticker | Source | Tier | Materiality | Rules | Title |
 |------|--------|--------|------|-------------|-------|-------|
+| 2026-09-04 | ACHR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | APLD | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | ARES | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | AVY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | AXON | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | BB | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | BMY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | BR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | CART | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | CHD | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | CIFR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | CORZ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | CVNA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | DXCM | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | EQT | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | GNRC | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | GTX | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | HPQ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | INCY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | INTU | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | IVZ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | LRCX | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | MNST | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | MPWR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | MSCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
+| 2026-09-04 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-09-03 | DASH | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | DoorDash (NASDAQ: DASH) CFO sells stock under pre-set tradin |
 | 2026-09-03 | DASH | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | DoorDash (NASDAQ: DASH) CEO sells stock from options—how big |
 | 2026-09-03 | CTVA | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Vylor launches ag-tech investment arm ahead of Corteva spin- |
 | 2026-09-03 | GTX | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Jupiter Topco LLC Acquires New Holdings in Garrett Motion In |
 | 2026-09-03 | MSFT | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Microsoft (MSFT) Reveals Azure Quarterly Revenue Amid AI Gro |
-| 2026-09-03 | ACHR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | APLD | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | ARES | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | AVY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | AXON | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | BB | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | BMY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | BR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | CART | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | CHD | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | CIFR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | CORZ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | CVNA | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | DASH | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | DIS | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | DXCM | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | EQT | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | GNRC | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | GTX | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | HPQ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | INCY | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | INTU | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | IVZ | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | LRCX | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | MNST | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | MPWR | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | MSCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | MSFT | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | SBUX | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | SMCI | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
-| 2026-09-03 | SYK | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-09-02 | MSFT | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Microsoft (MSFT) Announces Major Segment Restructuring Ahead |
 | 2026-09-02 | LDOS | news | context | 38 | rule_conflict, activist_cross_link, neutral_low_impact | Insider Selling: Leidos (NYSE:LDOS) Director Sells 1,000 Sha |
+| 2026-09-01 | XYL | kpi_trend | context | 66 | rule_conflict, activist_cross_link, routine_governance_watch | Leadership / governance on watch |
 | 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre` |
 | 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `mcintyre_q2` |
 | 2026-08-31 | QDEL | third_party | context | 25 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | `jefferies_2026-08-06` |
@@ -205,3 +202,6 @@
 | 2026-08-26 | APLD | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Wolfpack Research short cache (Jul 2023) |
 | 2026-08-26 | CIFR | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | HoldCo Asset Management — SC 13D/A |
 | 2026-08-26 | CVNA | third_party | context | 21 | rule_conflict, activist_cross_link, entity_mismatch, neutral_low_impact | Mar 1, 2019 |
+| 2026-08-26 | BR | third_party | context | 13 | rule_conflict, activist_cross_link, neutral_low_impact | 04-Broadridge |
+| 2026-08-26 | INTU | third_party | context | 13 | rule_conflict, activist_cross_link, neutral_low_impact | INTU - 163568 |
+| 2026-08-26 | FRMI | third_party | context | 13 | rule_conflict, activist_cross_link, neutral_low_impact | VIC PDF intake - FRMI - FRMI.pdf |
