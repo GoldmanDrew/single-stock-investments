@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "updated": "2026-09-01",
+  "updated": "2026-09-03",
   "user_agent": "SSI-VideoAgent/1.0 (+research; contact=research@local)",
-  "notes": "YouTube channel registry, the video analogue of show_registry.json. Precision comes from this list, not from search. tier: duplicate=already in the podcast corpus; guest=a registered guest's own channel; native=video-only source. trust: high=on-topic by construction; broad=channel is only sometimes relevant and the transcript gate must carry the decision. ingest=false means discovered but never fetched. All feed_* fields are live probe results, not assertions -- refresh with resolve_youtube_channel.py --verify.",
+  "notes": "YouTube channel registry, the video analogue of show_registry.json. Precision comes from this list, not from search. tier: duplicate=already in the podcast corpus; guest=a registered guest's own channel; native=video-only source. trust: high=on-topic by construction; broad=channel is only sometimes relevant and the transcript gate must carry the decision. ingest=false means discovered but never fetched. All feed_* fields are live probe results, not assertions -- refresh with resolve_youtube_channel.py --verify. playlists[] scopes ingestion inside a channel: `ingest` on the channel governs its RSS feed only, and each playlist carries its own, so a noisy channel can stay off while one playlist on it is read. Playlists are read through playlistItems.list (1 unit per 50 videos) rather than RSS, which caps at 15 entries and cannot see history.",
   "channels": [
     {
       "channel_id": "UCyFqFYfTW2VoIQKylJ04Rtw",
@@ -253,14 +253,36 @@
       "ingest": false,
       "dedupe_against_show_id": null,
       "guest_ids": [],
-      "notes": "Demoted to ingest=false 2026-09-01: the last 15 uploads contained zero investing content (Diary of a Wimpy Kid, memory hacks, education policy). Base rate is too low for a channel-level feed. Needs a playlist-scoped source instead.",
+      "notes": "Demoted to ingest=false 2026-09-01: the last 15 uploads contained zero investing content (Diary of a Wimpy Kid, memory hacks, education policy). Base rate is too low for a channel-level feed. Needs a playlist-scoped source instead. Superseded 2026-09-03: the channel feed stays off, and the Investors at Google playlist below carries the signal instead.",
       "verified_at": "2026-09-01",
       "feed_title": "Talks at Google",
       "feed_entry_count": 15,
       "feed_last_published": "2026-08-03",
       "feed_days_stale": 29,
       "rate_limit_seconds": 1.0,
-      "demoted_on_evidence": true
+      "demoted_on_evidence": true,
+      "playlists": [
+        {
+          "playlist_id": "PLGGpadyh0wS53HdovgrEgRwEqHcWrJwgP",
+          "title": "Investors at Google",
+          "ingest": true,
+          "trust": "broad",
+          "item_count": 49,
+          "verified_at": "2026-09-03",
+          "notes": "The investor talks the channel feed cannot reach. Enumerated live 2026-09-03: 49 videos, but newest is 2024-04-01 and the sample skews retail -- Girls That Invest, Rich AF, an NFT book -- rather than the institutional material the guest channels carry. Kept at trust=broad and enabled anyway because that is exactly the case the transcript gate exists to decide; expect a low admit rate and re-check it against the gate's verdict before enabling Economics at Google.",
+          "feed_last_published": "2024-04-01",
+          "feed_days_stale": 885
+        },
+        {
+          "playlist_id": "PLGGpadyh0wS6Q8ikSHvOTMk0bL2dSDeRP",
+          "title": "Economics at Google",
+          "ingest": false,
+          "trust": "broad",
+          "item_count": 80,
+          "verified_at": "2026-09-03",
+          "notes": "Recorded, not enabled. Adjacent rather than on-topic, and 80 more videos would be most of a week of caption budget at 20/hour. Turn on once Investors at Google has been through the gate and the admit rate is known."
+        }
+      ]
     },
     {
       "channel_id": "UCwWeR7z1tDD-SFkWjQrUrQA",
@@ -273,14 +295,27 @@
       "ingest": false,
       "dedupe_against_show_id": null,
       "guest_ids": [],
-      "notes": "Demoted to ingest=false 2026-09-01: the last 15 uploads were school PR ('Pick your study spot', 'MBA Reapplication Webinar'). The Graham-Dodd content is on Heilbrunn playlists, not this channel feed.",
+      "notes": "Demoted to ingest=false 2026-09-01: the last 15 uploads were school PR ('Pick your study spot', 'MBA Reapplication Webinar'). The Graham-Dodd content is on Heilbrunn playlists, not this channel feed. Confirmed 2026-09-03: the Graham-Dodd playlist is on THIS channel, and is now ingested on its own while the feed stays off.",
       "verified_at": "2026-09-01",
       "feed_title": "Columbia Business School",
       "feed_entry_count": 15,
       "feed_last_published": "2026-09-01",
       "feed_days_stale": 0,
       "rate_limit_seconds": 1.0,
-      "demoted_on_evidence": true
+      "demoted_on_evidence": true,
+      "playlists": [
+        {
+          "playlist_id": "PLkaMHqssAxbLwLJO096W5OyVcJC3md-g0",
+          "title": "Heilbrunn Center for Graham & Dodd Investing",
+          "ingest": true,
+          "trust": "high",
+          "item_count": 14,
+          "verified_at": "2026-09-03",
+          "notes": "Exactly the playlist the 2026-09-01 demotion note predicted was there. Enumerated live 2026-09-03: 14 videos, on-topic by construction -- Pershing Square Value Investing Challenge, Applied Value Investing Stock Pitch, the Roger Murray Lecture. Found on the Columbia Business School channel; the HeilbrunnCenter channel itself has no playlists.",
+          "feed_last_published": "2026-05-22",
+          "feed_days_stale": 104
+        }
+      ]
     },
     {
       "channel_id": "UCAbO3jIRnd7hZKkSY6F1FzA",
@@ -293,13 +328,14 @@
       "ingest": false,
       "dedupe_against_show_id": null,
       "guest_ids": [],
-      "notes": "Resolved and real, but one public video from 2013. Kept so it is not re-resolved.",
-      "verified_at": "2026-09-01",
+      "notes": "Resolved and real, but one public video from 2013 and -- checked live on 2026-09-03 -- zero public playlists. There is nothing here to ingest under any scoping. The Heilbrunn material is published on the Columbia Business School channel instead; see its playlists. Kept so it is not re-resolved.",
+      "verified_at": "2026-09-03",
       "feed_title": "HeilbrunnCenter",
       "feed_entry_count": 1,
       "feed_last_published": "2013-02-04",
       "feed_days_stale": 4957,
-      "rate_limit_seconds": 1.0
+      "rate_limit_seconds": 1.0,
+      "playlists": []
     }
   ],
   "unresolved": [

@@ -55,6 +55,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from resolve_podcast_entities import PodcastEntityResolver  # noqa: E402
 from vault_paths import podcasts_root, videos_root  # noqa: E402
+import youtube_api  # noqa: E402
 
 VIDEO_CFG = ROOT / "_system" / "reference" / "video"
 CHANNEL_REG = VIDEO_CFG / "channel_registry.json"
@@ -146,6 +147,86 @@ def parse_channel_feed(xml_bytes: bytes, channel: dict) -> list[dict]:
     return out
 
 
+def playlist_sources(channel: dict) -> list[dict]:
+    """Playlist-scoped sources declared on a channel entry.
+
+    A channel feed and a playlist inside it are different questions, and for the
+    broad institutional uploaders they have opposite answers. Talks at Google
+    publishes ~1,800 author talks; its last 15 uploads when the registry was
+    verified on 2026-09-01 were Diary of a Wimpy Kid, memory hacks and education
+    policy, which is why the channel sits at ingest=false. The "Investors at
+    Google" playlist on that same channel is 49 investor talks. Columbia
+    Business School is the same shape -- admissions webinars on the feed, the
+    Heilbrunn Graham & Dodd series on a playlist.
+
+    So a channel can be off while a playlist on it is on. `ingest` on the
+    channel governs the RSS feed only; each playlist carries its own.
+    """
+    out: list[dict] = []
+    for pl in channel.get("playlists") or []:
+        if not pl.get("ingest") or not pl.get("playlist_id"):
+            continue
+        out.append({
+            **channel,
+            "source_kind": "playlist",
+            "playlist_id": pl["playlist_id"],
+            "playlist_title": pl.get("title"),
+            # A scoped playlist can be more trustworthy than the channel hosting
+            # it -- that is the entire reason for scoping to one.
+            "trust": pl.get("trust") or channel.get("trust"),
+            "rate_limit_seconds": pl.get("rate_limit_seconds")
+                or channel.get("rate_limit_seconds") or 1.0,
+        })
+    return out
+
+
+def registry_sources(doc: dict, *, only_channel: str | None = None) -> list[dict]:
+    """Every ingesting source in the registry: channel feeds, then playlists."""
+    out: list[dict] = []
+    for ch in doc.get("channels") or []:
+        if only_channel and ch.get("channel_id") != only_channel:
+            continue
+        if ch.get("ingest"):
+            out.append({**ch, "source_kind": "channel_rss"})
+        out.extend(playlist_sources(ch))
+    return out
+
+
+def fetch_playlist(source: dict, *, max_videos: int | None = None) -> list[dict]:
+    """Playlist -> the same record shape parse_channel_feed produces.
+
+    playlistItems.list costs 1 unit per 50 videos, so a scoped playlist's whole
+    back catalogue is single-digit units against the 10,000/day free tier. The
+    Atom feed cannot do this at any price: it caps at 15 entries and has no
+    history, so a 49-video playlist read through RSS would return only whatever
+    was uploaded most recently -- which for these channels is the noise.
+    """
+    items = youtube_api.playlist_items(source["playlist_id"], max_videos=max_videos)
+    out: list[dict] = []
+    for it in items:
+        vid = (it.get("video_id") or "").strip()
+        if not vid:
+            continue
+        out.append({
+            "video_id": vid,
+            "url": "https://www.youtube.com/watch?v=" + vid,
+            "channel_id": source.get("channel_id"),
+            "channel_title": source.get("title"),
+            "tier": source.get("tier"),
+            "trust": source.get("trust"),
+            "title": (it.get("title") or "").strip(),
+            "description": (it.get("description") or "").strip(),
+            "published": (it.get("published") or "").strip(),
+            # playlistItems carries no statistics part; the RSS path fills this
+            # from media:community and the transcript gate does not read it.
+            "views": None,
+            "discovery": "playlist",
+            "playlist_id": source.get("playlist_id"),
+            "playlist_title": source.get("playlist_title"),
+        })
+    return out
+
+
 def build_podcast_title_index() -> dict:
     """Normalized episode titles already in the podcast corpus, by show and overall.
 
@@ -223,9 +304,7 @@ def screen(video: dict, channel: dict, index: dict) -> dict:
 def discover(*, only_channel: str | None = None, dedupe: bool = True,
              write: bool = True) -> dict:
     doc = load_json(CHANNEL_REG)
-    channels = [c for c in (doc.get("channels") or []) if c.get("ingest")]
-    if only_channel:
-        channels = [c for c in channels if c.get("channel_id") == only_channel]
+    channels = registry_sources(doc, only_channel=only_channel)
     if not channels:
         return {"error": "no ingesting channels matched", "videos": []}
 
@@ -238,12 +317,21 @@ def discover(*, only_channel: str | None = None, dedupe: bool = True,
     errors: list[dict] = []
 
     for ch in channels:
+        label = ch.get("playlist_title") or ch.get("title") or ""
         try:
-            raw = http_get(ch["rss_url"])
-            found = parse_channel_feed(raw, ch)
-        except Exception as exc:  # noqa: BLE001 - feed and network shapes vary
-            errors.append({"channel_id": ch.get("channel_id"), "error": type(exc).__name__ + ": " + str(exc)})
-            print("ERR  {0}: {1}".format(ch.get("title"), type(exc).__name__), flush=True)
+            if ch.get("source_kind") == "playlist":
+                found = fetch_playlist(ch)
+            else:
+                raw = http_get(ch["rss_url"])
+                found = parse_channel_feed(raw, ch)
+        except Exception as exc:  # noqa: BLE001 - feed, API and network shapes vary
+            errors.append({
+                "channel_id": ch.get("channel_id"),
+                "playlist_id": ch.get("playlist_id"),
+                "source_kind": ch.get("source_kind"),
+                "error": type(exc).__name__ + ": " + str(exc),
+            })
+            print("ERR  {0}: {1}".format(label, type(exc).__name__), flush=True)
             continue
 
         for v in found:
@@ -263,6 +351,9 @@ def discover(*, only_channel: str | None = None, dedupe: bool = True,
         stats.append({
             "channel_id": ch.get("channel_id"),
             "title": ch.get("title"),
+            "source_kind": ch.get("source_kind"),
+            "playlist_id": ch.get("playlist_id"),
+            "playlist_title": ch.get("playlist_title"),
             "tier": ch.get("tier"),
             "trust": ch.get("trust"),
             "found": len(found),
@@ -270,7 +361,7 @@ def discover(*, only_channel: str | None = None, dedupe: bool = True,
             "duplicates": dupes,
         })
         print("ok   {0:32s} found={1:<3} pending={2:<3} dupes={3}".format(
-            (ch.get("title") or "")[:30], len(found), pending, dupes), flush=True)
+            label[:30], len(found), pending, dupes), flush=True)
         videos.extend(found)
         time.sleep(float(ch.get("rate_limit_seconds") or 1.0))
 
@@ -286,6 +377,8 @@ def discover(*, only_channel: str | None = None, dedupe: bool = True,
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "channel_count": len(channels),
+        "playlist_source_count": sum(
+            1 for c in channels if c.get("source_kind") == "playlist"),
         "video_count": len(deduped),
         "pending_transcript": sum(1 for v in deduped if v["gate"] == "pending_transcript"),
         "rejected_metadata": sum(1 for v in deduped if v["gate"] == "rejected_metadata"),
