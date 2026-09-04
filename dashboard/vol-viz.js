@@ -234,12 +234,44 @@
     const plotLeft = 154;
     const plotRight = 986;
     const plotWidth = plotRight - plotLeft;
-    const plotTop = 22;
     const rowPitch = 17;
     const cellHeight = 15;
-    const height = plotTop + METRIC_ORDER.length * rowPitch + 40;
     const pitch = plotWidth / months.length;
     const cellWidth = Math.max(1, pitch - 0.8);
+
+    // Events are placed before the plot is laid out, because the number of
+    // label rows decides where the plot can start. Clustered episodes used to
+    // overprint each other -- 2020-11 through 2023-03 are five events inside
+    // 28 cells, which rendered as one unreadable smear -- so each label takes
+    // the lowest row that its neighbours leave clear.
+    //
+    // .vol-event-label is 10px JetBrains Mono. A monospace advance of 0.6em
+    // measures a label exactly, so this is a real collision test rather than a
+    // guess, and it stays correct as labels are added or renamed.
+    const EVENT_CHAR = 6;
+    const EVENT_GUTTER = 6;
+    const EVENT_LINE = 11;
+    const events = [];
+    VOL_EVENTS.forEach((event) => {
+      const index = months.findIndex((bucket) => bucket.month === event.month);
+      if (index < 0) return;
+      const x = plotLeft + index * pitch + cellWidth / 2;
+      const half = (event.label.length * EVENT_CHAR) / 2;
+      // The rule stays on the true column; only the text slides, so an episode
+      // near either edge is legible instead of clipped by the viewBox.
+      const textX = Math.min(Math.max(x, half + 2), 998 - half);
+      let row = 0;
+      while (events.some((placed) => placed.row === row
+        && textX - half < placed.right + EVENT_GUTTER)) row += 1;
+      events.push({ x, textX, row, label: event.label, right: textX + half });
+    });
+    const eventRows = events.length
+      ? Math.max(...events.map((placed) => placed.row)) + 1
+      : 1;
+    // The topmost row keeps the single-row baseline of 13, so a strip with no
+    // collisions is laid out exactly as before.
+    const plotTop = 22 + (eventRows - 1) * EVENT_LINE;
+    const height = plotTop + METRIC_ORDER.length * rowPitch + 40;
 
     const cells = [];
     METRIC_ORDER.forEach((metric, rowIndex) => {
@@ -269,12 +301,12 @@
       ticks.push(`<text class="vol-heat-axis-label" x="${(x + 2).toFixed(1)}" y="${axisY}" text-anchor="start">${escapeHtml(bucket.month.slice(0, 4))}</text>`);
     });
 
-    const marks = VOL_EVENTS.map((event) => {
-      const index = months.findIndex((bucket) => bucket.month === event.month);
-      if (index < 0) return '';
-      const x = plotLeft + index * pitch + cellWidth / 2;
-      return `<line class="vol-event-rule" x1="${x.toFixed(1)}" y1="${plotTop - 6}" x2="${x.toFixed(1)}" y2="${(plotTop + METRIC_ORDER.length * rowPitch + 2).toFixed(1)}"></line>
-        <text class="vol-event-label" x="${x.toFixed(1)}" y="${(plotTop - 9).toFixed(1)}" text-anchor="middle">${escapeHtml(event.label)}</text>`;
+    const marks = events.map((placed) => {
+      const labelY = plotTop - 9 - placed.row * EVENT_LINE;
+      // Each rule starts just under its own label, so a label lifted onto a
+      // higher row still reads as belonging to its column.
+      return `<line class="vol-event-rule" x1="${placed.x.toFixed(1)}" y1="${(labelY + 3).toFixed(1)}" x2="${placed.x.toFixed(1)}" y2="${(plotTop + METRIC_ORDER.length * rowPitch + 2).toFixed(1)}"></line>
+        <text class="vol-event-label" x="${placed.textX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle">${escapeHtml(placed.label)}</text>`;
     }).join('');
 
     return `<details class="vol-long-view" open><summary>Full history · ${escapeHtml(String(months.length))} months, ${escapeHtml(shortDate(months[0].month))} to ${escapeHtml(months[months.length - 1].month)}</summary>

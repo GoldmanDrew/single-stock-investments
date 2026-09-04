@@ -380,6 +380,39 @@ check('missing history only degrades the heatmap',
   noHistory.includes('No vol-metrics history is loaded') && noHistory.includes('iv30 cross-check'),
   'surface card still renders without the history feed');
 
+// Event labels share one band above the plot. Clustered episodes overprinted
+// each other -- 2020-11 to 2023-03 is five events inside 28 cells -- until they
+// were packed into rows. No other assertion here can see that failure: the
+// strip still renders, it is just unreadable, so the geometry is checked.
+// .vol-event-label is 10px JetBrains Mono, monospace, so a 6px character
+// advance measures a label exactly rather than approximately.
+const strip = html.match(/<details class="vol-long-view"[\s\S]*?<\/details>/);
+const labels = [...(strip ? strip[0] : '').matchAll(
+  /<text class="vol-event-label" x="([\d.]+)" y="([\d.-]+)"[^>]*>([^<]*)<\/text>/g)]
+  .map((m) => {
+    const x = parseFloat(m[1]);
+    const half = m[3].length * 3;
+    return { row: m[2], left: x - half, right: x + half, label: m[3] };
+  });
+const collisions = [];
+for (let i = 0; i < labels.length; i += 1) {
+  for (let j = i + 1; j < labels.length; j += 1) {
+    const a = labels[i];
+    const b = labels[j];
+    if (a.row === b.row && a.left < b.right && b.left < a.right) {
+      collisions.push(a.label + ' / ' + b.label);
+    }
+  }
+}
+check('event labels never overprint each other',
+  labels.length >= 5 && collisions.length === 0,
+  labels.length + ' labels on ' + new Set(labels.map((l) => l.row)).size + ' row(s)'
+    + (collisions.length ? ' -- OVERLAPS: ' + collisions.join(', ') : ''));
+check('event labels stay inside the viewBox',
+  labels.length > 0 && labels.every((l) => l.left >= 0 && l.right <= 1000),
+  labels.length ? 'span ' + Math.min(...labels.map((l) => l.left)).toFixed(0)
+    + ' to ' + Math.max(...labels.map((l) => l.right)).toFixed(0) + ' of 0-1000' : 'no labels');
+
 process.stdout.write(JSON.stringify({ results, html_len: html.length }));
 """
 
