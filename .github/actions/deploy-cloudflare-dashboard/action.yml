@@ -167,14 +167,18 @@ runs:
         set +e
         (
           set -e
-          # Retention has to run before migrations. A D1 database at its
-          # storage ceiling can reject ALTER TABLE before cleanup gets a chance
-          # to run. Raw portfolio payloads remain immutable in R2.
+          # Migrations BEFORE prune. 0014–0016 are mostly CREATE INDEX / DROP TABLE:
+          # they free space and make retention seek instead of full-scan. Running
+          # prune first without idx_*_received / as_of indexes burned the free-tier
+          # row-read quota before migrations could ever apply (observed 2026-09-04/05).
+          # Storage-ceiling ALTER risk is secondary to the read-quota death spiral;
+          # 0015's DROP TABLE also frees space before index builds.
+          # Raw portfolio payloads remain immutable in R2.
+          "$WRANGLER" d1 migrations apply DB --remote \
+            --config _cf_project/wrangler.jsonc
           python _system/scripts/prune_cloudflare_d1.py \
             --wrangler "$WRANGLER" \
             --database DB \
-            --config _cf_project/wrangler.jsonc
-          "$WRANGLER" d1 migrations apply DB --remote \
             --config _cf_project/wrangler.jsonc
           python _system/scripts/export_dashboard_d1_seed.py
           "$WRANGLER" d1 execute DB --remote --yes \

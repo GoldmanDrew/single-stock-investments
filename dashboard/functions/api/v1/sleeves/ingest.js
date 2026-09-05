@@ -29,9 +29,8 @@ export async function onRequestPost(context) {
     if (Number(nonceInsert.meta?.changes || 0) !== 1) {
       return json({ error: "Replay rejected.", request_id: id }, 409, { "cache-control": "no-store" });
     }
-    await db.prepare(
-      "DELETE FROM sleeve_ingest_nonces WHERE received_at < datetime('now', '-1 day')",
-    ).run();
+    // Nonce retention is deploy-time only (prune_cloudflare_d1.py). Per-request
+    // DELETE scanned the whole table before idx_sleeve_nonce_received landed.
 
     const statements = [];
     const fill = payload.fill;

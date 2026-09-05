@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validateAccountSnapshot, validateFlexEod, validateStrategySnapshot, verifyPortfolioHmac } from "../functions/_lib/portfolio.js";
+import { reserveNonce, validateAccountSnapshot, validateFlexEod, validateStrategySnapshot, verifyPortfolioHmac } from "../functions/_lib/portfolio.js";
 
 function accountSnapshot() {
   return {
@@ -84,6 +84,29 @@ test("Flex completed-session envelope requires an explicit session date", () => 
   const payload = { schema_version: "flex_eod.v1", source_run_id: "flex-1", account_alias: "paper-primary", session_date: "2026-08-16", as_of: "2026-08-17T08:00:00Z", positions: [], trades: [], cash_transactions: [], nav_rows: [] };
   assert.equal(validateFlexEod(payload).session_date, "2026-08-16");
   assert.throws(() => validateFlexEod({ ...payload, session_date: "today" }), /flex_eod/);
+});
+
+test("reserveNonce only inserts — it never prunes on the hot path", async () => {
+  // Regression for the free-tier read burn: claim/publish called reserveNonce
+  // every ~15s and each success ran DELETE … WHERE received_at < …, which
+  // full-scanned portfolio_ingest_nonces (~4–6k rows) and exhausted the day.
+  const sql = [];
+  const db = {
+    prepare(text) {
+      sql.push(text);
+      return {
+        bind() {
+          return this;
+        },
+        async run() {
+          return { meta: { changes: 1 } };
+        },
+      };
+    },
+  };
+  assert.equal(await reserveNonce(db, "aabbccddeeff00112233445566778899"), true);
+  assert.deepEqual(sql, ["INSERT OR IGNORE INTO portfolio_ingest_nonces(nonce) VALUES (?)"]);
+  assert.ok(!sql.some((q) => /DELETE/i.test(q)));
 });
 
 test("portfolio ingest signature is body-bound", async () => {
