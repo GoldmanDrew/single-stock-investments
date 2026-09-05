@@ -12,9 +12,9 @@
 --      Only criticality had a time-leading index, so the other tables were
 --      rescanned once per 1,000-row batch, on every deployment.
 --
--- Index construction reads each table once. Retention deliberately runs before
--- migrations in the deploy action, so these are built against tables already
--- trimmed to their retention window rather than the full history.
+-- Index construction reads each table once. Deploy applies these migrations
+-- before retention so prune can seek on received_at / as_of instead of
+-- full-scanning (the previous prune-first order exhausted free-tier reads).
 
 -- 1. History route: seek to the symbol, then walk it in the order the route
 -- already asks for, so the LIMIT bounds rows read instead of rows returned.

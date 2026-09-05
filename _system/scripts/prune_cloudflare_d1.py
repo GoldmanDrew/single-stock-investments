@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Bound high-frequency dashboard history before D1 migrations run.
+"""Bound high-frequency dashboard history after D1 efficiency migrations.
 
 The portfolio publisher archives every raw payload in R2, while D1 serves the
 current dashboard and its daily NAV history.  Keeping every 30-second D1
 snapshot duplicates the archive and can fill a free-tier database quickly.
 
-This script deliberately runs before migrations: a database at its size limit
-may not have enough headroom for ALTER TABLE, but it can still delete rows.
-Every delete is batched so D1 does not have to rewrite a large table in one
-statement.
+Deploy applies pending migrations first (CREATE INDEX / DROP TABLE), then this
+script. Retention without received_at / as_of indexes full-scans and can burn
+the free-tier row-read quota before indexes ever land. Every delete is batched
+so D1 does not have to rewrite a large table in one statement.
+
+Nonce tables (portfolio / sleeve / market-risk) are pruned here only — ingest
+handlers must not DELETE on the hot path.
 """
 
 from __future__ import annotations

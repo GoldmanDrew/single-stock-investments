@@ -144,10 +144,13 @@ export async function sha256Hex(bytes) {
 }
 
 export async function reserveNonce(db, nonce) {
+  // Replay protection only. Do not prune here: the command poller hits claim/
+  // publish every ~15s, and a time-range DELETE without idx_portfolio_nonce_received
+  // full-scans the table (~4–6k rows each). That alone burned ~26M free-tier row
+  // reads/day and exhausted the quota before midnight UTC. Retention is owned by
+  // prune_cloudflare_d1.py on deploy (and migration 0016 indexes received_at).
   const result = await db.prepare("INSERT OR IGNORE INTO portfolio_ingest_nonces(nonce) VALUES (?)").bind(nonce).run();
-  if (Number(result.meta?.changes || 0) !== 1) return false;
-  await db.prepare("DELETE FROM portfolio_ingest_nonces WHERE received_at < datetime('now', '-1 day')").run();
-  return true;
+  return Number(result.meta?.changes || 0) === 1;
 }
 
 export async function storeAccountSnapshot(env, payload, bytes) {

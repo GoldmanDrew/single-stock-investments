@@ -103,11 +103,9 @@ export async function onRequestPost(context) {
         "cache-control": "no-store",
       });
     }
+    // Nonce retention is deploy-time only (prune_cloudflare_d1.py). Do not DELETE
+    // on the hot ingest path — same full-scan trap as portfolio_ingest_nonces.
     const statements = [];
-    statements.push(db.prepare(`
-      DELETE FROM market_risk_ingest_nonces
-      WHERE received_at < datetime('now', '-1 day')
-    `));
     const receivedAt = new Date().toISOString();
     for (const row of criticality) {
       if (!SCOPES.has(row.scope) || !DIRECTIONS.has(row.direction)
