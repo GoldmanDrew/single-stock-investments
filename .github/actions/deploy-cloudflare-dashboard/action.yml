@@ -164,36 +164,79 @@ runs:
         set -euo pipefail
         WRANGLER="dashboard/cloudflare/node_modules/.bin/wrangler"
         D1_LOG="$RUNNER_TEMP/single-stock-d1-sync.log"
-        set +e
-        (
+        : >"$D1_LOG"
+        D1_FAILED=0
+        D1_DEFERRED=0
+        STAGE_STATUS=0
+
+        # Every stage runs, whatever the stage before it did.
+        #
+        # This used to be a single `set -e` subshell, so a failed `migrations
+        # apply` skipped retention entirely -- and retention is exactly the thing
+        # that makes the next attempt cheap enough to succeed. Between 2026-09-04
+        # and 2026-09-06 that cost three days: 0014-0016 were re-listed as pending
+        # on every deploy, prune_cloudflare_d1.py never ran once, and the tables
+        # it bounds grew the whole time.
+        #
+        # Order still matters -- migrations first, so retention can seek on the
+        # received_at / as_of indexes 0016 adds instead of full-scanning
+        # (0016_bound_remaining_row_scans.sql) -- but an order is not a
+        # dependency. The seed pair is the only real one: a failed export must
+        # not re-apply a stale seed file.
+        #
+        # A stage stopped by the daily free-tier quota is deferred, not failed:
+        # that is weather, the next post-reset deploy retries it, and the static
+        # Pages deploy below still has to ship. Anything else is a real fault and
+        # stays red. Classification is per stage, so a quota warning in one
+        # cannot mask a genuine bug in another.
+        run_stage() {
+          local label="$1"
+          shift
+          local stage_log
+          stage_log="$(mktemp)"
+          printf '\n=== %s ===\n' "$label" | tee -a "$D1_LOG"
+          set +e
+          "$@" 2>&1 | tee -a "$D1_LOG" "$stage_log"
+          STAGE_STATUS=${PIPESTATUS[0]}
           set -e
-          # Migrations BEFORE prune. 0014–0016 are mostly CREATE INDEX / DROP TABLE:
-          # they free space and make retention seek instead of full-scan. Running
-          # prune first without idx_*_received / as_of indexes burned the free-tier
-          # row-read quota before migrations could ever apply (observed 2026-09-04/05).
-          # Storage-ceiling ALTER risk is secondary to the read-quota death spiral;
-          # 0015's DROP TABLE also frees space before index builds.
-          # Raw portfolio payloads remain immutable in R2.
+          if [ "$STAGE_STATUS" -ne 0 ]; then
+            if grep -Eqi "exceeded D1's free tier daily row (read|write) limit" "$stage_log"; then
+              D1_DEFERRED=1
+              echo "::warning::D1 stage deferred, free daily row quota is exhausted: ${label}."
+            else
+              D1_FAILED=1
+              echo "::error::D1 stage failed with exit ${STAGE_STATUS}: ${label}."
+            fi
+          fi
+          rm -f "$stage_log"
+        }
+
+        # Raw portfolio payloads stay immutable in R2 regardless of any of this.
+        run_stage "Apply pending migrations" \
           "$WRANGLER" d1 migrations apply DB --remote \
-            --config _cf_project/wrangler.jsonc
+          --config _cf_project/wrangler.jsonc
+        run_stage "Bound history (retention)" \
           python _system/scripts/prune_cloudflare_d1.py \
-            --wrangler "$WRANGLER" \
-            --database DB \
-            --config _cf_project/wrangler.jsonc
+          --wrangler "$WRANGLER" \
+          --database DB \
+          --config _cf_project/wrangler.jsonc
+        run_stage "Export dashboard seed" \
           python _system/scripts/export_dashboard_d1_seed.py
-          "$WRANGLER" d1 execute DB --remote --yes \
+        if [ "$STAGE_STATUS" -eq 0 ]; then
+          run_stage "Apply dashboard seed" \
+            "$WRANGLER" d1 execute DB --remote --yes \
             --file dashboard/cloudflare/generated/dashboard_seed.sql \
             --config _cf_project/wrangler.jsonc
-        ) 2>&1 | tee "$D1_LOG"
-        D1_STATUS=${PIPESTATUS[0]}
-        set -e
+        else
+          echo "::warning::Seed export failed; the previous seed file is not re-applied."
+        fi
 
-        if [ "$D1_STATUS" -ne 0 ]; then
-          if grep -Eqi "exceeded D1's free tier daily row (read|write) limit" "$D1_LOG"; then
-            echo "::warning::D1 synchronization deferred because the free daily row quota is exhausted. Static Pages and optimized API code will still deploy; the scheduled post-reset deployment will retry D1."
-            exit 0
-          fi
-          exit "$D1_STATUS"
+        if [ "$D1_FAILED" -ne 0 ]; then
+          echo "A D1 stage failed for a reason other than the daily row quota." >&2
+          exit 1
+        fi
+        if [ "$D1_DEFERRED" -ne 0 ]; then
+          echo "::warning::D1 synchronization partially deferred because the free daily row quota is exhausted. Static Pages and optimized API code still deploy; the next post-reset deployment retries the deferred stages."
         fi
 
     - name: Configure private Pages secrets and deploy signed market-risk ingest Worker
