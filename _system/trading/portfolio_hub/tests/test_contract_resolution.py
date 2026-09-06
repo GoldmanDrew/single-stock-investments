@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
 
-from _system.trading.portfolio_hub.command_poller import OrderCommandLoop
+from _system.trading.portfolio_hub.command_poller import IDLE_POLL_SECONDS, OrderCommandLoop
 from _system.trading.portfolio_hub.ib_bridge import fingerprint_for
 from _system.trading.portfolio_hub.paper import PaperOrderBroker
 
@@ -285,6 +286,53 @@ def test_an_idle_tick_opens_no_gateway_session():
         loop.tick()
     assert opened == [], "50 idle ticks must produce zero connections"
     assert sessions.sessions_opened == 0
+
+
+# ------------------------------- a parked ticket must not pin the fast cadence
+
+def _stamp(seconds_ago: float) -> str:
+    """A D1 `created_at`: UTC ISO-8601 with the trailing Z the edge writes."""
+    moment = datetime.now(timezone.utc) - timedelta(seconds=seconds_ago)
+    return moment.isoformat().replace("+00:00", "Z")
+
+
+def test_a_parked_ticket_does_not_hold_the_fast_cadence():
+    """The 1 Hz latch that ate the free-tier daily row-write quota.
+
+    `previewed` is open but not actionable -- no tick can move it -- so a ticket
+    a human previewed and walked away from kept tick() returning True for as
+    long as the row existed, at two signed D1 writes a second.
+    """
+    channel = _Channel(requests=[_option_row(state="previewed", created_at=_stamp(6 * 3600))])
+    assert _loop(channel).tick() is False
+
+
+def test_a_ticket_a_human_is_still_looking_at_keeps_the_fast_cadence():
+    """The reason the fast cadence exists at all: preview -> approve inside 120s."""
+    channel = _Channel(requests=[_option_row(state="previewed", created_at=_stamp(20))])
+    assert _loop(channel).tick() is True
+
+
+def test_an_unreadable_timestamp_falls_back_to_the_slow_cadence():
+    """A broken clock must choose IDLE, never ACTIVE."""
+    for stamp in (None, "", "not-a-date"):
+        channel = _Channel(requests=[_option_row(state="previewed", created_at=stamp)])
+        assert _loop(channel).tick() is False, f"created_at={stamp!r} held the fast cadence"
+
+
+def test_run_forever_backs_off_to_idle_on_a_parked_desk():
+    """End to end: a parked ticket has to produce IDLE_POLL_SECONDS sleeps."""
+    channel = _Channel(requests=[_option_row(state="submitting", created_at=_stamp(9000))])
+    slept: list[float] = []
+
+    def sleep(seconds):
+        slept.append(seconds)
+        if len(slept) == 3:
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        _loop(channel).run_forever(sleep=sleep)
+    assert slept == [IDLE_POLL_SECONDS] * 3
 
 
 def test_a_tick_with_work_opens_exactly_one_session_for_all_of_it():

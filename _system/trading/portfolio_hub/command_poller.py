@@ -20,8 +20,8 @@ Timing is the constraint that shapes everything. GuardedOrderService enforces
 `quote_max_age_seconds` (10s) and `approval_ttl_seconds` (120s), so the preview
 cannot be precomputed or cached, and the whole preview -> human -> submit round
 trip has to fit inside two minutes *including* both poll latencies. A cron would
-miss every time. While any ticket is open the loop runs at ACTIVE_POLL_SECONDS;
-when the desk is quiet it backs off to IDLE_POLL_SECONDS.
+miss every time. While a ticket is *recently* open the loop runs at
+ACTIVE_POLL_SECONDS; otherwise it backs off to IDLE_POLL_SECONDS.
 """
 from __future__ import annotations
 
@@ -30,6 +30,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -43,6 +44,51 @@ IDLE_POLL_SECONDS = 15.0
 # States where a human or the broker still owes us something, so the desk is
 # "open" and the loop must stay responsive.
 OPEN_STATES = {"requested", "drafting", "previewed", "approved", "submitting"}
+# The subset this loop can advance by itself. Everything else in OPEN_STATES is
+# waiting on somebody who is not this process.
+ACTIONABLE_STATES = {"requested", "approved"}
+
+# How long an open ticket may hold the loop at ACTIVE_POLL_SECONDS.
+#
+# The fast cadence exists for one thing: the preview -> human -> submit round
+# trip, which GuardedOrderService bounds at approval_ttl_seconds (120s). Nothing
+# legitimate needs 1 Hz polling after that window closes. Membership in
+# OPEN_STATES cannot be the test, because `previewed` and `submitting` are open
+# but not actionable -- no tick can move them -- so one ticket parked in either
+# used to pin the loop at 1 Hz for as long as the row existed. Each of those
+# ticks is two signed calls, each inserting a row into portfolio_ingest_nonces:
+# ~86k ticks a day against a free tier that allows 100k row writes. On Sunday
+# 2026-09-06, with no CI data lane running and only this loop and the 5-minute
+# publisher touching D1, the quota reset at 00:00 UTC and was exhausted again by
+# 04:39 UTC, which left `d1 migrations apply` unable to land 0014-0016 for three
+# days running. A live desk is a *recent* desk; this is the clock that says so.
+LIVE_REQUEST_SECONDS = 300.0
+
+
+def row_age_seconds(row: dict[str, Any], now: datetime) -> float | None:
+    """Seconds since `row` was created, or None when that cannot be read.
+
+    D1 stamps `created_at` with `new Date().toISOString()`, so the value is UTC
+    with a trailing `Z`. Callers treat an unreadable stamp as *not* live: the
+    failure being guarded against is a loop that never slows down, so a broken
+    clock has to fall back to the slow cadence, never to the fast one.
+    """
+    raw = row.get("created_at")
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return (now - stamp).total_seconds()
+
+
+def is_live_work(row: dict[str, Any], now: datetime) -> bool:
+    """True while `row` is recent enough to justify ACTIVE_POLL_SECONDS."""
+    age = row_age_seconds(row, now)
+    return age is not None and age <= LIVE_REQUEST_SECONDS
 
 
 @dataclass(frozen=True)
@@ -129,20 +175,29 @@ class OrderCommandLoop:
             sleep(ACTIVE_POLL_SECONDS if busy else IDLE_POLL_SECONDS)
 
     def tick(self) -> bool:
-        """Advance every claimable request one step. Returns True if the desk is open.
+        """Advance every claimable request one step. Returns True while the desk is live.
 
         Both claims are HTTPS calls to D1. Nothing here touches IB, and on a
         quiet desk -- which is nearly always -- this function returns having made
         no Gateway contact whatsoever. That is the whole design: the connection
         follows a human action, never a timer.
+
+        The return value only chooses the next sleep. Work is still advanced on
+        every tick regardless of cadence, so a ticket that has aged out of the
+        fast window is not abandoned -- it is served at IDLE_POLL_SECONDS, which
+        is still well inside the 120s approval TTL.
         """
         requests = self.channel.claim()
         lookups = self._claim_lookups()
-        actionable = [row for row in requests if row.get("state") in {"requested", "approved"}]
-        open_desk = any(row.get("state") in OPEN_STATES for row in requests) or bool(lookups)
+        actionable = [row for row in requests if row.get("state") in ACTIONABLE_STATES]
+        now = datetime.now(timezone.utc)
+        live_desk = any(
+            is_live_work(row, now)
+            for row in (*(r for r in requests if r.get("state") in OPEN_STATES), *lookups)
+        )
 
         if not actionable and not lookups:
-            return open_desk
+            return live_desk
 
         # One session for everything this tick needs, then released. Opening one
         # per call would multiply connection events by the number of tickets.
@@ -167,7 +222,7 @@ class OrderCommandLoop:
                 self.channel.publish(row["request_id"], {"state": "rejected", "reject_reason": str(exc)})
             for row in lookups:
                 self.channel.publish_lookup(row["lookup_id"], {"state": "failed", "error": str(exc)})
-        return open_desk
+        return live_desk
 
     @contextmanager
     def _broker(self, purpose: str):
