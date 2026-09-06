@@ -1,0 +1,28 @@
+# AMR — Insider conviction (2026-09-06)
+
+> Context only. Insider activity informs scenario confidence and stance discussion; it does not auto-inflate Lawrence base IRR. Promotion requires [HUMAN REVIEW].
+
+**ICS:** 10.0 (exceptional) · **Bull case support:** moderate
+
+| Scenario | Prior weight | Tilted weight |
+|----------|--------------|---------------|
+| Bear | 20% | 20% |
+| Base | 55% | 40% |
+| Bull | 25% | 40% |
+
+| Insider | Date | Shares | Price | Value | Contrib |
+|---------|------|--------|-------|-------|---------|
+| Gorzynski Michael | 2026-08-21 | 10000 | $208.9169 | $2089169.0 | 3.18 |
+| Courtis Kenneth S. | 2026-08-21 | 9935 | $211.09 | $2097179.15 | 3.061 |
+| Courtis Kenneth S. | 2026-08-25 | 2914 | $216.22 | $630065.08 | 2.952 |
+| Courtis Kenneth S. | 2026-08-20 | 5976 | $193.68 | $1157431.68 | 2.935 |
+| Courtis Kenneth S. | 2026-08-28 | 1271 | $226.48 | $287856.08 | 2.928 |
+
+**Routine / planned sales (context):**
+
+- Eidson Charles Andrew: 3662 @ $231.15 on 2026-01-25
+- Eidson Charles Andrew: 452 @ $231.15 on 2026-01-24
+- Eidson Charles Andrew: 882 @ $234.89 on 2026-01-22
+
+Source: `_system/reference/market-data/insider/AMR_transactions.csv`.
+Lawrence base IRR unchanged (`in_base_irr: False`).
