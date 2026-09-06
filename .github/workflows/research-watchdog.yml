@@ -54,11 +54,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # _system/trading is the whole package, not just portfolio_hub:
+      # build_research_scope imports flex_ingest, which reaches
+      # allocation_policy and on into _system.trading.sleeves. Listing only the
+      # modules named today is how this broke the first time, and the tree is
+      # 98 files / 0.5 MB. (These lines sit outside the block scalar on purpose
+      # -- inside `sparse-checkout: |` every line is literal text, not a
+      # comment, and would be handed to git as a pattern.)
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             _system/scripts
             _system/graph/graph_sources.json
+            _system/__init__.py
+            _system/trading
           sparse-checkout-cone-mode: false
           fetch-depth: 1
       - uses: actions/setup-python@v5
@@ -68,8 +77,14 @@ jobs:
       # The runner image has no pytest. research-quality.yml carries a comment
       # about this exact omission ("the job had no install step, so it failed
       # with No module named pytest"); this lane repeated it on its first run.
-      # pytest is the only dependency - every module in the watchdog's import
-      # chain is stdlib.
+      # pytest is still the only third-party dependency, but "every module in
+      # the watchdog's import chain is stdlib" stopped being true when
+      # build_research_scope.py took its Flex imports, and the sparse-checkout
+      # above was not widened with it: collection died on
+      # "No module named '_system.trading'" and the lane had not gone green
+      # since. Nothing said so -- a lane that never succeeds simply ages out of
+      # its P3 freshness window, which is what turned every open PR's
+      # graph-invariants gate red.
       - name: Install test dependencies
         run: python -m pip install --disable-pip-version-check --quiet pytest
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,11 +20,42 @@ def _component_fingerprint(component: dict) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+_SECRET_PRAGMA = re.compile(r"\s*//\s*pragma:\s*allowlist secret\s*,?\s*$")
+
+
+def _strip_secret_pragma(text: str) -> str:
+    """Drop detect-secrets' inline pragma, which is not legal JSON.
+
+    The cloud agents that author these drafts run a secret scanner that appends
+    `// pragma: allowlist secret` to any line holding a long hex string -- and
+    every draft carries `evidence_hash`, `epistemic_input_sha` and
+    `contract_hash`. JSON has no comments, so the pragma made the file
+    unparseable and the whole draft was blocked as "invalid draft JSON".
+
+    On 2026-09-06 that was 8 of 19 drafts across ALB, ASML, AVGO, AXP and CEG,
+    and because the promoter exits non-zero on blocked drafts the falsifier lane
+    had not gone green in 104 hours -- long enough to fall out of its P3
+    freshness window and turn the graph-invariants gate red on every open PR.
+    Repairing the files fixes today; the writer is a cloud agent this repo does
+    not control, so it would come straight back.
+
+    Deliberately narrow: only this exact trailing pragma, only at end of line.
+    Anything else that makes a draft unparseable must still be reported rather
+    than quietly swallowed.
+    """
+    if "allowlist secret" not in text:
+        return text
+    return "\n".join(
+        _SECRET_PRAGMA.sub("", line) if "allowlist secret" in line else line
+        for line in text.splitlines()
+    )
+
+
 def promote(root: Path = ROOT, write: bool = True) -> dict:
     promoted, blocked = [], []
     for path in sorted(root.glob("*/research/falsifier_drafts/*.json")):
         try:
-            draft = json.loads(path.read_text(encoding="utf-8"))
+            draft = json.loads(_strip_secret_pragma(path.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError) as exc:
             blocked.append({
                 "draft": str(path.relative_to(root)).replace("\\", "/"),
